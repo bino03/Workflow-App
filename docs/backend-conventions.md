@@ -85,7 +85,7 @@ Ver [[security]] → "Fluxo de autenticação" e [[adr/0003-auth-utilizador-unic
   `claude` não é encontrado ou arranca sem sessão iniciada. Correr com o utilizador que fez login no
   Claude Code.
 - **`tsx watch` reinicia o servidor a cada gravação e mata todos os terminais** — incluindo aquele em que
-  o Claude Code está a editar o backend. Ver [[commands]] → Armadilhas.
+  o Claude Code está a editar o backend. Ver [[commands#⚠️ Desenvolver a app a partir dela própria]].
 - **`node-pty` e a versão do Node** — mudar de Node sem `npm rebuild node-pty` dá `NODE_MODULE_VERSION`
   no arranque.
 - **Bytes partidos a meio de um carácter UTF-8** — o output chega em pedaços arbitrários; um carácter

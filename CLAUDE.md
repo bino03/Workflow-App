@@ -57,6 +57,9 @@ o hook de pre-commit só vigia `docs/`.
    provisórios, e UI construída sobre eles é refeita. Tarefas de backend podem avançar.
 6. **Uma tarefa só está feita depois de testada a sério** — ver [[testing-and-verification]].
 7. **Decisão estrutural nova = ADR novo**; ADRs antigos não se editam.
+8. **Nunca editar o backend a partir de um terminal servido por ele próprio em `npm run dev`** — o
+   reinício do watch mata essa sessão (e todos os terminais). Ver [[docs/commands]] → "Desenvolver a app
+   a partir dela própria".
 
 ## Fluxo de trabalho
 

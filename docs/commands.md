@@ -25,9 +25,44 @@ npm run hash-password  # gera o APP_PASSWORD_HASH (argon2id) a partir de uma pas
   Fixar a versão do `node-pty` e usar uma versão LTS do Node.
 - **Mudar a versão do Node parte o `node-pty`** (`NODE_MODULE_VERSION` diferente) → `npm rebuild node-pty`.
 - **`npm run dev` com `tsx watch` reinicia o servidor a cada gravação — e cada reinício mata todos os
-  terminais abertos.** Não trabalhar no backend a partir de um terminal servido *por este mesmo backend*
-  em modo watch (a sessão do Claude Code que está a editar o código morre ao gravar). Para desenvolver o
-  backend, usar um terminal normal ou uma segunda instância noutra porta.
+  terminais abertos.** Ver a secção seguinte.
+
+### ⚠️ Desenvolver a app a partir dela própria
+
+Quando a app já funcionar, vai ser tentador abrir um terminal **dentro** do Workflow App para trabalhar
+**no** Workflow App. Para o backend, isso corta o ramo em que se está sentado:
+
+```
+backend do Workflow App (npm run dev → tsx watch)
+  └── PTY ─▶ claude          ← a sessão em que estás a trabalhar
+                 └── grava backend/src/…/qualquer.ts
+                         ↓
+                 tsx watch deteta a gravação → reinicia o backend
+                         ↓
+                 o backend morre → mata todos os PTYs → incluindo este claude, a meio do trabalho
+```
+
+A sessão do Claude Code que edita o backend é um **processo filho desse mesmo backend**. À primeira
+gravação, morre — e com ela todos os outros terminais abertos (dos outros projetos também).
+
+| Situação | Problema? |
+|---|---|
+| Editar o **backend** num terminal da app, com o backend em `npm run dev` | ⛔ Sim — morre à primeira gravação |
+| Editar o **frontend** num terminal da app | Não — o Vite recarrega o browser, o backend continua de pé (o terminal volta a ligar pelo scrollback) |
+| Trabalhar noutros projetos num terminal da app | Não — só o código deste backend faz o watch reiniciar |
+| Editar o backend num terminal **fora** da app (Windows Terminal, VS Code) | Não |
+
+**Como trabalhar no backend**, quando lá chegar:
+1. **Terminal fora da app** para desenvolver o backend — o mais simples.
+2. **Duas instâncias**, se quiseres mesmo usar a app para se desenvolver a si própria:
+   - uma **estável** — `npm run build && npm start` (sem watch), na porta 7400, que serve os terminais
+     onde trabalhas;
+   - uma **de desenvolvimento** — `npm run dev` noutra porta (ex.: `PORT=7410`, com o seu `.env` e o seu
+     frontend), que é a que estás a alterar. Quando uma alteração estiver pronta, rebuild da estável
+     (o que também mata os terminais dela — fazê-lo num momento escolhido, não a cada gravação).
+
+Mesmo com a instância estável, **qualquer reinício do backend mata todos os terminais** — atualizar a app
+é sempre um momento escolhido.
 
 ## Frontend — `react-vite-antd` (✅)
 
