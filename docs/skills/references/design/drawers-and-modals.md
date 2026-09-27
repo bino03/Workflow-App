@@ -10,12 +10,20 @@
 
 | Tamanho | Largura | Uso |
 |---|---|---|
-| Small | `600` | Formulário simples |
-| Medium | `900` | Criar/editar uma entidade |
-| Large | `1300` ou `"80%"` | Visualização completa |
+| Small | `540` | Formulário simples: Novo terminal, Definições |
+| Medium | `600` | Ver uma entrada: detalhe da Biblioteca (manifesto) |
+| Large | `900` | Visualização completa (nenhum ainda) |
 
+Valores do handoff de 2026-09-27 (Small e Medium vêm dos protótipos; Large é derivado).
+
+- Visual: `surface-1` + `shadow-overlay`, máscara `--wfa-color-mask`, desliza em `--wfa-dur-slow`
+  (só opacidade com `prefers-reduced-motion`). Cabeçalho e rodapé com hairline `border`, padding 24.
+- O cabeçalho mostra `Esc` em `.kbd` ao lado do ✕.
 - `maskClosable`: o valor por omissão do AntD — não o definir explicitamente.
-- Título: kicker (`<h6>`, cor de acento) + `<h2>`.
+- Título: kicker (`<h6>`, `var(--wfa-color-accent)`) + `<h2>` title 20/26. Nomes técnicos (stack,
+  pasta) no título em mono.
+- O rodapé pode ter, à esquerda, um resumo do que a ação vai fazer ("Retoma 26 set · 18:42 em
+  D:\projetos\api-faturas") em caption `text-3`.
 - Rodapé: `<Space>` alinhado à direita; cancelar/fechar primeiro, ação primária mais à direita.
 - Texto dos botões via i18n (`t('common.cancel')`, `t('common.save')`), nunca hardcoded.
 - Drawer de detalhe carrega por `id` (`open={!!id}`), mostra `<Spin>` enquanto carrega.
@@ -51,6 +59,11 @@ export function OrderViewDrawer({ id, onClose }: Props) {
 
 `useConfirm()` — nunca `Popconfirm`. `Modal.confirm` só quando a confirmação precisa de mais
 contexto do que o diálogo partilhado permite. Ver [[buttons-and-icons]].
+
+Visual do diálogo (protótipo "Fechar terminal"): 440 px, `surface-2`, raio `lg`, `shadow-overlay`;
+título "Fechar `<nome>`?" 18/24; o texto explica a consequência ("A conversa fica gravada e podes
+retomá-la…"); um aviso de contexto opcional em caixa `state-*-subtle` ("Está a trabalhar agora — o
+passo em curso é interrompido"); botões Cancelar (contornado) + ação real (`danger`).
 
 ## Drift encontrado — não copiar
 

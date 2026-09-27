@@ -7,10 +7,6 @@
 > 🌱 Gerado pelo Workflow a 2026-09-27 — ver [[docs/provenance]]. Quase todos os documentos começam em
 > 🚧 (intenção, sem código ainda); isso é normal e está assinalado de propósito.
 
-> ⛔ **Design por escolher.** Antes de qualquer ecrã: `/choose-design` — um design da biblioteca do
-> Workflow, um importado da net, ou um desenhado no Claude Design (a skill gera o prompt com o contexto
-> desta app). Ver [[docs/product/design-brief]] §7.
-
 > ⛔ **Modelo de dados por desenhar.** Antes de qualquer tabela de negócio: `/design-database` — parte do
 > [[docs/product/domain-brief]], que já tem o contexto de dados recolhido na criação.
 
@@ -59,6 +55,7 @@
 - [[docs/product/overview]] — o que é, para quem, problema, fora de âmbito
 - [[docs/product/use-cases]] — casos de uso e ecrãs
 - [[docs/product/design-brief]] — contexto para quem desenha a interface
+- [[docs/design/handoff-2026-09-27/README|docs/design/handoff-2026-09-27]] — o handoff do Claude Design (Violeta + Geist) e os protótipos de referência
 - [[docs/product/project-profile]] — as respostas da entrevista que gerou este vault
 - [[docs/product/domain-brief]] — o contexto de dados (entidades, relações, quem vê o quê) para o `/design-database`
 

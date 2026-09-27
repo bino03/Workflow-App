@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<div style="width:1440px;height:900px;position:relative;display:flex;flex-direction:column;background:var(--wfa-color-bg);color:var(--wfa-color-text-1);font-family:var(--wfa-font-sans);font-size:14px;line-height:20px;overflow:hidden">
+  <div style="height:48px;flex:none;display:flex;align-items:center;gap:28px;padding:0 16px 0 20px;border-bottom:1px solid var(--wfa-color-border)">
+    <div style="display:flex;align-items:center;gap:10px">
+      <div style="width:9px;height:9px;transform:rotate(45deg);border:1.5px solid var(--wfa-color-accent)"></div>
+      <span style="font-family:var(--wfa-font-display);font-weight:600;font-size:13px;letter-spacing:0.18em;text-transform:uppercase">Workflow</span>
+    </div>
+    <nav style="display:flex;align-self:stretch;gap:4px">
+      <a style="display:flex;align-items:center;gap:8px;padding:0 12px;font-size:13.5px;font-weight:500;color:var(--wfa-color-text-2);text-decoration:none">Terminais <span style="width:7px;height:7px;background:var(--wfa-state-wait);transform:rotate(45deg)"></span></a>
+      <a style="display:flex;align-items:center;padding:0 12px;font-size:13.5px;font-weight:500;color:var(--wfa-color-text-1);text-decoration:none;box-shadow:inset 0 -2px 0 var(--wfa-color-accent)">Biblioteca</a>
+    </nav>
+    <div style="flex:1"></div>
+    <div style="display:flex;align-items:center;gap:24px">
+      <sc-for list="{{ quota }}" as="q" hint-placeholder-count="2">
+        <div style="display:flex;align-items:center;gap:10px;font-size:12.5px">
+          <span style="color:var(--wfa-color-text-2)">{{ q.short }}</span>
+          <div style="width:96px;height:4px;border-radius:2px;background:var(--wfa-color-surface-3);overflow:hidden"><div style="{{ q.fill }}"></div></div>
+          <span style="{{ q.pctStyle }}">{{ q.pctTxt }}</span>
+          <span style="color:var(--wfa-color-text-3)">{{ q.reset }}</span>
+        </div>
+      </sc-for>
+    </div>
+    <div style="width:1px;height:20px;background:var(--wfa-color-border)"></div>
+    <div style="display:flex;align-items:center;gap:8px;padding:4px 6px 4px 4px;color:var(--wfa-color-text-2);font-size:13px">
+      <div style="width:26px;height:26px;border-radius:50%;background:var(--wfa-color-surface-3);border:1px solid var(--wfa-color-border-strong);display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:600;color:var(--wfa-color-text-1)">JM</div>
+      <span>▾</span>
+    </div>
+  </div>
+
+  <div style="flex:1;min-height:0;display:flex;flex-direction:column;padding:28px 40px 0">
+    <div style="display:flex;align-items:flex-end;gap:16px">
+      <div style="flex:1;display:flex;flex-direction:column;gap:4px">
+        <span style="font-family:var(--wfa-font-display);font-size:11px;font-weight:600;letter-spacing:0.12em;text-transform:uppercase;color:var(--wfa-color-accent)">Biblioteca</span>
+        <span style="font-family:var(--wfa-font-display);font-size:28px;line-height:34px;font-weight:600;text-transform:var(--wfa-display-case);letter-spacing:var(--wfa-display-tracking)">Workflow</span>
+        <span style="font-size:13.5px;color:var(--wfa-color-text-2)">Stacks, designs e skills do teu registo. Só leitura.</span>
+      </div>
+      <div style="width:320px;height:34px;display:flex;align-items:center;gap:10px;padding:0 12px;border:1px solid var(--wfa-color-border-strong);border-radius:var(--wfa-radius-md);background:var(--wfa-color-surface-1)">
+        <span style="width:11px;height:11px;border:1.5px solid var(--wfa-color-text-3);border-radius:50%;flex:none"></span>
+        <span style="flex:1;font-size:13.5px;color:var(--wfa-color-text-3)">Pesquisar stacks…</span>
+        <span style="font-family:var(--wfa-font-mono);font-size:10.5px;color:var(--wfa-color-text-3);padding:1px 6px;border:1px solid var(--wfa-color-border);border-radius:var(--wfa-radius-sm)">/</span>
+      </div>
+    </div>
+
+    <div style="margin-top:22px;display:flex;align-items:center;gap:24px;border-bottom:1px solid var(--wfa-color-border)">
+      <sc-for list="{{ tabs }}" as="t" hint-placeholder-count="3">
+        <div style="{{ t.st }}">{{ t.name }} <span style="font-family:var(--wfa-font-mono);font-size:11.5px;color:var(--wfa-color-text-3)">{{ t.n }}</span></div>
+      </sc-for>
+      <div style="flex:1"></div>
+      <div style="display:flex;gap:6px;padding-bottom:8px">
+        <sc-for list="{{ filters }}" as="f" hint-placeholder-count="4">
+          <span style="{{ f.st }}"><span style="{{ f.iconStyle }}">{{ f.glyph }}</span>{{ f.label }}</span>
+        </sc-for>
+      </div>
+    </div>
+
+    <div style="flex:1;min-height:0;display:flex;flex-direction:column">
+      <div style="display:grid;grid-template-columns:220px minmax(0,1fr) 260px 130px 100px 70px;gap:16px;align-items:center;height:38px;padding:0 12px;border-bottom:1px solid var(--wfa-color-border);font-size:12px;color:var(--wfa-color-text-3);font-weight:500">
+        <span>Nome</span><span>Descrição</span><span>Tecnologias</span><span>Maturidade</span><span>Atualizado</span><span style="text-align:right">Ações</span>
+      </div>
+      <sc-for list="{{ rows }}" as="r" hint-placeholder-count="7">
+        <div style="{{ r.rowStyle }}">
+          <span style="font-family:var(--wfa-font-mono);font-size:13px;font-weight:500;color:var(--wfa-color-text-1)">{{ r.name }}</span>
+          <span style="font-size:13.5px;color:var(--wfa-color-text-2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ r.desc }}</span>
+          <div style="display:flex;gap:4px;flex-wrap:wrap">
+            <sc-for list="{{ r.techs }}" as="x" hint-placeholder-count="3">
+              <span style="height:20px;padding:0 7px;display:inline-flex;align-items:center;border-radius:var(--wfa-radius-sm);background:var(--wfa-color-surface-2);border:1px solid var(--wfa-color-border);font-size:11.5px;color:var(--wfa-color-text-2)">{{ x }}</span>
+            </sc-for>
+          </div>
+          <div><span style="{{ r.tagStyle }}"><span style="{{ r.iconStyle }}">{{ r.glyph }}</span>{{ r.mat }}</span></div>
+          <span style="font-family:var(--wfa-font-mono);font-size:12px;color:var(--wfa-color-text-3)">{{ r.date }}</span>
+          <span style="text-align:right;font-size:13px;font-weight:600;color:var(--wfa-color-accent)">Ver</span>
+        </div>
+      </sc-for>
+      <div style="height:44px;display:flex;align-items:center;font-size:12.5px;color:var(--wfa-color-text-3)">7 stacks · 3 provados · 2 parciais · 2 rascunhos</div>
+    </div>
+  </div>
+
+  <sc-if value="{{ showDrawer }}" hint-placeholder-val="{{ false }}">
+    <div style="position:absolute;inset:0;background:var(--wfa-color-mask)"></div>
+    <div style="position:absolute;top:0;right:0;bottom:0;width:600px;display:flex;flex-direction:column;background:var(--wfa-color-surface-1);box-shadow:var(--wfa-shadow-overlay)">
+      <div style="flex:none;display:flex;flex-direction:column;gap:12px;padding:20px 24px 16px;border-bottom:1px solid var(--wfa-color-border)">
+        <div style="display:flex;align-items:flex-start;gap:12px">
+          <div style="flex:1;display:flex;flex-direction:column;gap:4px">
+            <span style="font-family:var(--wfa-font-display);font-size:11px;font-weight:600;letter-spacing:0.12em;text-transform:uppercase;color:var(--wfa-color-accent)">Stack</span>
+            <span style="font-family:var(--wfa-font-mono);font-size:20px;line-height:26px;font-weight:600">react-vite-antd</span>
+          </div>
+          <span style="font-size:16px;color:var(--wfa-color-text-2);line-height:22px">✕</span>
+        </div>
+        <div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center">
+          <span style="{{ sel.tagStyle }}"><span style="{{ sel.iconStyle }}">{{ sel.glyph }}</span>{{ sel.mat }}</span>
+          <sc-for list="{{ sel.techs }}" as="x" hint-placeholder-count="4">
+            <span style="height:22px;padding:0 8px;display:inline-flex;align-items:center;border-radius:var(--wfa-radius-sm);background:var(--wfa-color-surface-2);border:1px solid var(--wfa-color-border);font-size:12px;color:var(--wfa-color-text-2)">{{ x }}</span>
+          </sc-for>
+        </div>
+        <div style="display:grid;grid-template-columns:96px 1fr;gap:4px 12px;font-size:12.5px">
+          <span style="color:var(--wfa-color-text-3)">Ficheiro</span><span style="font-family:var(--wfa-font-mono);color:var(--wfa-color-text-2)">Workflow/Stacks/react-vite-antd.md</span>
+          <span style="color:var(--wfa-color-text-3)">Atualizado</span><span style="color:var(--wfa-color-text-2)">12 set 2026</span>
+          <span style="color:var(--wfa-color-text-3)">Usado em</span><span style="color:var(--wfa-color-text-2)">workflow-app, loja-online</span>
+        </div>
+      </div>
+      <div style="flex:1;min-height:0;overflow:hidden;padding:20px 28px;display:flex;flex-direction:column;gap:12px;font-size:14px;line-height:22px;color:var(--wfa-color-text-2)">
+        <span style="font-family:var(--wfa-font-display);font-size:16px;font-weight:600;color:var(--wfa-color-text-1);text-transform:var(--wfa-display-case);letter-spacing:var(--wfa-display-tracking)">Quando usar</span>
+        <p style="margin:0;text-wrap:pretty">SPAs internas com muitos formulários e tabelas, onde a consistência do Ant Design poupa tempo e o Tailwind cobre o estilo próprio. Não usar para sites de conteúdo.</p>
+        <span style="font-family:var(--wfa-font-display);font-size:16px;font-weight:600;color:var(--wfa-color-text-1);margin-top:6px;text-transform:var(--wfa-display-case);letter-spacing:var(--wfa-display-tracking)">Estrutura</span>
+        <div style="padding:12px 14px;border-radius:var(--wfa-radius-md);background:var(--wfa-term-bg);border:1px solid var(--wfa-color-border);font-family:var(--wfa-font-mono);font-size:12.5px;line-height:19px;color:var(--wfa-term-fg);white-space:pre">src/
+  app/         <span style="color:var(--wfa-ansi-bright-black)"># rotas e layout</span>
+  features/    <span style="color:var(--wfa-ansi-bright-black)"># um diretório por domínio</span>
+  theme/       <span style="color:var(--wfa-ansi-bright-black)"># tokens --wfa-* → ConfigProvider</span>
+vite.config.ts</div>
+        <span style="font-family:var(--wfa-font-display);font-size:16px;font-weight:600;color:var(--wfa-color-text-1);margin-top:6px;text-transform:var(--wfa-display-case);letter-spacing:var(--wfa-display-tracking)">Decisões</span>
+        <div style="display:flex;flex-direction:column;gap:6px">
+          <div style="display:flex;gap:10px"><span style="color:var(--wfa-color-text-3)">—</span><span>Tema do Ant Design gerado a partir das CSS custom properties.</span></div>
+          <div style="display:flex;gap:10px"><span style="color:var(--wfa-color-text-3)">—</span><span>Tailwind 4 só para layout e espaçamento; nada de cores soltas.</span></div>
+          <div style="display:flex;gap:10px"><span style="color:var(--wfa-color-text-3)">—</span><span>Estado de servidor com <span style="font-family:var(--wfa-font-mono);font-size:13px;color:var(--wfa-color-text-1)">@tanstack/react-query</span>.</span></div>
+        </div>
+      </div>
+      <div style="flex:none;display:flex;align-items:center;gap:8px;padding:14px 24px;border-top:1px solid var(--wfa-color-border)">
+        <span style="font-size:12px;color:var(--wfa-color-text-3)">Só leitura · edita no Obsidian</span>
+        <span style="flex:1"></span>
+        <button style="height:32px;padding:0 14px;background:transparent;border:1px solid var(--wfa-color-border-strong);border-radius:var(--wfa-radius-md);color:var(--wfa-color-text-1);font-family:var(--wfa-font-sans);font-size:13.5px">Copiar caminho</button>
+        <button style="height:32px;padding:0 16px;background:var(--wfa-color-accent);border:none;border-radius:var(--wfa-radius-md);color:var(--wfa-color-on-accent);font-family:var(--wfa-font-sans);font-size:13.5px;font-weight:600">Fechar</button>
+      </div>
+    </div>
+  </sc-if>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;$preview&quot;:{&quot;width&quot;:1440,&quot;height&quot;:900},&quot;drawer&quot;:{&quot;editor&quot;:&quot;boolean&quot;,&quot;default&quot;:false,&quot;tsType&quot;:&quot;boolean&quot;}}">
+class Component extends DCLogic {
+  renderVals() {
+    const drawer = this.props.drawer ?? false;
+    const MAT = {
+      ok: { mat: 'Provado', c: 'var(--wfa-color-success)', icon: c => ({ color: c, fontWeight: 700, fontSize: 12, width: 10, textAlign: 'center', lineHeight: '10px' }), g: '✓' },
+      mid: { mat: 'Parcial', c: 'var(--wfa-color-warning)', icon: c => ({ width: 9, height: 9, borderRadius: '50%', border: `1.5px solid ${c}`, background: `linear-gradient(90deg, ${c} 50%, transparent 50%)`, boxSizing: 'border-box' }), g: '' },
+      draft: { mat: 'Rascunho', c: 'var(--wfa-color-text-2)', icon: c => ({ width: 9, height: 9, borderRadius: 2, border: `1.5px dashed ${c}`, boxSizing: 'border-box' }), g: '' },
+    };
+    const tag = k => { const m = MAT[k]; return { mat: m.mat, glyph: m.g, iconStyle: { display: 'inline-block', flex: 'none', ...m.icon(m.c) },
+      tagStyle: { display: 'inline-flex', alignItems: 'center', gap: 6, height: 22, padding: '0 8px', borderRadius: 'var(--wfa-radius-sm)', fontSize: 12, fontWeight: 500, color: m.c, border: '1px solid var(--wfa-color-border-strong)', background: 'var(--wfa-color-surface-1)' } }; };
+    const data = [
+      ['react-vite-antd', 'SPA com React, Vite e Ant Design 5, tema a partir de tokens.', ['React', 'Vite', 'Ant Design', 'Tailwind'], 'ok', '12 set'],
+      ['node-pty-ws', 'Servidor Node que expõe pseudo-terminais por WebSocket.', ['Node', 'node-pty', 'ws'], 'mid', '21 set'],
+      ['astro-site', 'Site estático com Astro e conteúdo em Markdown.', ['Astro', 'MDX'], 'ok', '02 ago'],
+      ['fastapi-postgres', 'API Python com FastAPI, SQLAlchemy e Postgres.', ['Python', 'FastAPI', 'Postgres'], 'ok', '18 jul'],
+      ['prisma-express', 'API REST em Express com Prisma e testes de integração.', ['Express', 'Prisma'], 'mid', '26 set'],
+      ['tauri-desktop', 'App desktop leve com Tauri e React.', ['Tauri', 'Rust', 'React'], 'draft', '09 set'],
+      ['scraper-playwright', 'Scraping com Playwright, filas e backoff.', ['Python', 'Playwright'], 'draft', '15 set'],
+    ];
+    const rows = data.map(([name, desc, techs, m, date], i) => ({ name, desc, techs, date, ...tag(m),
+      rowStyle: { display: 'grid', gridTemplateColumns: '220px minmax(0,1fr) 260px 130px 100px 70px', gap: 16, alignItems: 'center', height: 52, padding: '0 12px', borderBottom: '1px solid var(--wfa-color-border)', background: drawer && i === 0 ? 'var(--wfa-color-surface-2)' : 'transparent' } }));
+    const tabs = [['Stacks', 7, true], ['Designs', 5], ['Skills', 11]].map(([name, n, a]) => ({ name, n, st: { display: 'flex', alignItems: 'center', gap: 8, height: 40, fontSize: 14, fontWeight: 500, color: a ? 'var(--wfa-color-text-1)' : 'var(--wfa-color-text-2)', boxShadow: a ? 'inset 0 -2px 0 var(--wfa-color-accent)' : 'none' } }));
+    const fb = sel => ({ display: 'inline-flex', alignItems: 'center', gap: 6, height: 26, padding: '0 10px', borderRadius: 'var(--wfa-radius-sm)', fontSize: 12.5, color: sel ? 'var(--wfa-color-text-1)' : 'var(--wfa-color-text-2)', border: `1px solid ${sel ? 'var(--wfa-color-accent-border)' : 'var(--wfa-color-border)'}`, background: sel ? 'var(--wfa-color-accent-subtle)' : 'transparent' });
+    const filters = [{ label: 'Todas', glyph: '', iconStyle: { display: 'none' }, st: fb(true) }, ...['ok', 'mid', 'draft'].map(k => { const t = tag(k); return { label: t.mat, glyph: t.glyph, iconStyle: t.iconStyle, st: fb(false) }; })];
+    const quota = [{ short: '5 h', pct: 62, reset: 'repõe às 14:30' }, { short: 'Semana', pct: 86, reset: 'repõe segunda', warn: true }].map(q => ({ ...q, pctTxt: q.pct + '%',
+      fill: { width: q.pct + '%', height: '100%', background: q.warn ? 'var(--wfa-color-warning)' : 'var(--wfa-color-text-2)' },
+      pctStyle: { fontFamily: 'var(--wfa-font-mono)', fontSize: 12.5, fontWeight: 600, color: q.warn ? 'var(--wfa-color-warning)' : 'var(--wfa-color-text-1)' } }));
+    return { rows, tabs, filters, quota, sel: rows[0], showDrawer: drawer };
+  }
+}
+</script>
+</body>
+</html>

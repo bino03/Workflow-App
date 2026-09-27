@@ -49,18 +49,19 @@ Ver [[project-vocabulary]]. UI em pt-PT; código em inglês.
 
 ## 7. Identidade visual
 
-**Por escolher** — `/choose-design` decide, por uma de três vias: um design da biblioteca do Workflow,
-um design importado da net, ou um desenhado no Claude Design a partir de um prompt gerado com este
-briefing. Seja qual for a via, não começar por um design system abstrato: validar em 2-3 ecrãs reais
-(Terminais e Biblioteca (proposta — os ecrãs estão em standby) primeiro) antes de fixar os tokens em [[design/tokens-and-colors]].
+**Escolhida a 2026-09-27: Violeta + Geist, só tema escuro** — desenhada no Claude Design a partir deste
+briefing e validada em ecrãs reais (Terminais nos dois layouts, Novo terminal, Fechar, Biblioteca,
+detalhe, Login). Decisão, alternativas e porquê: [[../adr/0008-identidade-visual]]. Valores:
+[[design/tokens-and-colors]]. Protótipos: [[../design/handoff-2026-09-27/README|handoff 2026-09-27]].
 
 ## 8. Buracos no briefing
 
-- Ecrãs exatos além dos terminais e da biblioteca (standby).
-- Forma final da UI: web no browser, PWA, ou desktop (Tauri/Electron) por cima do mesmo backend.
-- Layout dos terminais: separadores, grelha, split — e quantos à vista ao mesmo tempo.
-- Uso em telemóvel/tablet (teclado virtual num terminal é difícil) — responsivo ou não.
-- Identidade visual (`/choose-design`).
+- Forma final da UI: web no browser, PWA, ou desktop (Tauri/Electron) por cima do mesmo backend. O design
+  serve as três.
+- Onde se guarda a preferência de layout dos terminais (browser ou backend) — `/design-database`.
+
+Fechados no `/choose-design`: ecrãs (Terminais, Biblioteca, Login + Definições), layout dos terminais
+(foco dividido por omissão, grelha em alternativa), sem tratamento responsivo (≥ 1280 px), identidade visual.
 
 ## Relacionado
 

@@ -1,0 +1,351 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<div style="width:1440px;height:900px;position:relative;display:flex;flex-direction:column;background:var(--wfa-color-bg);color:var(--wfa-color-text-1);font-family:var(--wfa-font-sans);font-size:14px;line-height:20px;overflow:hidden">
+  <div style="height:48px;flex:none;display:flex;align-items:center;gap:28px;padding:0 16px 0 20px;border-bottom:1px solid var(--wfa-color-border)">
+    <div style="display:flex;align-items:center;gap:10px">
+      <div style="width:9px;height:9px;transform:rotate(45deg);border:1.5px solid var(--wfa-color-accent)"></div>
+      <span style="font-family:var(--wfa-font-display);font-weight:600;font-size:13px;letter-spacing:0.18em;text-transform:uppercase">Workflow</span>
+    </div>
+    <nav style="display:flex;align-self:stretch;gap:4px">
+      <a style="display:flex;align-items:center;padding:0 12px;font-size:13.5px;font-weight:500;color:var(--wfa-color-text-1);text-decoration:none;box-shadow:inset 0 -2px 0 var(--wfa-color-accent)">Terminais</a>
+      <a style="display:flex;align-items:center;padding:0 12px;font-size:13.5px;font-weight:500;color:var(--wfa-color-text-2);text-decoration:none">Biblioteca</a>
+    </nav>
+    <div style="flex:1"></div>
+    <sc-if value="{{ isGrelha }}" hint-placeholder-val="{{ false }}">
+      <div style="display:flex;align-items:center;gap:24px">
+        <sc-for list="{{ quota }}" as="q" hint-placeholder-count="2">
+          <div style="display:flex;align-items:center;gap:10px;font-size:12.5px">
+            <span style="color:var(--wfa-color-text-2)">{{ q.short }}</span>
+            <div style="width:96px;height:4px;border-radius:2px;background:var(--wfa-color-surface-3);overflow:hidden"><div style="{{ q.fill }}"></div></div>
+            <span style="{{ q.pctStyle }}">{{ q.pctTxt }}</span>
+            <span style="color:var(--wfa-color-text-3)">{{ q.reset }}</span>
+          </div>
+        </sc-for>
+      </div>
+      <div style="width:1px;height:20px;background:var(--wfa-color-border)"></div>
+    </sc-if>
+    <div style="display:flex;align-items:center;gap:8px;padding:4px 6px 4px 4px;border-radius:var(--wfa-radius-md);color:var(--wfa-color-text-2);font-size:13px">
+      <div style="width:26px;height:26px;border-radius:50%;background:var(--wfa-color-surface-3);border:1px solid var(--wfa-color-border-strong);display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:600;color:var(--wfa-color-text-1)">JM</div>
+      <span>▾</span>
+    </div>
+  </div>
+
+  <div style="flex:1;min-height:0;display:flex">
+    <sc-if value="{{ isFoco }}" hint-placeholder-val="{{ true }}">
+      <aside style="width:288px;flex:none;display:flex;flex-direction:column;border-right:1px solid var(--wfa-color-border);background:var(--wfa-color-surface-1)">
+        <div style="padding:16px 14px 12px;display:flex;flex-direction:column;gap:12px">
+          <div style="display:flex;align-items:baseline;justify-content:space-between">
+            <span style="font-family:var(--wfa-font-display);font-size:11px;font-weight:600;letter-spacing:0.12em;text-transform:uppercase;color:var(--wfa-color-accent)">Terminais</span>
+            <span style="font-family:var(--wfa-font-mono);font-size:11px;color:var(--wfa-color-text-3)">5 abertos</span>
+          </div>
+          <button style="height:32px;display:flex;align-items:center;justify-content:center;gap:8px;border:none;border-radius:var(--wfa-radius-md);background:var(--wfa-color-accent);color:var(--wfa-color-on-accent);font-family:var(--wfa-font-sans);font-size:13.5px;font-weight:600;cursor:pointer">+ Novo terminal <span style="font-family:var(--wfa-font-mono);font-size:10.5px;font-weight:500;opacity:0.75">Alt+N</span></button>
+          <div style="display:flex;flex-wrap:wrap;gap:4px 12px;font-size:12px;color:var(--wfa-color-text-2)">
+            <sc-for list="{{ counts }}" as="c" hint-placeholder-count="4">
+              <span style="display:flex;align-items:center;gap:6px"><span style="{{ c.iconStyle }}">{{ c.glyph }}</span>{{ c.n }} {{ c.label }}</span>
+            </sc-for>
+          </div>
+        </div>
+        <div style="flex:1;min-height:0;display:flex;flex-direction:column;gap:2px;padding:0 8px;overflow:hidden">
+          <sc-for list="{{ sessions }}" as="s" hint-placeholder-count="5">
+            <div style="{{ s.itemStyle }}">
+              <div style="display:flex;align-items:center;gap:10px">
+                <span style="width:14px;display:flex;justify-content:center;flex:none"><span style="{{ s.iconStyle }}">{{ s.glyph }}</span></span>
+                <span style="flex:1;min-width:0;font-weight:600;font-size:14px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">{{ s.name }}</span>
+                <span style="font-family:var(--wfa-font-mono);font-size:10.5px;color:var(--wfa-color-text-3)">{{ s.kbd }}</span>
+              </div>
+              <div style="padding-left:24px;font-family:var(--wfa-font-mono);font-size:11.5px;line-height:16px;color:var(--wfa-color-text-3);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">{{ s.folder }}</div>
+              <div style="padding-left:24px;font-size:12.5px;line-height:18px;display:flex;gap:6px"><span style="{{ s.labelStyle }}">{{ s.label }}</span><span style="color:var(--wfa-color-text-3)">· {{ s.detail }}</span></div>
+            </div>
+          </sc-for>
+        </div>
+        <div style="padding:14px 16px 16px;border-top:1px solid var(--wfa-color-border);display:flex;flex-direction:column;gap:14px">
+          <span style="font-family:var(--wfa-font-display);font-size:11px;font-weight:600;letter-spacing:0.12em;text-transform:uppercase;color:var(--wfa-color-text-3)">Quota da conta</span>
+          <sc-for list="{{ quota }}" as="q" hint-placeholder-count="2">
+            <div style="display:flex;flex-direction:column;gap:6px">
+              <div style="display:flex;justify-content:space-between;align-items:baseline;font-size:13px"><span>{{ q.label }}</span><span style="{{ q.pctStyle }}">{{ q.pctTxt }}</span></div>
+              <div style="height:5px;border-radius:3px;background:var(--wfa-color-surface-3);overflow:hidden"><div style="{{ q.fill }}"></div></div>
+              <div style="display:flex;justify-content:space-between;font-size:12px;color:var(--wfa-color-text-3)"><span>{{ q.reset }}</span><span style="{{ q.warnStyle }}">{{ q.warnTxt }}</span></div>
+            </div>
+          </sc-for>
+        </div>
+      </aside>
+      <main style="flex:1;min-width:0;display:flex;gap:1px;background:var(--wfa-color-border)">
+        <sc-for list="{{ panes }}" as="p" hint-placeholder-count="1">
+          <section style="flex:1;min-width:0;display:flex;flex-direction:column;background:var(--wfa-term-bg)">
+            <div style="{{ p.headStyle }}">
+              <span style="{{ p.iconStyle }}">{{ p.glyph }}</span>
+              <span style="font-weight:600;font-size:14px">{{ p.name }}</span>
+              <span style="{{ p.tagStyle }}">{{ p.label }}</span>
+              <span style="font-family:var(--wfa-font-mono);font-size:11.5px;color:var(--wfa-color-text-3);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0">{{ p.folder }}</span>
+              <div style="flex:1"></div>
+              <sc-if value="{{ p.focused }}" hint-placeholder-val="{{ true }}">
+                <span style="font-family:var(--wfa-font-mono);font-size:10.5px;color:var(--wfa-color-accent);letter-spacing:0.04em;white-space:nowrap">⌨ TECLADO AQUI</span>
+              </sc-if>
+              <div style="display:flex;gap:4px">
+                <sc-for list="{{ p.actions }}" as="a" hint-placeholder-count="3">
+                  <button style="height:26px;padding:0 10px;display:flex;align-items:center;gap:6px;background:transparent;border:1px solid var(--wfa-color-border);border-radius:var(--wfa-radius-sm);color:var(--wfa-color-text-2);font-family:var(--wfa-font-sans);font-size:12.5px;cursor:pointer;white-space:nowrap">{{ a.t }}<span style="font-family:var(--wfa-font-mono);font-size:10px;color:var(--wfa-color-text-3)">{{ a.k }}</span></button>
+                </sc-for>
+              </div>
+            </div>
+            <div style="flex:1;min-height:0;overflow:hidden;padding:14px 18px;font-family:var(--wfa-font-mono);font-size:13px;line-height:19px;color:var(--wfa-term-fg)">
+              <sc-for list="{{ p.lines }}" as="ln" hint-placeholder-count="12">
+                <div style="white-space:pre;min-height:19px"><sc-for list="{{ ln }}" as="sp"><span style="{{ sp.st }}">{{ sp.t }}</span></sc-for></div>
+              </sc-for>
+            </div>
+          </section>
+        </sc-for>
+      </main>
+    </sc-if>
+
+    <sc-if value="{{ isGrelha }}" hint-placeholder-val="{{ false }}">
+      <div style="flex:1;min-width:0;display:flex;flex-direction:column">
+        <div style="height:64px;flex:none;display:flex;align-items:center;gap:20px;padding:0 20px">
+          <div style="display:flex;flex-direction:column;gap:2px">
+            <span style="font-family:var(--wfa-font-display);font-size:11px;font-weight:600;letter-spacing:0.12em;text-transform:uppercase;color:var(--wfa-color-accent)">Terminais</span>
+            <span style="font-family:var(--wfa-font-display);font-size:20px;line-height:26px;font-weight:600;text-transform:var(--wfa-display-case);letter-spacing:var(--wfa-display-tracking)">5 abertos</span>
+          </div>
+          <div style="display:flex;gap:16px;font-size:13px;color:var(--wfa-color-text-2);padding-top:16px">
+            <sc-for list="{{ counts }}" as="c" hint-placeholder-count="4">
+              <span style="display:flex;align-items:center;gap:6px"><span style="{{ c.iconStyle }}">{{ c.glyph }}</span>{{ c.n }} {{ c.label }}</span>
+            </sc-for>
+          </div>
+          <div style="flex:1"></div>
+          <span style="font-size:12px;color:var(--wfa-color-text-3)">Clica num terminal para o ampliar · <span style="font-family:var(--wfa-font-mono)">Alt+1–5</span></span>
+          <button style="height:32px;padding:0 14px;display:flex;align-items:center;gap:8px;border:none;border-radius:var(--wfa-radius-md);background:var(--wfa-color-accent);color:var(--wfa-color-on-accent);font-family:var(--wfa-font-sans);font-size:13.5px;font-weight:600">+ Novo terminal <span style="font-family:var(--wfa-font-mono);font-size:10.5px;font-weight:500;opacity:0.75">Alt+N</span></button>
+        </div>
+        <div style="flex:1;min-height:0;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));grid-template-rows:repeat(2,minmax(0,1fr));gap:12px;padding:0 20px 16px">
+          <sc-for list="{{ sessions }}" as="s" hint-placeholder-count="5">
+            <div style="{{ s.tileStyle }}">
+              <div style="height:40px;flex:none;display:flex;align-items:center;gap:10px;padding:0 12px;background:var(--wfa-color-surface-1);border-bottom:1px solid var(--wfa-color-border)">
+                <span style="{{ s.iconStyle }}">{{ s.glyph }}</span>
+                <span style="font-weight:600;font-size:14px;white-space:nowrap">{{ s.name }}</span>
+                <span style="flex:1;min-width:0;font-family:var(--wfa-font-mono);font-size:11px;color:var(--wfa-color-text-3);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">{{ s.folder }}</span>
+                <span style="{{ s.tagStyle }}">{{ s.label }}</span>
+              </div>
+              <div style="flex:1;min-height:0;overflow:hidden;display:flex;flex-direction:column;justify-content:flex-end;padding:10px 12px;font-family:var(--wfa-font-mono);font-size:12px;line-height:17px;color:var(--wfa-term-fg)">
+                <sc-for list="{{ s.tail }}" as="ln" hint-placeholder-count="8">
+                  <div style="white-space:pre;min-height:17px"><sc-for list="{{ ln }}" as="sp"><span style="{{ sp.st }}">{{ sp.t }}</span></sc-for></div>
+                </sc-for>
+              </div>
+              <sc-if value="{{ s.banner }}" hint-placeholder-val="{{ false }}">
+                <div style="{{ s.bannerStyle }}"><span>{{ s.banner }}</span><span style="flex:1"></span><button style="height:24px;padding:0 10px;background:transparent;border:1px solid var(--wfa-color-border-strong);border-radius:var(--wfa-radius-sm);color:var(--wfa-color-text-1);font-family:var(--wfa-font-sans);font-size:12px">{{ s.bannerAction }}</button></div>
+              </sc-if>
+            </div>
+          </sc-for>
+          <div style="border:1px dashed var(--wfa-color-border-strong);border-radius:var(--wfa-radius-lg);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;color:var(--wfa-color-text-3);font-size:13px">
+            <div style="width:28px;height:28px;border-radius:var(--wfa-radius-md);border:1px solid var(--wfa-color-border-strong);display:flex;align-items:center;justify-content:center;font-size:16px;color:var(--wfa-color-text-2)">+</div>
+            <span>Novo terminal</span>
+          </div>
+        </div>
+      </div>
+    </sc-if>
+  </div>
+
+  <div style="height:26px;flex:none;display:flex;align-items:center;gap:16px;padding:0 16px;border-top:1px solid var(--wfa-color-border);font-size:11.5px;color:var(--wfa-color-text-3)">
+    <span style="display:flex;align-items:center;gap:6px"><span style="width:6px;height:6px;border-radius:50%;background:var(--wfa-color-accent)"></span>Teclado em <span style="font-family:var(--wfa-font-mono);color:var(--wfa-color-text-2)">workflow-app</span></span>
+    <span style="flex:1"></span>
+    <span style="font-family:var(--wfa-font-mono);font-size:10.5px">Alt+1–5 saltar · Alt+N novo · Alt+\ dividir · Alt+W fechar · Alt+R renomear</span>
+  </div>
+
+  <sc-if value="{{ showToast }}" hint-placeholder-val="{{ false }}">
+    <div style="position:absolute;top:60px;right:20px;width:340px;display:flex;align-items:flex-start;gap:10px;padding:12px 14px;background:var(--wfa-color-surface-2);border-radius:var(--wfa-radius-lg);box-shadow:var(--wfa-shadow-overlay);font-size:13px">
+      <span style="margin-top:5px;width:9px;height:9px;border:2px solid var(--wfa-state-stop);box-sizing:border-box;flex:none"></span>
+      <div style="flex:1;display:flex;flex-direction:column;gap:2px"><span style="font-weight:600">obsidian-sync terminou</span><span style="color:var(--wfa-color-text-2);font-size:12.5px">A sessão ficou gravada.</span></div>
+      <span style="color:var(--wfa-color-accent);font-size:12.5px;font-weight:600">Retomar</span>
+    </div>
+  </sc-if>
+
+  <sc-if value="{{ showNovo }}" hint-placeholder-val="{{ false }}">
+    <div style="position:absolute;inset:0;background:var(--wfa-color-mask)"></div>
+    <div style="position:absolute;top:0;right:0;bottom:0;width:540px;display:flex;flex-direction:column;background:var(--wfa-color-surface-1);box-shadow:var(--wfa-shadow-overlay)">
+      <div style="flex:none;display:flex;align-items:flex-start;gap:12px;padding:20px 24px 16px;border-bottom:1px solid var(--wfa-color-border)">
+        <div style="flex:1;display:flex;flex-direction:column;gap:4px">
+          <span style="font-family:var(--wfa-font-display);font-size:11px;font-weight:600;letter-spacing:0.12em;text-transform:uppercase;color:var(--wfa-color-accent)">Novo terminal</span>
+          <span style="font-family:var(--wfa-font-display);font-size:20px;line-height:26px;font-weight:600;text-transform:var(--wfa-display-case);letter-spacing:var(--wfa-display-tracking)">Abrir sessão do Claude Code</span>
+        </div>
+        <span style="font-family:var(--wfa-font-mono);font-size:10.5px;color:var(--wfa-color-text-3);padding:3px 6px;border:1px solid var(--wfa-color-border);border-radius:var(--wfa-radius-sm)">Esc</span>
+        <span style="font-size:16px;color:var(--wfa-color-text-2);line-height:22px">✕</span>
+      </div>
+      <div style="flex:1;min-height:0;overflow:hidden;padding:20px 24px;display:flex;flex-direction:column;gap:22px">
+        <div style="display:flex;flex-direction:column;gap:10px">
+          <div style="display:flex;align-items:baseline;justify-content:space-between"><span style="font-size:13px;font-weight:600">Pasta</span><span style="font-size:12px;color:var(--wfa-color-text-3)">Só pastas dentro das raízes autorizadas</span></div>
+          <div style="display:flex;gap:6px">
+            <span style="height:26px;padding:0 10px;display:flex;align-items:center;border-radius:var(--wfa-radius-sm);border:1px solid var(--wfa-color-border);font-family:var(--wfa-font-mono);font-size:12px;color:var(--wfa-color-text-2)">C:\dev</span>
+            <span style="height:26px;padding:0 10px;display:flex;align-items:center;border-radius:var(--wfa-radius-sm);border:1px solid var(--wfa-color-accent-border);background:var(--wfa-color-accent-subtle);font-family:var(--wfa-font-mono);font-size:12px;color:var(--wfa-color-text-1)">D:\projetos</span>
+          </div>
+          <div style="border:1px solid var(--wfa-color-border);border-radius:var(--wfa-radius-md);background:var(--wfa-color-bg);overflow:hidden">
+            <div style="height:34px;display:flex;align-items:center;gap:8px;padding:0 12px;border-bottom:1px solid var(--wfa-color-border);font-family:var(--wfa-font-mono);font-size:12px;color:var(--wfa-color-text-2)"><span style="color:var(--wfa-color-text-3)">↑</span>D:\projetos\</div>
+            <sc-for list="{{ folders }}" as="f" hint-placeholder-count="6">
+              <div style="{{ f.rowStyle }}">
+                <span style="width:12px;height:9px;border:1.5px solid var(--wfa-color-text-3);border-radius:2px;flex:none"></span>
+                <span style="flex:1;font-family:var(--wfa-font-mono);font-size:12.5px">{{ f.n }}</span>
+                <span style="font-size:12px;color:var(--wfa-color-text-3)">{{ f.meta }}</span>
+              </div>
+            </sc-for>
+          </div>
+        </div>
+        <div style="display:flex;flex-direction:column;gap:10px">
+          <span style="font-size:13px;font-weight:600">Sessão</span>
+          <div style="display:flex;flex-direction:column;gap:6px">
+            <sc-for list="{{ modes }}" as="m" hint-placeholder-count="3">
+              <div style="{{ m.rowStyle }}">
+                <span style="{{ m.radio }}"><span style="{{ m.dot }}"></span></span>
+                <div style="display:flex;flex-direction:column;gap:1px;min-width:0"><span style="font-size:13.5px;font-weight:500">{{ m.t }}</span><span style="font-size:12.5px;color:var(--wfa-color-text-3);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ m.d }}</span></div>
+              </div>
+            </sc-for>
+          </div>
+          <div style="border:1px solid var(--wfa-color-border);border-radius:var(--wfa-radius-md);overflow:hidden">
+            <sc-for list="{{ saved }}" as="v" hint-placeholder-count="4">
+              <div style="{{ v.rowStyle }}">
+                <div style="display:flex;justify-content:space-between;font-size:12px;color:var(--wfa-color-text-3)"><span style="font-family:var(--wfa-font-mono)">{{ v.date }}</span><span>{{ v.n }}</span></div>
+                <span style="font-size:13px;color:var(--wfa-color-text-1);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ v.msg }}</span>
+              </div>
+            </sc-for>
+          </div>
+        </div>
+        <div style="display:flex;flex-direction:column;gap:8px">
+          <span style="font-size:13px;font-weight:600">Nome do terminal</span>
+          <div style="height:34px;display:flex;align-items:center;padding:0 12px;border:1px solid var(--wfa-color-border-strong);border-radius:var(--wfa-radius-md);background:var(--wfa-color-bg);font-size:13.5px;color:var(--wfa-color-text-3)">api-faturas <span style="margin-left:8px;font-size:12px">(nome da pasta, por omissão)</span></div>
+        </div>
+      </div>
+      <div style="flex:none;display:flex;align-items:center;gap:8px;padding:14px 24px;border-top:1px solid var(--wfa-color-border)">
+        <span style="font-size:12px;color:var(--wfa-color-text-3)">Retoma <span style="font-family:var(--wfa-font-mono);color:var(--wfa-color-text-2)">26 set · 18:42</span> em D:\projetos\api-faturas</span>
+        <span style="flex:1"></span>
+        <button style="height:32px;padding:0 14px;background:transparent;border:1px solid var(--wfa-color-border-strong);border-radius:var(--wfa-radius-md);color:var(--wfa-color-text-1);font-family:var(--wfa-font-sans);font-size:13.5px">Cancelar</button>
+        <button style="height:32px;padding:0 16px;background:var(--wfa-color-accent);border:none;border-radius:var(--wfa-radius-md);color:var(--wfa-color-on-accent);font-family:var(--wfa-font-sans);font-size:13.5px;font-weight:600">Retomar sessão</button>
+      </div>
+    </div>
+  </sc-if>
+
+  <sc-if value="{{ showFechar }}" hint-placeholder-val="{{ false }}">
+    <div style="position:absolute;inset:0;background:var(--wfa-color-mask)"></div>
+    <div style="position:absolute;top:220px;left:50%;margin-left:-220px;width:440px;display:flex;flex-direction:column;background:var(--wfa-color-surface-2);border-radius:var(--wfa-radius-lg);box-shadow:var(--wfa-shadow-overlay)">
+      <div style="padding:20px 22px 6px;display:flex;flex-direction:column;gap:10px">
+        <span style="font-family:var(--wfa-font-display);font-size:18px;line-height:24px;font-weight:600;text-transform:var(--wfa-display-case);letter-spacing:var(--wfa-display-tracking)">Fechar site-portfolio?</span>
+        <span style="font-size:14px;line-height:21px;color:var(--wfa-color-text-2)">O processo do Claude Code termina. A conversa fica gravada e podes retomá-la em Novo terminal → Retomar.</span>
+        <div style="display:flex;align-items:center;gap:8px;padding:8px 10px;border-radius:var(--wfa-radius-md);background:var(--wfa-state-work-subtle);font-size:13px;color:var(--wfa-color-text-1)"><span style="width:10px;height:10px;border-radius:50%;border:2px solid var(--wfa-state-work);border-right-color:transparent;box-sizing:border-box;flex:none"></span>Está a trabalhar agora — o passo em curso é interrompido.</div>
+      </div>
+      <div style="display:flex;justify-content:flex-end;gap:8px;padding:16px 22px 18px">
+        <button style="height:32px;padding:0 14px;background:transparent;border:1px solid var(--wfa-color-border-strong);border-radius:var(--wfa-radius-md);color:var(--wfa-color-text-1);font-family:var(--wfa-font-sans);font-size:13.5px">Cancelar</button>
+        <button style="height:32px;padding:0 16px;background:var(--wfa-color-error);border:none;border-radius:var(--wfa-radius-md);color:var(--wfa-color-on-accent);font-family:var(--wfa-font-sans);font-size:13.5px;font-weight:600">Fechar terminal</button>
+      </div>
+    </div>
+  </sc-if>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;$preview&quot;:{&quot;width&quot;:1440,&quot;height&quot;:900},&quot;layout&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;foco&quot;,&quot;dividido&quot;,&quot;grelha&quot;],&quot;default&quot;:&quot;foco&quot;,&quot;tsType&quot;:&quot;string&quot;},&quot;overlay&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;none&quot;,&quot;novo&quot;,&quot;fechar&quot;],&quot;default&quot;:&quot;none&quot;,&quot;tsType&quot;:&quot;string&quot;}}">
+class Component extends DCLogic {
+  renderVals() {
+    const layout = this.props.layout ?? 'foco', overlay = this.props.overlay ?? 'none';
+    const split = layout === 'dividido';
+    const C = { d: 'var(--wfa-ansi-bright-black)', cl: '#D97757', g: 'var(--wfa-ansi-green)', r: 'var(--wfa-ansi-red)', y: 'var(--wfa-ansi-yellow)', b: 'var(--wfa-ansi-blue)', c: 'var(--wfa-ansi-cyan)', m: 'var(--wfa-ansi-magenta)', w: 'var(--wfa-ansi-bright-white)' };
+    const seg = p => {
+      if (typeof p === 'string') return { t: p, st: {} };
+      let [k, t] = p; const st = {};
+      if (k === 'cur') { st.background = 'var(--wfa-term-cursor)'; st.color = 'var(--wfa-term-bg)'; }
+      else { const b = k.endsWith('!'); k = k.replace('!', ''); if (C[k]) st.color = C[k]; if (b) st.fontWeight = 700; }
+      return { t, st };
+    };
+    const cell = st => ({ ...st, display: 'inline-block', width: '1ch', textAlign: 'center', overflow: 'visible' });
+    const fix = s => { const out = []; let buf = ''; for (const ch of s.t) { if (ch.codePointAt(0) > 0x24F) { if (buf) { out.push({ t: buf, st: s.st }); buf = ''; } out.push({ t: ch, st: cell(s.st) }); } else buf += ch; } if (buf) out.push({ t: buf, st: s.st }); return out; };
+    const L = (...ps) => ps.map(seg).flatMap(fix);
+    const len = r => r.reduce((a, p) => a + (typeof p === 'string' ? p : p[1]).length, 0);
+    const box = (w, rows, k) => [L([k, '╭' + '─'.repeat(w) + '╮']), ...rows.map(r => L([k, '│ '], ...r, ' '.repeat(Math.max(0, w - 1 - len(r))), [k, '│'])), L([k, '╰' + '─'.repeat(w) + '╯'])];
+    const E = () => L('');
+    const S = [
+      { id: 's1', name: 'workflow-app', folder: 'C:\\dev\\workflow-app', state: 'work', detail: 'há 12 min', kbd: 'Alt+1', lines: [
+        ...box(58, [[['cl', '✻'], ' ', ['w!', 'Welcome to Claude Code!']], [], [['d', '  /help for help, /status for your current setup']], [], [['d', '  cwd: C:\\dev\\workflow-app']]], 'cl'),
+        E(), L(['d', '> '], 'adiciona o endpoint de quota ao servidor e liga-o ao cabeçalho'), E(),
+        L(['cl', '● '], 'Vou ver primeiro como o servidor está organizado.'), E(),
+        L(['g', '● '], ['w!', 'Read'], '(server/src/index.ts)'), L(['d', '  ⎿  Read 84 lines']), E(),
+        L(['g', '● '], ['w!', 'Search'], '(pattern: "usage|quota", path: "server/src")'), L(['d', '  ⎿  Found 3 files']), E(),
+        L(['g', '● '], ['w!', 'Update'], '(server/src/routes/quota.ts)'), L(['d', '  ⎿  Updated '], ['w!', 'server/src/routes/quota.ts'], ['d', ' with '], ['w!', '18'], ['d', ' additions']),
+        L(['d', '      12 '], ['g', "+  router.get('/api/quota', async (_req, res) => {"]),
+        L(['d', '      13 '], ['g', '+    const usage = await readUsage();']),
+        L(['d', '      14 '], ['g', '+    res.json({ fiveHour: usage.fiveHour, weekly: usage.weekly });']),
+        L(['d', '      15 '], ['g', '+  });']), E(),
+        L(['cl', '● '], ['w!', 'Bash'], '(npm run typecheck)'), L(['d', '  ⎿  Running…']), E(),
+        L(['cl', '✶ Compiling… '], ['d', '(23s · ↑ 1.2k tokens · esc to interrupt)']), E(),
+        ...box(96, [[['d', '> '], ['cur', ' ']]], 'd'), L(['d', '  ? for shortcuts']),
+      ] },
+      { id: 's2', name: 'api-faturas', folder: 'D:\\projetos\\api-faturas', state: 'wait', detail: 'pede aprovação', kbd: 'Alt+2', lines: [
+        L(['d', '> '], 'cria a migração para o campo de IVA nas faturas'), E(),
+        L(['g', '● '], ['w!', 'Update'], '(prisma/schema.prisma)'), L(['d', '  ⎿  Updated prisma/schema.prisma with 2 additions']),
+        L(['d', '      41 '], ['g', '+  taxaIva   Decimal @default(23) @db.Decimal(4, 2)']),
+        L(['d', '      42 '], ['g', '+  valorIva  Decimal @db.Decimal(12, 2)']), E(),
+        ...box(62, [[['w!', 'Bash command']], [], ['  npx prisma migrate dev --name add_iva'], [['d', '  Cria e aplica a migração na base local']], [], ['Do you want to proceed?'], [['c', '❯ 1. Yes']], ['  2. Yes, and don\'t ask again for npx prisma'], ['  3. No, and tell Claude what to do ', ['d', '(esc)']]], 'y'),
+      ] },
+      { id: 's3', name: 'obsidian-sync', folder: 'C:\\dev\\obsidian-sync', state: 'stop', detail: 'às 13:02', kbd: 'Alt+3', banner: 'Sessão terminada às 13:02 · gravada', bannerAction: 'Retomar', lines: [
+        L(['g', '● '], ['w!', 'Bash'], '(node scripts/index-vault.js)'), L(['d', '  ⎿  42 notas indexadas · 0 erros']), E(),
+        L(['cl', '● '], 'O índice está atualizado e os links partidos foram corrigidos.'), L('  Alterei 3 ficheiros; nada foi apagado.'), E(),
+        L(['d', '> '], '/exit'), E(),
+      ] },
+      { id: 's4', name: 'site-portfolio', folder: 'D:\\projetos\\site-portfolio', state: 'work', detail: 'há 3 min', kbd: 'Alt+4', lines: [
+        L(['g', '● '], ['w!', 'Write'], '(src/pages/projetos.astro)'), L(['d', '  ⎿  Wrote 64 lines to src/pages/projetos.astro']), E(),
+        L(['g', '● '], ['w!', 'Bash'], '(npm run build)'), L(['d', '  ⎿  > site-portfolio@1.0.0 build']), L(['d', '     > astro build']), L(['d', '     12:48:03 '], ['c', '[build]'], ' 14 page(s) built in 3.21s'), E(),
+        L(['cl', '● '], 'A build passou. Vou gerar as miniaturas dos projetos.'), E(),
+        L(['cl', '✻ Refining… '], ['d', '(41s · ↓ 3.4k tokens · esc to interrupt)']),
+      ] },
+      { id: 's5', name: 'scraper-precos', folder: 'C:\\dev\\scraper-precos', state: 'err', detail: 'código 1', kbd: 'Alt+5', banner: 'Processo desligado · código 1', bannerAction: 'Reiniciar', lines: [
+        L(['g', '● '], ['w!', 'Bash'], '(python scrape.py --loja continente)'), L(['d', '  ⎿  '], ['r', 'Traceback (most recent call last):']),
+        L(['d', '       File "scrape.py", line 88, in <module>']), L(['r', '     requests.exceptions.ConnectionError: Max retries']), E(),
+        L(['cl', '● '], 'O servidor recusou a ligação. Vou tentar com backoff.'), E(),
+      ] },
+    ];
+    const LBL = { work: 'A trabalhar', wait: 'À tua espera', stop: 'Terminado', err: 'Desligado' };
+    const icon = s => {
+      const c = `var(--wfa-state-${s})`, base = { display: 'inline-block', flex: 'none', boxSizing: 'border-box' };
+      if (s === 'work') return { st: { ...base, width: 10, height: 10, borderRadius: '50%', border: `2px solid ${c}`, borderRightColor: 'transparent' }, g: '' };
+      if (s === 'wait') return { st: { ...base, width: 8, height: 8, background: c, transform: 'rotate(45deg)' }, g: '' };
+      if (s === 'stop') return { st: { ...base, width: 9, height: 9, border: `2px solid ${c}` }, g: '' };
+      return { st: { ...base, color: c, fontSize: 12, lineHeight: '10px', fontWeight: 700, width: 10, textAlign: 'center' }, g: '✕' };
+    };
+    const visible = layout === 'grelha' ? S.map(s => s.id) : split ? ['s1', 's2'] : ['s1'];
+    const dec = s => {
+      const ic = icon(s.state), v = n => `var(--wfa-state-${s.state}${n})`;
+      const focused = s.id === 's1', alert = s.state === 'wait' && !visible.includes(s.id);
+      return { ...s, iconStyle: ic.st, glyph: ic.g, label: LBL[s.state], labelStyle: { color: v('') },
+        tagStyle: { display: 'inline-flex', alignItems: 'center', height: 22, padding: '0 8px', borderRadius: 'var(--wfa-radius-sm)', fontSize: 12, fontWeight: 500, color: v(''), background: v('-subtle'), border: `1px solid ${v('-border')}`, whiteSpace: 'nowrap', flex: 'none' },
+        itemStyle: { display: 'flex', flexDirection: 'column', gap: 2, padding: '9px 10px', borderRadius: 'var(--wfa-radius-md)', border: '1px solid transparent', cursor: 'pointer',
+          ...(visible.includes(s.id) ? { background: 'var(--wfa-color-surface-3)', borderColor: 'var(--wfa-color-border-strong)' } : {}),
+          ...(alert ? { background: v('-subtle'), borderColor: v('-border') } : {}) },
+        tileStyle: { display: 'flex', flexDirection: 'column', minHeight: 0, minWidth: 0, background: 'var(--wfa-term-bg)', borderRadius: 'var(--wfa-radius-lg)', overflow: 'hidden',
+          border: `1px solid ${focused ? 'var(--wfa-color-accent)' : s.state === 'wait' ? v('-border') : 'var(--wfa-color-border)'}`,
+          boxShadow: s.state === 'wait' ? `0 0 0 3px ${v('-subtle')}` : 'none' },
+        tail: s.lines.slice(-14), banner: s.banner || false,
+        bannerStyle: { flex: 'none', height: 40, display: 'flex', alignItems: 'center', gap: 10, padding: '0 12px', borderTop: `1px solid ${v('-border')}`, background: v('-subtle'), fontSize: 12.5, color: 'var(--wfa-color-text-1)' },
+      };
+    };
+    const sessions = S.map(dec);
+    const panes = sessions.filter(s => (split ? ['s1', 's2'] : ['s1']).includes(s.id)).map(s => ({ ...s, focused: s.id === 's1',
+      headStyle: { height: 44, flex: 'none', display: 'flex', alignItems: 'center', gap: 10, padding: '0 12px 0 16px', borderBottom: '1px solid var(--wfa-color-border)', background: s.id === 's1' ? 'var(--wfa-color-surface-2)' : 'var(--wfa-color-surface-1)', minWidth: 0 },
+      actions: split ? [{ t: 'Juntar', k: 'Alt+\\' }, { t: 'Fechar', k: '' }] : [{ t: 'Renomear', k: 'Alt+R' }, { t: 'Dividir', k: 'Alt+\\' }, { t: 'Fechar', k: 'Alt+W' }],
+    }));
+    const counts = [['work', 2, 'a trabalhar'], ['wait', 1, 'à tua espera'], ['stop', 1, 'terminado'], ['err', 1, 'desligado']].map(([k, n, label]) => { const ic = icon(k); return { n, label, iconStyle: ic.st, glyph: ic.g }; });
+    const quota = [{ label: 'Janela de 5 h', short: '5 h', pct: 62, reset: 'repõe às 14:30' }, { label: 'Semanal', short: 'Semana', pct: 86, reset: 'repõe segunda, 09:00', warn: true }].map(q => ({
+      ...q, pctTxt: q.pct + '%', fill: { width: q.pct + '%', height: '100%', background: q.warn ? 'var(--wfa-color-warning)' : 'var(--wfa-color-text-2)' },
+      pctStyle: { fontFamily: 'var(--wfa-font-mono)', fontSize: 12.5, fontWeight: 600, color: q.warn ? 'var(--wfa-color-warning)' : 'var(--wfa-color-text-1)' },
+      warnTxt: q.warn ? '▲ Perto do limite' : '', warnStyle: { color: 'var(--wfa-color-warning)' },
+    }));
+    const row = sel => ({ display: 'flex', alignItems: 'center', gap: 10, height: 34, padding: '0 12px', borderBottom: '1px solid var(--wfa-color-border)', background: sel ? 'var(--wfa-color-accent-subtle)' : 'transparent', color: sel ? 'var(--wfa-color-text-1)' : 'var(--wfa-color-text-2)' });
+    const folders = [['api-faturas', '3 sessões gravadas', true], ['loja-online', '2 sessões gravadas'], ['site-portfolio', '5 sessões gravadas'], ['dotfiles', 'sem sessões'], ['sandbox', 'sem sessões']].map(([n, meta, sel]) => ({ n, meta, rowStyle: row(sel) }));
+    const modes = [['Sessão nova', 'Conversa limpa nesta pasta'], ['Continuar a última', '26 set · 18:42 — «migra o modelo de faturas para prisma…»'], ['Retomar uma sessão gravada', 'Escolhe da lista abaixo', true]].map(([t, d, sel]) => ({ t, d,
+      rowStyle: { display: 'flex', alignItems: 'center', gap: 12, padding: '9px 12px', borderRadius: 'var(--wfa-radius-md)', border: `1px solid ${sel ? 'var(--wfa-color-accent-border)' : 'var(--wfa-color-border)'}`, background: sel ? 'var(--wfa-color-accent-subtle)' : 'transparent' },
+      radio: { width: 16, height: 16, borderRadius: '50%', border: `1.5px solid ${sel ? 'var(--wfa-color-accent)' : 'var(--wfa-color-border-strong)'}`, display: 'flex', alignItems: 'center', justifyContent: 'center', flex: 'none', boxSizing: 'border-box' },
+      dot: { width: 8, height: 8, borderRadius: '50%', background: sel ? 'var(--wfa-color-accent)' : 'transparent' } }));
+    const saved = [['26 set · 18:42', 'migra o modelo de faturas para prisma e mantém os testes a passar', '38 mensagens', true], ['24 set · 10:15', 'porque é que o endpoint /faturas/pdf demora 4 s?', '12 mensagens'], ['19 set · 21:03', 'adiciona validação de NIF ao formulário de cliente', '21 mensagens']].map(([date, msg, n, sel]) => ({ date, msg, n,
+      rowStyle: { display: 'flex', flexDirection: 'column', gap: 2, padding: '8px 12px', borderBottom: '1px solid var(--wfa-color-border)', background: sel ? 'var(--wfa-color-surface-3)' : 'transparent', boxShadow: sel ? 'inset 0 0 0 1px var(--wfa-color-accent-border)' : 'none' } }));
+    return { isFoco: layout !== 'grelha', isGrelha: layout === 'grelha', sessions, panes, counts, quota, folders, modes, saved,
+      showNovo: overlay === 'novo', showFechar: overlay === 'fechar', showToast: layout === 'grelha' && overlay === 'none' };
+  }
+}
+</script>
+</body>
+</html>

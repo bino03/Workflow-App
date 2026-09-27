@@ -40,12 +40,15 @@ O componente já resolve: botões empilhados, alinhados à esquerda, `minWidth: 
 ```tsx
 <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-end", marginBottom: "var(--wfa-space-6)" }}>
   <div>
-    <h6 style={{ color: "var(--wfa-accent-700)" }}>Gestão</h6>
-    <h1 style={{ margin: 0 }}>Encomendas</h1>
+    <h6 className="kicker">Biblioteca</h6>
+    <h1 style={{ margin: 0 }}>Workflow</h1>
   </div>
-  <Button type="primary" icon={<PlusOutlined />} onClick={handleCreate}>Nova encomenda</Button>
+  {/* à direita: a ação principal, ou a pesquisa (320 px, atalho "/") numa lista só de leitura */}
 </div>
 ```
+
+- Kicker: 11/600, maiúsculas, `letter-spacing: .12em`, cor `var(--wfa-color-accent)`. **Não**
+  `accent-700`, que no tema escuro é quase preto ([[tokens-and-colors]] §2).
 
 - Sem `padding`/`minHeight` no contentor da página — o `AppLayout` já aplica.
 - Páginas aninhadas: `<Breadcrumb>` antes; botão "Voltar" por cima do kicker; o kicker leva o nome do pai.
@@ -53,15 +56,19 @@ O componente já resolve: botões empilhados, alinhados à esquerda, `minWidth: 
 ## 3. Tabela — moldura e estados
 
 ```tsx
-<div style={{ borderTop: "1px solid var(--wfa-color-divider)" }}>
+<div style={{ borderTop: "1px solid var(--wfa-color-border)" }}>
   <Table rowKey="id" columns={columns} dataSource={items} loading={loading} pagination={false}
          locale={{ emptyText: <Empty description="Sem encomendas" image={Empty.PRESENTED_IMAGE_SIMPLE} /> }} />
 </div>
 ```
 
-- Célula identificadora: `fontFamily: var(--wfa-font-heading)`, `fontWeight: 600`. Valores monetários idem.
+- Célula identificadora: nomes técnicos (stack, skill, pasta) em `var(--wfa-font-mono)` 13/500 `text-1`;
+  nomes em prosa em `var(--wfa-font-display)` 600.
 - Célula vazia: `"—"`.
 - Estado/categoria: `<span className={`tag ${cls}`}>` com um mapa `STATUS_MAP` no ficheiro. Não `<Badge>`.
+  Maturidade: `.tag-ok` / `.tag-mid` / `.tag-draft` (forma + cor, [[tokens-and-colors]] §3).
+- Numa lista só de leitura (Biblioteca), a coluna de ações é um link de texto "Ver" em `accent` 13/600,
+  alinhado à direita.
 
 ## 4. Rodapé de contagem e paginação
 

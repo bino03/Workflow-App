@@ -53,8 +53,8 @@ o hook de pre-commit só vigia `docs/`.
    ([[docs/adr/0004-exposicao-e-modelo-de-ameaca]]).
 4. **Nenhuma persistência fora do modelo** — decide-se com `/design-database` (a partir de
    [[docs/product/domain-brief]]), que pode concluir que não há base de dados.
-5. **⛔ O design ainda não foi escolhido. Nenhum ecrã antes de `/choose-design`** — os tokens são
-   provisórios, e UI construída sobre eles é refeita. Tarefas de backend podem avançar.
+5. **Toda a cor, fonte, raio e sombra vêm dos tokens** ([[docs/skills/references/design/tokens-and-colors]],
+   [[docs/adr/0008-identidade-visual]]). Os protótipos do Claude Design são referência, não código.
 6. **Uma tarefa só está feita depois de testada a sério** — ver [[testing-and-verification]].
 7. **Decisão estrutural nova = ADR novo**; ADRs antigos não se editam.
 8. **Nunca editar o backend a partir de um terminal servido por ele próprio em `npm run dev`** — o

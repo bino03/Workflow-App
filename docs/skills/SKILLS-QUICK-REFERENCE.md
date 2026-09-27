@@ -33,7 +33,7 @@ Uma **skill** é invocável (`/nome`). Uma **referência** não — é lida pela
 | `/refine-idea` | Uma ideia nova → ToDo |
 | `/plan-feature` | Feature de várias sessões |
 | `/design-database` | Antes de qualquer persistência |
-| `/choose-design` | ⛔ Antes de qualquer ecrã |
+| `/choose-design` | Mudar a identidade visual (já escolhida — ADR 0008) |
 | `/run` | Pôr a app a correr |
 | `/git-commits` | Antes de cada commit |
 | `/create-new-skill` | Um padrão repetido 2-3 vezes |

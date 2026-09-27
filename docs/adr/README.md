@@ -23,15 +23,15 @@ Estados: `proposto` → `aceite` → `substituído`. Template: `Templates/ADR.md
 | [[0005-biblioteca-lida-do-disco]] | A biblioteca do Workflow é lida do disco, só leitura | `aceite` | 2026-09-27 |
 | [[0006-organizacao-por-dominio]] | Backend organizado por domínio (módulos) | `aceite` | 2026-09-27 |
 | [[0007-omissoes-do-frontend]] | Estado, ícones e terminal no frontend (omissões da stack) | `aceite` | 2026-09-27 |
+| [[0008-identidade-visual]] | Violeta + Geist, só escuro; dois layouts de terminais (foco dividido · grelha); só desktop | `aceite` | 2026-09-27 |
 
 ## Decisões que ainda vão precisar de ADR
 
 | Decisão | Opções à mesa | Quando |
 |---|---|---|
 | **Nome definitivo** | "Workflow App" é provisório | Quando houver um melhor |
-| **Forma final da UI** | Web no browser · PWA · desktop (Tauri/Electron) por cima do mesmo backend | Antes do `/choose-design` |
-| **Ecrãs e layout dos terminais** | Separadores · grelha · split; ecrãs além de Terminais/Biblioteca | `/choose-design` |
-| **Identidade visual** | `/choose-design` (biblioteca, net, Claude Design) | Antes de qualquer ecrã |
+| **Forma final da UI** | Web no browser · PWA · desktop (Tauri/Electron) por cima do mesmo backend. O design ([[0008-identidade-visual]]) foi feito para web no browser e serve qualquer das três | Quando houver motivo para sair do browser |
+| **Onde se guardam as preferências** (modo de layout) | Browser · backend | `/design-database` |
 | **Persistência** | Nenhuma BD (tudo em memória + o que o Claude Code já grava em `~/.claude`) · ficheiro JSON · SQLite | `/design-database` (Fundação) |
 | **Fonte do indicador de quota** | Ver [[../product/domain-brief]] → perguntas em aberto — nenhuma fonte está confirmada | Spike antes da feature |
 | **Como expor fora de casa** | VPN mesh (Tailscale) · túnel com autenticação à frente (Cloudflare Tunnel + Access) · reverse proxy com TLS | Antes de sair de `127.0.0.1` — ver [[0004-exposicao-e-modelo-de-ameaca]] |
@@ -40,5 +40,4 @@ Estados: `proposto` → `aceite` → `substituído`. Template: `Templates/ADR.md
 | **Reconexão e scrollback** | Buffer no servidor por terminal (quanto?) e reenvio ao voltar a ligar | Na feature de terminais |
 | **Limite de terminais simultâneos** | `MAX_TERMINALS` (proposta: 8) — a quota é partilhada | Na feature de terminais |
 | **2FA no login** | TOTP · nada | Antes de expor na web |
-| **Responsivo / telemóvel** | Sem tratamento · responsivo | `/choose-design` |
 | **Testes do frontend** | Sem Vitest (omissão da stack) · Vitest + Testing Library | No scaffold do frontend |

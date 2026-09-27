@@ -80,5 +80,5 @@ O essencial de cada `*-conventions.md` — o detalhe está lá.
 1. Strict mode; `npx tsc -b` é o único type-check real.
 2. Um serviço por domínio sobre a instância Axios única; sem `try/catch` nos serviços.
 3. Formulários com Zod + React Hook Form.
-4. Cores, larguras e ícones vêm de `design/` — ⛔ nenhum ecrã antes do `/choose-design`.
+4. Cores, larguras e ícones vêm de `design/` (Violeta + Geist — ADR 0008).
 5. O terminal é xterm.js dentro de `TerminalView`; a instância e o WebSocket não vão para Context.

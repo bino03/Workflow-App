@@ -12,8 +12,14 @@
 - **Card de secção com cabeçalho** (`SectionCard`): card base + ícone em cor de acento + título.
   Usado nos formulários por secções e nos detalhes (view/edit) dentro de drawers.
 - Antes de escrever um `<Card>` do AntD com `bodyStyle` à mão, verificar se o card base resolve.
-- Acentos de estado num sub-card: classes de tag ou tokens de acento/neutro — **não gradientes
-  claros por cor de estado**.
+- Visual: `surface-1`, borda hairline `border`, raio `lg`, **sem sombra** (a elevação é por
+  luminosidade). O kicker usa `var(--wfa-color-accent)`.
+- Acentos de estado num sub-card: fundo `state-*-subtle` + borda `state-*-border` (ex.: o aviso "Está
+  a trabalhar agora" no diálogo de fechar). **Nunca gradientes.**
+- **Cartão de terminal (modo grelha)**: fundo `term-bg`, raio `lg`, cabeçalho de 40 px em `surface-1`
+  (ícone de estado + nome + pasta em mono + tag de estado). Borda `accent` se tem o teclado; se está à
+  espera, borda `state-wait-border` + anel de 3 px `state-wait-subtle`. Um terminal terminado ou
+  desligado ganha uma faixa em baixo (`-subtle`) com a ação "Retomar" / "Reiniciar".
 - **Criar e editar usam o mesmo sistema visual** — um drawer não pode mudar de estilo a meio ao
   carregar em "Editar".
 
