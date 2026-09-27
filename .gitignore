@@ -1,0 +1,45 @@
+# Obsidian — config versionada (settings/plugins), estado da UI não
+.obsidian/workspace.json
+.obsidian/workspace-mobile.json
+
+# Notas pessoais — não versionadas
+/notes/
+
+# Definições pessoais do Claude Code (as skills e agentes em .claude/ vão para o git)
+.claude/settings.local.json
+
+# Environment variables
+.env
+.env.local
+.env.*.local
+!.env.example
+
+# Logs
+logs/
+*.log
+*.log.*
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Temporary files
+*.tmp
+*.bak
+
+# Backups locais da BD
+backups/
+
+# Node.js (backend + frontend)
+node_modules/
+dist/
+build/
+*.tsbuildinfo
+coverage/

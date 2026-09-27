@@ -1,0 +1,7 @@
+# Finais de linha LF no repositório. Um hook de pre-commit com CRLF deixa de correr
+# no sh do Git for Windows ("\r: command not found"); scripts de shell idem.
+* text=auto eol=lf
+.githooks/* text eol=lf
+*.sh text eol=lf
+*.cmd text eol=crlf
+*.bat text eol=crlf

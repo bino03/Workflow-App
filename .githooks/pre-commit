@@ -1,0 +1,96 @@
+#!/bin/sh
+# Lembrete não-bloqueante: avisa quando o diff staged toca ficheiros que costumam
+# exigir uma atualização correspondente no vault (docs/). Nunca falha o commit —
+# só imprime um aviso. Ver docs/vault-sync-hooks.md.
+
+staged=$(git diff --cached --name-only --diff-filter=ACMR)
+[ -z "$staged" ] && exit 0
+
+warned=0
+warn() {
+  if [ "$warned" -eq 0 ]; then
+    printf '\n\033[33m⚠ Lembrete do vault\033[0m — este commit toca ficheiros que costumam pedir uma atualização de docs:\n'
+    warned=1
+  fi
+  printf '  - %s\n' "$1"
+}
+
+# --- Backend (node-fastify) -------------------------------------------------
+BACKEND='backend'
+if echo "$staged" | grep -qE "^$BACKEND/src/.+/(routes|.*Routes)\.ts$|^$BACKEND/src/.+/.*\.routes\.ts$"; then
+  warn "Rotas do backend mudaram → atualizar docs/api.md (rota, acesso, corpo, resposta)."
+fi
+if echo "$staged" | grep -qE "^$BACKEND/src/terminals/protocol\.ts$"; then
+  warn "Protocolo do WebSocket mudou → atualizar docs/api.md → Protocolo, e o espelho em frontend/src/types/terminal.ts."
+fi
+if echo "$staged" | grep -qE "^$BACKEND/src/config\.ts$"; then
+  warn "Configuração do ambiente mudou → atualizar docs/environment.md e backend/.env.example."
+fi
+if echo "$staged" | grep -qE "^$BACKEND/src/(terminals/spawnClaude|terminals/cwdPolicy|common/authGuard)\.ts$"; then
+  warn "Código de segurança mudou (spawn/pastas/auth) → confirmar docs/security.md e o ADR 0004."
+fi
+if echo "$staged" | grep -qE "^$BACKEND/src/common/errors\.ts$"; then
+  warn "ErrorCode mudou → espelhar em frontend/src/errors/errorMessages.ts."
+fi
+if echo "$staged" | grep -q "^$BACKEND/package\.json$"; then
+  if git diff --cached -- "$BACKEND/package.json" 2>/dev/null | grep -qE '^\+.*"(node-pty|fastify|@fastify/websocket|typescript)":'; then
+    warn "Bump de stack do backend → atualizar docs/backend-conventions.md (versões) e as armadilhas do node-pty."
+  fi
+fi
+
+# --- Frontend (react-vite-antd) ---------------------------------------------
+FRONTEND='frontend'
+DESIGN='docs/skills/references/design'
+
+# --- UI com o design ainda por escolher --------------------------------------
+if grep -q 'design:pending' "$DESIGN/tokens-and-colors.md" 2>/dev/null \
+  && echo "$staged" | grep -qE "^$FRONTEND/src/(components|pages|layouts)/.+\.tsx$"; then
+  warn "⛔ UI alterada com o design ainda por escolher (design:pending) → correr /choose-design antes de continuar; estes ecrãs vão ser refeitos sobre os tokens finais."
+fi
+
+if echo "$staged" | grep -qE "^$FRONTEND/src/(theme\.ts|index\.css|colors\.css)$"; then
+  warn "Tokens/tema mudaram → atualizar $DESIGN/tokens-and-colors.md se um valor ou convenção mudou."
+fi
+if echo "$staged" | grep -qE "^$FRONTEND/src/(services/|errors/|api\.ts$)"; then
+  warn "Camada de serviços/erros mudou → confirmar $DESIGN/services-and-error-handling.md."
+fi
+if echo "$staged" | grep -qE "^$FRONTEND/src/(main\.tsx$|PrivateRoute\.tsx$|layouts/|context/)"; then
+  warn "App shell/auth mudou → atualizar $DESIGN/app-shell-and-auth.md (rotas, menu, guards)."
+fi
+if echo "$staged" | grep -qE "^$FRONTEND/src/components/.*(Form|Drawer|Modal)\.tsx$"; then
+  warn "Form/Drawer/Modal mudou → confirmar $DESIGN/forms-and-validation.md e drawers-and-modals.md."
+fi
+if git diff --cached --diff-filter=A --name-only 2>/dev/null | grep -qE "^($FRONTEND/src/(pages|services)/.+\.tsx?|$BACKEND/src/[^/]+/)"; then
+  warn "Página/serviço/módulo novo → acrescentar a docs/code-map.md se for uma porta de entrada nova."
+fi
+if echo "$staged" | grep -q "^$FRONTEND/package\.json$"; then
+  if git diff --cached -- "$FRONTEND/package.json" 2>/dev/null | grep -qE '^\+.*"(react|react-dom|typescript|vite|antd|tailwindcss|@xterm/xterm)":'; then
+    warn "Bump de stack do frontend → atualizar as referências de stack (docs/architecture.md, 00-INDEX.md)."
+  fi
+fi
+
+# --- Documentação a crescer num CLAUDE.md → docs/ -----------------------
+# Os CLAUDE.md são ponteiros, não documentação: duas cópias do mesmo facto
+# divergem sempre. Esta é a única regra deste hook que vigia algo fora de docs/.
+claude_md=$(echo "$staged" | grep -E '(^|/)CLAUDE\.md$')
+if [ -n "$claude_md" ]; then
+  added=$(git diff --cached -- $claude_md 2>/dev/null | grep -cE '^\+[^+]')
+  # Corrigir um ponteiro ou uma linha da tabela de atalhos não é documentação;
+  # um bloco de texto é. 10 linhas separa os dois na prática.
+  if [ "$added" -gt 10 ]; then
+    warn "CLAUDE.md cresceu ${added} linhas → a documentação vive em docs/. Um CLAUDE.md leva ponteiros e convenções de trabalho, não factos."
+  fi
+  if git diff --cached -- $claude_md 2>/dev/null | grep -qE '^\+```'; then
+    warn "Bloco de código acrescentado a um CLAUDE.md → esse conteúdo pertence a docs/."
+  fi
+fi
+
+# --- Skill nova sem índice --------------------------------------------------
+new_skills=$(git diff --cached --diff-filter=A --name-only 2>/dev/null | grep -E '^docs/skills/[^/]+/skill-[^/]+\.md$')
+if [ -n "$new_skills" ]; then
+  if ! echo "$staged" | grep -q '^docs/skills/SKILLS-QUICK-REFERENCE\.md$'; then
+    warn "Skill nova sem SKILLS-QUICK-REFERENCE.md no commit → acrescentar a linha (e ao SKILLS-INDEX.md, e o ponteiro em .claude/skills/)."
+  fi
+fi
+
+exit 0

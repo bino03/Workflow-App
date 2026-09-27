@@ -1,0 +1,121 @@
+# 🏗️ Arquitetura
+
+> 🚧 Gerado a 2026-09-27 a partir das escolhas da entrevista — descreve a intenção até haver código.
+> Porquê de cada escolha: [[adr/README]].
+
+## O que é
+
+Hoje o trabalho com o Claude Code faz-se em várias janelas de terminal soltas, cada uma com uma sessão
+do `claude`, e com o Obsidian aberto ao lado para consultar a biblioteca do Workflow. Com várias sessões
+em paralelo perde-se a noção de qual está a fazer o quê, e não há um sítio que mostre quanto da quota
+da subscrição já foi gasto. O Workflow App junta isso numa só interface: abrir e fechar sessões do
+Claude Code, vê-las e escrever nelas em tempo real, retomá-las, escolher a pasta de cada uma, ver a
+quota usada e navegar a biblioteca do Workflow — tudo o que hoje se faz no terminal, mas mais fácil de
+acompanhar. O motor é o próprio Claude Code interativo, a correr num pseudo-terminal (PTY) gerido pelo
+backend, com a subscrição Pro/Max já paga — nunca a API nem a Agent SDK ([[adr/0002-motor-via-pty-sobre-subscricao]]).
+
+## As peças
+
+| Peça | Pasta | Stack | Porta |
+|---|---|---|---|
+| Backend (API REST + WebSocket + gestor de PTYs) | `backend/` | `node-fastify` 📋 | 7400 |
+| Frontend (SPA) | `frontend/` | `react-vite-antd` ✅ + xterm.js | 7401 (dev) — em produção servido pelo backend (❓ a confirmar) |
+| Claude Code (`claude`) | — (binário instalado na máquina) | processo filho, um por terminal | — |
+| Biblioteca do Workflow | `WORKFLOW_PATH/library` | ficheiros Markdown, só leitura | — |
+| Sessões gravadas do Claude Code | `~/.claude/projects/` | ficheiros `.jsonl`, só leitura | — |
+
+## Diagrama de comunicação
+
+```
+ Browser (SPA)                         Backend (Node, 127.0.0.1:7400)                Máquina
+┌──────────────────┐   REST /api/*    ┌──────────────────────────────┐
+│ Ecrãs + xterm.js │ ───────────────▶ │ auth · library · sessions ·  │ ──lê──▶ WORKFLOW_PATH/library/
+│ (um por terminal)│  cookie HttpOnly │ usage                        │ ──lê──▶ ~/.claude/projects/
+│                  │                  │                              │
+│                  │  WS /api/terminals/:id/ws                       │  spawn (ConPTY no Windows)
+│                  │ ◀══════════════▶ │ TerminalManager ─────────────┼──────▶ PTY ─▶ claude  (sessão 1)
+│                  │  bytes ⇄ stdin/  │   (buffer, resize, kill)     │──────▶ PTY ─▶ claude  (sessão 2)
+└──────────────────┘  stdout + resize └──────────────────────────────┘          …
+                                                                       claude ─▶ Anthropic
+                                                                       (login da subscrição —
+                                                                        nunca uma API key da app)
+```
+
+## A regra que sustenta a arquitetura
+
+**O backend é a única fonte de verdade da lógica de negócio.** O frontend fala só com o backend. Nunca
+implementar regras de negócio em SQL, RLS ou funções da plataforma, mesmo que seja mais rápido. Ver
+[[security]] → "Modelo de confiança na base de dados" e [[adr/0001-stack-tecnologica]].
+
+## Backend — `node-fastify` (📋)
+
+> 🚧 Estrutura proposta pelo `/create` — confirmar no scaffold. Convenções em [[backend-conventions]].
+
+```
+backend/
+├── package.json  tsconfig.json  .env.example
+└── src/
+    ├── server.ts            ← Fastify, plugins, rotas, graceful shutdown (mata todos os PTYs)
+    ├── config.ts            ← variáveis de ambiente validadas com zod — falha no arranque
+    ├── common/              ← errors (ErrorCode, AppError, error handler único), auth guard, origin check
+    ├── auth/                ← login / logout / me, sessão em cookie HttpOnly
+    ├── terminals/           ← TerminalManager (PTYs), rotas REST, gateway WebSocket, scrollback
+    ├── sessions/            ← listar as sessões gravadas do Claude Code por pasta (para --resume)
+    ├── library/             ← ler o registo da biblioteca do Workflow (frontmatter dos manifestos)
+    └── usage/               ← indicador de quota (fonte por decidir)
+```
+
+### Onde vive cada coisa
+
+| Coisa | Caminho |
+|---|---|
+| Configuração e validação do ambiente | `src/config.ts` |
+| Criar / fechar / listar PTYs | `src/terminals/terminalManager.ts` |
+| Protocolo do WebSocket (tipos das mensagens) | `src/terminals/protocol.ts` |
+| Resolver o binário `claude` e o ambiente do processo filho | `src/terminals/spawnClaude.ts` |
+| Pastas permitidas (`ALLOWED_ROOTS`) | `src/terminals/cwdPolicy.ts` |
+| Códigos de erro | `src/common/errors.ts` |
+| Guarda de autenticação (REST e upgrade do WS) | `src/common/authGuard.ts` |
+
+### Ciclo de vida de um terminal
+
+```
+POST /api/terminals {cwd, resumeSessionId?}  → valida cwd ∈ ALLOWED_ROOTS e o uuid
+  → spawn(CLAUDE_BIN, [--resume <uuid>]?, {cwd, env sem ANTHROPIC_API_KEY/CLAUDECODE, cols, rows})
+  → 201 {id}
+WS  /api/terminals/:id/ws  (cookie + Origin verificados no upgrade)
+  → servidor envia o scrollback guardado, depois o output em tempo real
+  ← cliente envia input (bytes) e {type:"resize", cols, rows}
+PTY termina → {type:"exit", code} → terminal fica "terminado" até ser fechado
+DELETE /api/terminals/:id → kill do processo (e da árvore) → 204
+Backend pára → kill de todos
+```
+
+## Frontend — `react-vite-antd` (✅) + xterm.js
+
+Estrutura da stack (ver [[frontend-conventions]]):
+
+```
+frontend/
+├── index.html  package.json  vite.config.ts  tsconfig*.json  .env.example
+└── src/
+    ├── main.tsx  api.ts  theme.ts  index.css  PrivateRoute.tsx
+    ├── layouts/AppLayout.tsx
+    ├── context/  hooks/  services/  errors/  types/  config/  utils/  pages/
+    └── components/
+        ├── common/
+        ├── terminals/        ← TerminalView (xterm.js + fit addon + WebSocket), lista/separadores
+        └── library/          ← registo da biblioteca
+```
+
+O terminal é um componente à parte das convenções de formulários/drawers: um `TerminalView` por terminal
+aberto, que monta o xterm.js, liga o WebSocket e envia `resize` quando o contentor muda de tamanho. O
+xterm.js desenha em canvas — **o conteúdo do terminal não é DOM**.
+
+## Autenticação entre peças
+
+Ver [[security]] → "Fluxo de autenticação".
+
+## Relacionado
+
+[[database]] · [[security]] · [[code-map]] · [[commands]]
