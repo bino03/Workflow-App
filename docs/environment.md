@@ -25,14 +25,14 @@ Nenhum destes ficheiros está no git. Num clone novo, criá-los a partir dos `.e
 | `ALLOWED_ROOTS` | ✅ | `C:\Users\jlalv\Desktop\utad\projetos;C:\Users\jlalv\Desktop\Workflow` | Pastas (separadas por `;`) onde se podem abrir terminais. Cada uma tem de ser absoluta e existir; guarda-se o `realpath` |
 | `DEFAULT_CWD` | — | a primeira de `ALLOWED_ROOTS` | |
 | `WORKFLOW_PATH` | ✅ | `C:\Users\jlalv\Desktop\Workflow\Workflow` | Raiz do Workflow — a biblioteca lê `library/` daqui. Absoluta e tem de existir |
-| `CLAUDE_CONFIG_DIR` | — | `~/.claude` | Onde procurar as sessões gravadas |
+| `CLAUDE_CONFIG_DIR` | — | `~/.claude` | Pasta de configuração do Claude Code: onde o backend lê as sessões gravadas **e** a que o `claude` dos terminais usa. **Absoluta**; vazia = não definida. ⚠️ Uma linha `CLAUDE_CONFIG_DIR=` vazia chegava ao `claude`, que passava a usar a pasta do terminal como configuração (escrevia `projects/`, `history.jsonl`… dentro do projeto e não via o login) — corrigido a 2026-09-28: vazia ou relativa nunca chega ao filho |
 | `MAX_TERMINALS` | — | `8` | A quota é da conta: mais terminais não dão mais quota |
 | `SCROLLBACK_BYTES` | — | `1048576` | Buffer de output guardado por terminal para reenviar ao voltar a ligar |
 | `DATA_DIR` | — | `C:\Users\jlalv\.workflow-app` | Onde vive o `state.json` ([[database]], [[adr/0009-estado-em-ficheiro-json]]). **Omissão `~/.workflow-app`** — fora do repo, para nunca ser commitado. Absoluto; criada no arranque se não existir. `state.json` inválido → o backend não arranca (e nunca o sobrescreve) |
 | `FRONTEND_DIST` | — | `C:\…\frontend\dist` | Build do frontend que o backend serve. **Omissão: `frontend/dist` do repo.** Absoluto. Sem `index.html` lá dentro → só a API (aviso no arranque). Quando serve, a própria origem (`localhost`/`127.0.0.1` na `PORT`) passa a ser aceite no WebSocket ([[security]] → CORS) |
 
 **O que o processo `claude` recebe**: o ambiente do backend **sem** `ANTHROPIC_*`, `CLAUDE_CODE_*`,
-`CLAUDECODE`, `CLAUDE_PID` e sem as variáveis desta tabela (exceto `CLAUDE_CONFIG_DIR`) — ver
+`CLAUDECODE`, todas as `CLAUDE_*` e sem as variáveis desta tabela (exceto um `CLAUDE_CONFIG_DIR` absoluto) — ver
 [[backend-conventions]] → regra 8 e Armadilhas. Nenhuma variável desta
 app é uma chave da Anthropic, e nunca deve ser.
 
