@@ -63,6 +63,17 @@ Origens permitidas lidas de configuração (`CORS_ALLOWED_ORIGINS`), nunca hardc
 por omissão, de propósito. Com credenciais ativas, uma origem errada em produção dá a qualquer site a
 sessão do utilizador.
 
+**Quando o backend serve a SPA** (há `FRONTEND_DIST/index.html`), junta às origens aceites **no upgrade
+do WebSocket** as suas próprias: `http://localhost:<PORT>` e `http://127.0.0.1:<PORT>`. É a origem que
+o browser manda quando a página veio do próprio backend. O `Host` do pedido nunca entra na decisão (é
+forjável e muda atrás de um proxy). O REST não precisa: um pedido da mesma origem não depende de CORS.
+Servido por outro nome (Tailscale, túnel, proxy), essa origem tem de entrar no `CORS_ALLOWED_ORIGINS`.
+
+**A guarda isenta tudo fora de `/api`** (o HTML, os assets e a página de login carregam sem sessão), mas
+**só para HTTP normal**: um WebSocket exige sessão e `Origin` em qualquer caminho. `/api` sem sessão
+continua a dar `401` mesmo em rotas que não existem. Testado em `backend/test/spa.test.ts` (incluindo
+path traversal para fora do `dist`).
+
 ## Regras base
 
 Ver [[security-baseline]]. Checklist antes de produção em `notes/roadmap/pre-deploy-security.md`.

@@ -1,4 +1,5 @@
 import { existsSync, realpathSync } from 'node:fs';
+import { fileURLToPath } from 'node:url';
 import { isAbsolute } from 'node:path';
 import { z } from 'zod';
 
@@ -50,6 +51,8 @@ const envSchema = z.object({
   SCROLLBACK_BYTES: z.coerce.number().int().min(1024).default(1_048_576),
 
   WORKFLOW_PATH: existingDirectory,
+
+  FRONTEND_DIST: optionalString.refine((path) => path === undefined || isAbsolute(path), 'must be an absolute path'),
 });
 
 type Env = z.infer<typeof envSchema>;
@@ -75,6 +78,8 @@ export type Config = {
     scrollbackBytes: number;
   };
   workflowPath: string;
+  /** Absolute path of the built SPA; served only if it has an index.html. */
+  frontendDist: string;
 };
 
 export class ConfigError extends Error {
@@ -85,6 +90,9 @@ export class ConfigError extends Error {
 }
 
 const HOUR_MS = 60 * 60 * 1000;
+
+// Same relative path from src/ (tsx) and dist/ (node).
+const DEFAULT_FRONTEND_DIST = fileURLToPath(new URL('../../frontend/dist', import.meta.url));
 
 export function loadConfig(env: NodeJS.ProcessEnv = process.env): Config {
   const parsed = envSchema.safeParse(env);
@@ -116,5 +124,6 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): Config {
       scrollbackBytes: e.SCROLLBACK_BYTES,
     },
     workflowPath: e.WORKFLOW_PATH,
+    frontendDist: e.FRONTEND_DIST ?? DEFAULT_FRONTEND_DIST,
   };
 }

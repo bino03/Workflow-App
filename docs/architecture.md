@@ -19,7 +19,7 @@ backend, com a subscrição Pro/Max já paga — nunca a API nem a Agent SDK ([[
 | Peça | Pasta | Stack | Porta |
 |---|---|---|---|
 | Backend (API REST + WebSocket + gestor de PTYs) | `backend/` | `node-fastify` 📋 | 7400 |
-| Frontend (SPA) | `frontend/` | `react-vite-antd` ✅ + xterm.js | 7401 (dev) — em produção servido pelo backend (❓ a confirmar) |
+| Frontend (SPA) | `frontend/` | `react-vite-antd` ✅ + xterm.js | 7401 (dev, Vite com proxy de `/api`) — em produção o **backend serve o `frontend/dist`** na 7400, mesma origem (✅ 2026-09-28, `common/spa.ts`) |
 | Claude Code (`claude`) | — (binário instalado na máquina) | processo filho, um por terminal | — |
 | Biblioteca do Workflow | `WORKFLOW_PATH/library` | ficheiros Markdown, só leitura | — |
 | Sessões gravadas do Claude Code | `~/.claude/projects/` | ficheiros `.jsonl`, só leitura | — |
@@ -61,7 +61,7 @@ backend/
     ├── server.ts            ← ponto de entrada: .env, config, listen, sinais → graceful shutdown
     ├── app.ts               ← buildApp({config, terminalManager}): plugins, handler de erros, rotas, onClose mata os PTYs
     ├── config.ts            ← variáveis de ambiente validadas com zod — falha no arranque
-    ├── common/              ← errors (ErrorCode, AppError, error handler único), validation (parseWith), health, auth guard
+    ├── common/              ← errors (ErrorCode, AppError, error handler único), validation (parseWith), health, auth guard, spa (servir o frontend/dist)
     ├── auth/                ← login / logout / me, sessão em cookie HttpOnly
     ├── terminals/           ← TerminalManager (PTYs), rotas REST, gateway WebSocket, scrollback
     ├── sessions/            ← listar as sessões gravadas do Claude Code por pasta (para --resume)

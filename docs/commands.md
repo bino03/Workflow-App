@@ -14,7 +14,7 @@ npm run typecheck    # tsc --noEmit — tsconfig sem referências (inclui src, s
 npm run lint         # ESLint
 npm test             # vitest run (test/**/*.test.ts)
 npm run build        # tsc -p tsconfig.build.json → dist/ (só src/, sem testes nem scripts)
-npm start            # node dist/server.js
+npm start            # node dist/server.js — serve também o frontend/dist, se existir (build do frontend primeiro)
 npm run hash-password  # gera o APP_PASSWORD_HASH (argon2id): pede a password duas vezes, sem eco (mín. 12
                        # caracteres); com stdin em pipe lê uma linha. Só o hash vai para o stdout
 npx tsx scripts/pty-spike.ts [cwd]  # spike manual: claude real num PTY (env, /status, resize, Ctrl+C, kill)
@@ -62,8 +62,9 @@ gravação, morre — e com ela todos os outros terminais abertos (dos outros pr
 **Como trabalhar no backend**, quando lá chegar:
 1. **Terminal fora da app** para desenvolver o backend — o mais simples.
 2. **Duas instâncias**, se quiseres mesmo usar a app para se desenvolver a si própria:
-   - uma **estável** — `npm run build && npm start` (sem watch), na porta 7400, que serve os terminais
-     onde trabalhas;
+   - uma **estável** — `npm run build` no `frontend/`, depois `npm run build && npm start` no `backend/`
+     (sem watch), na porta 7400: serve a SPA e os terminais onde trabalhas, abre-se em
+     `http://localhost:7400` ([[adr/0010-spa-servida-pelo-backend]]);
    - uma **de desenvolvimento** — `npm run dev` noutra porta (ex.: `PORT=7410`, com o seu `.env` e o seu
      frontend), que é a que estás a alterar. Quando uma alteração estiver pronta, rebuild da estável
      (o que também mata os terminais dela — fazê-lo num momento escolhido, não a cada gravação).
@@ -90,17 +91,23 @@ npm run build      # tsc -b + build do Vite
 - **A porta importa.** O backend só permite CORS (e WebSocket) das origens configuradas. Se a 7401 estiver
   ocupada, o Vite salta para outra e todas as chamadas à API — e o WebSocket — são bloqueadas, com
   sintomas que parecem de autenticação. `server.strictPort: true` no `vite.config.ts`.
-- Em dev, o Vite faz proxy de `/api` (incluindo WebSocket, `ws: true`) para `127.0.0.1:7400` — ou o
-  frontend fala diretamente com `VITE_API_URL`; decidir no scaffold e escrever aqui.
+- Em dev, o Vite faz **proxy de `/api`** (incluindo WebSocket, `ws: true`) para `127.0.0.1:7400` e o
+  frontend usa caminhos relativos (`VITE_API_URL` vazia) — para o browser é tudo mesma origem. O alvo é
+  `127.0.0.1` e não `localhost` porque no Node 24 `localhost` pode resolver para `::1`, onde o backend
+  não escuta. O `Origin` do upgrade do WebSocket chega ao backend tal como o browser o mandou
+  (`http://localhost:7401`), por isso continua a ter de estar no `CORS_ALLOWED_ORIGINS`.
+- **Versões fixadas por causa do Smart App Control** (ver a secção do backend): `vite@7` e
+  `@vitejs/plugin-react@5` (o 6 exige o Vite 8); `typescript@6` (o 7 é um binário nativo novo). Os
+  binários do Tailwind 4 (`@tailwindcss/oxide`, `lightningcss`) correram sem bloqueio a 2026-09-28.
 
 ## Testes — o que liga a quê
 
 | Peça | O quê | Liga a | Estado |
 |---|---|---|---|
-| Backend | Vitest — `TerminalManager` (com um processo falso em vez do `claude`), política de pastas, guarda de auth, parsing dos manifestos da biblioteca | nada externo | ✅ config, erros, health, CORS, shutdown, `TerminalManager` + denylist, auth (login/logout/me, expiração, rate limit, cookie adulterado, WS sem cookie / `Origin` alheio) — 38 testes. Por fazer: política de pastas, biblioteca |
+| Backend | Vitest — `TerminalManager` (com um processo falso em vez do `claude`), política de pastas, guarda de auth, parsing dos manifestos da biblioteca | nada externo | ✅ config, erros, health, CORS, shutdown, `TerminalManager` + denylist, auth (login/logout/me, expiração, rate limit, cookie adulterado, WS sem cookie / `Origin` alheio), SPA servida (fallback, cache, path traversal, origem própria no WS) — 59 testes. Por fazer: política de pastas, biblioteca |
 | Backend | Spike manual do PTY no Windows (`scripts/pty-spike.ts`): binário, ambiente do filho, `/status` = subscrição, resize, Ctrl+C, kill da árvore | o `claude` real (sem gastar quota) | ✅ 7/7 a 2026-09-28 |
-| Frontend | `npx tsc -b` + lint | — | 🚧 |
-| Frontend | Testes automáticos | — | **nenhum** (omissão da stack) — verificação manual no browser |
+| Frontend | `npx tsc -b` + lint | — | ✅ limpos a 2026-09-28 |
+| Frontend | Testes automáticos | — | **nenhum** (omissão da stack) — verificação no browser (DOM + rede); a `/_tokens` (só dev) mostra tokens e componentes comuns montados |
 
 **O que não está coberto, sem suavizar**: ninguém testa automaticamente o Claude Code a correr dentro
 do PTY (depende do login real e gasta quota); a renderização do terminal (canvas do xterm.js) só se

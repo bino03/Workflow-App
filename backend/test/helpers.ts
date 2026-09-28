@@ -1,4 +1,5 @@
 import { tmpdir } from 'node:os';
+import { join } from 'node:path';
 import { type Config, loadConfig } from '../src/config.js';
 
 export const TEST_ORIGIN = 'http://localhost:7401';
@@ -11,6 +12,8 @@ export function testEnv(overrides: Record<string, string | undefined> = {}): Nod
     CORS_ALLOWED_ORIGINS: TEST_ORIGIN,
     ALLOWED_ROOTS: tmpdir(),
     WORKFLOW_PATH: tmpdir(),
+    // Tests must not depend on whether frontend/dist happens to be built; spa.test.ts sets its own.
+    FRONTEND_DIST: join(tmpdir(), 'workflow-app-no-frontend-dist'),
     ...overrides,
   };
 }

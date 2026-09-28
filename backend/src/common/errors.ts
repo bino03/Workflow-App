@@ -1,5 +1,6 @@
 import type { FastifyError, FastifyInstance } from 'fastify';
 import { ZodError } from 'zod';
+import { isSpaNavigation, sendSpaIndex } from './spa.js';
 
 /**
  * Every error the API can return. The frontend mirrors these 1:1 in
@@ -68,8 +69,13 @@ function normalize(error: unknown): AppError {
   return new AppError('COMMON_002');
 }
 
+export type ErrorHandlerOptions = {
+  /** Browser navigations outside /api get the SPA's index.html instead of a JSON 404. */
+  spaFallback?: boolean;
+};
+
 /** The single error handler of the app — every error response goes through here. */
-export function registerErrorHandler(app: FastifyInstance): void {
+export function registerErrorHandler(app: FastifyInstance, { spaFallback = false }: ErrorHandlerOptions = {}): void {
   app.setErrorHandler((error, request, reply) => {
     const appError = normalize(error);
     if (appError.status >= 500) {
@@ -81,6 +87,7 @@ export function registerErrorHandler(app: FastifyInstance): void {
   });
 
   app.setNotFoundHandler((request, reply) => {
+    if (spaFallback && isSpaNavigation(request)) return sendSpaIndex(reply);
     const appError = new AppError('COMMON_003', `Route not found: ${request.method}`);
     return reply.status(appError.status).send(toErrorResponse(appError));
   });

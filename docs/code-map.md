@@ -27,18 +27,21 @@ isso há os outros:
 | Validação de pedidos (zod → `COMMON_001`) | `backend/src/common/validation.ts` |
 | `GET /api/health` | `backend/src/common/health.routes.ts` |
 | Guarda de auth (REST + WS, `Origin`) | `backend/src/common/authGuard.ts` |
+| Servir o `frontend/dist` (fallback da SPA, cache, origem própria) | `backend/src/common/spa.ts` |
 | Login / logout / me | `backend/src/auth/auth.routes.ts` · sessões em `auth/sessionStore.ts` · `scripts/hash-password.ts` |
 | Gestor de terminais (PTYs, scrollback) | `backend/src/terminals/terminalManager.ts` |
 | Binário `claude`, ambiente do filho, kill da árvore | `backend/src/terminals/spawnClaude.ts` |
 | Spike manual do PTY com o `claude` real | `backend/scripts/pty-spike.ts` |
 | Protocolo do WebSocket | `backend/src/terminals/protocol.ts` ↔ `frontend/src/types/terminal.ts` |
-| Rotas | `frontend/src/main.tsx` |
-| Navegação persistente | `frontend/src/layouts/AppLayout.tsx` |
-| Componente de terminal (xterm.js) | `frontend/src/components/terminals/TerminalView.tsx` |
-| Instância HTTP | `frontend/src/api.ts` |
-| Tokens | `frontend/src/index.css` + `theme.ts` |
-
-> 🚧 Caminhos propostos — nascem no scaffold; corrigir aqui se ficarem diferentes.
+| Rotas e providers | `frontend/src/main.tsx` |
+| Navegação persistente, barra de estado | `frontend/src/layouts/AppLayout.tsx` |
+| Sessão (`useAuth`), guarda de rota | `frontend/src/contexts/AuthContext.tsx` · `hooks/useAuth.ts` · `components/PrivateRoute.tsx` · `services/authService.ts` |
+| Login | `frontend/src/pages/login/LoginPage.tsx` |
+| Confirmação (`useConfirm`) | `frontend/src/contexts/ConfirmDialogContext.tsx` · `hooks/useConfirm.ts` |
+| Instância HTTP, endereço do backend | `frontend/src/api.ts` · `config/apiBase.ts` |
+| Erros e toasts | `frontend/src/errors/` · `services/general/notificationService.tsx` |
+| Tokens | `frontend/src/index.css` + `theme.ts` · `terminal/xtermTheme.ts` · pré-visualização em `/_tokens` (só dev) |
+| Componente de terminal (xterm.js) | `frontend/src/components/terminals/TerminalView.tsx` (🚧 por criar) |
 
 ---
 

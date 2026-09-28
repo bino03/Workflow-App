@@ -1,6 +1,7 @@
 import type { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify';
 import type { Session, SessionStore } from '../auth/sessionStore.js';
 import { AppError } from './errors.js';
+import { isApiPath } from './spa.js';
 
 export const SESSION_COOKIE = 'session';
 
@@ -30,8 +31,10 @@ export function sessionFromRequest(request: FastifyRequest, sessionStore: Sessio
 
 /**
  * The single auth guard, for REST routes and the WebSocket upgrade alike. Runs on every request
- * (unknown routes included): a route is only public if it says so with `config: { public: true }`.
- * On a WebSocket upgrade it also checks `Origin` — cookies go with cross-site requests too.
+ * (unknown routes included): under /api a route is only public if it says so with
+ * `config: { public: true }`. Outside /api is the SPA (index.html, assets, the login page itself),
+ * which must load without a session. On a WebSocket upgrade it also checks `Origin` — cookies go
+ * with cross-site requests too.
  */
 export function registerAuthGuard(app: FastifyInstance, { sessionStore, allowedOrigins }: AuthGuardOptions): void {
   app.decorateRequest('session', null);
@@ -41,7 +44,9 @@ export function registerAuthGuard(app: FastifyInstance, { sessionStore, allowedO
       const origin = request.headers.origin;
       if (!origin || !allowedOrigins.includes(origin)) throw new AppError('AUTH_003');
     }
-    if (request.routeOptions.config?.public) return;
+    // A WebSocket always needs a session, wherever it is mounted: it is a shell on this machine.
+    const isSpaRequest = !request.ws && !isApiPath(request.url);
+    if (isSpaRequest || request.routeOptions.config?.public) return;
 
     const session = sessionFromRequest(request, sessionStore);
     if (!session) throw new AppError('AUTH_002');

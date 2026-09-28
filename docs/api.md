@@ -27,8 +27,8 @@ próprio Fastify (JSON mal formado, content-type errado → `COMMON_001`) e as r
 | `AUTH_003` | 403 | `Origin` fora de `CORS_ALLOWED_ORIGINS` (upgrade do WebSocket) |
 | `AUTH_004` | 429 | Demasiadas tentativas de login |
 
-O frontend espelha esta tabela em `frontend/src/errors/errorMessages.ts` (ainda não existe — nasce na
-infraestrutura do frontend, com estes códigos).
+O frontend espelha esta tabela em `frontend/src/errors/errorMessages.ts`, pela mesma ordem — os dois
+mudam no mesmo commit.
 
 ## Paginação
 
@@ -100,6 +100,21 @@ redesenhar logo a seguir.
 - **Sem sessão, qualquer rota não pública dá `401 AUTH_002`** — incluindo rotas que não existem (só com
   sessão é que uma rota inexistente dá `404 COMMON_003`); a API não revela que rotas tem.
 - Um login com sucesso termina a sessão anterior que o browser trazia (id novo a cada login).
+
+### Fora de `/api` — a SPA (✅)
+
+Quando existe `FRONTEND_DIST/index.html`, o backend serve o frontend; tudo isto é **público** (a página
+de login tem de carregar sem sessão):
+
+| Pedido | Resposta |
+|---|---|
+| `GET` de um ficheiro do build (`/`, `/assets/*`) | o ficheiro. `/assets/*` com `Cache-Control: public, max-age=31536000, immutable`; o resto `no-cache` |
+| `GET`/`HEAD` de uma rota do cliente sem extensão (`/terminals`, `/library/x`) | `index.html` (`no-cache`) |
+| `GET` de um ficheiro que não existe (`/assets/velho.js`) | `404 COMMON_003` em JSON — nunca o `index.html` |
+| Outro método fora de `/api` | `404 COMMON_003` |
+
+Sem build, fora de `/api` é sempre `404 COMMON_003` (e um aviso no log do arranque). Um **WebSocket**
+exige sessão em qualquer caminho, dentro ou fora de `/api`.
 
 ---
 

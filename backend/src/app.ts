@@ -9,6 +9,7 @@ import { SessionStore } from './auth/sessionStore.js';
 import { registerAuthGuard } from './common/authGuard.js';
 import { AppError, registerErrorHandler } from './common/errors.js';
 import { healthRoutes } from './common/health.routes.js';
+import { hasSpaBuild, registerSpa, selfOrigins } from './common/spa.js';
 import type { TerminalManager } from './terminals/terminalManager.js';
 
 export type AppDeps = {
@@ -29,7 +30,8 @@ export async function buildApp({ config, terminalManager, sessionStore, logger =
   const sessions =
     sessionStore ?? new SessionStore({ idleMs: config.auth.sessionIdleMs, maxMs: config.auth.sessionMaxMs });
 
-  registerErrorHandler(app);
+  const serveSpa = hasSpaBuild(config.frontendDist);
+  registerErrorHandler(app, { spaFallback: serveSpa });
 
   await app.register(cors, {
     origin: config.corsAllowedOrigins,
@@ -43,10 +45,21 @@ export async function buildApp({ config, terminalManager, sessionStore, logger =
   });
   await app.register(websocket);
 
-  registerAuthGuard(app, { sessionStore: sessions, allowedOrigins: config.corsAllowedOrigins });
+  // A page served by this backend opens its WebSocket with the backend's own origin. Only the
+  // WebSocket needs it: same-origin REST calls never depend on CORS.
+  const websocketOrigins = serveSpa
+    ? [...new Set([...config.corsAllowedOrigins, ...selfOrigins(config.port)])]
+    : config.corsAllowedOrigins;
+  registerAuthGuard(app, { sessionStore: sessions, allowedOrigins: websocketOrigins });
 
   await app.register(healthRoutes);
   await app.register(authRoutes, { config, sessionStore: sessions });
+
+  if (serveSpa) {
+    await registerSpa(app, config.frontendDist);
+  } else {
+    app.log.warn({ frontendDist: config.frontendDist }, 'no frontend build found — serving the API only');
+  }
 
   app.addHook('onClose', async () => {
     sessions.close();

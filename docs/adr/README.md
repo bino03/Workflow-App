@@ -25,6 +25,7 @@ Estados: `proposto` → `aceite` → `substituído`. Template: `Templates/ADR.md
 | [[0007-omissoes-do-frontend]] | Estado, ícones e terminal no frontend (omissões da stack) | `aceite` | 2026-09-27 |
 | [[0008-identidade-visual]] | Violeta + Geist, só escuro; dois layouts de terminais (foco dividido · grelha); só desktop | `aceite` | 2026-09-27 |
 | [[0009-estado-em-ficheiro-json]] | Sem BD: `state.json` (terminais a reabrir, histórico de fechados com resumo do `.jsonl`, pastas); layout no browser; scrollback só em memória | `aceite` | 2026-09-28 |
+| [[0010-spa-servida-pelo-backend]] | O backend serve o `frontend/dist`: uma origem em produção; fora de `/api` público (exceto WebSocket); origem própria aceite no WS | `aceite` | 2026-09-28 |
 
 ## Decisões que ainda vão precisar de ADR
 
