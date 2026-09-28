@@ -4,7 +4,7 @@ import { afterEach, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 import { buildApp } from '../src/app.js';
 import { SessionStore } from '../src/auth/sessionStore.js';
 import { TerminalManager } from '../src/terminals/terminalManager.js';
-import { TEST_ORIGIN, testConfig } from './helpers.js';
+import { TEST_ORIGIN, TEST_USERNAME, testConfig } from './helpers.js';
 
 const PASSWORD = 'correct horse battery staple';
 let passwordHash: string;
@@ -45,11 +45,11 @@ describe('auth', () => {
     await app.close();
   });
 
-  async function login(password = PASSWORD, cookie?: string) {
+  async function login(password = PASSWORD, cookie?: string, username = TEST_USERNAME) {
     return app.inject({
       method: 'POST',
       url: '/api/auth/login',
-      payload: { password },
+      payload: { username, password },
       headers: cookie ? { cookie } : {},
     });
   }
@@ -78,10 +78,25 @@ describe('auth', () => {
     expect(res.cookies).toHaveLength(0);
   });
 
-  it('empty body → 400 COMMON_001 with fieldErrors', async () => {
+  it('wrong username → the same 401 AUTH_001, no cookie', async () => {
+    // 4 attempts: under the 5/min rate limit.
+    const wrongPassword = (await login('wrong password!!')).json();
+    for (const username of ['someone-else', TEST_USERNAME.toUpperCase(), `${TEST_USERNAME}x`]) {
+      const res = await login(PASSWORD, undefined, username);
+      expect(res.statusCode).toBe(401);
+      expect(res.json()).toEqual(wrongPassword);
+      expect(res.cookies).toHaveLength(0);
+    }
+  });
+
+  it('surrounding spaces in the username are ignored', async () => {
+    expect((await login(PASSWORD, undefined, `  ${TEST_USERNAME} `)).statusCode).toBe(204);
+  });
+
+  it('empty body → 400 COMMON_001 with fieldErrors for both fields', async () => {
     const res = await app.inject({ method: 'POST', url: '/api/auth/login', payload: {} });
     expect(res.statusCode).toBe(400);
-    expect(res.json().fieldErrors[0].field).toBe('password');
+    expect(res.json().fieldErrors.map((e: { field: string }) => e.field).sort()).toEqual(['password', 'username']);
   });
 
   it('me requires a session', async () => {

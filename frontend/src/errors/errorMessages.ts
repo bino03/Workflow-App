@@ -8,7 +8,7 @@ export const ERROR_MESSAGES: Record<string, string> = {
   COMMON_002: 'Ocorreu um erro inesperado no servidor. Tenta outra vez.',
   COMMON_003: 'Este recurso não existe.',
   // ── AUTH ───────────────────────────────
-  AUTH_001: 'Password incorreta. Tenta outra vez.',
+  AUTH_001: 'Nome de utilizador ou password incorretos. Tenta outra vez.',
   AUTH_002: 'A sessão terminou. Entra outra vez.',
   AUTH_003: 'Pedido recusado: esta origem não está autorizada.',
   AUTH_004: 'Demasiadas tentativas. Espera um minuto e tenta outra vez.',

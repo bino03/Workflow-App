@@ -18,7 +18,7 @@ Estados: `proposto` → `aceite` → `substituído`. Template: `Templates/ADR.md
 |---|---|---|---|
 | [[0001-stack-tecnologica]] | `node-fastify` (📋 criado na hora — Node + TypeScript + Fastify + node-pty) + `react-vite-antd` (✅) + xterm.js | `aceite` | 2026-09-27 |
 | [[0002-motor-via-pty-sobre-subscricao]] | O motor é o Claude Code interativo num PTY — nunca a API/SDK | `aceite` | 2026-09-27 |
-| [[0003-auth-utilizador-unico]] | Login próprio de um só utilizador, sessão em cookie HttpOnly | `aceite` | 2026-09-27 |
+| [[0003-auth-utilizador-unico]] | Login próprio de um só utilizador, sessão em cookie HttpOnly | `aceite` (contrato de login substituído por [[0011-nome-de-utilizador-no-login]]) | 2026-09-27 |
 | [[0004-exposicao-e-modelo-de-ameaca]] | Um terminal é um shell: `127.0.0.1` por omissão, proteções obrigatórias antes de expor | `aceite` | 2026-09-27 |
 | [[0005-biblioteca-lida-do-disco]] | A biblioteca do Workflow é lida do disco, só leitura | `aceite` | 2026-09-27 |
 | [[0006-organizacao-por-dominio]] | Backend organizado por domínio (módulos) | `aceite` | 2026-09-27 |
@@ -26,6 +26,7 @@ Estados: `proposto` → `aceite` → `substituído`. Template: `Templates/ADR.md
 | [[0008-identidade-visual]] | Violeta + Geist, só escuro; dois layouts de terminais (foco dividido · grelha); só desktop | `aceite` | 2026-09-27 |
 | [[0009-estado-em-ficheiro-json]] | Sem BD: `state.json` (terminais a reabrir, histórico de fechados com resumo do `.jsonl`, pastas); layout no browser; scrollback só em memória | `aceite` | 2026-09-28 |
 | [[0010-spa-servida-pelo-backend]] | O backend serve o `frontend/dist`: uma origem em produção; fora de `/api` público (exceto WebSocket); origem própria aceite no WS | `aceite` | 2026-09-28 |
+| [[0011-nome-de-utilizador-no-login]] | Login com `{username, password}`: `APP_USERNAME` no `.env`, o mesmo `AUTH_001` para os dois, comparação em tempo constante (substitui o contrato de login do 0003) | `aceite` | 2026-09-28 |
 
 ## Decisões que ainda vão precisar de ADR
 

@@ -25,7 +25,7 @@ export function LoginPage() {
   const form = useForm<LoginFormValues>({
     resolver: zodResolver(loginFormSchema),
     mode: 'onChange',
-    defaultValues: { password: '' },
+    defaultValues: { username: '', password: '' },
   });
   const {
     control,
@@ -35,13 +35,14 @@ export function LoginPage() {
 
   if (status === 'authenticated') return <Navigate to={redirectTarget(location.state)} replace />;
 
-  const onSubmit = async ({ password }: LoginFormValues) => {
+  const onSubmit = async (credentials: LoginFormValues) => {
     setSubmitError(null);
     try {
-      await login(password);
+      await login(credentials);
       navigate(redirectTarget(location.state), { replace: true });
     } catch (error) {
-      // Todos os erros do login mostram-se aqui, por baixo do campo — nunca em toast.
+      // Todos os erros do login mostram-se aqui, por baixo da password — nunca em toast. O AUTH_001
+      // não diz qual dos dois falhou (ADR 0011): o nome fica, a password limpa-se.
       ErrorHandler.handle(error, { showNotification: false });
       setSubmitError(ErrorHandler.getMessage(error));
       form.resetField('password');
@@ -49,6 +50,7 @@ export function LoginPage() {
     }
   };
 
+  const usernameError = errors.username?.message;
   const errorText = submitError ?? errors.password?.message;
 
   return (
@@ -57,6 +59,33 @@ export function LoginPage() {
         <Wordmark size="login" />
         <div className="kicker mt-10">Acesso restrito</div>
         <h1 className="text-display m-0 mt-1 mb-6">Entrar</h1>
+
+        <label htmlFor="username" className="text-[13px] text-text-2 mb-1.5">
+          Nome de utilizador
+        </label>
+        <Controller
+          name="username"
+          control={control}
+          render={({ field }) => (
+            <Input
+              {...field}
+              id="username"
+              autoFocus
+              autoComplete="username"
+              autoCapitalize="none"
+              spellCheck={false}
+              status={usernameError ? 'error' : undefined}
+              aria-invalid={usernameError ? true : undefined}
+              aria-describedby={usernameError ? 'username-error' : undefined}
+              className="h-10"
+              onChange={(event) => {
+                setSubmitError(null);
+                field.onChange(event);
+              }}
+            />
+          )}
+        />
+        <FieldError id="username-error" message={usernameError} />
 
         <label htmlFor="password" className="text-[13px] text-text-2 mb-1.5">
           Password
@@ -68,7 +97,6 @@ export function LoginPage() {
             <Input.Password
               {...field}
               id="password"
-              autoFocus
               autoComplete="current-password"
               status={errorText ? 'error' : undefined}
               aria-invalid={errorText ? true : undefined}

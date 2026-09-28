@@ -6,6 +6,8 @@ data: 2026-09-27
 
 # 0003 — Login próprio de um só utilizador, sessão em cookie HttpOnly
 
+> ⚠️ **Contrato de login substituído por [[0011-nome-de-utilizador-no-login]]** (`{username, password}`). O resto continua em vigor.
+
 ## Contexto
 
 Na entrevista: "não precisa de roles visto que vou ser o unico a usar, mas claro que vai precisar de

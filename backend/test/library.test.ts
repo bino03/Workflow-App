@@ -8,7 +8,7 @@ import { buildApp } from '../src/app.js';
 import { AppError } from '../src/common/errors.js';
 import { LibraryService } from '../src/library/libraryService.js';
 import { TerminalManager } from '../src/terminals/terminalManager.js';
-import { testConfig } from './helpers.js';
+import { TEST_USERNAME as USERNAME, testConfig } from './helpers.js';
 
 const PASSWORD = 'library test password';
 
@@ -124,7 +124,7 @@ describe('GET /api/library/*', () => {
   });
 
   it('with a session → 200 {entries, invalid}', async () => {
-    const login = await app.inject({ method: 'POST', url: '/api/auth/login', payload: { password: PASSWORD } });
+    const login = await app.inject({ method: 'POST', url: '/api/auth/login', payload: { username: USERNAME, password: PASSWORD } });
     const cookie = login.cookies.find((c) => c.name === 'session');
     if (!cookie) throw new Error('no session cookie');
     const res = await app.inject({ method: 'GET', url: '/api/library/stacks', headers: { cookie: `session=${cookie.value}` } });

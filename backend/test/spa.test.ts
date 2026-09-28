@@ -6,7 +6,7 @@ import type { FastifyInstance } from 'fastify';
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 import { buildApp } from '../src/app.js';
 import { TerminalManager } from '../src/terminals/terminalManager.js';
-import { TEST_ORIGIN, testConfig } from './helpers.js';
+import { TEST_ORIGIN, TEST_USERNAME as USERNAME, testConfig } from './helpers.js';
 
 const PASSWORD = 'correct horse battery staple';
 const INDEX_HTML = '<!doctype html><title>Workflow App</title><div id="root"></div>';
@@ -116,7 +116,7 @@ describe('SPA served by the backend', () => {
 
   describe('WebSocket Origin', () => {
     async function sessionCookie(): Promise<string> {
-      const res = await app.inject({ method: 'POST', url: '/api/auth/login', payload: { password: PASSWORD } });
+      const res = await app.inject({ method: 'POST', url: '/api/auth/login', payload: { username: USERNAME, password: PASSWORD } });
       const cookie = res.cookies.find((c) => c.name === 'session');
       if (!cookie) throw new Error('no session cookie');
       return `session=${cookie.value}`;

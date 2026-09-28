@@ -22,7 +22,7 @@ próprio Fastify (JSON mal formado, content-type errado → `COMMON_001`) e as r
 | `COMMON_001` | 400 | Validação falhou (`fieldErrors` por campo) ou pedido mal formado |
 | `COMMON_002` | 500 | Erro inesperado — o `message` é sempre genérico, o detalhe só vai para o log |
 | `COMMON_003` | 404 | Rota inexistente |
-| `AUTH_001` | 401 | Password errada |
+| `AUTH_001` | 401 | Nome de utilizador ou password errados — nunca diz qual |
 | `AUTH_002` | 401 | Sem sessão, ou sessão expirada |
 | `AUTH_003` | 403 | `Origin` fora de `CORS_ALLOWED_ORIGINS` (upgrade do WebSocket) |
 | `AUTH_004` | 429 | Demasiadas tentativas de login |
@@ -106,7 +106,7 @@ Só leitura, lida do disco a cada pedido ([[adr/0005-biblioteca-lida-do-disco]])
 
 | Método | Rota | Acesso | Corpo | Resposta | Erros |
 |---|---|---|---|---|---|
-| POST | `/api/auth/login` | **público**, 5/min por IP | `{password}` (1–1024) | `204` + `Set-Cookie: session` | `COMMON_001` corpo inválido · `AUTH_001` password errada · `AUTH_004` 429 |
+| POST | `/api/auth/login` | **público**, 5/min por IP | `{username, password}` (nome 1–64 depois de `trim`, password 1–1024) | `204` + `Set-Cookie: session` | `COMMON_001` corpo inválido · `AUTH_001` nome ou password errados (o mesmo para os dois, [[adr/0011-nome-de-utilizador-no-login]]) · `AUTH_004` 429 |
 | POST | `/api/auth/logout` | sessão | — | `204` + cookie limpo | `AUTH_002` |
 | GET | `/api/auth/me` | sessão | — | `{authenticated:true}` | `AUTH_002` |
 | GET | `/api/health` | **público** | — | `{status:"ok"}` | — |

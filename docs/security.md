@@ -6,11 +6,12 @@
 ## Fluxo de autenticação
 
 Um só utilizador, **sem provedor externo** — adaptação do padrão "JWT em cookies HttpOnly" do Workflow
-([[adr/0003-auth-utilizador-unico]]).
+([[adr/0003-auth-utilizador-unico]]; nome de utilizador desde [[adr/0011-nome-de-utilizador-no-login]]).
 
 ```
-1. UI  → POST /api/auth/login {password}
-2. backend compara com APP_PASSWORD_HASH (argon2id) — tempo constante, rate limit por IP
+1. UI  → POST /api/auth/login {username, password}
+2. backend compara o nome com APP_USERNAME (SHA-256 + timingSafeEqual) e a password com APP_PASSWORD_HASH
+   (argon2id), os dois sempre — tempo constante, rate limit por IP; qualquer um errado → o mesmo AUTH_001
 3. backend → Set-Cookie: session (id opaco assinado com SESSION_SECRET; HttpOnly, SameSite=Strict,
    Secure fora de localhost). A sessão vive em memória do backend — reiniciar = entrar outra vez
 4. pedidos REST seguintes: o browser envia o cookie; a guarda valida-o
@@ -35,7 +36,10 @@ Um só utilizador, **sem provedor externo** — adaptação do padrão "JWT em c
   que expiram sem mais pedidos. O fim da sessão (logout, expiração, novo login) corre callbacks
   `sessionStore.onEnd` — é aí que o gateway dos terminais fecha os WebSockets dessa sessão.
 - **Rate limit do login**: 5 pedidos por minuto por IP (`@fastify/rate-limit`, só nessa rota), certos ou
-  errados → `429 AUTH_004`. A password compara-se com `argon2.verify` (tempo constante).
+  errados → `429 AUTH_004`. A password compara-se com `argon2.verify` (tempo constante); o nome, com
+  `timingSafeEqual` sobre o SHA-256 dos dois lados (comprimentos iguais). O argon2 corre **mesmo com o nome
+  errado**, e a resposta é o mesmo `AUTH_001`: nem o conteúdo nem o tempo dizem qual dos dois falhou (testado em
+  `authService.test.ts`).
 - **`Origin` no upgrade do WebSocket**: sem `Origin`, ou fora de `CORS_ALLOWED_ORIGINS` → `403 AUTH_003`,
   antes do upgrade. Testado (ADR 0004): sem cookie → 401; com cookie e `Origin` alheio → 403; sem
   `Origin` → 403; com os dois → liga.

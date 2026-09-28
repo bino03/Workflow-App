@@ -14,6 +14,7 @@ Nenhum destes ficheiros está no git. Num clone novo, criá-los a partir dos `.e
 | `HOST` | — | `127.0.0.1` | **Omissão `127.0.0.1`.** Mudar para `0.0.0.0` só com [[adr/0004-exposicao-e-modelo-de-ameaca]] cumprido |
 | `PORT` | — | `7400` | Fora das portas dos outros projetos (8080/5173/3000) |
 | `LOG_LEVEL` | — | `info` | `fatal`/`error`/`warn`/`info`/`debug`/`trace` |
+| `APP_USERNAME` | ✅ | `bino03` | O nome de utilizador do login ([[adr/0011-nome-de-utilizador-no-login]]). 1–64 de `[A-Za-z0-9._-]`, sensível a maiúsculas. Nunca chega ao processo `claude` |
 | `APP_PASSWORD_HASH` | ✅ | `$argon2id$…` | Gerado por `npm run hash-password`. Tem de começar por `$argon2id$`. Nunca a password em claro |
 | `SESSION_SECRET` | ✅ | 64+ caracteres aleatórios | Assina o cookie de sessão. Menos de 64 caracteres → não arranca |
 | `SESSION_IDLE_HOURS` | — | `12` | A sessão expira ao fim de N horas sem pedidos |

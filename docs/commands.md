@@ -33,6 +33,12 @@ npx tsx scripts/pty-spike.ts [cwd]  # spike manual: claude real num PTY (env, /s
   fixado. Para diagnosticar: `node -e "require('<pacote-do-binding>')"` mostra o erro real.
 - **`npm run dev` com `tsx watch` reinicia o servidor a cada gravação — e cada reinício mata todos os
   terminais abertos.** Ver a secção seguinte.
+- **O `tsx watch` não vigia o `backend/.env`.** Mudar só o `.env` não tem efeito até reiniciar. E ao contrário:
+  código que passa a exigir uma variável nova reinicia **antes** de ela estar no `.env` e fica parado em
+  `Invalid environment: - <VAR>` — o `.env` não o acorda. → Acrescentar a variável e reiniciar o `npm run dev`
+  (aconteceu com o `APP_USERNAME`, 2026-09-28).
+- **O `process.loadEnvFile` não sobrepõe variáveis já definidas** — útil para arrancar uma instância de teste
+  (`APP_PASSWORD_HASH=… DATA_DIR=<tmp> npm run dev`), mas a password real deixa de entrar nessa instância.
 
 ### ⚠️ Desenvolver a app a partir dela própria
 
@@ -104,7 +110,7 @@ npm run build      # tsc -b + build do Vite
 
 | Peça | O quê | Liga a | Estado |
 |---|---|---|---|
-| Backend | Vitest — `TerminalManager` (com um processo falso em vez do `claude`), política de pastas, guarda de auth, parsing dos manifestos da biblioteca | nada externo | ✅ config, erros, health, CORS, shutdown, `TerminalManager` + denylist, auth (login/logout/me, expiração, rate limit, cookie adulterado, WS sem cookie / `Origin` alheio), SPA servida (fallback, cache, path traversal, origem própria no WS) — 59 testes. Por fazer: política de pastas, biblioteca |
+| Backend | Vitest — `TerminalManager` (com um processo falso em vez do `claude`), política de pastas, guarda de auth, parsing dos manifestos da biblioteca | nada externo | ✅ config, erros, health, CORS, shutdown, `TerminalManager` + denylist, auth (login/logout/me, nome de utilizador + tempo constante, expiração, rate limit, cookie adulterado, WS sem cookie / `Origin` alheio), SPA servida (fallback, cache, path traversal, origem própria no WS), `StateStore`, biblioteca (manifestos válidos/inválidos, `LIBRARY_001`) — 91 testes (2026-09-28). Por fazer: política de pastas |
 | Backend | Spike manual do PTY no Windows (`scripts/pty-spike.ts`): binário, ambiente do filho, `/status` = subscrição, resize, Ctrl+C, kill da árvore | o `claude` real (sem gastar quota) | ✅ 7/7 a 2026-09-28 |
 | Frontend | `npx tsc -b` + lint | — | ✅ limpos a 2026-09-28 |
 | Frontend | Testes automáticos | — | **nenhum** (omissão da stack) — verificação no browser (DOM + rede); a `/_tokens` (só dev) mostra tokens e componentes comuns montados |

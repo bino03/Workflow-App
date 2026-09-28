@@ -1,10 +1,11 @@
 import { createContext } from 'react';
+import type { LoginCredentials } from '@/types/auth';
 
 export type AuthStatus = 'checking' | 'authenticated' | 'anonymous';
 
 export type AuthContextValue = {
   status: AuthStatus;
-  login: (password: string) => Promise<void>;
+  login: (credentials: LoginCredentials) => Promise<void>;
   logout: () => Promise<void>;
 };
 

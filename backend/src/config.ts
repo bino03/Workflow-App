@@ -31,6 +31,12 @@ const envSchema = z.object({
   PORT: z.coerce.number().int().min(1).max(65535).default(7400),
   LOG_LEVEL: z.enum(['fatal', 'error', 'warn', 'info', 'debug', 'trace']).default('info'),
 
+  APP_USERNAME: z
+    .string()
+    .trim()
+    .min(1)
+    .max(64)
+    .regex(/^[A-Za-z0-9._-]+$/, 'only letters, digits, dot, underscore and hyphen'),
   APP_PASSWORD_HASH: z.string().startsWith('$argon2id$', 'must be an argon2id hash (npm run hash-password)'),
   SESSION_SECRET: z.string().min(64, 'must have at least 64 characters'),
   SESSION_IDLE_HOURS: z.coerce.number().positive().default(12),
@@ -65,6 +71,7 @@ export type Config = {
   port: number;
   logLevel: Env['LOG_LEVEL'];
   auth: {
+    username: string;
     passwordHash: string;
     sessionSecret: string;
     sessionIdleMs: number;
@@ -113,6 +120,7 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): Config {
     port: e.PORT,
     logLevel: e.LOG_LEVEL,
     auth: {
+      username: e.APP_USERNAME,
       passwordHash: e.APP_PASSWORD_HASH,
       sessionSecret: e.SESSION_SECRET,
       sessionIdleMs: e.SESSION_IDLE_HOURS * HOUR_MS,

@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useState, type ReactNode } from 'react
 import { setSessionExpiredHandler } from '@/api';
 import { ErrorHandler } from '@/errors/errorHandler';
 import * as authService from '@/services/authService';
+import type { LoginCredentials } from '@/types/auth';
 import { AuthContext, type AuthStatus } from './authContextValue';
 
 // Cache da sessão só para o arranque não piscar o /login; o /auth/me confirma logo a seguir.
@@ -55,8 +56,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [setAuthenticated]);
 
   const login = useCallback(
-    async (password: string) => {
-      await authService.login(password);
+    async (credentials: LoginCredentials) => {
+      await authService.login(credentials);
       setAuthenticated(true);
     },
     [setAuthenticated],

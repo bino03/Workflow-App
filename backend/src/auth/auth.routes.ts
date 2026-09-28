@@ -5,7 +5,7 @@ import { SESSION_COOKIE, sessionFromRequest } from '../common/authGuard.js';
 import { AppError } from '../common/errors.js';
 import { parseWith } from '../common/validation.js';
 import { loginSchema } from './auth.schemas.js';
-import { verifyPassword } from './authService.js';
+import { verifyCredentials } from './authService.js';
 import type { SessionStore } from './sessionStore.js';
 
 export const LOGIN_RATE_LIMIT = { max: 5, timeWindow: '1 minute' } as const;
@@ -29,8 +29,9 @@ export async function authRoutes(app: FastifyInstance, { config, sessionStore }:
     '/api/auth/login',
     { config: { public: true, rateLimit: LOGIN_RATE_LIMIT } },
     async (request, reply) => {
-      const { password } = parseWith(loginSchema, request.body);
-      if (!(await verifyPassword(config.auth.passwordHash, password))) {
+      const credentials = parseWith(loginSchema, request.body);
+      // Wrong username or wrong password: the same AUTH_001, never saying which (ADR 0011).
+      if (!(await verifyCredentials(config.auth, credentials))) {
         throw new AppError('AUTH_001');
       }
       // A fresh id on every login; an old session carried by this browser ends here.

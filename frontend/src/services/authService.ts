@@ -1,8 +1,9 @@
 import api from '@/api';
+import type { LoginCredentials } from '@/types/auth';
 
-export async function login(password: string): Promise<void> {
-  // O erro (password errada, rate limit) mostra-se no próprio formulário.
-  await api.post('/auth/login', { password }, { skipErrorNotification: true, skipAuthRedirect: true });
+export async function login(credentials: LoginCredentials): Promise<void> {
+  // O erro (credenciais erradas, rate limit) mostra-se no próprio formulário.
+  await api.post('/auth/login', credentials, { skipErrorNotification: true, skipAuthRedirect: true });
 }
 
 export async function logout(): Promise<void> {

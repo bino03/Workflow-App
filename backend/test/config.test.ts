@@ -31,7 +31,7 @@ describe('loadConfig', () => {
 
   it('fails listing every missing required variable, without values', () => {
     const issues = issuesOf({});
-    for (const name of ['APP_PASSWORD_HASH', 'SESSION_SECRET', 'CORS_ALLOWED_ORIGINS', 'ALLOWED_ROOTS', 'WORKFLOW_PATH']) {
+    for (const name of ['APP_USERNAME', 'APP_PASSWORD_HASH', 'SESSION_SECRET', 'CORS_ALLOWED_ORIGINS', 'ALLOWED_ROOTS', 'WORKFLOW_PATH']) {
       expect(issues.some((issue) => issue.startsWith(`${name}:`))).toBe(true);
     }
   });
@@ -41,6 +41,13 @@ describe('loadConfig', () => {
     expect(issues.some((issue) => issue.startsWith('SESSION_SECRET:'))).toBe(true);
     expect(issues.some((issue) => issue.startsWith('APP_PASSWORD_HASH:'))).toBe(true);
     expect(issues.join()).not.toContain('short');
+  });
+
+  it('rejects a username with characters outside the allowed set', () => {
+    for (const username of ['bino 03', 'bino<03>', 'x'.repeat(65), '   ']) {
+      expect(issuesOf(testEnv({ APP_USERNAME: username })).some((issue) => issue.startsWith('APP_USERNAME:'))).toBe(true);
+    }
+    expect(loadConfig(testEnv({ APP_USERNAME: 'bino03' })).auth.username).toBe('bino03');
   });
 
   it('rejects relative and missing roots', () => {

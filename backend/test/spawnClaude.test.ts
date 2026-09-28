@@ -17,6 +17,7 @@ describe('childEnv', () => {
       CLAUDE_CODE_SESSION_ID: 'abc',
       CLAUDE_CODE_MESSAGING_TOKEN: 'secret',
       SESSION_SECRET: 'x'.repeat(64),
+      APP_USERNAME: 'bino',
       APP_PASSWORD_HASH: '$argon2id$…',
       PORT: '7400',
       HOST: '127.0.0.1',
