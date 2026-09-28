@@ -1,6 +1,7 @@
 # Formulários e validação
 
-> 🚧 Convenção prospetiva — ainda sem código neste projeto que a valide.
+> 🚧 Parcialmente validada: `FieldError` e o login (`pages/login/`) existem e foram verificados a
+> 2026-09-28; submit/criar/editar em drawers ainda sem código.
 
 > Parte de [[../frontend-visual-consistency]]. Regras de base em [[skill-frontend-design-system]] → "Forms".
 
@@ -24,10 +25,18 @@ export const OrderFormSchema = z.object({
 export type OrderFormValues = z.infer<typeof OrderFormSchema>;
 ```
 
-## 2. Mensagens do Zod: chaves i18n
+## 2. Mensagens do Zod: texto PT direto
 
-Mensagem de Zod é **chave i18n**, renderizada com `t(...)`. Uma string fixa é um buraco de tradução
-silencioso.
+**Neste projeto não há i18n** ([[../../../adr/0007-omissoes-do-frontend]]): a mensagem do Zod é o
+texto final em pt-PT, no tom da app ("Escreve a password."), e o `FieldError` mostra-a tal como está.
+Os `t(...)` dos exemplos abaixo vêm da stack e não se aplicam.
+
+## 2.1 Campos do antd: `Controller`, nunca `register`
+
+🐛 `{...form.register('x')}` num `<Input>` do antd **não liga**: o `ref` do antd é um `InputRef`, não o
+elemento DOM, e o RHF nunca lê o valor — o campo parece funcionar, mas a validação vê sempre `''`
+(visto a 2026-09-28 na `/_tokens`). Todo o campo do antd vai por
+`<Controller name control render={({ field }) => <Input {...field} />} />`.
 
 ## 3. Submit
 
@@ -43,11 +52,15 @@ const { formState: { isValid, isSubmitting } } = form;
 
 ## 4. Erro por campo — um componente partilhado
 
-`components/common/FieldError.tsx`, com `<Text type="danger">` e o `t(...)` num sítio só:
+`components/common/FieldError.tsx` (✅): texto em `error` com `✕` à frente (forma, não só cor),
+13/18, com altura reservada para o formulário não saltar quando o erro aparece:
 
 ```tsx
-<FieldError name="name" errors={form.formState.errors} />
+<FieldError id="name-error" name="name" errors={form.formState.errors} />  // erro do Zod (aceita "a.b")
+<FieldError id="password-error" message={submitError} />                  // erro que não vem do schema
 ```
+
+O `id` liga-se ao campo por `aria-describedby`. O login usa a segunda forma para o erro da API.
 
 Nunca o bloco `{errors.x && <p style={{...}}>}` copiado campo a campo.
 

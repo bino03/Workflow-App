@@ -40,8 +40,9 @@ cd backend && npm run dev          # se não há node_modules: npm install prime
 cd frontend && npm run dev         # se não há node_modules: npm install primeiro
 ```
 
-> ✅ Backend confirmado a 2026-09-28: `npm run dev` lê `backend/.env` e escreve o marcador abaixo.
-> Frontend ainda por confirmar (não existe).
+> ✅ Confirmados a 2026-09-28: o backend (`npm run dev` lê `backend/.env`) e o frontend (`npm run dev`
+> → `VITE v7… ready in …`, proxy de `/api` e do upgrade do WebSocket para `127.0.0.1:7400`).
+> Mudar `CORS_ALLOWED_ORIGINS` no `backend/.env` só vale depois de reiniciar o backend.
 
 Cada processo em **background** (`run_in_background`), com o output num ficheiro que se possa ler — nunca a
 bloquear a sessão.
@@ -61,6 +62,7 @@ polling sobre o output, **nunca um `sleep` fixo às cegas**:
 ```bash
 curl -s -o /dev/null -w "%{http_code}" http://127.0.0.1:7400/api/health   # → 200
 curl -s -o /dev/null -w "%{http_code}" http://localhost:7401               # → 200
+curl -s -o /dev/null -w "%{http_code}" http://localhost:7401/api/health    # → 200 (proxy do Vite)
 ```
 
 Só com todos a responder reportar que a app está a correr, com os URLs:

@@ -1,6 +1,6 @@
 # Tables & Lists
 
-> 🚧 Convenção prospetiva — ainda sem código neste projeto que a valide.
+> 🚧 Parcialmente validada: `components/common/ListActions.tsx` existe e foi verificado a 2026-09-28 (`stopPropagation`, `minWidth` 110, `Danger` em `accent` .75); colunas, pesquisa e paginação ainda sem código.
 
 > Parte de [[../frontend-visual-consistency]]. Porquê: [[../../../../frontend/ux-patterns]] §3-4.
 

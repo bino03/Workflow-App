@@ -1,6 +1,7 @@
 # Tokens & Colors
 
-> 🚧 Convenção prospetiva — ainda sem código neste projeto que a valide.
+> ✅ Baseado em `frontend/src/index.css`, `theme.ts`, `terminal/xtermTheme.ts`; verificado em Chrome
+> headless (estilos computados + screenshot da página `/_tokens`) a 2026-09-28.
 
 > Parte de [[../frontend-visual-consistency]].
 
@@ -23,6 +24,20 @@ foco/ação. As cores de estado são reservadas aos estados dos terminais — na
 
 **Regra**: qualquer cor/raio/sombra nova vem destes ficheiros. Nunca um hex num `style={{}}`. Usar
 `var(--wfa-…)`.
+
+### Tailwind e antd no mesmo CSS
+
+- **Só existem as cores, fontes, raios e sombras dos tokens no Tailwind.** O `index.css` apaga as
+  paletas por omissão (`@theme { --color-*: initial; … }`) e expõe os tokens com `@theme inline`:
+  `bg-surface-1`, `text-text-3`, `border-border`, `text-accent`, `rounded-md`, `font-mono`,
+  `shadow-overlay`… `bg-blue-500` não compila — de propósito.
+- **Ordem das camadas**: `@layer theme, base, antd, components, utilities;` antes do `@import
+  'tailwindcss'`, e `<StyleProvider layer>` (de `@ant-design/cssinjs`) à volta do `ConfigProvider` em
+  `main.tsx`. Sem isto o preflight do Tailwind (sem camada no antd) apaga bordas e margens dos
+  componentes do antd. As classes utilitárias abaixo e a pele da tabela vivem em `@layer components`
+  — ganham ao antd, perdem para os utilitários do Tailwind.
+- Em dev, `/_tokens` mostra os tokens aplicados a componentes do antd (Tooltip, Badge, Radio,
+  toasts, tabela…) — o sítio para ver o efeito de uma mudança no `theme.ts`.
 
 ## 1. Cores base
 
@@ -226,8 +241,19 @@ export const theme: ThemeConfig = {
 };
 ```
 
-⚠️ `colorTextLightSolid` escuro faz o texto do botão primário ficar escuro sobre violeta, como no
-protótipo. Confirmar no scaffold que não afeta outros componentes que usam o mesmo token (ex.: tooltips).
+O `theme.ts` real tem **mais do que isto**, por duas coisas vistas no browser a 2026-09-28:
+
+- 🐛 **O `darkAlgorithm` do antd 6 reescreve as cores de marca.** Trata `colorPrimary` como semente e
+  deriva o primário final: `#A88FFF` saía `#927DDC`, `#FF958D` saía `#DC827B` — botões, switch e radio
+  fora dos tokens. → `algorithm: [darkAlgorithm, pinBrandColors]`: um segundo passo repõe
+  `colorPrimary*` (hover/active/bg/border/text com `accent-hover/-pressed/-subtle/-border`) e
+  `colorSuccess/Warning/Error/Info` exatos. **Nunca tirar esse passo.**
+- ⚠️ **`colorTextLightSolid` escuro**: certo no botão primário, no destrutivo, no Badge e no Radio
+  sólido (texto `on-accent` sobre violeta/`error`). **Errado no Tooltip**, que o usa como cor do texto
+  sobre `colorBgSpotlight` (um azul derivado `#2A2A75`) — ilegível. → `colorBgSpotlight` = `surface-3`
+  e `components.Tooltip.colorTextLightSolid` = `text-1`. Um componente novo que use o token sobre um
+  fundo escuro precisa do mesmo override.
+- `components.Modal`: título 18/24 ([[drawers-and-modals]] → Confirmações).
 
 ## Classes utilitárias
 

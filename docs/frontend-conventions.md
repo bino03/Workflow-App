@@ -56,13 +56,25 @@ Ant Design para componentes, Tailwind para estilo próprio, tokens CSS como font
 
 ## Específico deste projeto
 
+- **Versões** (scaffold de 2026-09-28): React 19 + **antd 6** (suporta React 19 sem o patch que o antd 5
+  exigia), Vite 7, TypeScript 6, Tailwind 4, react-router 8. Porque não o Vite 8 nem o TypeScript 7:
+  [[commands]] → Armadilhas dos comandos (Smart App Control).
 - **O backend não é Spring.** A secção "Paginação" acima (normalizador `springPage.ts`) vem da stack e
   **não se aplica** enquanto a API não paginar ([[api]] → Paginação). Não criar `springPage.ts`.
 - **Sem refresh token**: a sessão é de servidor ([[adr/0003-auth-utilizador-unico]]). O interceptor de
   401 limpa o estado e vai para `/login` — o ponto (3) da "Instância HTTP" fica reduzido a isso.
 - **Visibilidade por role**: não há roles; a regra 7 não se aplica.
+- **O `api.ts` deste projeto** (✅ 2026-09-28): `baseURL` e URL do WebSocket vêm de
+  `src/config/apiBase.ts` (`API_BASE_URL`, `apiWebSocketUrl(path)`) — relativos à página quando
+  `VITE_API_URL` está vazia; nunca escrever um endereço do backend noutro sítio. O redirect para
+  `/login` decide-se pelo **código `AUTH_002`**, não pelo 401 (o `AUTH_001` de password errada também
+  é 401). Flags: `skipErrorNotification` e `skipAuthRedirect` (o `/auth/me` do arranque); não há
+  `noRefreshRetry`. O `AuthContext` regista com `setSessionExpiredHandler` como limpar a sessão e
+  navegar. O interceptor de `Blob` (2) fica por fazer até haver um download.
+- **Toasts**: `notificationService` usa a instância do `<App>` do antd, ligada por
+  `NotificationBridge` dentro do `<App>` — o `notification` estático do antd 6 não herda o tema.
 - **Terminais**: um `TerminalView` por terminal aberto — monta o xterm.js + `FitAddon`, abre o WebSocket
-  (`ws(s)://` derivado de `VITE_API_URL`, com cookies), envia `resize` quando o contentor muda
+  (`apiWebSocketUrl(...)`, com cookies), envia `resize` quando o contentor muda
   (`ResizeObserver` → `fit()`), e **desmonta tudo** ao sair (`dispose()` do xterm.js, `close()` do
   socket). A instância do xterm.js e o socket não vão para Context nem para estado de React.
 - **Teclado**: com um terminal em foco, o teclado é dele (Ctrl+C, Esc, setas, Tab são do Claude Code).
@@ -72,6 +84,11 @@ Ant Design para componentes, Tailwind para estilo próprio, tokens CSS como font
 
 ## Armadilhas
 
+- **Campo validado como vazio apesar de ter texto** — `{...register('x')}` num `<Input>` do antd (o
+  `ref` é um `InputRef`, não o DOM). → `Controller` ([[skills/references/design/forms-and-validation]] §2.1).
+- **Componentes do antd sem bordas/margens** — o preflight do Tailwind 4 ganhou ao CSS-in-JS do
+  antd. → Ordem `@layer theme, base, antd, components, utilities` + `<StyleProvider layer>`
+  ([[skills/references/design/tokens-and-colors]] → Tailwind e antd).
 - **Type-check "limpo" que não analisou nada** — `tsc --noEmit` com `tsconfig` de referências.
   → `tsc -b` ([[commands]]).
 - **Chamadas à API falham como se fosse auth** — o Vite saltou de porta e a origem não está no

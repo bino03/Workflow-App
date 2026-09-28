@@ -1,6 +1,7 @@
 # Rotas, menu e verificação de role
 
-> 🚧 Convenção prospetiva — ainda sem código neste projeto que a valide.
+> ✅ Baseado em `frontend/src/{main.tsx,layouts/AppLayout.tsx,pages/login/LoginPage.tsx,contexts/}`,
+> verificado em Chrome headless a 2026-09-28. O que ainda não existe está marcado 🚧.
 
 > Parte de [[../frontend-visual-consistency]]. Porquê: [[../../../../frontend/ux-patterns]] §8.
 
@@ -12,7 +13,13 @@
 
 | Rota | Página |
 |---|---|
-| _(preencher à medida que as páginas nascem — esta tabela vive **só** aqui)_ | |
+| `/login` | `pages/login/LoginPage.tsx` — pública; com sessão, volta para a rota de onde veio |
+| `/terminals` | `pages/TerminalsPage.tsx` — 🚧 estado vazio até à feature Terminais |
+| `/library` | `pages/LibraryPage.tsx` — 🚧 estado vazio até à feature Biblioteca |
+| `/_tokens` | `pages/dev/TokenPreviewPage.tsx` — **só em dev** (fora do bundle de produção), pública |
+| `*` | → `/terminals` |
+
+Esta tabela vive **só** aqui.
 
 Segmentos novos sempre em inglês.
 
@@ -28,6 +35,9 @@ Segmentos novos sempre em inglês.
 - Se um terminal escondido está à espera, o item "Terminais" da nav ganha um losango `state-wait`.
 - **Barra de estado de 26 px** em baixo, em todos os ecrãs autenticados: "Teclado em `<terminal>`" à
   esquerda e a lista de atalhos `Alt+…` à direita ([[buttons-and-icons]]).
+  **Hoje** (sem terminais, decisão do dono: omitir o que não existe): à esquerda o estado da ligação ao
+  backend (ponto `success`/`error` + texto, `GET /api/health` a cada 15 s, `useBackendHealth`), à
+  direita a versão (`__APP_VERSION__`, do `package.json`). A quota também ainda não aparece no header.
 - Uma rota **de topo** nova precisa de um item aqui (com gate de role quando for o caso). Rotas de
   detalhe (`:id`, sub-recursos) não entram.
 - Mais de ~5 entradas → agrupar as relacionadas num `Dropdown`, com o gatilho aceso quando o
@@ -39,11 +49,11 @@ Um `Dropdown` cujo gatilho é o cartão de perfil (avatar + nome + tag de role):
 
 | Item | Faz |
 |---|---|
-| Definições | Abre o drawer de definições (hoje: **layout dos terminais**) |
-| Terminar sessão | `useConfirm()` (título e rótulo não destrutivos: "Terminar sessão?" / "Sair") → logout |
+| Definições | 🚧 Abre o drawer de definições (**layout dos terminais**) — entra com essa tarefa do ToDo |
+| Terminar sessão | `useConfirm()` (`title` "Terminar sessão?", `actionLabel` "Sair", `danger: false`) → logout |
 
-Sem "Minha conta" (um só utilizador, sem perfil) e sem idioma (só pt-PT). O gatilho é o avatar com as
-iniciais (26 px, `surface-3`) + `▾`.
+Sem "Minha conta" (um só utilizador, sem perfil) e sem idioma (só pt-PT). O gatilho é o avatar (26 px,
+`surface-3`) + `▾` — com um **ícone de utilizador**, não iniciais: o `/auth/me` não devolve nome.
 
 - Ação transversal nova entra neste menu, **não** como mais um ícone no header.
 - O gatilho é um `<button>` com `aria-label`.
@@ -73,21 +83,26 @@ primário a toda a largura.
 
 ## 3. Role do utilizador autenticado
 
-`hooks/useAuth.ts` expõe `isAdmin()` / `hasRole()`. **Todo** o gate de permissão ou variação de UI
-por role passa por aqui — nunca `user.role === "OWNER"` em cru.
-
-Não confundir com **rotular** a role de outro perfil num badge (lê o campo do objeto — legítimo).
+**Não há roles** ([[../../../adr/0003-auth-utilizador-unico]]). `useAuth()` expõe só
+`{ status, login, logout }`, com `status` = `checking` | `authenticated` | `anonymous`. Sem
+`isAdmin()`/`hasRole()`.
 
 ## 4. Guarda de rota
 
-`PrivateRoute` verifica se há sessão e redireciona para `/login`. **Não verifica role.** Uma página
-exclusiva de uma role tem o gate no backend (`@PreAuthorize`) — esconder o link não é controlo de acesso.
+`PrivateRoute` verifica a sessão: `checking` → spinner, `anonymous` → `/login` com `state.from` (o
+login devolve lá depois). Não há gates de role.
 
 ## 5. Sessão
 
-`AuthContext` carrega `/auth/me` no arranque (com a sessão guardada em `sessionStorage` como
-cache). No 401 final, o `api.ts` limpa essa cache antes de redirecionar — senão o contexto volta a
-tentar `/auth/me` com cookies inválidos e entra em ciclo.
+`AuthContext` chama `/auth/me` no arranque (com `skipAuthRedirect` + `skipErrorNotification`; o 401
+resolve como "sem sessão", não como erro). Uma cache em `sessionStorage` (`workflow-app.session`) só
+evita piscar o `/login` num refresh — o `/auth/me` confirma logo a seguir. O `AuthContext` regista no
+`api.ts` (`setSessionExpiredHandler`) o que fazer num `AUTH_002` a meio da sessão: limpar a cache e
+passar a `anonymous`; o `PrivateRoute` trata do redirect. Logout limpa a sessão local mesmo que a
+chamada falhe. Backend inacessível no arranque → um toast "Sem ligação ao backend" + `/login`.
+
+O login mostra **todos** os erros inline por baixo do campo (password errada, rate limit, sem ligação)
+— nunca em toast.
 
 ## Drift encontrado — não copiar
 

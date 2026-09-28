@@ -1,0 +1,422 @@
+/*
+ * Tokens Violeta + Geist — docs/skills/references/design/tokens-and-colors.md (ADR 0008).
+ * Os valores são copiados literalmente de lá; theme.ts e terminal/xtermTheme.ts espelham-nos.
+ *
+ * Ordem das camadas: o preflight do Tailwind (base) fica abaixo do antd, e as nossas classes
+ * (components) e utilitários ficam acima — sem isto o reset do Tailwind apaga estilos do antd.
+ * O antd escreve em @layer antd por causa do <StyleProvider layer> em main.tsx.
+ */
+@layer theme, base, antd, components, utilities;
+
+@import 'tailwindcss';
+
+:root {
+  color-scheme: dark;
+
+  /* §1 Cores base */
+  --wfa-color-bg: #090911;
+  --wfa-color-surface-1: #101018;
+  --wfa-color-surface-2: #171820;
+  --wfa-color-surface-3: #1F2029;
+  --wfa-color-border: #2A2B33;
+  --wfa-color-border-strong: #40424B;
+  --wfa-color-text-1: #EFF0F6;
+  --wfa-color-text-2: #BBBDC8;
+  --wfa-color-text-3: #9799A4;
+  --wfa-color-accent: #A88FFF;
+  --wfa-color-accent-hover: #B9A9FF;
+  --wfa-color-accent-pressed: #9379E7;
+  --wfa-color-accent-subtle: #27223C;
+  --wfa-color-accent-border: #574A86;
+  --wfa-color-on-accent: #0C0D14;
+  --wfa-color-mask: rgba(0, 0, 0, .62);
+
+  /* §2 Escalas (tema escuro: 100 é claro; texto só com 100–400) */
+  --wfa-neutral-100: #EFF1FD;
+  --wfa-neutral-200: #D2D3DF;
+  --wfa-neutral-300: #B2B3BF;
+  --wfa-neutral-400: #93949F;
+  --wfa-neutral-500: #72747E;
+  --wfa-neutral-600: #53545E;
+  --wfa-neutral-700: #393A43;
+  --wfa-neutral-800: #22232C;
+  --wfa-neutral-900: #12131B;
+  --wfa-accent-100: #F2F0FF;
+  --wfa-accent-200: #D4CDFF;
+  --wfa-accent-300: #B6A4FF;
+  --wfa-accent-400: #9980EE;
+  --wfa-accent-500: #795EC9;
+  --wfa-accent-600: #5A3CA5;
+  --wfa-accent-700: #411C84;
+  --wfa-accent-800: #2B0063;
+  --wfa-accent-900: #19003F;
+
+  /* §3 Semânticas e estados do terminal */
+  --wfa-color-success: #6AD18A;
+  --wfa-color-warning: #EEA743;
+  --wfa-color-error: #FF958D;
+  --wfa-color-info: #64C1FF;
+  --wfa-state-work: #60DB89;
+  --wfa-state-work-subtle: #0F2817;
+  --wfa-state-work-border: #26673C;
+  --wfa-state-wait: #FFB755;
+  --wfa-state-wait-subtle: #2E1E07;
+  --wfa-state-wait-border: #784E0D;
+  --wfa-state-stop: #9697A1;
+  --wfa-state-stop-subtle: #212123;
+  --wfa-state-stop-border: #57585D;
+  --wfa-state-err: #FC6661;
+  --wfa-state-err-subtle: #371715;
+  --wfa-state-err-border: #8C3B37;
+
+  /* §4 Tipografia */
+  --wfa-font-display: 'Geist', sans-serif;
+  --wfa-font-sans: 'Geist', sans-serif;
+  --wfa-font-mono: 'Geist Mono', monospace;
+  --wfa-display-case: none;
+  --wfa-display-tracking: -0.02em;
+
+  /* §5 Espaçamento e raios */
+  --wfa-space-0-5: 2px;
+  --wfa-space-1: 4px;
+  --wfa-space-2: 8px;
+  --wfa-space-3: 12px;
+  --wfa-space-4: 16px;
+  --wfa-space-5: 20px;
+  --wfa-space-6: 24px;
+  --wfa-space-8: 32px;
+  --wfa-space-10: 40px;
+  --wfa-space-12: 48px;
+  --wfa-radius-sm: 3px;
+  --wfa-radius-md: 5px;
+  --wfa-radius-lg: 8px;
+
+  /* §6 Sombras (só em overlays) */
+  --wfa-shadow-1: 0 1px 2px rgba(0, 0, 0, .5);
+  --wfa-shadow-overlay: 0 24px 64px rgba(0, 0, 0, .6), 0 0 0 1px #40424B;
+
+  /* §7 Movimento */
+  --wfa-dur-fast: 120ms;
+  --wfa-dur-base: 180ms;
+  --wfa-dur-slow: 260ms;
+  --wfa-ease-standard: cubic-bezier(.2, 0, 0, 1);
+  --wfa-ease-exit: cubic-bezier(.4, 0, 1, 1);
+
+  /* §8 Terminal — os mesmos valores de terminal/xtermTheme.ts, para blocos mono fora do xterm.js */
+  --wfa-term-bg: #090911;
+  --wfa-term-fg: #DDDDE3;
+  --wfa-term-cursor: #A88FFF;
+  --wfa-term-selection: #3E365C;
+  --wfa-ansi-black: #82849A;
+  --wfa-ansi-red: #F66D67;
+  --wfa-ansi-green: #5FD37F;
+  --wfa-ansi-yellow: #F1CA47;
+  --wfa-ansi-blue: #6AA7F4;
+  --wfa-ansi-magenta: #DF7FD7;
+  --wfa-ansi-cyan: #44D4E2;
+  --wfa-ansi-white: #CFD0DC;
+  --wfa-ansi-bright-black: #9DA0B6;
+  --wfa-ansi-bright-red: #FF958D;
+  --wfa-ansi-bright-green: #82EC9C;
+  --wfa-ansi-bright-yellow: #FFE47C;
+  --wfa-ansi-bright-blue: #91C1FF;
+  --wfa-ansi-bright-magenta: #F0A1E9;
+  --wfa-ansi-bright-cyan: #80EBF7;
+  --wfa-ansi-bright-white: #F5F6FC;
+}
+
+/*
+ * Ponte para o Tailwind: só existem as cores, fontes e raios dos tokens. As paletas por omissão do
+ * Tailwind são apagadas (--color-*: initial) para `bg-blue-500` nem sequer compilar.
+ */
+@theme {
+  --color-*: initial;
+  --font-*: initial;
+  --radius-*: initial;
+  --shadow-*: initial;
+}
+
+@theme inline {
+  --color-bg: var(--wfa-color-bg);
+  --color-surface-1: var(--wfa-color-surface-1);
+  --color-surface-2: var(--wfa-color-surface-2);
+  --color-surface-3: var(--wfa-color-surface-3);
+  --color-border: var(--wfa-color-border);
+  --color-border-strong: var(--wfa-color-border-strong);
+  --color-text-1: var(--wfa-color-text-1);
+  --color-text-2: var(--wfa-color-text-2);
+  --color-text-3: var(--wfa-color-text-3);
+  --color-accent: var(--wfa-color-accent);
+  --color-accent-hover: var(--wfa-color-accent-hover);
+  --color-accent-pressed: var(--wfa-color-accent-pressed);
+  --color-accent-subtle: var(--wfa-color-accent-subtle);
+  --color-accent-border: var(--wfa-color-accent-border);
+  --color-on-accent: var(--wfa-color-on-accent);
+  --color-success: var(--wfa-color-success);
+  --color-warning: var(--wfa-color-warning);
+  --color-error: var(--wfa-color-error);
+  --color-info: var(--wfa-color-info);
+  --color-transparent: transparent;
+  --font-sans: var(--wfa-font-sans);
+  --font-mono: var(--wfa-font-mono);
+  --radius-sm: var(--wfa-radius-sm);
+  --radius-md: var(--wfa-radius-md);
+  --radius-lg: var(--wfa-radius-lg);
+  --shadow-1: var(--wfa-shadow-1);
+  --shadow-overlay: var(--wfa-shadow-overlay);
+}
+
+@layer base {
+  html,
+  body,
+  #root {
+    height: 100%;
+  }
+
+  body {
+    margin: 0;
+    background: var(--wfa-color-bg);
+    color: var(--wfa-color-text-1);
+    font-family: var(--wfa-font-sans);
+    font-size: 14px;
+    line-height: 21px;
+    -webkit-font-smoothing: antialiased;
+  }
+}
+
+@layer components {
+  /* Tipografia (§4) */
+  .text-display {
+    font-family: var(--wfa-font-display);
+    font-size: 28px;
+    line-height: 34px;
+    font-weight: 600;
+    letter-spacing: var(--wfa-display-tracking);
+    text-transform: var(--wfa-display-case);
+  }
+
+  .kicker,
+  .card-kicker {
+    font-size: 11px;
+    line-height: 16px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: .12em;
+    color: var(--wfa-color-accent);
+  }
+
+  /* Card */
+  .card {
+    background: var(--wfa-color-surface-1);
+    border: 1px solid var(--wfa-color-border);
+    border-radius: var(--wfa-radius-lg);
+  }
+
+  .card-title {
+    font-size: 16px;
+    line-height: 24px;
+    font-weight: 600;
+    color: var(--wfa-color-text-1);
+  }
+
+  .card-body {
+    color: var(--wfa-color-text-2);
+  }
+
+  .card-meta {
+    font-family: var(--wfa-font-mono);
+    font-size: 11.5px;
+    line-height: 16px;
+    color: var(--wfa-color-text-3);
+  }
+
+  /* Tags (§3): altura 22, raio sm */
+  .tag,
+  .tag-work,
+  .tag-wait,
+  .tag-stop,
+  .tag-err,
+  .tag-ok,
+  .tag-mid,
+  .tag-draft {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    height: 22px;
+    padding: 0 8px;
+    border-radius: var(--wfa-radius-sm);
+    border: 1px solid var(--wfa-color-border);
+    font-size: 12px;
+    font-weight: 500;
+    white-space: nowrap;
+    flex: none;
+    transition: background var(--wfa-dur-fast) var(--wfa-ease-standard),
+      border-color var(--wfa-dur-fast) var(--wfa-ease-standard);
+  }
+
+  .tag {
+    background: var(--wfa-color-surface-2);
+    color: var(--wfa-color-text-2);
+  }
+
+  .tag-work { color: var(--wfa-state-work); background: var(--wfa-state-work-subtle); border-color: var(--wfa-state-work-border); }
+  .tag-wait { color: var(--wfa-state-wait); background: var(--wfa-state-wait-subtle); border-color: var(--wfa-state-wait-border); }
+  .tag-stop { color: var(--wfa-state-stop); background: var(--wfa-state-stop-subtle); border-color: var(--wfa-state-stop-border); }
+  .tag-err { color: var(--wfa-state-err); background: var(--wfa-state-err-subtle); border-color: var(--wfa-state-err-border); }
+
+  /* Maturidade da biblioteca: forma dada pelo ::before */
+  .tag-ok,
+  .tag-mid,
+  .tag-draft {
+    background: var(--wfa-color-surface-1);
+    border-color: var(--wfa-color-border-strong);
+  }
+
+  .tag-ok { color: var(--wfa-color-success); }
+  .tag-mid { color: var(--wfa-color-warning); }
+  .tag-draft { color: var(--wfa-color-text-2); }
+
+  .tag-ok::before,
+  .tag-mid::before,
+  .tag-draft::before {
+    content: '';
+    display: inline-block;
+    flex: none;
+    box-sizing: border-box;
+    width: 9px;
+    height: 9px;
+  }
+
+  .tag-ok::before {
+    content: '✓';
+    width: 10px;
+    height: auto;
+    font-size: 12px;
+    line-height: 10px;
+    font-weight: 700;
+    text-align: center;
+  }
+
+  .tag-mid::before {
+    border-radius: 50%;
+    border: 1.5px solid currentColor;
+    background: linear-gradient(90deg, currentColor 50%, transparent 50%);
+  }
+
+  .tag-draft::before {
+    border-radius: 2px;
+    border: 1.5px dashed currentColor;
+  }
+
+  /* Ícone de estado: cor e forma, nunca só cor (§3) */
+  .state-icon {
+    display: inline-block;
+    flex: none;
+    box-sizing: border-box;
+  }
+
+  .state-icon.is-work {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    border: 2px solid var(--wfa-state-work);
+    border-right-color: transparent;
+    animation: wfa-spin 1.4s linear infinite;
+  }
+
+  .state-icon.is-wait {
+    width: 8px;
+    height: 8px;
+    background: var(--wfa-state-wait);
+    transform: rotate(45deg);
+  }
+
+  .state-icon.is-stop {
+    width: 9px;
+    height: 9px;
+    border: 2px solid var(--wfa-state-stop);
+  }
+
+  .state-icon.is-err {
+    width: 10px;
+    color: var(--wfa-state-err);
+    font-size: 12px;
+    line-height: 10px;
+    font-weight: 700;
+    text-align: center;
+  }
+
+  .state-icon.is-err::before {
+    content: '✕';
+  }
+
+  /* Atalho de teclado */
+  .kbd {
+    display: inline-flex;
+    align-items: center;
+    padding: 0 4px;
+    font-family: var(--wfa-font-mono);
+    font-size: 10.5px;
+    line-height: 16px;
+    color: var(--wfa-color-text-3);
+    border: 1px solid var(--wfa-color-border);
+    border-radius: var(--wfa-radius-sm);
+  }
+
+  /* Elevação por luminosidade (§6) */
+  .elev-1 { background: var(--wfa-color-surface-1); }
+  .elev-2 { background: var(--wfa-color-surface-2); box-shadow: var(--wfa-shadow-1); }
+  .elev-3 { background: var(--wfa-color-surface-2); box-shadow: var(--wfa-shadow-overlay); }
+
+  /* Pele global da tabela — nunca redefinir por ficheiro */
+  .ant-table-wrapper .ant-table {
+    background: transparent;
+  }
+
+  .ant-table-wrapper .ant-table-thead > tr > th {
+    background: transparent;
+    color: var(--wfa-color-text-3);
+    font-size: 12px;
+    font-weight: 500;
+    text-transform: none;
+    border-bottom: 1px solid var(--wfa-color-border);
+  }
+
+  .ant-table-wrapper .ant-table-thead > tr > th::before {
+    display: none;
+  }
+
+  .ant-table-wrapper .ant-table-tbody > tr > td {
+    height: 52px;
+    padding-top: 0;
+    padding-bottom: 0;
+    border-bottom: 1px solid var(--wfa-color-border);
+  }
+
+  .ant-table-wrapper .ant-table-tbody > tr.ant-table-row:hover > td,
+  .ant-table-wrapper .ant-table-tbody > tr.ant-table-row-selected > td {
+    background: var(--wfa-color-surface-2);
+  }
+}
+
+@keyframes wfa-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* Sem deslizes nem rotação: o arco fica parado e os overlays aparecem por opacidade (§7) */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+
+  .state-icon.is-work {
+    animation: none;
+  }
+}

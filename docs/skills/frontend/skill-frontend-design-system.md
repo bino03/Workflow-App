@@ -34,7 +34,7 @@ substituem correr o fluxo real.
 
 ## Stack
 
-React + TypeScript strict · Vite · Ant Design 5 · Tailwind 4 · React Hook Form + Zod · React Context
+React 19 + TypeScript strict · Vite 7 · Ant Design 6 · Tailwind 4 · React Hook Form + Zod · React Context
 para estado transversal (sem store global) · Axios numa instância única (`src/api.ts`).
 
 ## Estrutura de componentes

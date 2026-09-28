@@ -1,6 +1,6 @@
 # Cards
 
-> 🚧 Convenção prospetiva — ainda sem código neste projeto que a valide.
+> 🚧 Parcialmente validada: `.card` (index.css) e `components/common/SectionCard.tsx` (props `title`, `icon`, `kicker?`, `extra?`) existem e foram verificados a 2026-09-28; o cartão de terminal ainda não.
 
 > Parte de [[../frontend-visual-consistency]].
 
