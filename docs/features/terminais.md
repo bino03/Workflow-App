@@ -423,7 +423,7 @@ sem conversa com `--session-id` do mesmo UUID). "Fechar um → aparece na lista 
 nos testes do backend e no leitor real dos `.jsonl` (passo 3); no browser, as sessões de teste não tinham
 conversa e por isso não ficaram gravadas.
 **Em curso:** —
-**Próxima ação concreta:** nenhuma nesta spec. O que ficou em aberto está na secção 7 e no `notes/ToDo.md`.
+**Próxima ação concreta:** nenhuma. O fullscreen do `claude`, desligado pelas corridas de teste, foi reativado pelo dono (`/tui fullscreen`) e o fecho limpo confirmado com o canary a sério (2026-09-28, ver [[../backend-conventions]] → Armadilhas).
 **Desvios ao plano:**
 - **2026-09-28, a meio do passo 12**: a lateral passa a ser **por projetos** (pasta) com **+** por projeto, e
   reabrir sem `.jsonl` passa a abrir sessão nova no mesmo terminal (§3). Também: a denylist do ambiente do filho
@@ -454,7 +454,6 @@ usar Chrome headless via CDP (ver `notes/learning.md`); nunca a password real nu
 
 | Pergunta | Bloqueia | Notas |
 |---|---|---|
-| O `claude` diz "fullscreen renderer has repeatedly failed to start on this machine, so it has been turned off here" | Nada (causa encontrada e corrigida a 2026-09-28) | **Causa**: o canary de arranque do fullscreen do Claude Code (`~/.claude.json`) — um `claude` morto à força nos primeiros ~10 s conta uma strike, 2 desligam o fullscreen na máquina toda; o fecho com `taskkill /F` (e as corridas de teste) fazia-o. **Corrigido**: fecho limpo (`closeGracefully`, ver [[../backend-conventions]] → Armadilhas). **Falta**: o dono reativar com `/tui fullscreen` e confirmar com `scripts/fullscreen-canary-spike.ts` que fechar não deixa o canary (ToDo) |
 
 ## Relacionado
 

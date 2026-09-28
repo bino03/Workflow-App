@@ -97,7 +97,8 @@ Ver [[security]] → "Fluxo de autenticação" e [[adr/0003-auth-utilizador-unic
   `terminals/spawnClaude.ts`: Ctrl+C ×2, `taskkill` só depois da graça, e os descendentes listados antes (a
   saída limpa deixá-los-ia órfãos). Fica de fora: um backend morto à força (ex. o `tsx watch` a reiniciar)
   com terminais a arrancar. Spike: `scripts/fullscreen-canary-spike.ts` (constantes lidas do binário 2.1.283:
-  2 strikes, 10 s).
+  2 strikes, 10 s). Confirmado com o canary armado (fullscreen reativado): Ctrl+C ×2 e o Fechar da app saem limpos e
+  não deixam `fullscreenBootPending`.
 - ✅ **O `claude` não grava sessões sem mensagens** — abrir e fechar sem conversar não deixa `.jsonl`
   (um comando como `/exit` já conta). Reabrir um terminal assim começa uma conversa nova com o mesmo UUID
   (`freshSession`, spec Terminais §3).
