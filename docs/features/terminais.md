@@ -5,7 +5,7 @@
 | **Estado** | 🚧 Em curso |
 | **Criada** | 2026-09-28 |
 | **Última sessão** | 2026-09-28 |
-| **Passos** | 7 / 17 concluídos |
+| **Passos** | 8 / 17 concluídos |
 
 > Escrita para uma sessão que **não viu a conversa que a originou**. Se algo só faz sentido com contexto
 > externo, falta escrevê-lo.
@@ -331,7 +331,7 @@ Ordem obrigatória. Tiers: `opus` (desenho, não delegar) · `sonnet` (implement
     só `resize` validado (o resto ignorado); `exit` ao terminar; fecha ao fim da sessão de login e ao
     fechar o terminal; sem cookie → 401, `Origin` alheio → 403 (a guarda já faz — testar); o conteúdo
     **nunca** vai para logs.
-- [ ] **8. Quota no backend** (salta se o passo 1 falhou)
+- [x] **8. Quota no backend** — ✅ 2026-09-28 (7 testes; o `claude` real arranca com `--settings` do `DATA_DIR`)
   - Ficheiro: `backend/src/usage/usageFiles.ts` (escreve `claude-settings.json` + `statusline.cjs` no
     arranque), `backend/src/usage/usage.routes.ts`, `backend/test/usage.test.ts`
   - Skill: —

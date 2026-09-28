@@ -121,10 +121,17 @@ Só leitura, lida do disco a cada pedido ([[adr/0005-biblioteca-lida-do-disco]])
 - **Um manifesto inválido nunca é fatal**: vai para `invalid[]` como `{path, message}` (caminho relativo +
   razão do zod/YAML), e o resto da lista vem na mesma. Só a falta da pasta `library/` dá `500 LIBRARY_001`.
 
-## Quota (`usage/`, `/api/usage`) — 🚧 desenhado
+## Quota (`usage/`, `/api/usage`) — ✅
 
-`GET /api/usage` → `UsageView` ([[features/terminais]] §4.3). Fonte confirmada no spike de 2026-09-28: a status
-line injetada ([[adr/0012-argumentos-do-claude-e-status-line]]).
+| Método | Rota | Acesso | Resposta |
+|---|---|---|---|
+| GET | `/api/usage` | sessão | `{fiveHour: {usedPct, resetsAt} | null, weekly: {usedPct, resetsAt} | null, fetchedAt: string | null}` |
+
+- Fonte: a status line injetada em todo o `claude` que a app lança ([[adr/0012-argumentos-do-claude-e-status-line]]).
+  O backend escreve `DATA_DIR/claude-settings.json` e `DATA_DIR/statusline.cjs` no arranque; o script grava
+  `usage.json` só quando o JSON traz `rate_limits` (a partir da 1.ª resposta de uma sessão).
+- `usedPct` 0–100; `resetsAt` ISO (vem em segundos Unix); `fetchedAt` = quando foi visto. Sem ficheiro ou
+  ilegível → tudo `null`, nunca erro. Um valor velho é da UI tratar (a cinzento + "há X min").
 
 ## Auth e saúde (`auth/`, `common/health.routes.ts`) — ✅
 

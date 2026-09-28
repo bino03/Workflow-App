@@ -17,7 +17,7 @@
 | Modo de layout (foco dividido / grelha) | `localStorage` do browser | ✅ por dispositivo |
 | Sessões gravadas (`ClaudeSession`) | `~/.claude/projects/` — do Claude Code, **só leitura** | apagadas pelo Claude Code ao fim de 30 dias (`cleanupPeriodDays`) |
 | Biblioteca (`LibraryEntry`) | `WORKFLOW_PATH/library` — **só leitura** | — |
-| Quota (`UsageSnapshot`) | calculada quando se pede, não guardada (fonte por descobrir num spike) | — |
+| Quota (`UsageSnapshot`) | `DATA_DIR/usage.json` — só o último `rate_limits` visto pela status line de qualquer terminal, com `fetchedAt` ([[adr/0012-argumentos-do-claude-e-status-line]]). Escrito pelo `statusline.cjs`, não pelo `StateStore` | ✅ — mas pode estar velho (sem atividade não se atualiza) |
 
 ## O ficheiro
 
@@ -122,7 +122,7 @@ O que representa: uma pasta usada para abrir terminais, para as sugerir no drawe
 - **Scrollback em disco** — conteúdo sensível; a conversa já fica no `.jsonl`.
 - **Preferência de layout no backend** — é do dispositivo; `localStorage`.
 - **Apagar entradas do histórico à mão** — não pedido; o limite de 200 chega.
-- **Guardar a quota** — é um valor do momento.
+- **Histórico da quota** — só se guarda o último valor (`usage.json`), para o indicador ter o que mostrar depois de um reinício.
 
 ## Relacionado
 

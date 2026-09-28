@@ -17,6 +17,8 @@ import type { StateStore } from './state/stateStore.js';
 import { terminalsGateway } from './terminals/terminals.gateway.js';
 import { terminalsRoutes } from './terminals/terminals.routes.js';
 import { TerminalsService } from './terminals/terminalsService.js';
+import { usageRoutes } from './usage/usage.routes.js';
+import { writeUsageFiles } from './usage/usageFiles.js';
 import type { TerminalManager } from './terminals/terminalManager.js';
 
 export type AppDeps = {
@@ -76,9 +78,12 @@ export async function buildApp({ config, terminalManager, sessionStore, stateSto
     terminalManager,
     sessions: sessionsReader,
     allowedRoots: config.terminals.allowedRoots,
+    // Every claude gets the status line that keeps the quota in DATA_DIR/usage.json (ADR 0012).
+    settingsPath: writeUsageFiles(config.dataDir),
   });
   await app.register(terminalsRoutes, { terminalsService });
   await app.register(terminalsGateway, { terminalManager, sessionStore: sessions });
+  await app.register(usageRoutes, { dataDir: config.dataDir });
 
   if (serveSpa) {
     await registerSpa(app, config.frontendDist);
