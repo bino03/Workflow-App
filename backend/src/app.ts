@@ -12,7 +12,10 @@ import { healthRoutes } from './common/health.routes.js';
 import { hasSpaBuild, registerSpa, selfOrigins } from './common/spa.js';
 import { libraryRoutes } from './library/library.routes.js';
 import { LibraryService } from './library/libraryService.js';
+import { foldersRoutes } from './folders/folders.routes.js';
+import { FoldersService } from './folders/foldersService.js';
 import { ClaudeSessions } from './sessions/claudeSessions.js';
+import { sessionsRoutes } from './sessions/sessions.routes.js';
 import type { StateStore } from './state/stateStore.js';
 import { terminalsGateway } from './terminals/terminals.gateway.js';
 import { terminalsRoutes } from './terminals/terminals.routes.js';
@@ -84,6 +87,10 @@ export async function buildApp({ config, terminalManager, sessionStore, stateSto
   await app.register(terminalsRoutes, { terminalsService });
   await app.register(terminalsGateway, { terminalManager, sessionStore: sessions });
   await app.register(usageRoutes, { dataDir: config.dataDir });
+  await app.register(sessionsRoutes, { sessions: sessionsReader, stateStore, terminalsService, allowedRoots: config.terminals.allowedRoots });
+  await app.register(foldersRoutes, {
+    foldersService: new FoldersService({ stateStore, sessions: sessionsReader, allowedRoots: config.terminals.allowedRoots }),
+  });
 
   if (serveSpa) {
     await registerSpa(app, config.frontendDist);

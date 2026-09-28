@@ -5,7 +5,7 @@
 | **Estado** | 🚧 Em curso |
 | **Criada** | 2026-09-28 |
 | **Última sessão** | 2026-09-28 |
-| **Passos** | 8 / 17 concluídos |
+| **Passos** | 9 / 17 concluídos |
 
 > Escrita para uma sessão que **não viu a conversa que a originou**. Se algo só faz sentido com contexto
 > externo, falta escrevê-lo.
@@ -340,7 +340,7 @@ Ordem obrigatória. Tiers: `opus` (desenho, não delegar) · `sonnet` (implement
     ficheiro inválido → `null`s, nunca 500; o `statusline.cjs` testado com um JSON de exemplo no stdin —
     **com** `rate_limits` grava (com `fetchedAt`), **sem** `rate_limits` não toca no ficheiro; `resets_at`
     (segundos Unix) → ISO.
-- [ ] **9. Rotas de sessões e pastas + docs do backend**
+- [x] **9. Rotas de sessões e pastas + docs do backend** — ✅ 2026-09-28 (8 testes; instância de teste real)
   - Ficheiro: `backend/src/sessions/sessions.routes.ts`, `backend/src/folders/folders.routes.ts`,
     testes; `docs/api.md`, `docs/security.md`, `docs/architecture.md`, `docs/code-map.md`
   - Skill: —
@@ -411,19 +411,30 @@ Ordem obrigatória. Tiers: `opus` (desenho, não delegar) · `sonnet` (implement
 
 > ⚠️ **Atualizar SEMPRE no fim de cada sessão.** É a secção que torna esta spec retomável.
 
-**Feito:** passo 3 (2026-09-28) — `ClaudeSessions` em `backend/src/sessions/claudeSessions.ts` (formato das linhas em
-§4.1). Passo 2 (2026-09-28) — os 8 códigos em `errors.ts` e `errorMessages.ts`; `resolveAllowedPath` em
-`backend/src/folders/cwdPolicy.ts` (`realpath.native`, junctions, prefixo, maiúsculas, raiz de unidade). Passo 1 (2026-09-28) — o spike (`backend/scripts/statusline-spike.ts`) confirmou `rate_limits` no
-JSON da status line depois da primeira resposta, e de caminho confirmou `--session-id` e a codificação da pasta
-em `~/.claude/projects/` (§4.1). Já existia antes: `TerminalManager` (PTY, scrollback, kill da árvore),
-`spawnClaude.ts` (binário, ambiente limpo), o protocolo do WebSocket (`protocol.ts`), a guarda de auth (REST + WS
-+ `Origin`) e o `StateStore`.
+**Feito:** **o backend todo** (passos 1-9, 2026-09-28). Todas as rotas de §4.2 existem e estão documentadas em
+[[../api]] (a fonte das tabelas passou a ser lá). Testes: 159 no backend; cada passo foi verificado também numa
+instância de teste isolada com o `claude` real (ver "O que uma sessão nova precisa de saber").
 **Em curso:** —
-**Próxima ação concreta:** passo 3 — criar `backend/src/sessions/claudeSessions.ts` (a codificação da pasta já está
-confirmada em §4.1) e `backend/test/claudeSessions.test.ts` com `.jsonl` de fixture.
-**Desvios ao plano:** o espelho dos códigos no frontend foi feito no passo 2 (a regra de `errors.ts` pede o mesmo
-commit); o passo 10 só confirma.
-**O que uma sessão nova precisa de saber:** o dono corre a app com `npm run dev` e às vezes trabalha
+**Próxima ação concreta:** passo 10 — criar `frontend/src/types/{terminal,session,folder,usage}.ts` a partir dos
+tipos de [[../api]] (o espelho dos códigos de erro já está feito) e os quatro serviços.
+**Desvios ao plano:**
+- O espelho dos códigos no frontend foi feito no passo 2 (a regra de `errors.ts` pede o mesmo commit).
+- `api.md` foi atualizado passo a passo (o `backend/CLAUDE.md` pede endpoint novo → `api.md` no mesmo commit),
+  não só no passo 9.
+- O `TerminalManager` passou a aceitar o `id` e a contar só os vivos (passo 5), e a avisar com `onClose` quando
+  um terminal é esquecido (passo 7) — o gateway fecha o socket com `4404`.
+- O `buildApp` aceita `logStream` (os testes provam que o conteúdo do terminal não vai para os logs) e limita
+  cada frame do WebSocket a 1 MiB.
+**O que uma sessão nova precisa de saber:**
+- **O frontend liga-se assim**: REST em `/api/terminals` (`TerminalView` com `status` running/exited/stopped) e
+  `WS /api/terminals/:id/ws`; fecho `4404` = o terminal já não está em memória (ex.: foi reaberto → ligar de novo),
+  `4401` = a sessão de login acabou. A primeira mensagem é sempre `ready` → `term.reset()`; depois vem o
+  scrollback em binário.
+- **Testar com o `claude` real sem tocar no backend do dono**: arrancar uma segunda instância com
+  `PORT=7498 APP_USERNAME=… APP_PASSWORD_HASH=<hash de teste> DATA_DIR=<tmp> ALLOWED_ROOTS=<tmp> FRONTEND_DIST=<inexistente>
+  npx tsx src/server.ts` (o `loadEnvFile` não sobrepõe variáveis já definidas). Numa pasta nova, o `claude` para no
+  diálogo de *trust* e só grava o `.jsonl` depois de aceite.
+- O dono corre a app com `npm run dev` e às vezes trabalha
 **dentro** de um terminal servido por ela — nunca editar o backend a partir desse terminal (regra 8). O
 login é `bino03` + password (ADR 0011). Verificação no browser: se a extensão do Chrome não responder,
 usar Chrome headless via CDP (ver `notes/learning.md`); nunca a password real num script.

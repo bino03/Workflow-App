@@ -95,10 +95,25 @@ redesenhar logo a seguir.
 - Um frame tem no máximo **1 MiB** (`maxPayload`).
 - O conteúdo do terminal **nunca** vai para os logs — só ids e eventos (testado em `terminals.gateway.test.ts`).
 
-## Sessões gravadas e pastas (`sessions/`, `folders/`) — 🚧 desenhado
+## Sessões gravadas e pastas (`sessions/`, `folders/`) — ✅
 
-`GET /api/sessions?cwd=`, `GET /api/folders`, `GET /api/folders/browse?path=`, `PUT /api/folders/favorite` —
-ver [[features/terminais]] §4.2.
+Todas com sessão (`AUTH_002`). Qualquer pasta passa por `resolveAllowedPath` (`FOLDER_001` fora de `ALLOWED_ROOTS`).
+
+| Método | Rota | Corpo / query | Resposta | Erros |
+|---|---|---|---|---|
+| GET | `/api/sessions?cwd=` | `cwd` | `SavedSession[]`, a mais recente primeiro | `COMMON_001` · `FOLDER_001` |
+| GET | `/api/folders` | — | `{roots, favorites: FolderView[], recents: FolderView[]}` | — |
+| GET | `/api/folders/browse?path=` | `path` | `{path, parent, entries: [{name, path, sessionCount}]}` | `COMMON_001` · `FOLDER_001` |
+| PUT | `/api/folders/favorite` | `{path, favorite: boolean}` | `204` | `COMMON_001` · `FOLDER_001` |
+
+- `SavedSession = {id, startedAt, updatedAt, messageCount, preview, closed, openIn}` — lido de
+  `<CLAUDE_CONFIG_DIR ou ~/.claude>/projects/<pasta codificada>/<uuid>.jsonl` (formato em [[features/terminais]] §4.1).
+  `closed` = `{label, summary, closedAt}` do terminal fechado na app que usou a sessão (o histórico só aparece
+  aqui); `openIn` = o terminal gravado que a usa (retomá-la dá `TERMINAL_003`).
+- `FolderView = {path, favorite, lastUsedAt}`. Favoritas e recentes que já não existem ou saíram das raízes
+  não aparecem. Desmarcar uma favorita nunca usada esquece-a.
+- `browse`: um nível; pastas começadas por `.` e links/junctions ficam de fora; `parent` é `null` na raiz
+  (nunca se sobe acima dela); `sessionCount` conta os `.jsonl` sem os ler.
 
 ## Biblioteca (`library/`, `/api/library`) — ✅
 

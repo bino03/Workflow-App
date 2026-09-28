@@ -59,16 +59,16 @@ backend/
 ├── test/                    ← Vitest (app.inject, sem rede)
 └── src/
     ├── server.ts            ← ponto de entrada: .env, config, listen, sinais → graceful shutdown
-    ├── app.ts               ← buildApp({config, terminalManager, stateStore}): plugins, handler de erros, rotas, onClose mata os PTYs e esvazia a fila do state.json
+    ├── app.ts               ← buildApp({config, terminalManager, stateStore}): plugins, handler de erros, serviços e rotas, onClose mata os PTYs e esvazia a fila do state.json
     ├── config.ts            ← variáveis de ambiente validadas com zod — falha no arranque
     ├── common/              ← errors (ErrorCode, AppError, error handler único), validation (parseWith), health, auth guard, spa (servir o frontend/dist)
     ├── state/               ← StateStore: DATA_DIR/state.json (ADR 0009) — schema zod v1, limites, fila de escrita atómica
     ├── auth/                ← login / logout / me, sessão em cookie HttpOnly
-    ├── terminals/           ← TerminalManager (PTYs), rotas REST, gateway WebSocket, scrollback
-    ├── folders/             ← política de pastas (cwdPolicy: só dentro de ALLOWED_ROOTS); 🚧 recentes/favoritas e browse
-    ├── sessions/            ← listar as sessões gravadas do Claude Code por pasta (para --resume)
+    ├── terminals/           ← ✅ TerminalManager (PTYs, scrollback), TerminalsService (ciclo de vida com o state.json), claudeArgs (ADR 0012), rotas REST, gateway WebSocket
+    ├── folders/             ← ✅ política de pastas (cwdPolicy: só dentro de ALLOWED_ROOTS), favoritas/recentes, browse
+    ├── sessions/            ← ✅ ler as sessões gravadas do Claude Code (.jsonl, só leitura): lista, a mais recente, resumo
     ├── library/             ← ✅ registo da biblioteca do Workflow: frontmatter dos manifestos com yaml + zod, lido a cada pedido
-    └── usage/               ← indicador de quota (fonte por decidir)
+    └── usage/               ← ✅ quota pela status line injetada (claude-settings.json + statusline.cjs → usage.json)
 ```
 
 ### Onde vive cada coisa
@@ -79,6 +79,9 @@ backend/
 | Criar / fechar / listar PTYs | `src/terminals/terminalManager.ts` |
 | Protocolo do WebSocket (tipos das mensagens) | `src/terminals/protocol.ts` |
 | Resolver o binário `claude` e o ambiente do processo filho | `src/terminals/spawnClaude.ts` |
+| Os argumentos do `claude` (`--session-id`, `--resume`, `--settings`) | `src/terminals/claudeArgs.ts` |
+| Ciclo de vida (criar, reabrir, renomear, fechar; running/exited/stopped) | `src/terminals/terminalsService.ts` |
+| Gateway WebSocket | `src/terminals/terminals.gateway.ts` |
 | Pastas permitidas (`ALLOWED_ROOTS`) | `src/folders/cwdPolicy.ts` |
 | Códigos de erro | `src/common/errors.ts` |
 | Guarda de autenticação (REST e upgrade do WS) | `src/common/authGuard.ts` |
@@ -86,15 +89,17 @@ backend/
 ### Ciclo de vida de um terminal
 
 ```
-POST /api/terminals {cwd, resumeSessionId?}  → valida cwd ∈ ALLOWED_ROOTS e o uuid
-  → spawn(CLAUDE_BIN, [--resume <uuid>]?, {cwd, env sem ANTHROPIC_*/CLAUDE_CODE_*/config da app, cols, rows})
-  → 201 {id}
+POST /api/terminals {cwd, mode, sessionId?}  → valida cwd ∈ ALLOWED_ROOTS; escolhe a sessão
+  → spawn(CLAUDE_BIN, [--session-id <novo> | --resume <uuid>, --settings <DATA_DIR>/claude-settings.json],
+          {cwd, env sem ANTHROPIC_*/CLAUDE_CODE_*/config da app, cols, rows})
+  → grava em state.json (terminals) e a pasta nas recentes → 201 TerminalView
 WS  /api/terminals/:id/ws  (cookie + Origin verificados no upgrade)
   → servidor envia {type:"ready"}, o scrollback guardado (binário), depois o output em tempo real
   ← cliente envia input (frames binários) e {type:"resize", cols, rows} (frames de texto)
 PTY termina → {type:"exit", code} → terminal fica "terminado" até ser fechado
-DELETE /api/terminals/:id → taskkill /T /F (a árvore toda) → 204
-Backend pára → kill de todos
+POST /api/terminals/:id/reopen → --resume da mesma sessão, mesmo id (de terminado ou parado)
+DELETE /api/terminals/:id → taskkill /T /F (a árvore toda) → closedTerminals com o resumo do .jsonl → 204
+Backend pára → kill de todos; ao voltar, os gravados aparecem como "parados"
 ```
 
 ## Frontend — `react-vite-antd` (✅) + xterm.js

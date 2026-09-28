@@ -47,6 +47,16 @@ isso há os outros:
 
 ---
 
+## Terminais — 🚧 backend ✅, frontend por fazer
+
+| Camada | Ficheiros |
+|---|---|
+| **Entrada** | rota `/terminals` → `frontend/src/pages/TerminalsPage.tsx` (🚧 placeholder) |
+| **Backend** | `backend/src/terminals/` — `terminals.routes.ts` · `terminals.gateway.ts` (WS) · `terminalsService.ts` (ciclo de vida) · `terminalManager.ts` (PTYs) · `claudeArgs.ts` · `terminal.schemas.ts` |
+| | `backend/src/sessions/` (`.jsonl` do Claude Code) · `backend/src/folders/` (política de pastas, favoritas, browse) · `backend/src/usage/` (quota) |
+| **Dados** | `DATA_DIR/state.json` (`terminals`, `closedTerminals`, `folders`) · `DATA_DIR/usage.json` · `~/.claude/projects/` (só leitura) |
+| **Detalhe** | [[api]] → "Terminais", "Sessões gravadas e pastas", "Quota" · spec [[features/terminais]] |
+
 ## Biblioteca — ✅
 
 | Camada | Ficheiros |
