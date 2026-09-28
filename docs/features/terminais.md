@@ -5,7 +5,7 @@
 | **Estado** | 🚧 Em curso |
 | **Criada** | 2026-09-28 |
 | **Última sessão** | 2026-09-28 |
-| **Passos** | 10 / 17 concluídos |
+| **Passos** | 14 / 17 concluídos |
 
 > Escrita para uma sessão que **não viu a conversa que a originou**. Se algo só faz sentido com contexto
 > externo, falta escrevê-lo.
@@ -90,7 +90,9 @@ resumo.
 | `MAX_TERMINALS` | 8 (omissão atual); só os vivos contam; parados do `state.json` não | A quota é partilhada; 8 cobre o uso real | Sem limite |
 | Scrollback ao religar | 1 MiB cru em memória (`SCROLLBACK_BYTES`); o cliente faz `term.reset()` ao receber `ready`, e um resize ±1 força a TUI a redesenhar | O `claude` redesenha por cima; bytes crus reproduzem o ecrã sem interpretar ANSI no servidor | `@xterm/headless` no servidor com snapshot (mais fiel, mais peso — reabrir se o redesenho falhar) |
 | Terminal cujo `claude` saiu sozinho | Fica **terminado** em memória e em `terminals`; banner no próprio painel com **Reabrir** (`--resume`) | Não se perde a posição nem o rótulo | Removê-lo sozinho |
-| Reabrir com o `.jsonl` em falta | Erro próprio `TERMINAL_004`; o terminal fica parado e pode ser fechado | O Claude Code apaga sessões ao fim de 30 dias | Reabrir como sessão nova sem avisar |
+| ~~Reabrir com o `.jsonl` em falta~~ | ~~Erro próprio `TERMINAL_004`~~ — **substituída a 2026-09-28** (linha seguinte) | | |
+| Reabrir com o `.jsonl` em falta (mudado a 2026-09-28, depois da verificação no browser) | Reabrir lança uma **sessão nova no mesmo terminal** (`--session-id` com o mesmo UUID, mesma pasta e rótulo) e a resposta traz `freshSession: true`; a UI avisa com uma linha | O `claude` **não grava sessões sem mensagens** (confirmado: abrir e fechar sem conversa não deixa `.jsonl`), e reabrir um terminal assim dava sempre `TERMINAL_004`. Não havia conversa a perder; no caso raro de uma sessão apagada ao fim de 30 dias, o aviso diz que a anterior já não estava gravada | Manter o erro `TERMINAL_004` (o terminal ficava inútil). `TERMINAL_004` continua em **retomar** uma sessão escolhida na lista |
+| Organização da lateral (pedido do dono a 2026-09-28, a meio do passo 12) | **Por projetos**: um projeto = **uma pasta** (nada novo a gravar). A lateral agrupa os terminais pela pasta; cada projeto tem um **+** que abre logo um terminal nessa pasta (sessão nova, sem drawer). Projetos listados = pastas com terminais ∪ favoritas | O dono trabalha por projeto; vários terminais do mesmo projeto abrem sempre na mesma pasta | Entidade `Project` própria com nome (schema v2 + ADR) — fica para quando fizer falta mais do que a pasta; escolher o projeto primeiro e ver só os terminais dele |
 | Continuar a última | O backend descobre a sessão mais recente da pasta e usa `--resume <uuid>` | Um só caminho de arranque, e o `claudeSessionId` fica sempre conhecido | `claude --continue` (não se saberia o UUID) |
 | Retomar uma sessão já aberta noutro terminal | Recusado (`TERMINAL_003`) | Dois processos a escrever o mesmo `.jsonl` corrompem a conversa | Permitir |
 | Terminais fora do ecrã (layout) | xterm.js e WebSocket ficam **montados** (escondidos) | Trocar de terminal é instantâneo e não há replay | Desmontar e religar |
@@ -153,7 +155,7 @@ Todos com sessão (`AUTH_002` sem ela). Documentar em [[../api]] ao implementar 
 |---|---|---|---|---|
 | GET | `/api/terminals` | — | `TerminalView[]` (guardados, por `createdAt`) | — |
 | POST | `/api/terminals` | `{cwd, mode: 'new'\|'resume'\|'continue', sessionId?, label?, cols, rows}` | `201 TerminalView` | `COMMON_001` · `FOLDER_001` · `TERMINAL_002` · `TERMINAL_003` · `TERMINAL_004` · `TERMINAL_005` · `SESSION_001` |
-| POST | `/api/terminals/:id/reopen` | `{cols, rows}` | `200 TerminalView` | `TERMINAL_001` · `TERMINAL_002` · `TERMINAL_004` · `TERMINAL_005` · `TERMINAL_006` · `FOLDER_001` (a pasta saiu das raízes) |
+| POST | `/api/terminals/:id/reopen` | `{cols, rows}` | `200 TerminalView & {freshSession}` (sem `.jsonl` → sessão nova no mesmo terminal, §3) | `TERMINAL_001` · `TERMINAL_002` · `TERMINAL_005` · `TERMINAL_006` · `FOLDER_001` (a pasta saiu das raízes) |
 | PATCH | `/api/terminals/:id` | `{label: string \| null}` (≤ 80, lista branca) | `200 TerminalView` | `COMMON_001` · `TERMINAL_001` |
 | DELETE | `/api/terminals/:id` | — | `204` — mata a árvore se vivo, grava em `closedTerminals` com `summary` | `TERMINAL_001` |
 | WS | `/api/terminals/:id/ws` | protocolo em [[../api]] → "Protocolo do WebSocket" (já fixado) | — | `AUTH_002` · `AUTH_003` · fecha com `4404` se o terminal não está em memória |
@@ -235,7 +237,10 @@ sessão acabada de abrir (sem pedidos) **não** tem `rate_limits` — tem `sessi
     não vão para Context nem para estado de React** ([[../frontend-conventions]] → Terminais).
   - `components/terminals/TerminalPane.tsx` — cabeçalho (ícone de estado, nome, tag, pasta, "⌨ TECLADO
     AQUI", ações Renomear/Dividir/Fechar) + `TerminalView` + banner (terminado/parado → Reabrir).
-  - `components/terminals/TerminalSidebar.tsx` — 288 px: kicker + "N abertos", **+ Novo terminal Alt+N**,
+  - `components/terminals/TerminalSidebar.tsx` — 288 px, **agrupada por projeto (pasta)** desde 2026-09-28 (§3):
+    cabeçalho do projeto (nome da pasta, caminho no title, estrela de favorita, **+** que abre um terminal nessa
+    pasta) com os terminais por baixo. Por cima: kicker + "N abertos", **+ Novo terminal Alt+N** (drawer, para
+    uma pasta nova ou para retomar),
     contagens por estado, lista (nome, pasta mono, estado · detalhe, `Alt+n`), **Reabrir todos** quando há
     parados, e a quota em baixo.
   - `components/terminals/TerminalGrid.tsx` — 3 colunas, cartão "Novo terminal" tracejado, scroll depois de 6.
@@ -354,14 +359,14 @@ Ordem obrigatória. Tiers: `opus` (desenho, não delegar) · `sonnet` (implement
   - Skill: `frontend-design-system`, `frontend-error-handling`
   - Tier: `sonnet`
   - Aceite quando: os 8 códigos espelhados com as mensagens de §4.5; `tsc -b` e lint limpos.
-- [ ] **11. `TerminalView`**
+- [x] **11. `TerminalView`** — ✅ 2026-09-28 (browser, `claude` real)
   - Ficheiro: `frontend/src/components/terminals/TerminalView.tsx`, `frontend/src/hooks/useTerminalShortcuts.ts`
   - Skill: `frontend-design-system`
   - Tier: `opus`
   - Aceite quando: no browser, escrever num terminal real chega ao `claude` e o output aparece; resize da
     janela chega ao PTY (`/status` ou a TUI redesenha); recarregar a página repõe o ecrã (reset + scrollback
     + resize ±1) sem duplicar; `Alt+1…9/N/\/W/R` não chegam ao PTY; desmontar faz `dispose()` e `close()`.
-- [ ] **12. Página em foco + lateral**
+- [x] **12. Página em foco + lateral** — ✅ 2026-09-28, **lateral por projetos** (§3)
   - Ficheiro: `frontend/src/pages/TerminalsPage.tsx`, `hooks/useTerminals.ts`,
     `components/terminals/{TerminalSidebar,TerminalPane}.tsx`
   - Skill: `frontend-design-system`, `frontend-error-handling`
@@ -369,7 +374,7 @@ Ordem obrigatória. Tiers: `opus` (desenho, não delegar) · `sonnet` (implement
   - Aceite quando: protótipo 1g; estado vazio; banners terminado (código) / parado com Reabrir; **Reabrir
     todos** reabre os parados até ao limite e mostra o erro do que falhar; toast quando um terminal não
     visível termina; erros `TERMINAL_*` mostrados.
-- [ ] **13. Drawer Novo terminal**
+- [x] **13. Drawer Novo terminal** — ✅ 2026-09-28
   - Ficheiro: `components/terminals/new/{NewTerminalDrawer,FolderPicker,SessionPicker}.tsx`,
     `newTerminalFormSchema.ts`
   - Skill: `frontend-design-system`, `frontend-error-handling`
@@ -378,7 +383,7 @@ Ordem obrigatória. Tiers: `opus` (desenho, não delegar) · `sonnet` (implement
     persiste; navegador um nível de cada vez, sem subir acima da raiz; "Continuar a última" desativado sem
     sessões; sessões abertas noutro terminal desativadas; fechados mostram rótulo + resumo; rótulo com a
     pasta por omissão; `Alt+N` abre.
-- [ ] **14. Fechar, renomear, atalhos**
+- [x] **14. Fechar, renomear, atalhos** — ✅ 2026-09-28 (32/32 no browser)
   - Ficheiro: `components/terminals/TerminalPane.tsx`, `hooks/useTerminalShortcuts.ts`
   - Skill: `frontend-design-system`
   - Tier: `sonnet`
@@ -418,6 +423,10 @@ instância de teste isolada com o `claude` real (ver "O que uma sessão nova pre
 **Próxima ação concreta:** passo 10 — criar `frontend/src/types/{terminal,session,folder,usage}.ts` a partir dos
 tipos de [[../api]] (o espelho dos códigos de erro já está feito) e os quatro serviços.
 **Desvios ao plano:**
+- **2026-09-28, a meio do passo 12**: a lateral passa a ser **por projetos** (pasta) com **+** por projeto, e
+  reabrir sem `.jsonl` passa a abrir sessão nova no mesmo terminal (§3). Também: a denylist do ambiente do filho
+  passa a tirar todas as `CLAUDE_*` exceto `CLAUDE_CONFIG_DIR` (vazavam `CLAUDE_EFFORT` e `CLAUDE_JOB_DIR` de uma
+  sessão-mãe do Claude Code).
 - O espelho dos códigos no frontend foi feito no passo 2 (a regra de `errors.ts` pede o mesmo commit).
 - `api.md` foi atualizado passo a passo (o `backend/CLAUDE.md` pede endpoint novo → `api.md` no mesmo commit),
   não só no passo 9.
@@ -443,7 +452,8 @@ usar Chrome headless via CDP (ver `notes/learning.md`); nunca a password real nu
 
 | Pergunta | Bloqueia | Notas |
 |---|---|---|
-| Ícone de "a correr" (sem os estados de trabalho) | Passo 12 | Proposta: ponto `accent`; registar em `tokens-and-colors` |
+| Ícone de "a correr" (sem os estados de trabalho) | Passo 17 (docs) | Feito: `.state-icon.is-run` (ponto `accent`) + `.tag-run`; falta registar em `tokens-and-colors` |
+| O `claude` diz "fullscreen renderer has repeatedly failed to start on this machine, so it has been turned off here" — no modo inline, redimensionar (ex. dividir) deixa restos de desenho | Passo 17 | Provavelmente provocado pelas corridas com o bug do `CLAUDE_CONFIG_DIR`; `/tui fullscreen` reativa. Ver se o fullscreen arranca bem dentro da app |
 
 ## Relacionado
 

@@ -1,5 +1,5 @@
 import api from '@/api';
-import type { CreateTerminalBody, TerminalSize, TerminalView } from '@/types/terminal';
+import type { CreateTerminalBody, ReopenedTerminal, TerminalSize, TerminalView } from '@/types/terminal';
 
 export async function getTerminals(): Promise<TerminalView[]> {
   return (await api.get<TerminalView[]>('/terminals')).data;
@@ -9,8 +9,8 @@ export async function createTerminal(body: CreateTerminalBody): Promise<Terminal
   return (await api.post<TerminalView>('/terminals', body)).data;
 }
 
-export async function reopenTerminal(id: string, size: TerminalSize): Promise<TerminalView> {
-  return (await api.post<TerminalView>(`/terminals/${id}/reopen`, size)).data;
+export async function reopenTerminal(id: string, size: TerminalSize): Promise<ReopenedTerminal> {
+  return (await api.post<ReopenedTerminal>(`/terminals/${id}/reopen`, size)).data;
 }
 
 export async function renameTerminal(id: string, label: string | null): Promise<TerminalView> {

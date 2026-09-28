@@ -20,6 +20,9 @@ export type TerminalView = {
 
 export type TerminalSize = { cols: number; rows: number };
 
+/** Resposta do reabrir: freshSession = não havia conversa gravada (.jsonl), começou uma nova no mesmo terminal. */
+export type ReopenedTerminal = TerminalView & { freshSession: boolean };
+
 export type CreateTerminalBody = TerminalSize & {
   cwd: string;
   mode: 'new' | 'resume' | 'continue';

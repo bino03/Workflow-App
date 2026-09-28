@@ -1,4 +1,4 @@
-import { notification } from 'antd';
+import { Button, notification } from 'antd';
 import type { NotificationInstance } from 'antd/es/notification/interface';
 import type { ApiFieldError } from '@/errors/error.types';
 
@@ -26,6 +26,27 @@ export const notificationService = {
   },
   error(title: string, description?: string) {
     current().error({ title, description });
+  },
+  /** Aviso com uma ação (ex. "terminou · Reabrir"); a notificação fecha-se ao usar a ação. */
+  action(title: string, description: string, action: { label: string; onClick: () => void }) {
+    const key = `action-${Date.now()}-${Math.random()}`;
+    current().info({
+      key,
+      title,
+      description,
+      actions: (
+        <Button
+          type="link"
+          size="small"
+          onClick={() => {
+            current().destroy(key);
+            action.onClick();
+          }}
+        >
+          {action.label}
+        </Button>
+      ),
+    });
   },
   validationError(fieldErrors: ApiFieldError[]) {
     current().error({

@@ -232,6 +232,7 @@
 
   /* Tags (§3): altura 22, raio sm */
   .tag,
+  .tag-run,
   .tag-work,
   .tag-wait,
   .tag-stop,
@@ -395,6 +396,33 @@
 
   .state-icon.is-err::before {
     content: '✕';
+  }
+
+  /*
+   * A correr — sem os estados "a trabalhar"/"à tua espera" (fora do MVP), um ponto cheio em accent: forma
+   * própria (círculo cheio ≠ quadrado vazio do terminado) e a cor do foco da app.
+   */
+  .state-icon.is-run {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: var(--wfa-color-accent);
+  }
+
+  .tag-run {
+    color: var(--wfa-color-accent);
+    background: var(--wfa-color-accent-subtle);
+    border-color: var(--wfa-color-accent-border);
+  }
+
+  /* O xterm.js desenha em canvas; a caixa à volta segue o fundo do terminal */
+  .terminal-host .xterm {
+    height: 100%;
+    padding: 10px 0 0 14px;
+  }
+
+  .terminal-host .xterm-viewport {
+    background-color: var(--wfa-term-bg) !important;
   }
 
   /* Atalho de teclado */
