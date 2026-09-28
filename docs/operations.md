@@ -12,8 +12,15 @@ máquina onde o dono trabalha, e os terminais correm nela a sério.
 ## Deploy — o que muda quando deixar de correr localmente
 
 - [ ] Forma de exposição decidida (ADR novo): VPN mesh · túnel com controlo de acesso · proxy com TLS
-- [ ] SO do desktop de casa confirmado; `node-pty` instalado e testado lá; `claude` com login feito **pelo
-      mesmo utilizador** que corre o backend
+- [x] SO do desktop de casa decidido: **Linux com ambiente gráfico leve** (Xubuntu LTS ou Debian + Xfce,
+      login automático) — [[adr/0013-linux-no-desktop-de-casa]]. Razão principal: 8 GB de RAM
+- [ ] Antes de instalar: confirmar que a extensão Claude in Chrome funciona com o Chrome em Linux (se não,
+      a verificação no browser fica só Playwright — a decisão mantém-se)
+- [ ] A app testada em Linux: `node-pty` compilado; `cwdPolicy` (caminhos com maiúsculas distintas); leitura
+      das sessões em `~/.claude/projects/` (cwd codificado `/home/x/app` → `-home-x-app`)
+- [ ] `claude` com login feito **pelo mesmo utilizador** que corre o backend
+- [ ] Os projetos a abrir lá correm em Linux (um Visual Studio/.NET Framework não corre)
+- [ ] (Opcional, o maior ganho) RAM para 16 GB
 - [ ] O backend arranca sozinho (serviço/tarefa agendada) com o `PATH`/`HOME` certos ([[backend-conventions]] → Armadilhas)
 - [ ] Clone do Workflow na máquina + `WORKFLOW_PATH`
 - [ ] Domínio/origem do frontend → `CORS_ALLOWED_ORIGINS`

@@ -28,6 +28,7 @@ Estados: `proposto` → `aceite` → `substituído`. Template: `Templates/ADR.md
 | [[0010-spa-servida-pelo-backend]] | O backend serve o `frontend/dist`: uma origem em produção; fora de `/api` público (exceto WebSocket); origem própria aceite no WS | `aceite` | 2026-09-28 |
 | [[0011-nome-de-utilizador-no-login]] | Login com `{username, password}`: `APP_USERNAME` no `.env`, o mesmo `AUTH_001` para os dois, comparação em tempo constante (substitui o contrato de login do 0003) | `aceite` | 2026-09-28 |
 | [[0012-argumentos-do-claude-e-status-line]] | Argumentos do `claude`: `--session-id` (novo), `--resume` (retomar/continuar/reabrir), `--settings` com a status line da quota (confirmada no spike) | `aceite` | 2026-09-28 |
+| [[0013-linux-no-desktop-de-casa]] | Desktop de casa em Linux com ambiente gráfico leve (Xubuntu/Debian + Xfce, login automático) — pela RAM (8 GB) e para a extensão Claude in Chrome ter sessão | `aceite` | 2026-09-28 |
 
 ## Decisões que ainda vão precisar de ADR
 
@@ -39,6 +40,5 @@ Estados: `proposto` → `aceite` → `substituído`. Template: `Templates/ADR.md
 | **Nome definitivo** | "Workflow App" é provisório | Quando houver um melhor |
 | **Forma final da UI** | Web no browser · PWA · desktop (Tauri/Electron) por cima do mesmo backend. O design ([[0008-identidade-visual]]) foi feito para web no browser e serve qualquer das três. **Intenção (2026-09-28): uma app desktop no futuro**, como janela que abre o URL do backend (mesma origem → cookie e `Origin` sem mudanças), nunca com o PTY dentro do Electron. Para ficar barato: o backend serve a SPA e o URL da API é configurável ([[../../notes/ideas]] → App desktop) | Quando se avançar para a app desktop |
 | **Como expor fora de casa** | VPN mesh (Tailscale) · túnel com autenticação à frente (Cloudflare Tunnel + Access) · reverse proxy com TLS | Antes de sair de `127.0.0.1` — ver [[0004-exposicao-e-modelo-de-ameaca]] |
-| **Onde corre em "produção"** | Portátil hoje → desktop de casa (SO por confirmar) | Quando se mudar |
 | **2FA no login** | TOTP · nada | Antes de expor na web |
 | **Testes do frontend** | Sem Vitest (omissão da stack) · Vitest + Testing Library | No scaffold do frontend |
