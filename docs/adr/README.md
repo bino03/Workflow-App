@@ -30,7 +30,7 @@ Estados: `proposto` → `aceite` → `substituído`. Template: `Templates/ADR.md
 | Decisão | Opções à mesa | Quando |
 |---|---|---|
 | **Nome definitivo** | "Workflow App" é provisório | Quando houver um melhor |
-| **Forma final da UI** | Web no browser · PWA · desktop (Tauri/Electron) por cima do mesmo backend. O design ([[0008-identidade-visual]]) foi feito para web no browser e serve qualquer das três | Quando houver motivo para sair do browser |
+| **Forma final da UI** | Web no browser · PWA · desktop (Tauri/Electron) por cima do mesmo backend. O design ([[0008-identidade-visual]]) foi feito para web no browser e serve qualquer das três. **Intenção (2026-09-28): uma app desktop no futuro**, como janela que abre o URL do backend (mesma origem → cookie e `Origin` sem mudanças), nunca com o PTY dentro do Electron. Para ficar barato: o backend serve a SPA e o URL da API é configurável ([[../../notes/ideas]] → App desktop) | Quando se avançar para a app desktop |
 | **Onde se guardam as preferências** (modo de layout) | Browser · backend | `/design-database` |
 | **Persistência** | Nenhuma BD (tudo em memória + o que o Claude Code já grava em `~/.claude`) · ficheiro JSON · SQLite | `/design-database` (Fundação) |
 | **Fonte do indicador de quota** | Ver [[../product/domain-brief]] → perguntas em aberto — nenhuma fonte está confirmada | Spike antes da feature |

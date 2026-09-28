@@ -96,3 +96,19 @@ Ver [[security]] → "Fluxo de autenticação" e [[adr/0003-auth-utilizador-unic
 - **Upgrade do WebSocket sem verificar `Origin`** — os cookies vão em qualquer pedido do browser, também
   de outro site; sem verificar `Origin`, qualquer página aberta pode ligar-se a um terminal
   ([[adr/0004-exposicao-e-modelo-de-ameaca]]).
+- **Replay do scrollback corrompido** — um buffer circular de bytes corta a meio de sequências ANSI, e o
+  Claude Code é uma TUI que redesenha o ecrã; ao religar, o cliente pode ver um ecrã partido. Opção
+  robusta: um `@xterm/headless` por terminal no servidor e, ao ligar, enviar um snapshot com
+  `@xterm/addon-serialize` em vez dos bytes crus. Opção simples: depois do replay, forçar um redesenho
+  (resize para o mesmo tamanho ±1).
+- **Scrollback duplicado ao reconectar** — se o cliente religa sem limpar o xterm.js, o replay aparece
+  por cima do que já lá estava. `term.reset()` antes do replay, ou offsets/números de sequência.
+- **Ligações mortas sem `close`** — suspensão do portátil, Wi-Fi a cair, ou um túnel/proxy à frente
+  (o Cloudflare corta ligações paradas ao fim de ~100 s). Ping/pong do lado do servidor para limpar
+  clientes mortos, e reconexão automática com backoff no `TerminalView`.
+- **Dois clientes com tamanhos diferentes** — o PTY só tem um tamanho; dois separadores a mandar
+  `resize` alternadamente fazem a TUI redesenhar sem parar. Precisa de uma regra (ex.: manda o último
+  com foco, ou o menor tamanho).
+- **Sessão expirada com o WebSocket aberto** — a guarda só corre no upgrade; um socket já aberto
+  sobrevive à expiração da sessão se nada o fechar. A expiração (não só o logout) tem de fechar os
+  WebSockets dessa sessão ([[security]] → "Fluxo de autenticação").
