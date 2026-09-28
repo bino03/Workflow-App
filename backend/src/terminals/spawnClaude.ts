@@ -44,11 +44,22 @@ export function isDeniedEnvName(name: string): boolean {
   return DENIED_NAMES.has(upper) || DENIED_PREFIXES.some((prefix) => upper.startsWith(prefix));
 }
 
+/**
+ * A CLAUDE_CONFIG_DIR that is empty or relative makes Claude Code use the terminal's working folder as its
+ * config dir: it writes projects/, history.jsonl and session keys into the project, and does not see the
+ * user's login and settings. An empty `CLAUDE_CONFIG_DIR=` line in .env does exactly that.
+ */
+function usableConfigDir(value: string): boolean {
+  return value.trim() !== '' && isAbsolute(value.trim());
+}
+
 /** The backend's environment minus everything in the denylist. */
 export function childEnv(env: NodeJS.ProcessEnv = process.env): Record<string, string> {
   const clean: Record<string, string> = {};
   for (const [name, value] of Object.entries(env)) {
-    if (value !== undefined && !isDeniedEnvName(name)) clean[name] = value;
+    if (value === undefined || isDeniedEnvName(name)) continue;
+    if (name.toUpperCase() === 'CLAUDE_CONFIG_DIR' && !usableConfigDir(value)) continue;
+    clean[name] = value;
   }
   return clean;
 }

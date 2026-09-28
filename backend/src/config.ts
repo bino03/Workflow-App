@@ -53,7 +53,8 @@ const envSchema = z.object({
     .transform(splitList(';'))
     .pipe(z.array(existingDirectory).min(1, 'at least one root is required')),
   DEFAULT_CWD: optionalString,
-  CLAUDE_CONFIG_DIR: optionalString,
+  // Empty means "not set" (~/.claude). Relative is refused: the child would resolve it against its cwd.
+  CLAUDE_CONFIG_DIR: optionalString.refine((path) => path === undefined || isAbsolute(path), 'must be an absolute path'),
   MAX_TERMINALS: z.coerce.number().int().min(1).max(64).default(8),
   SCROLLBACK_BYTES: z.coerce.number().int().min(1024).default(1_048_576),
 

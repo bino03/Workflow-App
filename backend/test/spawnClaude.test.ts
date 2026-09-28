@@ -34,6 +34,14 @@ describe('childEnv', () => {
       CLAUDE_CONFIG_DIR: 'C:\\Users\\me\\.claude',
     });
   });
+
+  // An empty CLAUDE_CONFIG_DIR= in .env made claude use the terminal's folder as its config dir: it wrote
+  // projects/, history.jsonl and session keys into the project and did not see the user's login.
+  it('drops an empty or relative CLAUDE_CONFIG_DIR, so claude falls back to ~/.claude', () => {
+    for (const value of ['', '   ', '.claude', 'relative\\dir']) {
+      expect(childEnv({ PATH: 'C:\\bin', CLAUDE_CONFIG_DIR: value })).toEqual({ PATH: 'C:\\bin' });
+    }
+  });
 });
 
 describe('resolveClaudeBin', () => {

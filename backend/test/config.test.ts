@@ -66,6 +66,11 @@ describe('loadConfig', () => {
     expect(config.corsAllowedOrigins).toEqual(['http://localhost:7401', 'http://127.0.0.1:7401']);
   });
 
+  it('CLAUDE_CONFIG_DIR: empty means not set; relative is refused', () => {
+    expect(loadConfig(testEnv({ CLAUDE_CONFIG_DIR: '' })).terminals.claudeConfigDir).toBeUndefined();
+    expect(issuesOf(testEnv({ CLAUDE_CONFIG_DIR: '.claude' })).join()).toContain('CLAUDE_CONFIG_DIR');
+  });
+
   it('DATA_DIR defaults to ~/.workflow-app and must be absolute', () => {
     expect(loadConfig(testEnv({ DATA_DIR: undefined })).dataDir).toBe(join(homedir(), '.workflow-app'));
     expect(loadConfig(testEnv({ DATA_DIR: 'C:\\data' })).dataDir).toBe('C:\\data');
