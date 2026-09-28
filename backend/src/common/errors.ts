@@ -16,6 +16,8 @@ export const ErrorCode = {
   AUTH_002: { status: 401, message: 'Not authenticated' },
   AUTH_003: { status: 403, message: 'Origin not allowed' },
   AUTH_004: { status: 429, message: 'Too many login attempts' },
+  // LIBRARY
+  LIBRARY_001: { status: 500, message: 'Workflow library folder not found (WORKFLOW_PATH/library)' },
 } as const satisfies Record<string, { status: number; message: string }>;
 
 export type ErrorCode = keyof typeof ErrorCode;

@@ -276,9 +276,11 @@
   .tag-mid { color: var(--wfa-color-warning); }
   .tag-draft { color: var(--wfa-color-text-2); }
 
+  /* A mesma forma serve a tag e o chip de filtro (.mat-glyph), que tem o texto noutra cor */
   .tag-ok::before,
   .tag-mid::before,
-  .tag-draft::before {
+  .tag-draft::before,
+  .mat-glyph::before {
     content: '';
     display: inline-block;
     flex: none;
@@ -287,7 +289,16 @@
     height: 9px;
   }
 
-  .tag-ok::before {
+  .mat-glyph {
+    display: inline-flex;
+  }
+
+  .mat-glyph.is-ok { color: var(--wfa-color-success); }
+  .mat-glyph.is-mid { color: var(--wfa-color-warning); }
+  .mat-glyph.is-draft { color: var(--wfa-color-text-2); }
+
+  .tag-ok::before,
+  .mat-glyph.is-ok::before {
     content: '✓';
     width: 10px;
     height: auto;
@@ -297,15 +308,51 @@
     text-align: center;
   }
 
-  .tag-mid::before {
+  .tag-mid::before,
+  .mat-glyph.is-mid::before {
     border-radius: 50%;
     border: 1.5px solid currentColor;
     background: linear-gradient(90deg, currentColor 50%, transparent 50%);
   }
 
-  .tag-draft::before {
+  .tag-draft::before,
+  .mat-glyph.is-draft::before {
     border-radius: 2px;
     border: 1.5px dashed currentColor;
+  }
+
+  /* Chip de filtro (Biblioteca): o selecionado leva accent-subtle + accent-border */
+  .filter-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    height: 26px;
+    padding: 0 10px;
+    border-radius: var(--wfa-radius-sm);
+    border: 1px solid var(--wfa-color-border);
+    background: transparent;
+    color: var(--wfa-color-text-2);
+    font-family: var(--wfa-font-sans);
+    font-size: 12.5px;
+    cursor: pointer;
+    transition: background var(--wfa-dur-fast) var(--wfa-ease-standard),
+      border-color var(--wfa-dur-fast) var(--wfa-ease-standard),
+      color var(--wfa-dur-fast) var(--wfa-ease-standard);
+  }
+
+  .filter-chip:hover {
+    color: var(--wfa-color-text-1);
+  }
+
+  .filter-chip[aria-pressed='true'] {
+    color: var(--wfa-color-text-1);
+    border-color: var(--wfa-color-accent-border);
+    background: var(--wfa-color-accent-subtle);
+  }
+
+  .filter-chip:focus-visible {
+    outline: 2px solid var(--wfa-color-accent);
+    outline-offset: 1px;
   }
 
   /* Ícone de estado: cor e forma, nunca só cor (§3) */

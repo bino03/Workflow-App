@@ -66,7 +66,7 @@ backend/
     ├── auth/                ← login / logout / me, sessão em cookie HttpOnly
     ├── terminals/           ← TerminalManager (PTYs), rotas REST, gateway WebSocket, scrollback
     ├── sessions/            ← listar as sessões gravadas do Claude Code por pasta (para --resume)
-    ├── library/             ← ler o registo da biblioteca do Workflow (frontmatter dos manifestos)
+    ├── library/             ← ✅ registo da biblioteca do Workflow: frontmatter dos manifestos com yaml + zod, lido a cada pedido
     └── usage/               ← indicador de quota (fonte por decidir)
 ```
 
@@ -99,23 +99,23 @@ Backend pára → kill de todos
 ## Frontend — `react-vite-antd` (✅) + xterm.js
 
 React 19 · Vite 7 · antd 6 · Tailwind 4 · TypeScript 6 (versões e porquê: [[frontend-conventions]] →
-"Específico deste projeto"). Estrutura confirmada no scaffold (2026-09-28); `terminals/` e `library/`
-nascem com as features:
+"Específico deste projeto"). Estrutura confirmada no scaffold (2026-09-28); `library/` ✅ desde 2026-09-28, `terminals/` nasce
+com a feature:
 
 ```
 frontend/
 ├── index.html  package.json  vite.config.ts  tsconfig*.json  .env.example
 └── src/
     ├── main.tsx  api.ts  theme.ts  index.css
-    ├── config/apiBase.ts     ← único sítio com o endereço do backend (HTTP e ws://)
+    ├── config/               ← apiBase.ts (único sítio com o endereço do backend, HTTP e ws://), drawer.ts (DRAWER_WIDTH)
     ├── layouts/AppLayout.tsx
-    ├── contexts/  hooks/  services/  errors/  terminal/xtermTheme.ts
+    ├── contexts/  hooks/  services/  errors/  types/  terminal/xtermTheme.ts
     ├── pages/                ← login/, TerminalsPage, LibraryPage, dev/ (só em dev)
     └── components/
         ├── PrivateRoute.tsx
         ├── common/           ← ListActions, SectionCard, FieldError, Wordmark, PagePlaceholder
         ├── terminals/        ← 🚧 TerminalView (xterm.js + fit addon + WebSocket), lista/separadores
-        └── library/          ← 🚧 registo da biblioteca
+        └── library/          ← ✅ LibraryEntryDrawer, MaturityTag, libraryFormat (a página é pages/LibraryPage)
 ```
 
 O terminal é um componente à parte das convenções de formulários/drawers: um `TerminalView` por terminal

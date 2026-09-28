@@ -10,6 +10,8 @@ import { registerAuthGuard } from './common/authGuard.js';
 import { AppError, registerErrorHandler } from './common/errors.js';
 import { healthRoutes } from './common/health.routes.js';
 import { hasSpaBuild, registerSpa, selfOrigins } from './common/spa.js';
+import { libraryRoutes } from './library/library.routes.js';
+import { LibraryService } from './library/libraryService.js';
 import type { StateStore } from './state/stateStore.js';
 import type { TerminalManager } from './terminals/terminalManager.js';
 
@@ -58,6 +60,7 @@ export async function buildApp({ config, terminalManager, sessionStore, stateSto
 
   await app.register(healthRoutes);
   await app.register(authRoutes, { config, sessionStore: sessions });
+  await app.register(libraryRoutes, { libraryService: new LibraryService(config.workflowPath) });
 
   if (serveSpa) {
     await registerSpa(app, config.frontendDist);

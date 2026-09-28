@@ -109,6 +109,14 @@ Ant Design para componentes, Tailwind para estilo próprio, tokens CSS como font
   Interceptor que o reconverte.
 - **Import default de um módulo que só tem named export** — compila com o type-check errado e
   rebenta em runtime ao abrir o ecrã.
+- **Toast por cima de um erro mostrado inline** (só em dev) — o StrictMode corre o efeito duas vezes; o `catch`
+  da execução cancelada sai antes de reclamar o erro, e o interceptor notifica passado um tick. → Chamar
+  `ErrorHandler.handle(e, { showNotification: false })` **antes** do `if (cancelled) return` (`hooks/useLibrary.ts`).
+- **`react-hooks/set-state-in-effect`** — um `load()` que faz `setLoading(true)` antes do `await`, chamado
+  no efeito. → Os `setState` só dentro do `.then/.catch`; o "recarregar" muda um contador que é dependência do efeito.
+- **`Alert message=` dá aviso na consola** — obsoleto no antd 6. → `title=`.
+- **Seletor `.ant-tabs-tabpane-active` não encontra nada** (verificação automática) — no antd 6 o painel
+  ativo é `[role=tabpanel].ant-tabs-content-active`.
 - **Animação de saída do AntD não termina com a janela do browser sem foco** (verificação
   automática) — o DOM diz "modal aberto" para sempre. → Decidir abrir/fechar de modais por
   screenshot e clicar com o rato real (`verify-in-browser` (não incluída)).

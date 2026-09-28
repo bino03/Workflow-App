@@ -1,6 +1,6 @@
 # Drawers & Modals
 
-> 🚧 Convenção prospetiva — ainda sem código neste projeto que a valide.
+> 🚧 Parcialmente validada: o drawer de detalhe baseia-se em `components/library/LibraryEntryDrawer.tsx`, verificado em Chrome headless a 2026-09-28 (600 px, kicker + título mono, `Esc` em `.kbd`, rodapé). Modals e confirmações ainda sem código.
 
 > Parte de [[../frontend-visual-consistency]]. Porquê: [[../../../../frontend/ux-patterns]] §1.
 
@@ -26,7 +26,11 @@ Valores do handoff de 2026-09-27 (Small e Medium vêm dos protótipos; Large é 
   D:\projetos\api-faturas") em caption `text-3`.
 - Rodapé: `<Space>` alinhado à direita; cancelar/fechar primeiro, ação primária mais à direita.
 - Texto dos botões via i18n (`t('common.cancel')`, `t('common.save')`), nunca hardcoded.
-- Drawer de detalhe carrega por `id` (`open={!!id}`), mostra `<Spin>` enquanto carrega.
+- Drawer de detalhe carrega por `id` (`open={!!id}`), mostra `<Spin>` enquanto carrega. **Exceção**: se a lista já
+  traz a entrada inteira e não há rota de detalhe (Biblioteca), o drawer recebe a entrada (`selected={…}`,
+  `open={!!selected}`) — sem segundo pedido.
+- antd 6: largura por `size={DRAWER_WIDTH.medium}` (`width` está obsoleto); o `Esc` vai em `extra`.
+- Metadados em `<dl>` com grelha `96px 1fr`, 12.5px, rótulo `text-3`, valor `text-2` (mono para caminhos e ids).
 
 ```tsx
 export function OrderViewDrawer({ id, onClose }: Props) {

@@ -12,6 +12,8 @@ export const ERROR_MESSAGES: Record<string, string> = {
   AUTH_002: 'A sessão terminou. Entra outra vez.',
   AUTH_003: 'Pedido recusado: esta origem não está autorizada.',
   AUTH_004: 'Demasiadas tentativas. Espera um minuto e tenta outra vez.',
+  // ── LIBRARY ────────────────────────────
+  LIBRARY_001: 'A biblioteca do Workflow não foi encontrada. Confirma o WORKFLOW_PATH do backend.',
 
   DEFAULT: 'Ocorreu um erro. Tenta outra vez.',
 };

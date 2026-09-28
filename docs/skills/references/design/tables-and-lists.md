@@ -1,6 +1,6 @@
 # Tables & Lists
 
-> 🚧 Parcialmente validada: `components/common/ListActions.tsx` existe e foi verificado a 2026-09-28 (`stopPropagation`, `minWidth` 110, `Danger` em `accent` .75); colunas, pesquisa e paginação ainda sem código.
+> 🚧 Parcialmente validada: `components/common/ListActions.tsx` verificado a 2026-09-28 (`stopPropagation`, `minWidth` 110, `Danger` em `accent` .75); cabeçalho, tabela só de leitura, pesquisa com `/` e chips de filtro baseados em `pages/LibraryPage.tsx`, verificado em Chrome headless a 2026-09-28. Paginação ainda sem código.
 
 > Parte de [[../frontend-visual-consistency]]. Porquê: [[../../../../frontend/ux-patterns]] §3-4.
 
@@ -50,7 +50,7 @@ O componente já resolve: botões empilhados, alinhados à esquerda, `minWidth: 
 - Kicker: 11/600, maiúsculas, `letter-spacing: .12em`, cor `var(--wfa-color-accent)`. **Não**
   `accent-700`, que no tema escuro é quase preto ([[tokens-and-colors]] §2).
 
-- Sem `padding`/`minHeight` no contentor da página — o `AppLayout` já aplica.
+- O `AppLayout` **não** aplica padding (o `<main>` só faz scroll): cada página aplica o do protótipo — `px-10 pt-7` (40/28) na Biblioteca.
 - Páginas aninhadas: `<Breadcrumb>` antes; botão "Voltar" por cima do kicker; o kicker leva o nome do pai.
 
 ## 3. Tabela — moldura e estados
@@ -69,6 +69,18 @@ O componente já resolve: botões empilhados, alinhados à esquerda, `minWidth: 
   Maturidade: `.tag-ok` / `.tag-mid` / `.tag-draft` (forma + cor, [[tokens-and-colors]] §3).
 - Numa lista só de leitura (Biblioteca), a coluna de ações é um link de texto "Ver" em `accent` 13/600,
   alinhado à direita.
+
+## 3.1 Chips de filtro e pesquisa (lista só de leitura)
+
+- **Chips** (`.filter-chip` em `index.css`): `<button aria-pressed>` — o selecionado leva `accent-subtle` +
+  `accent-border` + `text-1`. Na Biblioteca ficam em `tabBarExtraContent` das `Tabs`: Todas / Provado / Parcial /
+  Rascunho, cada um com `<span className="mat-glyph is-ok|is-mid|is-draft">` (a mesma forma das tags `.tag-*`).
+- **Pesquisa**: `Input` com `max-w-[320px]`, `SearchOutlined` a .5, `suffix={<span className="kbd">/</span>}`, `allowClear`.
+  O atalho `/` foca-a com `preventDefault` (o `/` não fica escrito) e é ignorado se o foco já está num campo.
+- Filtro por agrupamento (camada, categoria): `Select allowClear` de 200 px à esquerda da pesquisa, só na tab onde
+  o campo existe; limpa-se ao mudar de tab.
+- Rodapé: contagens do total da tab (`6 stacks · 3 provados · …`) + ` · a mostrar N` quando há filtro.
+- Linhas clicáveis (`onRow` → abre o drawer) e `rowClassName` com `ant-table-row-selected` para a linha aberta.
 
 ## 4. Rodapé de contagem e paginação
 

@@ -26,6 +26,7 @@ próprio Fastify (JSON mal formado, content-type errado → `COMMON_001`) e as r
 | `AUTH_002` | 401 | Sem sessão, ou sessão expirada |
 | `AUTH_003` | 403 | `Origin` fora de `CORS_ALLOWED_ORIGINS` (upgrade do WebSocket) |
 | `AUTH_004` | 429 | Demasiadas tentativas de login |
+| `LIBRARY_001` | 500 | A pasta `WORKFLOW_PATH/library` não existe |
 
 O frontend espelha esta tabela em `frontend/src/errors/errorMessages.ts`, pela mesma ordem — os dois
 mudam no mesmo commit.
@@ -74,13 +75,26 @@ redesenhar logo a seguir.
 |---|---|---|---|---|
 | GET | `/api/sessions?cwd=…` | sessão | — | `[{id, startedAt, preview}]` — só leitura de `~/.claude/projects/` |
 
-## Biblioteca (`library/`, `/api/library`) — 🚧 proposta
+## Biblioteca (`library/`, `/api/library`) — ✅
 
-| Método | Rota | Acesso | Corpo | Resposta |
-|---|---|---|---|---|
-| GET | `/api/library/stacks` | sessão | — | `[{id, name, layer, maturity, pairsWith, providesSkills, path}]` |
-| GET | `/api/library/themes` | sessão | — | `[{id, name, mode, density, status, path}]` |
-| GET | `/api/library/skills` | sessão | — | `[{name, category, status, appliesWhen, description, path}]` |
+Só leitura, lida do disco a cada pedido ([[adr/0005-biblioteca-lida-do-disco]]). As três rotas devolvem
+`{entries, invalid}`, com `entries` ordenadas por `name`:
+
+| Método | Rota | Acesso | Lê | Cada entrada | Erros |
+|---|---|---|---|---|---|
+| GET | `/api/library/stacks` | sessão | `library/stacks/<id>/STACK.md` | `{id, name, layer, technologies, pairsWith, providesSkills, …comum}` | `AUTH_002` · `LIBRARY_001` |
+| GET | `/api/library/themes` | sessão | `library/frontend/themes/<id>/THEME.md` | `{id, name, mode, density, suits, frontendStacks, fonts, …comum}` | `AUTH_002` · `LIBRARY_001` |
+| GET | `/api/library/skills` | sessão | `library/skills/**` e `library/stacks/<id>/skills/**` | `{name, category, appliesWhen, description, stack, …comum}` | `AUTH_002` · `LIBRARY_001` |
+
+- **Comum**: `maturity` (`proven`/`partial`/`draft`: os três chips do ecrã), `maturityRaw` (o valor escrito
+  no manifesto, mostrado na tag), `updated` (string ou `null`), `path` (caminho absoluto do manifesto).
+- **Maturidade normalizada**: stacks `proven`/`partial`/`planned`, designs `proven`/`adapted`/`draft`,
+  skills `proven`/`adapted`/`prospective` → `adapted` conta como `partial`; `planned`/`prospective` como
+  `draft`.
+- `technologies` são as chaves de `versions`; `stack` só vem preenchido nas skills de dentro de uma stack.
+- Pastas começadas por `_` ou `.` são ignoradas; agentes não entram.
+- **Um manifesto inválido nunca é fatal**: vai para `invalid[]` como `{path, message}` (caminho relativo +
+  razão do zod/YAML), e o resto da lista vem na mesma. Só a falta da pasta `library/` dá `500 LIBRARY_001`.
 
 ## Quota (`usage/`, `/api/usage`) — ❓ fonte por decidir
 

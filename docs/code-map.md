@@ -46,6 +46,18 @@ isso há os outros:
 
 ---
 
+## Biblioteca — ✅
+
+| Camada | Ficheiros |
+|---|---|
+| **Entrada** | rota `/library` → `frontend/src/pages/LibraryPage.tsx` (tabs, pesquisa com `/`, chips de maturidade, filtro por camada/categoria) |
+| **Frontend** | `components/library/` (`LibraryEntryDrawer`, `MaturityTag`, `libraryFormat.ts`) · `hooks/useLibrary.ts` · `services/libraryService.ts` · `types/library.ts` |
+| **Backend** | `backend/src/library/` — `library.routes.ts` · `libraryService.ts` (lê o disco) · `library.schemas.ts` (zod dos manifestos + `maturityOf`) |
+| **Dados** | `WORKFLOW_PATH/library` — só leitura ([[adr/0005-biblioteca-lida-do-disco]]) |
+| **Detalhe** | [[api]] → "Biblioteca" |
+
+---
+
 _(Uma secção por domínio, à medida que nasce:)_
 
 ## <Domínio>
