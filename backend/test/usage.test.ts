@@ -17,7 +17,8 @@ const withLimits = {
   model: { id: 'claude-opus-5-5', display_name: 'Opus 5.5' },
   rate_limits: { five_hour: { used_percentage: 44, resets_at: 1790607000 }, seven_day: { used_percentage: 61, resets_at: 1790780400 } },
 };
-const { rate_limits: _dropped, ...withoutLimits } = withLimits;
+// JSON.stringify drops undefined: the same JSON as a fresh session, which has no rate_limits yet.
+const withoutLimits = { ...withLimits, rate_limits: undefined };
 
 let dataDir: string;
 beforeEach(() => {

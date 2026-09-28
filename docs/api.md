@@ -125,7 +125,7 @@ Só leitura, lida do disco a cada pedido ([[adr/0005-biblioteca-lida-do-disco]])
 
 | Método | Rota | Acesso | Resposta |
 |---|---|---|---|
-| GET | `/api/usage` | sessão | `{fiveHour: {usedPct, resetsAt} | null, weekly: {usedPct, resetsAt} | null, fetchedAt: string | null}` |
+| GET | `/api/usage` | sessão | `UsageView` = `{fiveHour, weekly, fetchedAt}` — cada janela `{usedPct, resetsAt}` ou `null`; `fetchedAt` ISO ou `null` |
 
 - Fonte: a status line injetada em todo o `claude` que a app lança ([[adr/0012-argumentos-do-claude-e-status-line]]).
   O backend escreve `DATA_DIR/claude-settings.json` e `DATA_DIR/statusline.cjs` no arranque; o script grava
