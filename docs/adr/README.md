@@ -24,6 +24,7 @@ Estados: `proposto` → `aceite` → `substituído`. Template: `Templates/ADR.md
 | [[0006-organizacao-por-dominio]] | Backend organizado por domínio (módulos) | `aceite` | 2026-09-27 |
 | [[0007-omissoes-do-frontend]] | Estado, ícones e terminal no frontend (omissões da stack) | `aceite` | 2026-09-27 |
 | [[0008-identidade-visual]] | Violeta + Geist, só escuro; dois layouts de terminais (foco dividido · grelha); só desktop | `aceite` | 2026-09-27 |
+| [[0009-estado-em-ficheiro-json]] | Sem BD: `state.json` (terminais a reabrir, histórico de fechados com resumo do `.jsonl`, pastas); layout no browser; scrollback só em memória | `aceite` | 2026-09-28 |
 
 ## Decisões que ainda vão precisar de ADR
 
@@ -31,8 +32,6 @@ Estados: `proposto` → `aceite` → `substituído`. Template: `Templates/ADR.md
 |---|---|---|
 | **Nome definitivo** | "Workflow App" é provisório | Quando houver um melhor |
 | **Forma final da UI** | Web no browser · PWA · desktop (Tauri/Electron) por cima do mesmo backend. O design ([[0008-identidade-visual]]) foi feito para web no browser e serve qualquer das três. **Intenção (2026-09-28): uma app desktop no futuro**, como janela que abre o URL do backend (mesma origem → cookie e `Origin` sem mudanças), nunca com o PTY dentro do Electron. Para ficar barato: o backend serve a SPA e o URL da API é configurável ([[../../notes/ideas]] → App desktop) | Quando se avançar para a app desktop |
-| **Onde se guardam as preferências** (modo de layout) | Browser · backend | `/design-database` |
-| **Persistência** | Nenhuma BD (tudo em memória + o que o Claude Code já grava em `~/.claude`) · ficheiro JSON · SQLite | `/design-database` (Fundação) |
 | **Fonte do indicador de quota** | Ver [[../product/domain-brief]] → perguntas em aberto — nenhuma fonte está confirmada | Spike antes da feature |
 | **Como expor fora de casa** | VPN mesh (Tailscale) · túnel com autenticação à frente (Cloudflare Tunnel + Access) · reverse proxy com TLS | Antes de sair de `127.0.0.1` — ver [[0004-exposicao-e-modelo-de-ameaca]] |
 | **Onde corre em "produção"** | Portátil hoje → desktop de casa (SO por confirmar) | Quando se mudar |

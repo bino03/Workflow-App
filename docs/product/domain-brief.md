@@ -89,3 +89,8 @@ O que a entrevista levantou e não resolveu — o `/design-database` pergunta is
    (uuid, data, primeira mensagem) e aceitar que pode mudar entre versões do Claude Code.
 5. **Biblioteca**: ler os manifestos (frontmatter de `STACK.md`/`THEME.md`/skills) ou as tabelas dos
    `README.md` de registo? (Proposta: manifestos — [[../adr/0005-biblioteca-lida-do-disco]].)
+
+---
+
+✅ **Modelo desenhado a 2026-09-28** — sem base de dados, um `state.json` — ver [[../database]] e
+[[../adr/0009-estado-em-ficheiro-json]].

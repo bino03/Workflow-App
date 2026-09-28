@@ -50,26 +50,27 @@ O mais fiável não é acertar no termo — é **dar uma âncora**:
 
 ## Vocabulário do domínio — Workflow App
 
-Conceito (PT, na UI e nos docs) → identificador (EN, no código). **Proposta** — a entrevista deixou as
-entidades em aberto ("decido mais tarde"); confirmar no `/design-database`.
+Conceito (PT, na UI e nos docs) → identificador (EN, no código). ✅ Confirmado no `/design-database`
+(2026-09-28) — ver [[../../database]].
 
 | Conceito (PT) | No código (EN) | Estado |
 |---|---|---|
-| Terminal / sessão aberta | `Terminal` | proposta — processo `claude` num PTY, vive em memória |
-| Sessão gravada do Claude Code | `ClaudeSession` | proposta — lida de `~/.claude/projects/`, não é da app |
-| Entrada da biblioteca (stack, design, skill) | `LibraryEntry` (`kind`: `stack` · `theme` · `skill`) | proposta — só leitura, de `library/` |
-| Quota / uso | `UsageSnapshot` | proposta — fonte por decidir |
-| Projeto | `Project` | ❓ talvez (painel de projetos é ideia, não MVP) |
-
-> A6: "aqui ainda não sei, decido mais tarde" — **nenhuma destas está confirmada**. O `/design-database`
-> decide, e pode concluir que não há base de dados.
+| Terminal (a correr) | `Terminal` | ✅ processo `claude` num PTY, em memória |
+| Terminal guardado / parado | `SavedTerminal` | ✅ `state.json` → `terminals`; parado = guardado mas sem processo |
+| Terminal fechado (histórico) | `ClosedTerminal` | ✅ `state.json` → `closedTerminals` (últimos 200, com resumo) |
+| Pasta recente / favorita | `Folder` | ✅ `state.json` → `folders` |
+| Sessão gravada do Claude Code | `ClaudeSession` | ✅ lida de `~/.claude/projects/`, não é da app |
+| Entrada da biblioteca (stack, design, skill) | `LibraryEntry` (`kind`: `stack` · `theme` · `skill`) | ✅ só leitura, de `library/` |
+| Quota / uso | `UsageSnapshot` | ✅ calculada, não guardada — fonte por decidir |
+| Projeto | `Project` | futura (painel de projetos é ideia, não MVP) |
 
 ### Termos que parecem sinónimos e não são
 
 | Termo | O que é | Não confundir com |
 |---|---|---|
 | **Terminal** | Um processo `claude` a correr agora, num PTY da app | **Sessão gravada** — a conversa que o Claude Code guardou em disco e que se pode retomar |
-| **Fechar** um terminal | Matar o processo; a sessão fica gravada | **Terminar** — o processo saiu sozinho (ex.: `/exit`) |
+| **Fechar** um terminal | Matar o processo e passá-lo ao histórico; a sessão fica gravada | **Terminar** — o processo saiu sozinho (ex.: `/exit`) · **Parado** — guardado, sem processo porque o backend reiniciou |
+| **Reabrir** | Relançar um terminal **parado** com `--resume <claudeSessionId>` | **Retomar** — escolher uma sessão gravada qualquer da pasta |
 | **Retomar** | Abrir um terminal novo com `--resume <uuid>` | **Religar** — voltar a ligar o browser a um terminal que nunca parou |
 | **Quota** | Uso da subscrição (janela de 5h, tecto semanal) — da conta | Rate limits da API (não se aplicam — não se usa a API) |
 | **Biblioteca** | `library/` do Workflow (só leitura) | O vault deste projeto |
