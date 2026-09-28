@@ -91,10 +91,10 @@ Só leitura, lida do disco a cada pedido ([[adr/0005-biblioteca-lida-do-disco]])
 - **Um manifesto inválido nunca é fatal**: vai para `invalid[]` como `{path, message}` (caminho relativo +
   razão do zod/YAML), e o resto da lista vem na mesma. Só a falta da pasta `library/` dá `500 LIBRARY_001`.
 
-## Quota (`usage/`, `/api/usage`) — ❓ a confirmar no spike
+## Quota (`usage/`, `/api/usage`) — 🚧 desenhado
 
-`GET /api/usage` → `UsageView` ([[features/terminais]] §4.3), se o spike (passo 1) confirmar a fonte
-([[adr/0012-argumentos-do-claude-e-status-line]]).
+`GET /api/usage` → `UsageView` ([[features/terminais]] §4.3). Fonte confirmada no spike de 2026-09-28: a status
+line injetada ([[adr/0012-argumentos-do-claude-e-status-line]]).
 
 ## Auth e saúde (`auth/`, `common/health.routes.ts`) — ✅
 

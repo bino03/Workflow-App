@@ -6,8 +6,7 @@ data: 2026-09-28
 
 # ADR 0012 — Argumentos do `claude`: `--session-id`, `--resume` e a status line da quota
 
-**Data**: 2026-09-28 · **Estado**: `aceite` (a parte da quota fica **condicionada ao spike**, ver
-"Estado") · **Decidido com**: `/implement-todo` + `/plan-feature` (spec [[../features/terminais]])
+**Data**: 2026-09-28 · **Estado**: `aceite` (a parte da quota confirmada no spike a 2026-09-28) · **Decidido com**: `/implement-todo` + `/plan-feature` (spec [[../features/terminais]])
 
 Detalha a proteção 4 de [[0004-exposicao-e-modelo-de-ameaca]] ("só `CLAUDE_BIN`, com argumentos fixos;
 `--resume` só com um UUID validado"). Não a enfraquece: diz exatamente que argumentos existem.
@@ -62,6 +61,7 @@ Os únicos argumentos que o backend passa ao `CLAUDE_BIN` são, gerados só em `
 
 ## Estado
 
-`aceite` para `--session-id` e `--resume`. A parte `--settings`/status line fica **condicionada ao passo 1
-da spec** (spike): se o JSON não trouxer `rate_limits`, essa parte passa a `rejeitada` com o que se
-encontrou, e a quota volta a `notes/ideas.md`.
+`aceite` por inteiro. **Spike de 2026-09-28** (`backend/scripts/statusline-spike.ts`, `claude` 2.1.283): o CLI
+aceita `--session-id` e `--settings`; o comando da status line corre logo no arranque, e o JSON traz
+`rate_limits.five_hour` / `seven_day` (`used_percentage`, `resets_at` em segundos Unix) **a partir da
+primeira resposta da API** — o formato está em [[../features/terminais]] §4.3.

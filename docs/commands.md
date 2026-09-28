@@ -18,6 +18,8 @@ npm start            # node dist/server.js — serve também o frontend/dist, se
 npm run hash-password  # gera o APP_PASSWORD_HASH (argon2id): pede a password duas vezes, sem eco (mín. 12
                        # caracteres); com stdin em pipe lê uma linha. Só o hash vai para o stdout
 npx tsx scripts/pty-spike.ts [cwd]  # spike manual: claude real num PTY (env, /status, resize, Ctrl+C, kill)
+npx tsx scripts/statusline-spike.ts [cwd] [--prompt]  # spike manual: JSON da status line (rate_limits) e o
+                       # .jsonl da sessão; --prompt manda uma mensagem curta (gasta um pouco de quota)
 ```
 
 ### Armadilhas dos comandos
@@ -112,6 +114,7 @@ npm run build      # tsc -b + build do Vite
 |---|---|---|---|
 | Backend | Vitest — `TerminalManager` (com um processo falso em vez do `claude`), política de pastas, guarda de auth, parsing dos manifestos da biblioteca | nada externo | ✅ config, erros, health, CORS, shutdown, `TerminalManager` + denylist, auth (login/logout/me, nome de utilizador + tempo constante, expiração, rate limit, cookie adulterado, WS sem cookie / `Origin` alheio), SPA servida (fallback, cache, path traversal, origem própria no WS), `StateStore`, biblioteca (manifestos válidos/inválidos, `LIBRARY_001`) — 91 testes (2026-09-28). Por fazer: política de pastas |
 | Backend | Spike manual do PTY no Windows (`scripts/pty-spike.ts`): binário, ambiente do filho, `/status` = subscrição, resize, Ctrl+C, kill da árvore | o `claude` real (sem gastar quota) | ✅ 7/7 a 2026-09-28 |
+| Backend | Spike manual da status line (`scripts/statusline-spike.ts`): `--session-id`, `--settings`, `rate_limits` no JSON, caminho do `.jsonl` | o `claude` real (`--prompt` gasta uma mensagem) | ✅ a 2026-09-28: `rate_limits` só depois da 1.ª resposta |
 | Frontend | `npx tsc -b` + lint | — | ✅ limpos a 2026-09-28 |
 | Frontend | Testes automáticos | — | **nenhum** (omissão da stack) — verificação no browser (DOM + rede); a `/_tokens` (só dev) mostra tokens e componentes comuns montados |
 

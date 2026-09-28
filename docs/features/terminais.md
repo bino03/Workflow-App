@@ -2,10 +2,10 @@
 
 | | |
 |---|---|
-| **Estado** | 📋 Planeada |
+| **Estado** | 🚧 Em curso |
 | **Criada** | 2026-09-28 |
 | **Última sessão** | 2026-09-28 |
-| **Passos** | 0 / 17 concluídos |
+| **Passos** | 1 / 17 concluídos |
 
 > Escrita para uma sessão que **não viu a conversa que a originou**. Se algo só faz sentido com contexto
 > externo, falta escrevê-lo.
@@ -97,7 +97,7 @@ resumo.
 | Histórico dos fechados | Só na lista **Retomar** do drawer: a sessão gravada mostra o rótulo e o `summary` do terminal fechado que a usou | Sem ecrã novo no MVP; é onde se procura uma conversa antiga | Secção "Fechados recentemente"; só guardar |
 | Favoritas e recentes | Lista "Favoritas · Recentes" **por cima** do navegador de pastas no drawer; estrela em cada linha | É o atalho mais usado; o navegador é o recurso | Chips junto às raízes |
 | Clicar na grelha | **Amplia temporariamente** (foco sem mudar a preferência; `Esc` ou "Voltar à grelha") | Olhar para um terminal não é mudar de modo | Mudar para foco dividido; só dar o teclado |
-| Fonte da quota | Status line injetada: `claude --settings <DATA_DIR>/claude-settings.json` com um `statusLine` fixo que grava o JSON recebido (`rate_limits.five_hour` / `seven_day`) em `DATA_DIR/usage.json` — **a confirmar no spike (passo 1)** | É a única fonte sem API ([[../adr/0002-motor-via-pty-sobre-subscricao]]) | Ler `~/.claude` (não tem a quota); chamar a API |
+| Fonte da quota | Status line injetada: `claude --settings <DATA_DIR>/claude-settings.json` com um `statusLine` fixo que grava o JSON recebido (`rate_limits.five_hour` / `seven_day`) em `DATA_DIR/usage.json` — **confirmado no spike (passo 1)**, formato em §4.3 | É a única fonte sem API ([[../adr/0002-motor-via-pty-sobre-subscricao]]) | Ler `~/.claude` (não tem a quota); chamar a API |
 | Se o spike não confirmar a quota | O indicador **sai da spec** e volta a `ideas.md` com o que se encontrou; o resto segue | Não bloquear os terminais por causa do indicador | Mostrar custo/tokens da sessão no lugar |
 | Quota sem valor fresco | Último valor a cinzento + "há X min"; "—" depois da hora de reposição | Um valor velho não pode parecer atual | Esconder |
 | Pastas fora de `ALLOWED_ROOTS` | Escondidas (favoritas/recentes que já não cabem nas raízes não aparecem) | As raízes podem mudar no `.env` | Mostrar desativadas |
@@ -137,7 +137,10 @@ Ficheiros novos em `DATA_DIR` (escritos pelo backend, nunca pelo cliente):
 
 Sessões gravadas do Claude Code: `<CLAUDE_CONFIG_DIR ou ~/.claude>/projects/<cwd codificado>/<uuid>.jsonl`,
 onde o `cwd` codificado troca cada carácter não alfanumérico por `-` (`C:\dev\app` → `C--dev-app`) —
-**confirmar no passo 3** com um `.jsonl` real; se o formato for outro, ajustar e anotar aqui.
+**confirmado no spike do passo 1**: `C:\Users\jlalv\Desktop\utad\projetos\WorkFlow App` →
+`C--Users-jlalv-Desktop-utad-projetos-WorkFlow-App` (`:`, `\` e espaço → `-`). Com `--session-id <uuid>` o
+ficheiro chama-se `<uuid>.jsonl` e existe logo depois do arranque, mesmo sem mensagens. O JSON da status
+line também traz o `transcript_path` — confirma o caminho sem o codificar.
 
 ### 4.2 Endpoints
 
@@ -195,7 +198,23 @@ type UsageWindow = { usedPct: number; resetsAt: string };
 type UsageView = { fiveHour: UsageWindow | null; weekly: UsageWindow | null; fetchedAt: string | null };
 ```
 
-Os nomes exatos de `rate_limits` saem do spike (passo 1) — registar aqui o formato real.
+**Formato real** (spike do passo 1, 2026-09-28, `claude` 2.1.283, `backend/scripts/statusline-spike.ts`): o JSON
+que o Claude Code entrega à status line traz, **só depois da primeira resposta da API** numa sessão:
+
+```json
+"rate_limits": {
+  "five_hour": { "used_percentage": 44, "resets_at": 1790607000 },
+  "seven_day": { "used_percentage": 61, "resets_at": 1790780400 }
+}
+```
+
+`used_percentage` em 0–100, `resets_at` em **segundos Unix** (→ ISO no `UsageView`). O primeiro JSON de uma
+sessão acabada de abrir (sem pedidos) **não** tem `rate_limits` — tem `session_id`, `transcript_path`, `cwd`,
+`model`, `workspace`, `cost`, `context_window`, `version`, entre outros. Consequências para o passo 8:
+- o `statusline.cjs` só reescreve `usage.json` quando o JSON traz `rate_limits` (senão cada terminal novo
+  apagava o valor) e guarda também `fetchedAt` (agora);
+- sem atividade em nenhum terminal o valor não se atualiza — é a regra "valor velho a cinzento + há X
+  min" de §3.
 
 ### 4.4 Interface
 
@@ -253,7 +272,7 @@ Em `backend/src/common/errors.ts` e espelhados 1:1 em `frontend/src/errors/error
 Ordem obrigatória. Tiers: `opus` (desenho, não delegar) · `sonnet` (implementação) · `haiku` (mecânico).
 **Regra 8 do `CLAUDE.md`**: nunca editar o backend a partir de um terminal servido por ele em `npm run dev`.
 
-- [ ] **1. Spike da quota pela status line**
+- [x] **1. Spike da quota pela status line** — ✅ 2026-09-28: `rate_limits` confirmado (formato em §4.3)
   - Ficheiro: `backend/scripts/statusline-spike.ts` (novo, manual, como o `pty-spike.ts`)
   - Skill: —
   - Tier: `sonnet`
@@ -314,7 +333,9 @@ Ordem obrigatória. Tiers: `opus` (desenho, não delegar) · `sonnet` (implement
   - Skill: —
   - Tier: `sonnet`
   - Aceite quando: `GET /api/usage` devolve `UsageView` a partir de `usage.json`; sem ficheiro → `null`s;
-    ficheiro inválido → `null`s, nunca 500; o `statusline.cjs` testado com um JSON de exemplo no stdin.
+    ficheiro inválido → `null`s, nunca 500; o `statusline.cjs` testado com um JSON de exemplo no stdin —
+    **com** `rate_limits` grava (com `fetchedAt`), **sem** `rate_limits` não toca no ficheiro; `resets_at`
+    (segundos Unix) → ISO.
 - [ ] **9. Rotas de sessões e pastas + docs do backend**
   - Ficheiro: `backend/src/sessions/sessions.routes.ts`, `backend/src/folders/folders.routes.ts`,
     testes; `docs/api.md`, `docs/security.md`, `docs/architecture.md`, `docs/code-map.md`
@@ -386,12 +407,14 @@ Ordem obrigatória. Tiers: `opus` (desenho, não delegar) · `sonnet` (implement
 
 > ⚠️ **Atualizar SEMPRE no fim de cada sessão.** É a secção que torna esta spec retomável.
 
-**Feito:** nada — spec escrita a 2026-09-28. Já existia antes: `TerminalManager` (PTY, scrollback,
-kill da árvore), `spawnClaude.ts` (binário, ambiente limpo), o protocolo do WebSocket (`protocol.ts`), a
-guarda de auth (REST + WS + `Origin`) e o `StateStore`.
+**Feito:** passo 1 (2026-09-28) — o spike (`backend/scripts/statusline-spike.ts`) confirmou `rate_limits` no
+JSON da status line depois da primeira resposta, e de caminho confirmou `--session-id` e a codificação da pasta
+em `~/.claude/projects/` (§4.1). Já existia antes: `TerminalManager` (PTY, scrollback, kill da árvore),
+`spawnClaude.ts` (binário, ambiente limpo), o protocolo do WebSocket (`protocol.ts`), a guarda de auth (REST + WS
++ `Origin`) e o `StateStore`.
 **Em curso:** —
-**Próxima ação concreta:** passo 1 — criar `backend/scripts/statusline-spike.ts` a partir de
-`backend/scripts/pty-spike.ts`.
+**Próxima ação concreta:** passo 2 — acrescentar os 8 códigos de §4.5 a `backend/src/common/errors.ts` e criar
+`backend/src/folders/cwdPolicy.ts` + `backend/test/cwdPolicy.test.ts`.
 **Desvios ao plano:** —
 **O que uma sessão nova precisa de saber:** o dono corre a app com `npm run dev` e às vezes trabalha
 **dentro** de um terminal servido por ela — nunca editar o backend a partir desse terminal (regra 8). O
@@ -402,8 +425,6 @@ usar Chrome headless via CDP (ver `notes/learning.md`); nunca a password real nu
 
 | Pergunta | Bloqueia | Notas |
 |---|---|---|
-| O JSON da status line tem `rate_limits`? | Passos 8 e 16 | Spike no passo 1 |
-| Codificação exata da pasta em `~/.claude/projects/` | Passo 3 | Confirmar com um `.jsonl` real |
 | Ícone de "a correr" (sem os estados de trabalho) | Passo 12 | Proposta: ponto `accent`; registar em `tokens-and-colors` |
 
 ## Relacionado
