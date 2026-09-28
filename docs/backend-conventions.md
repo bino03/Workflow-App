@@ -29,10 +29,12 @@
 5. **Erros**: um `ErrorCode` por caso (`TERMINAL_001`…), lançados como `AppError`, formatados por **um**
    error handler ([[error-model]]) — `{errorCode, message}`. O frontend espelha os códigos 1:1.
 6. **Nunca se constrói um comando a partir de texto do cliente.** Só se lança `CLAUDE_BIN`, com uma lista
-   de argumentos fixa; o único argumento variável é o uuid de `--resume`, validado como UUID. Nunca
-   `shell: true`, nunca um shell interativo.
-7. **A pasta de um terminal é validada** contra `ALLOWED_ROOTS` depois de resolvida (`realpath`) — um
-   `..` ou um symlink não saem da raiz.
+   de argumentos fixa, gerada só em `terminals/claudeArgs.ts` ([[adr/0012-argumentos-do-claude-e-status-line]]):
+   `--session-id <uuid do backend>`, `--resume <uuid validado>`, `--settings <DATA_DIR>/claude-settings.json`.
+   Nunca `shell: true`, nunca um shell interativo.
+7. **A pasta de um terminal é validada** contra `ALLOWED_ROOTS` depois de resolvida — um `..`, um symlink
+   ou uma junction não saem da raiz. Um só sítio: `resolveAllowedPath` em `folders/cwdPolicy.ts` (`realpath.native`,
+   comparação sem maiúsculas no Windows, separador no fim da raiz para `C:\dev2` não passar por `C:\dev`).
 8. **O processo filho recebe um ambiente limpo** (`childEnv` em `terminals/spawnClaude.ts`): o do
    backend **menos** uma denylist — tudo o que começa por `ANTHROPIC_` ou `CLAUDE_CODE_`, `CLAUDECODE`,
    `CLAUDE_PID`, e as variáveis de configuração da própria app (segredos, `HOST`/`PORT`…), exceto

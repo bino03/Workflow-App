@@ -31,6 +31,7 @@ isso há os outros:
 | Estado persistido (`state.json`: schema, limites, fila de escrita) | `backend/src/state/stateStore.ts` · schema em `state/state.schema.ts` · `tmp`+`rename` com retry em `state/atomicWrite.ts` |
 | Login / logout / me | `backend/src/auth/auth.routes.ts` · sessões em `auth/sessionStore.ts` · `scripts/hash-password.ts` |
 | Gestor de terminais (PTYs, scrollback) | `backend/src/terminals/terminalManager.ts` |
+| Política de pastas (`ALLOWED_ROOTS`: `realpath`, junctions, prefixo, maiúsculas) | `backend/src/folders/cwdPolicy.ts` |
 | Binário `claude`, ambiente do filho, kill da árvore | `backend/src/terminals/spawnClaude.ts` |
 | Spike manual do PTY com o `claude` real | `backend/scripts/pty-spike.ts` |
 | Protocolo do WebSocket | `backend/src/terminals/protocol.ts` ↔ `frontend/src/types/terminal.ts` |

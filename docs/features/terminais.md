@@ -5,7 +5,7 @@
 | **Estado** | 🚧 Em curso |
 | **Criada** | 2026-09-28 |
 | **Última sessão** | 2026-09-28 |
-| **Passos** | 1 / 17 concluídos |
+| **Passos** | 2 / 17 concluídos |
 
 > Escrita para uma sessão que **não viu a conversa que a originou**. Se algo só faz sentido com contexto
 > externo, falta escrevê-lo.
@@ -254,7 +254,8 @@ sessão acabada de abrir (sem pedidos) **não** tem `rate_limits` — tem `sessi
 
 ### 4.5 Códigos de erro novos
 
-Em `backend/src/common/errors.ts` e espelhados 1:1 em `frontend/src/errors/errorMessages.ts`.
+Em `backend/src/common/errors.ts` e espelhados 1:1 em `frontend/src/errors/errorMessages.ts`. ✅ Criados no passo 2 (2026-09-28);
+a tabela de referência passou para [[../api]] → Códigos de erro.
 
 | Código | HTTP | Mensagem no frontend |
 |---|---|---|
@@ -280,7 +281,7 @@ Ordem obrigatória. Tiers: `opus` (desenho, não delegar) · `sonnet` (implement
     `DEFAULT_CWD`) grava o JSON da status line num ficheiro; está registado aqui em §4.3 se tem
     `rate_limits` e com que forma. **Se não tiver**: passos 8 e 16 saem, a quota volta a `notes/ideas.md`
     com o que se encontrou, e o ADR 0012 é atualizado (secção "Estado") — o resto segue.
-- [ ] **2. Códigos de erro + política de pastas**
+- [x] **2. Códigos de erro + política de pastas** — ✅ 2026-09-28 (9 testes; espelho do frontend feito já aqui)
   - Ficheiro: `backend/src/common/errors.ts`, `backend/src/folders/cwdPolicy.ts` (`resolveAllowedPath`:
     `realpath`, dentro de uma raiz, existe e é pasta), `backend/test/cwdPolicy.test.ts`
   - Skill: `frontend-error-handling` (para o espelho, feito no passo 10)
@@ -407,15 +408,17 @@ Ordem obrigatória. Tiers: `opus` (desenho, não delegar) · `sonnet` (implement
 
 > ⚠️ **Atualizar SEMPRE no fim de cada sessão.** É a secção que torna esta spec retomável.
 
-**Feito:** passo 1 (2026-09-28) — o spike (`backend/scripts/statusline-spike.ts`) confirmou `rate_limits` no
+**Feito:** passo 2 (2026-09-28) — os 8 códigos em `errors.ts` e `errorMessages.ts`; `resolveAllowedPath` em
+`backend/src/folders/cwdPolicy.ts` (`realpath.native`, junctions, prefixo, maiúsculas, raiz de unidade). Passo 1 (2026-09-28) — o spike (`backend/scripts/statusline-spike.ts`) confirmou `rate_limits` no
 JSON da status line depois da primeira resposta, e de caminho confirmou `--session-id` e a codificação da pasta
 em `~/.claude/projects/` (§4.1). Já existia antes: `TerminalManager` (PTY, scrollback, kill da árvore),
 `spawnClaude.ts` (binário, ambiente limpo), o protocolo do WebSocket (`protocol.ts`), a guarda de auth (REST + WS
 + `Origin`) e o `StateStore`.
 **Em curso:** —
-**Próxima ação concreta:** passo 2 — acrescentar os 8 códigos de §4.5 a `backend/src/common/errors.ts` e criar
-`backend/src/folders/cwdPolicy.ts` + `backend/test/cwdPolicy.test.ts`.
-**Desvios ao plano:** —
+**Próxima ação concreta:** passo 3 — criar `backend/src/sessions/claudeSessions.ts` (a codificação da pasta já está
+confirmada em §4.1) e `backend/test/claudeSessions.test.ts` com `.jsonl` de fixture.
+**Desvios ao plano:** o espelho dos códigos no frontend foi feito no passo 2 (a regra de `errors.ts` pede o mesmo
+commit); o passo 10 só confirma.
 **O que uma sessão nova precisa de saber:** o dono corre a app com `npm run dev` e às vezes trabalha
 **dentro** de um terminal servido por ela — nunca editar o backend a partir desse terminal (regra 8). O
 login é `bino03` + password (ADR 0011). Verificação no browser: se a extensão do Chrome não responder,

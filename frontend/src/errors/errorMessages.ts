@@ -14,6 +14,17 @@ export const ERROR_MESSAGES: Record<string, string> = {
   AUTH_004: 'Demasiadas tentativas. Espera um minuto e tenta outra vez.',
   // ── LIBRARY ────────────────────────────
   LIBRARY_001: 'A biblioteca do Workflow não foi encontrada. Confirma o WORKFLOW_PATH do backend.',
+  // ── TERMINAL ───────────────────────────
+  TERMINAL_001: 'Este terminal já não existe.',
+  TERMINAL_002: 'Já tens o máximo de terminais abertos. Fecha um para abrir outro.',
+  TERMINAL_003: 'Esta sessão já está aberta noutro terminal.',
+  TERMINAL_004: 'A sessão gravada já não existe (o Claude Code apaga-as ao fim de 30 dias).',
+  TERMINAL_005: 'O claude não foi encontrado no servidor. Confirma o CLAUDE_BIN.',
+  TERMINAL_006: 'Este terminal já está a correr.',
+  // ── FOLDER ─────────────────────────────
+  FOLDER_001: 'Esta pasta não existe ou está fora das pastas autorizadas.',
+  // ── SESSION ────────────────────────────
+  SESSION_001: 'Não há nenhuma sessão gravada nesta pasta.',
 
   DEFAULT: 'Ocorreu um erro. Tenta outra vez.',
 };

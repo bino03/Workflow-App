@@ -65,6 +65,7 @@ backend/
     ├── state/               ← StateStore: DATA_DIR/state.json (ADR 0009) — schema zod v1, limites, fila de escrita atómica
     ├── auth/                ← login / logout / me, sessão em cookie HttpOnly
     ├── terminals/           ← TerminalManager (PTYs), rotas REST, gateway WebSocket, scrollback
+    ├── folders/             ← política de pastas (cwdPolicy: só dentro de ALLOWED_ROOTS); 🚧 recentes/favoritas e browse
     ├── sessions/            ← listar as sessões gravadas do Claude Code por pasta (para --resume)
     ├── library/             ← ✅ registo da biblioteca do Workflow: frontmatter dos manifestos com yaml + zod, lido a cada pedido
     └── usage/               ← indicador de quota (fonte por decidir)
@@ -78,7 +79,7 @@ backend/
 | Criar / fechar / listar PTYs | `src/terminals/terminalManager.ts` |
 | Protocolo do WebSocket (tipos das mensagens) | `src/terminals/protocol.ts` |
 | Resolver o binário `claude` e o ambiente do processo filho | `src/terminals/spawnClaude.ts` |
-| Pastas permitidas (`ALLOWED_ROOTS`) | `src/terminals/cwdPolicy.ts` |
+| Pastas permitidas (`ALLOWED_ROOTS`) | `src/folders/cwdPolicy.ts` |
 | Códigos de erro | `src/common/errors.ts` |
 | Guarda de autenticação (REST e upgrade do WS) | `src/common/authGuard.ts` |
 

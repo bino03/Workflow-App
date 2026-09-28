@@ -18,6 +18,17 @@ export const ErrorCode = {
   AUTH_004: { status: 429, message: 'Too many login attempts' },
   // LIBRARY
   LIBRARY_001: { status: 500, message: 'Workflow library folder not found (WORKFLOW_PATH/library)' },
+  // TERMINAL
+  TERMINAL_001: { status: 404, message: 'Terminal not found' },
+  TERMINAL_002: { status: 409, message: 'MAX_TERMINALS reached' },
+  TERMINAL_003: { status: 409, message: 'Session already open in another terminal' },
+  TERMINAL_004: { status: 404, message: 'Saved session not found' },
+  TERMINAL_005: { status: 503, message: 'claude binary not found (CLAUDE_BIN)' },
+  TERMINAL_006: { status: 409, message: 'Terminal is already running' },
+  // FOLDER
+  FOLDER_001: { status: 403, message: 'Folder does not exist or is outside ALLOWED_ROOTS' },
+  // SESSION
+  SESSION_001: { status: 404, message: 'No saved session in this folder' },
 } as const satisfies Record<string, { status: number; message: string }>;
 
 export type ErrorCode = keyof typeof ErrorCode;

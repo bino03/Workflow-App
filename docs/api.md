@@ -27,6 +27,14 @@ próprio Fastify (JSON mal formado, content-type errado → `COMMON_001`) e as r
 | `AUTH_003` | 403 | `Origin` fora de `CORS_ALLOWED_ORIGINS` (upgrade do WebSocket) |
 | `AUTH_004` | 429 | Demasiadas tentativas de login |
 | `LIBRARY_001` | 500 | A pasta `WORKFLOW_PATH/library` não existe |
+| `TERMINAL_001` | 404 | O terminal não existe |
+| `TERMINAL_002` | 409 | `MAX_TERMINALS` atingido (só contam os vivos) |
+| `TERMINAL_003` | 409 | A sessão já está aberta noutro terminal |
+| `TERMINAL_004` | 404 | A sessão gravada (`.jsonl`) já não existe |
+| `TERMINAL_005` | 503 | O binário `claude` (`CLAUDE_BIN`) não foi encontrado |
+| `TERMINAL_006` | 409 | Reabrir um terminal que já está a correr |
+| `FOLDER_001` | 403 | Pasta inexistente, não é pasta, relativa, ou fora de `ALLOWED_ROOTS` (depois de resolver `..`, symlinks e junctions) — nunca diz qual |
+| `SESSION_001` | 404 | "Continuar a última" numa pasta sem sessões gravadas |
 
 O frontend espelha esta tabela em `frontend/src/errors/errorMessages.ts`, pela mesma ordem — os dois
 mudam no mesmo commit.
