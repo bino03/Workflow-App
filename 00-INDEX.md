@@ -29,7 +29,7 @@
 | Peça | O que é | Pasta | Arrancar | Porta |
 |---|---|---|---|---|
 | **Backend** — `node-fastify` 📋 | Node + TypeScript + Fastify + `node-pty`: gere os terminais (PTYs com o `claude`), serve-os por WebSocket, lê a biblioteca do Workflow, faz o login | `backend/` | `npm run dev` | 7400 |
-| **Frontend** — `react-vite-antd` ✅ | React + Vite + Ant Design + Tailwind, com xterm.js para os terminais | `frontend/` | `npm run dev` | 7401 |
+| **Frontend** — `react-vite-antd` ✅ | React 19 + Vite 7 + Ant Design 6 + Tailwind 4, com xterm.js para os terminais | `frontend/` | `npm run dev` | 7401 |
 
 > 📋 A stack de backend foi criada na hora pelo `/create` — as convenções estão em 🚧 até haver código.
 

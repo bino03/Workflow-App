@@ -1,6 +1,8 @@
 # Serviços e tratamento de erros
 
-> 🚧 Convenção prospetiva — ainda sem código neste projeto que a valide.
+> ✅ Baseado em `frontend/src/{api.ts,errors/,services/}`, verificado a 2026-09-28 (password errada sem
+> toast a dobrar; backend inacessível → um só toast). Específico deste projeto (`AUTH_002`, flags):
+> [[../../../frontend-conventions]] → "O `api.ts` deste projeto".
 
 > Parte de [[../frontend-visual-consistency]]. O padrão completo: [[skill-frontend-error-handling]].
 
@@ -53,6 +55,8 @@ export async function deleteOrder(id: string) { await api.delete(`/orders/${id}`
 
 ## 3.1 Páginas
 
+> Não se aplica enquanto a API não paginar — não criar `springPage.ts` ([[../../../frontend-conventions]]).
+
 ```ts
 type SpringPageMeta = { size: number; number: number; totalElements: number; totalPages: number };
 type WrappedPageResponse<T> = { content: T[]; page: SpringPageMeta };
@@ -65,6 +69,10 @@ plana. Nunca uma segunda cópia do tipo. `number` é 0-based.
 
 `services/general/notificationService.tsx` (wrapper do `notification` do AntD) é o canal único; o
 `ErrorHandler` usa-o. Não misturar com `message.*` do AntD para o mesmo tipo de evento.
+
+A instância vem do `<App>` do antd, ligada por `NotificationBridge` (montado dentro do `<App>` em
+`main.tsx`): o `notification` **estático** do antd 6 não herda o tema (toast branco numa app escura).
+Pela mesma razão, numa página usa-se `App.useApp()` e nunca `message`/`modal` estáticos.
 
 ## Drift encontrado — não copiar
 

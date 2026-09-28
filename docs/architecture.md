@@ -97,19 +97,24 @@ Backend pára → kill de todos
 
 ## Frontend — `react-vite-antd` (✅) + xterm.js
 
-Estrutura da stack (ver [[frontend-conventions]]):
+React 19 · Vite 7 · antd 6 · Tailwind 4 · TypeScript 6 (versões e porquê: [[frontend-conventions]] →
+"Específico deste projeto"). Estrutura confirmada no scaffold (2026-09-28); `terminals/` e `library/`
+nascem com as features:
 
 ```
 frontend/
 ├── index.html  package.json  vite.config.ts  tsconfig*.json  .env.example
 └── src/
-    ├── main.tsx  api.ts  theme.ts  index.css  PrivateRoute.tsx
+    ├── main.tsx  api.ts  theme.ts  index.css
+    ├── config/apiBase.ts     ← único sítio com o endereço do backend (HTTP e ws://)
     ├── layouts/AppLayout.tsx
-    ├── context/  hooks/  services/  errors/  types/  config/  utils/  pages/
+    ├── contexts/  hooks/  services/  errors/  terminal/xtermTheme.ts
+    ├── pages/                ← login/, TerminalsPage, LibraryPage, dev/ (só em dev)
     └── components/
-        ├── common/
-        ├── terminals/        ← TerminalView (xterm.js + fit addon + WebSocket), lista/separadores
-        └── library/          ← registo da biblioteca
+        ├── PrivateRoute.tsx
+        ├── common/           ← ListActions, SectionCard, FieldError, Wordmark, PagePlaceholder
+        ├── terminals/        ← 🚧 TerminalView (xterm.js + fit addon + WebSocket), lista/separadores
+        └── library/          ← 🚧 registo da biblioteca
 ```
 
 O terminal é um componente à parte das convenções de formulários/drawers: um `TerminalView` por terminal
