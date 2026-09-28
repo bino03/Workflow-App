@@ -5,7 +5,7 @@
 | **Estado** | 🚧 Em curso |
 | **Criada** | 2026-09-28 |
 | **Última sessão** | 2026-09-28 |
-| **Passos** | 2 / 17 concluídos |
+| **Passos** | 3 / 17 concluídos |
 
 > Escrita para uma sessão que **não viu a conversa que a originou**. Se algo só faz sentido com contexto
 > externo, falta escrevê-lo.
@@ -138,7 +138,10 @@ Ficheiros novos em `DATA_DIR` (escritos pelo backend, nunca pelo cliente):
 Sessões gravadas do Claude Code: `<CLAUDE_CONFIG_DIR ou ~/.claude>/projects/<cwd codificado>/<uuid>.jsonl`,
 onde o `cwd` codificado troca cada carácter não alfanumérico por `-` (`C:\dev\app` → `C--dev-app`) —
 **confirmado no spike do passo 1**: `C:\Users\jlalv\Desktop\utad\projetos\WorkFlow App` →
-`C--Users-jlalv-Desktop-utad-projetos-WorkFlow-App` (`:`, `\` e espaço → `-`). Com `--session-id <uuid>` o
+`C--Users-jlalv-Desktop-utad-projetos-WorkFlow-App` (`:`, `\` e espaço → `-`). Linhas que o leitor usa (Claude Code 2.1.283):
+`{type:"ai-title", aiTitle}` (repete-se; conta a última), `{type:"user"|"assistant", message:{content}, timestamp,
+isMeta?, isSidechain?}` — `content` é texto ou blocos; um `user` com blocos `tool_result` é resultado de ferramenta, e um
+prompt que começa por `<` é eco de um comando do CLI (`<command-name>…`); nenhum destes conta como mensagem. Com `--session-id <uuid>` o
 ficheiro chama-se `<uuid>.jsonl` e existe logo depois do arranque, mesmo sem mensagens. O JSON da status
 line também traz o `transcript_path` — confirma o caminho sem o codificar.
 
@@ -288,7 +291,7 @@ Ordem obrigatória. Tiers: `opus` (desenho, não delegar) · `sonnet` (implement
   - Tier: `sonnet`
   - Aceite quando: os 8 códigos existem; testes cobrem raiz exata, subpasta, `..`, symlink/junction para
     fora, prefixo enganador (`C:\dev2` com raiz `C:\dev`), pasta inexistente, ficheiro em vez de pasta.
-- [ ] **3. Leitor das sessões gravadas (`.jsonl`)**
+- [x] **3. Leitor das sessões gravadas (`.jsonl`)** — ✅ 2026-09-28 (10 testes; real: 10 sessões em 126 ms)
   - Ficheiro: `backend/src/sessions/claudeSessions.ts` (caminho do projeto a partir do `cwd`, listar,
     `latest`, `readSummary`), `backend/test/claudeSessions.test.ts` (com `.jsonl` de fixture)
   - Skill: —
@@ -408,7 +411,8 @@ Ordem obrigatória. Tiers: `opus` (desenho, não delegar) · `sonnet` (implement
 
 > ⚠️ **Atualizar SEMPRE no fim de cada sessão.** É a secção que torna esta spec retomável.
 
-**Feito:** passo 2 (2026-09-28) — os 8 códigos em `errors.ts` e `errorMessages.ts`; `resolveAllowedPath` em
+**Feito:** passo 3 (2026-09-28) — `ClaudeSessions` em `backend/src/sessions/claudeSessions.ts` (formato das linhas em
+§4.1). Passo 2 (2026-09-28) — os 8 códigos em `errors.ts` e `errorMessages.ts`; `resolveAllowedPath` em
 `backend/src/folders/cwdPolicy.ts` (`realpath.native`, junctions, prefixo, maiúsculas, raiz de unidade). Passo 1 (2026-09-28) — o spike (`backend/scripts/statusline-spike.ts`) confirmou `rate_limits` no
 JSON da status line depois da primeira resposta, e de caminho confirmou `--session-id` e a codificação da pasta
 em `~/.claude/projects/` (§4.1). Já existia antes: `TerminalManager` (PTY, scrollback, kill da árvore),
