@@ -5,7 +5,7 @@
 | **Estado** | 🚧 Em curso |
 | **Criada** | 2026-09-28 |
 | **Última sessão** | 2026-09-28 |
-| **Passos** | 9 / 17 concluídos |
+| **Passos** | 10 / 17 concluídos |
 
 > Escrita para uma sessão que **não viu a conversa que a originou**. Se algo só faz sentido com contexto
 > externo, falta escrevê-lo.
@@ -347,7 +347,7 @@ Ordem obrigatória. Tiers: `opus` (desenho, não delegar) · `sonnet` (implement
   - Tier: `sonnet`
   - Aceite quando: §4.2 implementado e documentado (as secções 🚧 de Terminais/Sessões/Quota passam a ✅);
     `browse` nunca sobe acima de uma raiz e esconde `.*`; `SavedSession.closed` e `openIn` preenchidos.
-- [ ] **10. Frontend: tipos, serviços, erros**
+- [x] **10. Frontend: tipos, serviços, erros** — ✅ 2026-09-28
   - Ficheiro: `frontend/src/types/{terminal,session,folder,usage}.ts`,
     `frontend/src/services/{terminalService,sessionService,folderService,usageService}.ts`,
     `frontend/src/errors/errorMessages.ts`
