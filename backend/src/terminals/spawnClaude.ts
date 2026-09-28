@@ -9,14 +9,15 @@ const isWindows = process.platform === 'win32';
 /**
  * Variables the `claude` child must never see:
  * - ANTHROPIC_* would switch Claude Code from the subscription to API billing (ADR 0002);
- * - CLAUDECODE / CLAUDE_CODE_* / CLAUDE_PID leak from a Claude Code session that started the backend
- *   and make the child behave as a nested session (and carry that session's messaging token);
+ * - CLAUDECODE / CLAUDE_* leak from a Claude Code session that started the backend (CLAUDE_CODE_*,
+ *   CLAUDE_PID, CLAUDE_EFFORT, CLAUDE_JOB_DIR…) and make the child behave as a nested session (and carry
+ *   that session's messaging token). Only CLAUDE_CONFIG_DIR is the user's own choice and goes through;
  * - the backend's own configuration: secrets, and PORT/HOST, which a dev server run by Claude would pick up.
  */
-const DENIED_PREFIXES = ['ANTHROPIC_', 'CLAUDE_CODE_'];
+const DENIED_PREFIXES = ['ANTHROPIC_', 'CLAUDE_'];
+const ALLOWED_NAMES = new Set(['CLAUDE_CONFIG_DIR']);
 const DENIED_NAMES = new Set([
   'CLAUDECODE',
-  'CLAUDE_PID',
   'HOST',
   'PORT',
   'LOG_LEVEL',
@@ -27,7 +28,6 @@ const DENIED_NAMES = new Set([
   'SESSION_MAX_DAYS',
   'COOKIE_SECURE',
   'CORS_ALLOWED_ORIGINS',
-  'CLAUDE_BIN',
   'ALLOWED_ROOTS',
   'DEFAULT_CWD',
   'MAX_TERMINALS',
@@ -40,6 +40,7 @@ const DENIED_NAMES = new Set([
 export function isDeniedEnvName(name: string): boolean {
   // Windows environment names are case-insensitive.
   const upper = name.toUpperCase();
+  if (ALLOWED_NAMES.has(upper)) return false;
   return DENIED_NAMES.has(upper) || DENIED_PREFIXES.some((prefix) => upper.startsWith(prefix));
 }
 

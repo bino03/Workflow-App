@@ -36,8 +36,9 @@
    ou uma junction não saem da raiz. Um só sítio: `resolveAllowedPath` em `folders/cwdPolicy.ts` (`realpath.native`,
    comparação sem maiúsculas no Windows, separador no fim da raiz para `C:\dev2` não passar por `C:\dev`).
 8. **O processo filho recebe um ambiente limpo** (`childEnv` em `terminals/spawnClaude.ts`): o do
-   backend **menos** uma denylist — tudo o que começa por `ANTHROPIC_` ou `CLAUDE_CODE_`, `CLAUDECODE`,
-   `CLAUDE_PID`, e as variáveis de configuração da própria app (segredos, `HOST`/`PORT`…), exceto
+   backend **menos** uma denylist — tudo o que começa por `ANTHROPIC_` ou `CLAUDE_` (inclui `CLAUDE_CODE_*`,
+   `CLAUDE_PID`, `CLAUDE_EFFORT`, `CLAUDE_JOB_DIR` de uma sessão-mãe), `CLAUDECODE`, e as variáveis de
+   configuração da própria app (segredos, `HOST`/`PORT`…), exceto
    `CLAUDE_CONFIG_DIR`, que é partilhada de propósito. Nomes comparados sem maiúsculas (Windows). Ver
    Armadilhas.
 9. **O conteúdo dos terminais nunca vai para os logs.** Logam-se eventos (terminal criado, terminou com

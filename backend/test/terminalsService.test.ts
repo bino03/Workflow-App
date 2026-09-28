@@ -165,7 +165,7 @@ describe('TerminalsService', () => {
       await expectAppError(() => service.reopen(view.id, size), 'TERMINAL_006');
     });
 
-    it('after a backend restart saved terminals are stopped; reopen needs the .jsonl', async () => {
+    it('after a backend restart saved terminals are stopped; reopen resumes, or starts fresh without a .jsonl', async () => {
       const kept = await service.create({ cwd: project, mode: 'resume', sessionId: OTHER, ...size });
       const fresh = await service.create({ cwd: emptyProject, mode: 'new', ...size });
       await manager.killAll();
@@ -178,9 +178,15 @@ describe('TerminalsService', () => {
         [fresh.id, 'stopped'],
       ]);
 
-      expect((await restarted.reopen(kept.id, size)).status).toBe('running');
-      // The fake never writes a .jsonl, so the "new" terminal's conversation does not exist.
-      await expectAppError(() => restarted.reopen(fresh.id, size), 'TERMINAL_004');
+      const resumed = await restarted.reopen(kept.id, size);
+      expect(resumed).toMatchObject({ status: 'running', freshSession: false });
+      expect(claude.launches.at(-1)!.args).toEqual(['--resume', OTHER]);
+
+      // Claude Code never saves a session without messages (the fake writes no .jsonl either): nothing to
+      // resume, so the same terminal starts a new conversation with the same UUID.
+      const reopenedFresh = await restarted.reopen(fresh.id, size);
+      expect(reopenedFresh).toMatchObject({ id: fresh.id, status: 'running', freshSession: true, claudeSessionId: fresh.claudeSessionId });
+      expect(claude.launches.at(-1)!.args).toEqual(['--session-id', fresh.claudeSessionId]);
       await expectAppError(() => restarted.reopen('00000000-0000-4000-8000-000000000000', size), 'TERMINAL_001');
     });
 

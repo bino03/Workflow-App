@@ -97,7 +97,8 @@ WS  /api/terminals/:id/ws  (cookie + Origin verificados no upgrade)
   → servidor envia {type:"ready"}, o scrollback guardado (binário), depois o output em tempo real
   ← cliente envia input (frames binários) e {type:"resize", cols, rows} (frames de texto)
 PTY termina → {type:"exit", code} → terminal fica "terminado" até ser fechado
-POST /api/terminals/:id/reopen → --resume da mesma sessão, mesmo id (de terminado ou parado)
+POST /api/terminals/:id/reopen → --resume da mesma sessão, mesmo id (de terminado ou parado);
+  sem .jsonl (sessão sem mensagens) → --session-id do mesmo UUID, conversa nova (freshSession)
 DELETE /api/terminals/:id → taskkill /T /F (a árvore toda) → closedTerminals com o resumo do .jsonl → 204
 Backend pára → kill de todos; ao voltar, os gravados aparecem como "parados"
 ```

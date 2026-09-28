@@ -99,18 +99,23 @@ export class TerminalsService {
     return this.view(saved);
   }
 
-  /** Brings back an exited or stopped terminal with `--resume`, keeping its id, label and position. */
-  async reopen(id: string, size: { cols: number; rows: number }): Promise<TerminalView> {
+  /**
+   * Brings back an exited or stopped terminal, keeping its id, label and position: `--resume` when the
+   * conversation is saved. Claude Code does not save a session that never had a message, so without a
+   * .jsonl there is nothing to resume — the same terminal starts a new conversation with the same UUID
+   * (`freshSession: true`, the UI says so).
+   */
+  async reopen(id: string, size: { cols: number; rows: number }): Promise<TerminalView & { freshSession: boolean }> {
     const saved = this.saved(id);
     if (!saved) throw new AppError('TERMINAL_001');
     const inMemory = this.deps.terminalManager.get(id);
     if (inMemory?.status === 'running') throw new AppError('TERMINAL_006');
     // ALLOWED_ROOTS may have changed since the terminal was opened.
     const cwd = resolveAllowedPath(saved.cwd, this.deps.allowedRoots);
-    if (!this.deps.sessions.hasSession(cwd, saved.claudeSessionId)) throw new AppError('TERMINAL_004');
+    const freshSession = !this.deps.sessions.hasSession(cwd, saved.claudeSessionId);
 
     if (inMemory) await this.deps.terminalManager.kill(id); // exited: forget it so the id can be reused
-    this.spawn(id, cwd, { kind: 'resume', sessionId: saved.claudeSessionId }, size);
+    this.spawn(id, cwd, { kind: freshSession ? 'new' : 'resume', sessionId: saved.claudeSessionId }, size);
 
     const at = this.now().toISOString();
     this.deps.stateStore.update((draft) => {
@@ -118,7 +123,7 @@ export class TerminalsService {
       if (terminal) Object.assign(terminal, { cwd, lastOpenedAt: at, updatedAt: at });
       touchFolder(draft, cwd, at);
     });
-    return this.view(this.saved(id)!);
+    return { ...this.view(this.saved(id)!), freshSession };
   }
 
   rename(id: string, label: string | null): TerminalView {

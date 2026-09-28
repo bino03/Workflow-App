@@ -55,7 +55,7 @@ UUID dá o mesmo `TERMINAL_001` que um id desconhecido.
 |---|---|---|---|---|
 | GET | `/api/terminals` | — | `TerminalView[]` (os gravados, por `createdAt`) | — |
 | POST | `/api/terminals` | `{cwd, mode: 'new'\|'resume'\|'continue', sessionId?, label?, cols, rows}` — `sessionId` (UUID) obrigatório em `resume` | `201 TerminalView` | `COMMON_001` · `FOLDER_001` · `TERMINAL_002` · `TERMINAL_003` · `TERMINAL_004` · `TERMINAL_005` · `SESSION_001` |
-| POST | `/api/terminals/:id/reopen` | `{cols, rows}` | `200 TerminalView` | `TERMINAL_001` · `TERMINAL_002` · `TERMINAL_004` · `TERMINAL_005` · `TERMINAL_006` · `FOLDER_001` |
+| POST | `/api/terminals/:id/reopen` | `{cols, rows}` | `200 TerminalView & {freshSession}` — `--resume` da sessão; sem `.jsonl` (o `claude` não grava sessões sem mensagens) começa uma conversa nova no mesmo terminal e `freshSession: true` | `TERMINAL_001` · `TERMINAL_002` · `TERMINAL_005` · `TERMINAL_006` · `FOLDER_001` |
 | PATCH | `/api/terminals/:id` | `{label: string \| null}` | `200 TerminalView` | `COMMON_001` · `TERMINAL_001` |
 | DELETE | `/api/terminals/:id` | — | `204` | `TERMINAL_001` |
 
