@@ -43,15 +43,17 @@ isso há os outros:
 | Instância HTTP, endereço do backend | `frontend/src/api.ts` · `config/apiBase.ts` |
 | Erros e toasts | `frontend/src/errors/` · `services/general/notificationService.tsx` |
 | Tokens | `frontend/src/index.css` + `theme.ts` · `terminal/xtermTheme.ts` · pré-visualização em `/_tokens` (só dev) |
-| Componente de terminal (xterm.js) | `frontend/src/components/terminals/TerminalView.tsx` (🚧 por criar) |
+| Componente de terminal (xterm.js) | `frontend/src/components/terminals/TerminalView.tsx` |
 
 ---
 
-## Terminais — 🚧 backend ✅, frontend por fazer
+## Terminais — ✅
 
 | Camada | Ficheiros |
 |---|---|
-| **Entrada** | rota `/terminals` → `frontend/src/pages/TerminalsPage.tsx` (🚧 placeholder) |
+| **Entrada** | rota `/terminals` → `frontend/src/pages/TerminalsPage.tsx` (foco dividido / grelha, atalhos, reabrir) |
+| **Frontend** | `components/terminals/` — `TerminalView.tsx` (xterm.js + WS) · `TerminalPane.tsx` (cabeçalho, banner; variante `tile`) · `TerminalSidebar.tsx` (por projetos) · `TerminalGrid.tsx` · `QuotaMeter.tsx` · `projects.ts` · `new/` (drawer Novo terminal) |
+| | `components/settings/SettingsDrawer.tsx` · `hooks/{useTerminals,useTerminalShortcuts,useLayoutMode,useUsage}.ts` · `services/{terminal,session,folder,usage}Service.ts` · `types/{terminal,session,folder,usage}.ts` · `terminal/terminalSize.ts` |
 | **Backend** | `backend/src/terminals/` — `terminals.routes.ts` · `terminals.gateway.ts` (WS) · `terminalsService.ts` (ciclo de vida) · `terminalManager.ts` (PTYs) · `claudeArgs.ts` · `terminal.schemas.ts` |
 | | `backend/src/sessions/` (`.jsonl` do Claude Code) · `backend/src/folders/` (política de pastas, favoritas, browse) · `backend/src/usage/` (quota) |
 | **Dados** | `DATA_DIR/state.json` (`terminals`, `closedTerminals`, `folders`) · `DATA_DIR/usage.json` · `~/.claude/projects/` (só leitura) |

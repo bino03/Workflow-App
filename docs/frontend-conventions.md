@@ -73,12 +73,19 @@ Ant Design para componentes, Tailwind para estilo próprio, tokens CSS como font
   navegar. O interceptor de `Blob` (2) fica por fazer até haver um download.
 - **Toasts**: `notificationService` usa a instância do `<App>` do antd, ligada por
   `NotificationBridge` dentro do `<App>` — o `notification` estático do antd 6 não herda o tema.
-- **Terminais**: um `TerminalView` por terminal aberto — monta o xterm.js + `FitAddon`, abre o WebSocket
-  (`apiWebSocketUrl(...)`, com cookies), envia `resize` quando o contentor muda
-  (`ResizeObserver` → `fit()`), e **desmonta tudo** ao sair (`dispose()` do xterm.js, `close()` do
-  socket). A instância do xterm.js e o socket não vão para Context nem para estado de React.
+- **Terminais** (✅ 2026-09-28): um `TerminalView` por terminal aberto — monta o xterm.js + `FitAddon` (depois
+  de carregar a Geist Mono), abre o WebSocket (`apiWebSocketUrl(...)`, com cookies), envia `resize` quando o
+  contentor muda (`ResizeObserver` → `fit()`, só com tamanho > 0), e **desmonta tudo** ao sair (`dispose()`
+  do xterm.js, `close()` do socket). A instância do xterm.js e o socket não vão para Context nem para estado
+  de React. Ao receber `ready`: `term.reset()` e um resize ±1 (a TUI redesenha-se). Fecho `4404` → a página
+  recarrega a lista; `4401` → nada (o login trata); outro → volta a ligar com backoff. **Reabrir remonta o
+  componente** (`key` = `id:lastOpenedAt`). Terminais fora do ecrã ficam montados (`hidden`), nunca desmontados.
+- **Lateral por projetos**: um projeto é uma pasta (`components/terminals/projects.ts` agrupa, ordena e dá
+  nomes). A ordem da lateral é a do `Alt+1…9`.
 - **Teclado**: com um terminal em foco, o teclado é dele (Ctrl+C, Esc, setas, Tab são do Claude Code).
-  Atalhos da app só com combinações que o Claude Code não usa — confirmar antes de fixar.
+  Atalhos da app: `Alt+1…9/N/\/W/R` (`hooks/useTerminalShortcuts.ts`) — o xterm.js recusa-os (não chegam ao
+  PTY) e **um só** listener na janela executa-os. Nunca `Ctrl+Alt` (AltGr em PT). Um `Esc` da app (voltar à
+  grelha) só conta fora do terminal (`event.target.closest('.xterm')`).
 - Portas: dev server em **7401** com `strictPort` (não colidir com os dev servers dos projetos abertos
   dentro dos terminais).
 

@@ -2,10 +2,10 @@
 
 | | |
 |---|---|
-| **Estado** | 🚧 Em curso |
+| **Estado** | ✅ Concluída (2026-09-28) |
 | **Criada** | 2026-09-28 |
 | **Última sessão** | 2026-09-28 |
-| **Passos** | 16 / 17 concluídos |
+| **Passos** | 17 / 17 concluídos |
 
 > Escrita para uma sessão que **não viu a conversa que a originou**. Se algo só faz sentido com contexto
 > externo, falta escrevê-lo.
@@ -404,7 +404,7 @@ Ordem obrigatória. Tiers: `opus` (desenho, não delegar) · `sonnet` (implement
   - Tier: `sonnet`
   - Aceite quando: lateral em foco, cabeçalho em grelha; ≥ 80 % a `warning` com "▲ Perto do limite"; valor
     velho a cinzento com "há X min"; "—" depois da hora de reposição.
-- [ ] **17. Verificação ponta a ponta + fecho**
+- [x] **17. Verificação ponta a ponta + fecho** — ✅ 2026-09-28 (reinício → parados → Reabrir todos, 10/10)
   - Ficheiro: `docs/frontend-conventions.md`, `docs/skills/references/design/*.md`, esta spec
   - Skill: `run`
   - Tier: `sonnet`
@@ -416,12 +416,14 @@ Ordem obrigatória. Tiers: `opus` (desenho, não delegar) · `sonnet` (implement
 
 > ⚠️ **Atualizar SEMPRE no fim de cada sessão.** É a secção que torna esta spec retomável.
 
-**Feito:** **o backend todo** (passos 1-9, 2026-09-28). Todas as rotas de §4.2 existem e estão documentadas em
-[[../api]] (a fonte das tabelas passou a ser lá). Testes: 159 no backend; cada passo foi verificado também numa
-instância de teste isolada com o `claude` real (ver "O que uma sessão nova precisa de saber").
+**Feito:** **tudo** (passos 1-17, 2026-09-28). Backend: 161 testes Vitest. Frontend verificado em Chrome headless
+contra uma instância de teste com o `claude` real, sem nenhum prompt ao modelo: terminais e projetos 32/32,
+layouts e quota 21/21, reinício → parados → Reabrir todos 10/10 (o terminal com conversa volta com `--resume`, o
+sem conversa com `--session-id` do mesmo UUID). "Fechar um → aparece na lista Retomar com o resumo" está provado
+nos testes do backend e no leitor real dos `.jsonl` (passo 3); no browser, as sessões de teste não tinham
+conversa e por isso não ficaram gravadas.
 **Em curso:** —
-**Próxima ação concreta:** passo 10 — criar `frontend/src/types/{terminal,session,folder,usage}.ts` a partir dos
-tipos de [[../api]] (o espelho dos códigos de erro já está feito) e os quatro serviços.
+**Próxima ação concreta:** nenhuma nesta spec. O que ficou em aberto está na secção 7 e no `notes/ToDo.md`.
 **Desvios ao plano:**
 - **2026-09-28, a meio do passo 12**: a lateral passa a ser **por projetos** (pasta) com **+** por projeto, e
   reabrir sem `.jsonl` passa a abrir sessão nova no mesmo terminal (§3). Também: a denylist do ambiente do filho
@@ -452,8 +454,7 @@ usar Chrome headless via CDP (ver `notes/learning.md`); nunca a password real nu
 
 | Pergunta | Bloqueia | Notas |
 |---|---|---|
-| Ícone de "a correr" (sem os estados de trabalho) | Passo 17 (docs) | Feito: `.state-icon.is-run` (ponto `accent`) + `.tag-run`; falta registar em `tokens-and-colors` |
-| O `claude` diz "fullscreen renderer has repeatedly failed to start on this machine, so it has been turned off here" — no modo inline, redimensionar (ex. dividir) deixa restos de desenho | Passo 17 | Provavelmente provocado pelas corridas com o bug do `CLAUDE_CONFIG_DIR`; `/tui fullscreen` reativa. Ver se o fullscreen arranca bem dentro da app |
+| O `claude` diz "fullscreen renderer has repeatedly failed to start on this machine, so it has been turned off here" — no modo inline, redimensionar (ex. dividir) deixa restos de desenho | Nada nesta spec (item no ToDo) | **Por investigar.** Pode ter sido provocado pelas corridas com o bug do `CLAUDE_CONFIG_DIR`; `/tui fullscreen` reativa. Ver se o renderer fullscreen arranca dentro do PTY da app |
 
 ## Relacionado
 

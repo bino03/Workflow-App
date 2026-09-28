@@ -98,6 +98,10 @@ sobre `bg` dá 1.6:1). Os passos 600–900 servem para fundos e bordas. Para tex
 | Terminado | `--wfa-state-stop` | #9697A1 | #212123 | #57585D | quadrado vazio |
 | Erro / desligado | `--wfa-state-err` | #FC6661 | #371715 | #8C3B37 | ✕ |
 
+- **A correr** (MVP, sem os estados "a trabalhar"/"à tua espera" — spec Terminais §2): ponto cheio 8 px em
+  `accent` (`.state-icon.is-run`) e tag `.tag-run` (`accent` / `accent-subtle` / `accent-border`). Forma
+  própria: círculo cheio ≠ quadrado vazio de terminado/parado. Os estados de trabalho acima ficam para a
+  segunda fase.
 - Tag de estado: texto na cor do estado, fundo `-subtle`, borda `-border`, raio `sm`, altura 22.
 - Um terminal **escondido** que passa a "À tua espera" ganha fundo `-subtle` + borda `-border` na
   lista, e um losango ao lado de "Terminais" na navegação de topo.
@@ -261,7 +265,7 @@ O `theme.ts` real tem **mais do que isto**, por duas coisas vistas no browser a 
 - Tags: de estado (`.tag-work`, `.tag-wait`, `.tag-stop`, `.tag-err`, ver §3), de maturidade
   (`.tag-ok`, `.tag-mid`, `.tag-draft`) e neutra (`.tag`: `surface-2` + `border` + `text-2`, para
   tecnologias).
-- Ícone de estado: `.state-icon.is-work|is-wait|is-stop|is-err` (forma + cor, §3).
+- Ícone de estado: `.state-icon.is-run|is-work|is-wait|is-stop|is-err` (forma + cor, §3); tags `.tag-run|tag-work|tag-wait|tag-stop|tag-err`.
 - Atalho de teclado: `.kbd` (mono 10.5, `text-3`, borda `border`, raio `sm`).
 - Elevação: `.elev-1/2/3` (§6).
 

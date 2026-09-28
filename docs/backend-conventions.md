@@ -83,6 +83,15 @@ Ver [[security]] → "Fluxo de autenticação" e [[adr/0003-auth-utilizador-unic
 > ✅ = confirmada neste projeto (spike do PTY, 2026-09-28, Claude Code 2.1.283, Windows 11). As restantes
 > são candidatas — conhecidas da documentação e de relatos, ainda por provar.
 
+- ✅ **O `claude` escreve a configuração dentro do projeto e não vê o login ("API Usage Billing" no ecrã)** —
+  um `CLAUDE_CONFIG_DIR` vazio (a linha `CLAUDE_CONFIG_DIR=` do `.env`) chegava ao filho, e o Claude Code
+  usava a pasta do terminal como configuração (`projects/`, `history.jsonl`, `sessions/*.key` no projeto).
+  → `childEnv` não passa um `CLAUDE_CONFIG_DIR` vazio nem relativo (2026-09-28). **Verificar sempre**, ao
+  mexer no ambiente do filho, que o ecrã do `claude` real mostra a subscrição ("Claude Pro/Max").
+- ✅ **O `claude` não grava sessões sem mensagens** — abrir e fechar sem conversar não deixa `.jsonl`
+  (um comando como `/exit` já conta). Reabrir um terminal assim começa uma conversa nova com o mesmo UUID
+  (`freshSession`, spec Terminais §3).
+
 - ✅ **`ANTHROPIC_API_KEY` no ambiente → o Claude Code usa a API, não a subscrição.** Se a variável existir
   no ambiente do backend (ou do utilizador), o processo filho herda-a e passa a faturar por token — o
   contrário do que esta app existe para fazer ([[adr/0002-motor-via-pty-sobre-subscricao]]). A denylist

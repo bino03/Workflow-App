@@ -49,7 +49,7 @@ Um `Dropdown` cujo gatilho é o cartão de perfil (avatar + nome + tag de role):
 
 | Item | Faz |
 |---|---|
-| Definições | 🚧 Abre o drawer de definições (**layout dos terminais**) — entra com essa tarefa do ToDo |
+| Definições | ✅ Abre o drawer `SettingsDrawer` (Small, 540): **layout dos terminais** (foco dividido / grelha). Separado de "Terminar sessão" por um divisor |
 | Terminar sessão | `useConfirm()` (`title` "Terminar sessão?", `actionLabel` "Sair", `danger: false`) → logout |
 
 Sem "Minha conta" (um só utilizador, sem perfil) e sem idioma (só pt-PT). O gatilho é o avatar (26 px,
@@ -65,14 +65,15 @@ Sem "Minha conta" (um só utilizador, sem perfil) e sem idioma (só pt-PT). O ga
 
 | Modo | Por omissão | O que é |
 |---|---|---|
-| **Foco dividido** | ✅ | Lateral de 288 px (`surface-1`: kicker + "N abertos", botão Novo terminal, contagens por estado, lista de terminais, quota no fundo) + área principal com **um** terminal em foco; `Alt+\` divide em dois lado a lado e volta a juntar. O painel com o teclado tem o cabeçalho em `surface-2` e "⌨ TECLADO AQUI" em `accent`; o outro fica em `surface-1`. |
-| **Grelha** | | Sem lateral. Cabeçalho da página (kicker "Terminais" + "N abertos" + contagens + Novo terminal) e todos os terminais em cartões 3×2 ([[cards]]), com o último lugar tracejado para "Novo terminal". Um clique amplia o terminal. A quota passa para o header. |
+| **Foco dividido** | ✅ | Lateral de 288 px (`surface-1`: kicker **"Projetos"** + "N abertos", botão Novo terminal, contagens por estado, **os terminais agrupados por projeto (pasta)** — cabeçalho do projeto com estrela, "Retomar…" e **+** —, "Reabrir todos" quando há parados, quota no fundo) + área principal com **um** terminal em foco; `Alt+\` divide em dois lado a lado e volta a juntar. O painel com o teclado tem o cabeçalho em `surface-2` e "⌨ TECLADO AQUI" em `accent`; o outro fica em `surface-1`. |
+| **Grelha** | | Sem lateral. Cabeçalho da página (kicker "Terminais" + "N abertos" + contagens + quota + Novo terminal) e todos os terminais em mosaicos 3 colunas × 2 linhas à vista (scroll depois de 6), com o último lugar tracejado para "Novo terminal". Um clique **amplia temporariamente** (não muda a preferência); volta-se com "Voltar à grelha", `Alt+\` ou `Esc` **fora** do terminal (dentro, o `Esc` é do Claude Code). |
 
-- A escolha fica guardada como **preferência da app**. ⚠️ Onde se guarda (browser ou backend) decide-se no
-  `/design-database` (regra: nenhuma persistência fora do modelo). Até lá, fica só em memória, sempre
-  com o modo por omissão.
-- Em ambos: terminais escondidos continuam vivos; o toast "`<nome>` terminou · Retomar" aparece no canto
-  superior direito (`surface-2` + `shadow-overlay`).
+- ✅ A escolha fica no `localStorage` do browser (`workflow-app.layout`: `focus` | `grid`), lida por
+  `hooks/useLayoutMode.ts` (`useSyncExternalStore`, partilhado entre a página e o drawer).
+- Em ambos: terminais escondidos continuam montados e ligados; o toast "`<nome>` terminou · Reabrir"
+  aparece quando um terminal **fora do ecrã** termina.
+- Implementação: `pages/TerminalsPage.tsx` + `components/terminals/` — ver [[../../../features/terminais]] e
+  [[../../../code-map]].
 
 ### Login
 
