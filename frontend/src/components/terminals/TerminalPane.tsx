@@ -29,6 +29,10 @@ type TerminalPaneProps = {
   onReopen: () => void;
   onExit: (code: number) => void;
   onGone: () => void;
+  /** tile = mosaico da grelha (protótipo 1i): cabeçalho compacto, sem ações até ser ampliado. */
+  variant?: 'pane' | 'tile';
+  enlarged?: boolean;
+  onBackToGrid?: () => void;
 };
 
 function ActionButton({ label, shortcut, onClick }: { label: string; shortcut?: string; onClick: () => void }) {
@@ -49,7 +53,9 @@ function ActionButton({ label, shortcut, onClick }: { label: string; shortcut?: 
 
 /** Um terminal no ecrã: cabeçalho (protótipo 1g/1h), o xterm.js, e o banner de terminado/parado. */
 export function TerminalPane(props: TerminalPaneProps) {
-  const { terminal, visible, focused, split, renaming, reopening } = props;
+  const { terminal, visible, focused, split, renaming, reopening, variant = 'pane', enlarged = false } = props;
+  const tile = variant === 'tile';
+  const compactHeader = tile && !enlarged;
   const meta = STATUS_META[terminal.status];
   const { name } = props;
   const [draft, setDraft] = useState(name);
@@ -67,12 +73,16 @@ export function TerminalPane(props: TerminalPaneProps) {
 
   return (
     <section
-      className={`flex-1 min-w-0 flex flex-col bg-bg ${visible ? '' : 'hidden'}`}
+      className={`flex-1 min-w-0 min-h-0 flex flex-col bg-bg ${visible ? '' : 'hidden'} ${
+        tile ? `rounded-lg overflow-hidden border ${focused ? 'border-accent' : 'border-border'}` : ''
+      }`}
       data-terminal-pane={terminal.id}
       onMouseDown={props.onActivate}
     >
       <header
-        className={`h-11 flex-none flex items-center gap-2.5 pl-4 pr-3 border-b border-border min-w-0 ${focused ? 'bg-surface-2' : 'bg-surface-1'}`}
+        className={`${compactHeader ? 'h-10 pl-3 pr-3' : 'h-11 pl-4 pr-3'} flex-none flex items-center gap-2.5 border-b border-border min-w-0 ${
+          focused && !compactHeader ? 'bg-surface-2' : 'bg-surface-1'
+        }`}
       >
         <span className={`state-icon ${meta.icon}`} aria-hidden />
         {renaming ? (
@@ -100,12 +110,27 @@ export function TerminalPane(props: TerminalPaneProps) {
         ) : (
           <span className="font-semibold text-[14px] whitespace-nowrap">{name}</span>
         )}
-        <span className={meta.tag}>{meta.label}</span>
-        <span className="font-mono text-[11.5px] text-text-3 overflow-hidden text-ellipsis whitespace-nowrap min-w-0">{terminal.cwd}</span>
-        <div className="flex-1" />
-        {focused && <span className="font-mono text-[10.5px] text-accent tracking-[0.04em] whitespace-nowrap">⌨ TECLADO AQUI</span>}
-        <div className="flex gap-1">
-          {split ? (
+        {!compactHeader && <span className={meta.tag}>{meta.label}</span>}
+        <span className={`font-mono text-text-3 overflow-hidden text-ellipsis whitespace-nowrap min-w-0 ${compactHeader ? 'flex-1 text-[11px]' : 'text-[11.5px]'}`}>
+          {terminal.cwd}
+        </span>
+        {compactHeader ? <span className={meta.tag}>{meta.label}</span> : <div className="flex-1" />}
+        {focused && !compactHeader && <span className="font-mono text-[10.5px] text-accent tracking-[0.04em] whitespace-nowrap">⌨ TECLADO AQUI</span>}
+        <div className={`flex gap-1 ${compactHeader ? 'hidden' : ''}`}>
+          {enlarged ? (
+            <>
+              <ActionButton
+                label="Renomear"
+                shortcut="Alt+R"
+                onClick={() => {
+                  setDraft(name);
+                  props.onRenameStart();
+                }}
+              />
+              <ActionButton label="Voltar à grelha" shortcut="Esc" onClick={() => props.onBackToGrid?.()} />
+              <ActionButton label="Fechar" shortcut="Alt+W" onClick={props.onClose} />
+            </>
+          ) : split ? (
             <>
               <ActionButton label="Juntar" shortcut="Alt+\" onClick={props.onSplit} />
               <ActionButton label="Fechar" onClick={props.onClose} />
@@ -142,6 +167,7 @@ export function TerminalPane(props: TerminalPaneProps) {
         <div className="flex-1 min-h-0">
           <TerminalView
             terminalId={terminal.id}
+            compact={tile}
             visible={visible}
             focused={focused}
             onFocus={props.onActivate}

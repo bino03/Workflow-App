@@ -2,12 +2,16 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Alert, Button, Spin } from 'antd';
 import { NewTerminalDrawer } from '@/components/terminals/new/NewTerminalDrawer';
 import { displayNames, groupByProject, orderedTerminals } from '@/components/terminals/projects';
+import { QuotaMeter } from '@/components/terminals/QuotaMeter';
+import { TerminalGrid } from '@/components/terminals/TerminalGrid';
 import { TerminalPane } from '@/components/terminals/TerminalPane';
 import { TerminalSidebar } from '@/components/terminals/TerminalSidebar';
 import { ErrorHandler, getApiErrorResponse } from '@/errors/errorHandler';
 import { useConfirm } from '@/hooks/useConfirm';
+import { useLayoutMode } from '@/hooks/useLayoutMode';
 import { type ShortcutAction, useTerminalShortcuts } from '@/hooks/useTerminalShortcuts';
 import { useTerminals } from '@/hooks/useTerminals';
+import { useUsage } from '@/hooks/useUsage';
 import { getFolders, setFavoriteFolder } from '@/services/folderService';
 import { notificationService } from '@/services/general/notificationService';
 import { estimateTerminalSize } from '@/terminal/terminalSize';
@@ -37,6 +41,10 @@ export function TerminalsPage() {
   const [reopeningAll, setReopeningAll] = useState(false);
   const [creatingIn, setCreatingIn] = useState<string | null>(null);
   const [favoritesVersion, setFavoritesVersion] = useState(0);
+  const [layout] = useLayoutMode();
+  const { usage, now } = useUsage();
+  // Grelha: ampliar é temporário — não muda a preferência (spec §3).
+  const [enlargedId, setEnlargedId] = useState<string | null>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -57,8 +65,18 @@ export function TerminalsPage() {
   const exists = useCallback((id: string | null) => !!id && terminals.some((t) => t.id === id), [terminals]);
   const primaryId = exists(selectedId) ? selectedId : (ordered[0]?.id ?? null);
   const secondaryId = exists(splitId) && splitId !== primaryId ? splitId : null;
-  const keyboardId = activeId === secondaryId && secondaryId ? secondaryId : primaryId;
-  const visibleIds = [primaryId, secondaryId].filter((id): id is string => !!id);
+  const grid = layout === 'grid';
+  const enlarged = grid && exists(enlargedId) ? enlargedId : null;
+  const keyboardId = grid
+    ? (enlarged ?? (exists(activeId) ? activeId : null))
+    : activeId === secondaryId && secondaryId
+      ? secondaryId
+      : primaryId;
+  const visibleIds = grid
+    ? enlarged
+      ? [enlarged]
+      : ordered.map((t) => t.id)
+    : [primaryId, secondaryId].filter((id): id is string => !!id);
 
   const openDrawer = useCallback((folder?: string, mode?: 'new' | 'resume') => {
     setDrawer((state) => ({ open: true, key: state.key + 1, folder, mode }));
@@ -73,6 +91,11 @@ export function TerminalsPage() {
 
   const select = useCallback(
     (id: string) => {
+      if (grid) {
+        setEnlargedId(id);
+        setActiveId(id);
+        return;
+      }
       if (id === secondaryId) {
         setActiveId(id);
         return;
@@ -81,7 +104,7 @@ export function TerminalsPage() {
       setSelectedId(id);
       setActiveId(id);
     },
-    [primaryId, secondaryId],
+    [grid, primaryId, secondaryId],
   );
 
   const handleCreate = async (body: Omit<CreateTerminalBody, 'cols' | 'rows'>) => {
@@ -196,7 +219,9 @@ export function TerminalsPage() {
         break;
       }
       case 'split':
-        toggleSplit();
+        // Na grelha não há divisão: Alt+\ volta à grelha.
+        if (grid) setEnlargedId(null);
+        else toggleSplit();
         break;
       case 'close':
         if (keyboardId) requestClose(keyboardId);
@@ -206,6 +231,17 @@ export function TerminalsPage() {
         break;
     }
   }, !drawer.open);
+
+  // Esc volta à grelha — só fora do terminal: lá dentro o Esc é do Claude Code (interromper).
+  useEffect(() => {
+    if (!enlarged || drawer.open) return;
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key !== 'Escape' || (event.target instanceof Element && event.target.closest('.xterm'))) return;
+      setEnlargedId(null);
+    };
+    window.addEventListener('keydown', onKeyDown);
+    return () => window.removeEventListener('keydown', onKeyDown);
+  }, [enlarged, drawer.open]);
 
   // Um terminal que termina fora do ecrã só se nota por isto — não há estados "a trabalhar" no MVP.
   const handleExit = (id: string, code: number) => {
@@ -239,6 +275,84 @@ export function TerminalsPage() {
     );
   }
 
+  const paneFor = (terminal: (typeof terminals)[number], tile: boolean) => (
+    <TerminalPane
+      terminal={terminal}
+      name={names.get(terminal.id) ?? ''}
+      variant={tile ? 'tile' : 'pane'}
+      enlarged={tile && terminal.id === enlarged}
+      onBackToGrid={() => setEnlargedId(null)}
+      visible={visibleIds.includes(terminal.id)}
+      focused={terminal.id === keyboardId}
+      split={!tile && !!secondaryId}
+      renaming={renamingId === terminal.id}
+      reopening={reopening.has(terminal.id)}
+      onActivate={() => select(terminal.id)}
+      onRenameStart={() => setRenamingId(terminal.id)}
+      onRenameEnd={(label) => void handleRenameEnd(terminal.id, label)}
+      onSplit={toggleSplit}
+      onClose={() => requestClose(terminal.id)}
+      onReopen={() => void handleReopen(terminal.id)}
+      onExit={(code) => handleExit(terminal.id, code)}
+      onGone={refresh}
+    />
+  );
+
+  const emptyState = (
+    <div className="flex-1 bg-bg flex flex-col items-center justify-center gap-3">
+      <p className="m-0 text-text-1 font-semibold">Nenhum terminal aberto</p>
+      <p className="m-0 text-text-2 text-[13px]">Abre uma sessão do Claude Code numa das pastas autorizadas.</p>
+      <Button type="primary" onClick={() => openDrawer()}>
+        + Novo terminal <span className="font-mono text-[10.5px] opacity-75">Alt+N</span>
+      </Button>
+    </div>
+  );
+
+  const errorState = error && (
+    <div className="flex-1 bg-bg p-8">
+      <Alert type="error" showIcon title={error} action={<Button size="small" onClick={refresh}>Tentar de novo</Button>} />
+    </div>
+  );
+
+  const drawerElement = (
+    <NewTerminalDrawer
+      key={drawer.key}
+      open={drawer.open}
+      initialFolder={drawer.folder}
+      initialMode={drawer.mode}
+      onClose={() => setDrawer((state) => ({ ...state, open: false }))}
+      onCreate={async (body) => {
+        await handleCreate(body);
+        setFavoritesVersion((n) => n + 1);
+      }}
+    />
+  );
+
+  if (grid) {
+    return (
+      <>
+        {errorState ?? (
+          <TerminalGrid
+            terminals={ordered}
+            enlarged={!!enlarged}
+            onNew={() => openDrawer()}
+            headerExtra={<QuotaMeter usage={usage} now={now} variant="header" />}
+          >
+            {ordered.map((terminal) => (
+              <div
+                key={`${terminal.id}:${terminal.lastOpenedAt}`}
+                className={enlarged && enlarged !== terminal.id ? 'hidden' : 'min-h-0 min-w-0 flex flex-1'}
+              >
+                {paneFor(terminal, true)}
+              </div>
+            ))}
+          </TerminalGrid>
+        )}
+        {drawerElement}
+      </>
+    );
+  }
+
   return (
     <div className="h-full flex">
       <TerminalSidebar
@@ -254,22 +368,11 @@ export function TerminalsPage() {
         creatingIn={creatingIn}
         onReopenAll={() => void handleReopenAll()}
         reopeningAll={reopeningAll}
+        footer={<QuotaMeter usage={usage} now={now} variant="sidebar" />}
       />
       <main ref={mainRef} className="flex-1 min-w-0 flex gap-px bg-border">
-        {error && (
-          <div className="flex-1 bg-bg p-8">
-            <Alert type="error" showIcon title={error} action={<Button size="small" onClick={refresh}>Tentar de novo</Button>} />
-          </div>
-        )}
-        {!error && terminals.length === 0 && (
-          <div className="flex-1 bg-bg flex flex-col items-center justify-center gap-3">
-            <p className="m-0 text-text-1 font-semibold">Nenhum terminal aberto</p>
-            <p className="m-0 text-text-2 text-[13px]">Abre uma sessão do Claude Code numa das pastas autorizadas.</p>
-            <Button type="primary" onClick={() => openDrawer()}>
-              + Novo terminal <span className="font-mono text-[10.5px] opacity-75">Alt+N</span>
-            </Button>
-          </div>
-        )}
+        {errorState}
+        {!error && terminals.length === 0 && emptyState}
         {!error &&
           // A ordem no DOM é a da lista (os xterm.js não se remontam); a ordem visual é a do foco dividido.
           terminals.map((terminal) => (
@@ -278,37 +381,11 @@ export function TerminalsPage() {
               className={visibleIds.includes(terminal.id) ? 'flex-1 min-w-0 flex' : 'hidden'}
               style={{ order: terminal.id === secondaryId ? 2 : 1 }}
             >
-              <TerminalPane
-                terminal={terminal}
-                name={names.get(terminal.id) ?? ''}
-                visible={visibleIds.includes(terminal.id)}
-                focused={terminal.id === keyboardId}
-                split={!!secondaryId}
-                renaming={renamingId === terminal.id}
-                reopening={reopening.has(terminal.id)}
-                onActivate={() => setActiveId(terminal.id)}
-                onRenameStart={() => setRenamingId(terminal.id)}
-                onRenameEnd={(label) => void handleRenameEnd(terminal.id, label)}
-                onSplit={toggleSplit}
-                onClose={() => requestClose(terminal.id)}
-                onReopen={() => void handleReopen(terminal.id)}
-                onExit={(code) => handleExit(terminal.id, code)}
-                onGone={refresh}
-              />
+              {paneFor(terminal, false)}
             </div>
           ))}
       </main>
-      <NewTerminalDrawer
-        key={drawer.key}
-        open={drawer.open}
-        initialFolder={drawer.folder}
-        initialMode={drawer.mode}
-        onClose={() => setDrawer((state) => ({ ...state, open: false }))}
-        onCreate={async (body) => {
-          await handleCreate(body);
-          setFavoritesVersion((n) => n + 1);
-        }}
-      />
+      {drawerElement}
     </div>
   );
 }

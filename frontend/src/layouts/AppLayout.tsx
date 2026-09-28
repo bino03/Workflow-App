@@ -1,7 +1,9 @@
-import { DownOutlined, LogoutOutlined, UserOutlined } from '@ant-design/icons';
+import { useState } from 'react';
+import { DownOutlined, LogoutOutlined, SettingOutlined, UserOutlined } from '@ant-design/icons';
 import { Dropdown, type MenuProps } from 'antd';
 import { Link, NavLink, Outlet } from 'react-router';
 import { Wordmark } from '@/components/common/Wordmark';
+import { SettingsDrawer } from '@/components/settings/SettingsDrawer';
 import { useAuth } from '@/hooks/useAuth';
 import { useBackendHealth, type BackendHealth } from '@/hooks/useBackendHealth';
 import { useConfirm } from '@/hooks/useConfirm';
@@ -28,8 +30,11 @@ export function AppLayout() {
   const { logout } = useAuth();
   const confirm = useConfirm();
   const health = useBackendHealth();
+  const [settingsOpen, setSettingsOpen] = useState(false);
 
   const userMenu: MenuProps['items'] = [
+    { key: 'settings', icon: <SettingOutlined />, label: 'Definições', onClick: () => setSettingsOpen(true) },
+    { type: 'divider' },
     {
       key: 'logout',
       icon: <LogoutOutlined />,
@@ -93,6 +98,7 @@ export function AppLayout() {
         <div className="flex-1" />
         <span className="font-mono">v{__APP_VERSION__}</span>
       </footer>
+      <SettingsDrawer open={settingsOpen} onClose={() => setSettingsOpen(false)} />
     </div>
   );
 }

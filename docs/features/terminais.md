@@ -5,7 +5,7 @@
 | **Estado** | 🚧 Em curso |
 | **Criada** | 2026-09-28 |
 | **Última sessão** | 2026-09-28 |
-| **Passos** | 14 / 17 concluídos |
+| **Passos** | 16 / 17 concluídos |
 
 > Escrita para uma sessão que **não viu a conversa que a originou**. Se algo só faz sentido com contexto
 > externo, falta escrevê-lo.
@@ -390,7 +390,7 @@ Ordem obrigatória. Tiers: `opus` (desenho, não delegar) · `sonnet` (implement
   - Aceite quando: `Alt+W`/Fechar → confirmação 1k (via `useConfirm`) → o terminal sai e aparece na lista
     Retomar da pasta com o resumo; `Alt+R` renomeia no cabeçalho (Enter grava, Esc cancela, vazio = nome
     da pasta); `Alt+1…9` salta.
-- [ ] **15. Foco dividido, grelha, Definições**
+- [x] **15. Foco dividido, grelha, Definições** — ✅ 2026-09-28 (browser 21/21 com o 16)
   - Ficheiro: `hooks/useLayoutMode.ts`, `components/terminals/TerminalGrid.tsx`, `TerminalsPage.tsx`,
     `components/settings/SettingsDrawer.tsx`, `layouts/AppLayout.tsx` (item no menu de utilizador)
   - Skill: `frontend-design-system`
@@ -398,7 +398,7 @@ Ordem obrigatória. Tiers: `opus` (desenho, não delegar) · `sonnet` (implement
   - Aceite quando: `Alt+\` divide (terminal em foco + o anterior) e junta; grelha 3 colunas, scroll depois
     de 6, clique amplia com "Voltar à grelha"/`Esc` sem mudar a preferência; Definições muda o modo e
     sobrevive a recarregar; terminais escondidos continuam ligados (sem replay ao voltar).
-- [ ] **16. Indicador de quota** (salta se o passo 1 falhou)
+- [x] **16. Indicador de quota** — ✅ 2026-09-28
   - Ficheiro: `components/terminals/QuotaMeter.tsx`, `hooks/useUsage.ts`, `TerminalSidebar.tsx`, `layouts/AppLayout.tsx` (grelha)
   - Skill: `frontend-design-system`
   - Tier: `sonnet`
