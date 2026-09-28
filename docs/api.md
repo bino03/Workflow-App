@@ -64,7 +64,9 @@ UUID dá o mesmo `TERMINAL_001` que um id desconhecido.
 - `mode: 'new'` → `claude --session-id <uuid do backend>`; `'resume'` → `--resume <sessionId>`; `'continue'` →
   `--resume` da sessão mais recente da pasta ([[adr/0012-argumentos-do-claude-e-status-line]]).
 - `label`: ≤ 80, só letras, dígitos, espaço e `. _ - ( )`; vazio ou `null` → a UI mostra o nome da pasta.
-- `DELETE` mata a árvore do processo e passa o terminal a `closedTerminals` com o resumo do `.jsonl`
+- `DELETE` fecha o `claude` como uma pessoa (Ctrl+C ×2; `taskkill /T /F` só se não sair em 3 s), mata o resto
+  da árvore, e passa o terminal a `closedTerminals` com o resumo do `.jsonl`. Demora ~1-3 s (ver
+  [[backend-conventions]] → Armadilhas: o canary do fullscreen)
   ([[database]]); o resumo nunca faz o fecho falhar.
 - Só os terminais **a correr** contam para `MAX_TERMINALS`.
 

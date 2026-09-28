@@ -99,7 +99,8 @@ WS  /api/terminals/:id/ws  (cookie + Origin verificados no upgrade)
 PTY termina → {type:"exit", code} → terminal fica "terminado" até ser fechado
 POST /api/terminals/:id/reopen → --resume da mesma sessão, mesmo id (de terminado ou parado);
   sem .jsonl (sessão sem mensagens) → --session-id do mesmo UUID, conversa nova (freshSession)
-DELETE /api/terminals/:id → taskkill /T /F (a árvore toda) → closedTerminals com o resumo do .jsonl → 204
+DELETE /api/terminals/:id → lista os descendentes → Ctrl+C ×2 (o claude sai limpo) → taskkill /T /F só se não
+  sair em 3 s → mata os descendentes que sobrarem → closedTerminals com o resumo do .jsonl → 204
 Backend pára → kill de todos; ao voltar, os gravados aparecem como "parados"
 ```
 

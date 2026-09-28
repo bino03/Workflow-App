@@ -88,6 +88,16 @@ Ver [[security]] → "Fluxo de autenticação" e [[adr/0003-auth-utilizador-unic
   usava a pasta do terminal como configuração (`projects/`, `history.jsonl`, `sessions/*.key` no projeto).
   → `childEnv` não passa um `CLAUDE_CONFIG_DIR` vazio nem relativo (2026-09-28). **Verificar sempre**, ao
   mexer no ambiente do filho, que o ecrã do `claude` real mostra a subscrição ("Claude Pro/Max").
+- ✅ **O fullscreen do `claude` desliga-se na máquina toda ("repeatedly failed to start… turned off here")** —
+  o Claude Code arma um *canary* em `~/.claude.json` (`fullscreenBootPending[pid]`) ao arrancar em fullscreen
+  e só o limpa ~10 s depois do primeiro frame ou numa saída limpa. Um `claude` morto à força antes disso deixa
+  o canary; no arranque seguinte conta uma *strike*, e **2** desligam o fullscreen em todos os terminais do
+  utilizador (`fullscreenAutoDisabled`) até um `/tui fullscreen` ou uma atualização. O fecho com `taskkill /F`
+  fazia isto sempre que um terminal fechava nos primeiros segundos (e nos testes). → `closeGracefully` em
+  `terminals/spawnClaude.ts`: Ctrl+C ×2, `taskkill` só depois da graça, e os descendentes listados antes (a
+  saída limpa deixá-los-ia órfãos). Fica de fora: um backend morto à força (ex. o `tsx watch` a reiniciar)
+  com terminais a arrancar. Spike: `scripts/fullscreen-canary-spike.ts` (constantes lidas do binário 2.1.283:
+  2 strikes, 10 s).
 - ✅ **O `claude` não grava sessões sem mensagens** — abrir e fechar sem conversar não deixa `.jsonl`
   (um comando como `/exit` já conta). Reabrir um terminal assim começa uma conversa nova com o mesmo UUID
   (`freshSession`, spec Terminais §3).

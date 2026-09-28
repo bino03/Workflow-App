@@ -1,7 +1,7 @@
 import { tmpdir } from 'node:os';
 import { afterEach, describe, expect, it } from 'vitest';
 import { TerminalLimitError, TerminalManager } from '../src/terminals/terminalManager.js';
-import { fakeSpawn, isAlive, waitFor } from './fakeClaude.js';
+import { fakeClaude, fakeSpawn, isAlive, waitFor } from './fakeClaude.js';
 
 describe('TerminalManager (fake process)', () => {
   const manager = new TerminalManager({ spawn: fakeSpawn, maxTerminals: 2, scrollbackBytes: 64 * 1024 });
@@ -45,7 +45,8 @@ describe('TerminalManager (fake process)', () => {
     expect(manager.get(t.info.id)).toMatchObject({ status: 'exited', exitCode: 3 });
   });
 
-  it('kill takes the whole process tree', async () => {
+  // A clean exit keeps Claude Code's fullscreen boot canary from being left behind (closeGracefully).
+  it('kill asks claude to exit with Ctrl+C twice, and still ends the whole tree', async () => {
     const t = open();
     await waitFor(() => /grandchild=\d+/.test(t.output()));
     const grandchild = Number(/grandchild=(\d+)/.exec(t.output())![1]);
@@ -53,8 +54,24 @@ describe('TerminalManager (fake process)', () => {
     expect(isAlive(grandchild)).toBe(true);
 
     expect(await manager.kill(t.info.id)).toBe(true);
+    expect(t.exits).toEqual([130]); // it exited by itself — not killed
+    // The fake's clean exit orphans the grandchild; closing must end it anyway.
     await waitFor(() => !isAlive(t.info.pid) && !isAlive(grandchild));
     expect(manager.get(t.info.id)).toBeUndefined();
+  });
+
+  it('a claude that ignores Ctrl+C is killed with its tree after the grace period', async () => {
+    const stubborn = new TerminalManager({ spawn: fakeClaude({ stubborn: true }).spawn, maxTerminals: 1, scrollbackBytes: 1024, closeGraceMs: 400 });
+    const info = stubborn.create({ cwd: tmpdir(), cols: 80, rows: 24 });
+    let output = '';
+    const exits: number[] = [];
+    stubborn.attach(info.id, { onData: (d) => (output += d), onExit: (c) => exits.push(c) });
+    await waitFor(() => /grandchild=\d+/.test(output));
+    const grandchild = Number(/grandchild=(\d+)/.exec(output)![1]);
+
+    await stubborn.kill(info.id);
+    expect(exits).not.toContain(130);
+    await waitFor(() => !isAlive(info.pid) && !isAlive(grandchild));
   });
 
   it('enforces MAX_TERMINALS', () => {

@@ -1,7 +1,7 @@
 import { randomUUID } from 'node:crypto';
 import type { IDisposable, IPty } from 'node-pty';
 import type { TerminalStatus } from './protocol.js';
-import { type SpawnPty, killProcessTree } from './spawnClaude.js';
+import { type SpawnPty, closeGracefully } from './spawnClaude.js';
 
 export type TerminalListener = {
   onData(data: string): void;
@@ -88,6 +88,8 @@ export type TerminalManagerOptions = {
   spawn: SpawnPty;
   maxTerminals: number;
   scrollbackBytes: number;
+  /** How long claude gets to exit after Ctrl+C ×2 before it is killed (closeGracefully). Default 3000. */
+  closeGraceMs?: number;
 };
 
 export class TerminalLimitError extends Error {
@@ -145,12 +147,12 @@ export class TerminalManager {
     if (terminal?.status === 'running') terminal.pty.resize(cols, rows);
   }
 
-  /** Kills the process tree and forgets the terminal. */
+  /** Ends the process tree — cleanly first (closeGracefully) — and forgets the terminal. */
   async kill(id: string): Promise<boolean> {
     const terminal = this.terminals.get(id);
     if (!terminal) return false;
     this.terminals.delete(id);
-    if (terminal.status === 'running') await killProcessTree(terminal.pty);
+    if (terminal.status === 'running') await closeGracefully(terminal.pty, { graceMs: this.options.closeGraceMs ?? 3000 });
     terminal.dispose();
     return true;
   }

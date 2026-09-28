@@ -146,3 +146,81 @@ export async function killProcessTree(ptyProcess: pty.IPty): Promise<void> {
     // Already exited.
   }
 }
+
+/** Every process below `rootPid` (Windows; elsewhere the PTY's hang-up takes them). */
+export async function listDescendants(rootPid: number): Promise<number[]> {
+  if (!isWindows) return [];
+  try {
+    const { stdout } = await execFileAsync(
+      'powershell',
+      ['-NoProfile', '-NonInteractive', '-Command', 'Get-CimInstance Win32_Process | ForEach-Object { "$($_.ProcessId) $($_.ParentProcessId)" }'],
+      { windowsHide: true },
+    );
+    const children = new Map<number, number[]>();
+    for (const line of stdout.trim().split(/\r?\n/)) {
+      const [pid, parent] = line.trim().split(' ').map(Number);
+      if (pid === undefined || parent === undefined || Number.isNaN(pid) || pid === parent) continue;
+      children.set(parent, [...(children.get(parent) ?? []), pid]);
+    }
+    const found: number[] = [];
+    const stack = [rootPid];
+    while (stack.length > 0) {
+      for (const child of children.get(stack.pop()!) ?? []) {
+        found.push(child);
+        stack.push(child);
+      }
+    }
+    return found;
+  } catch {
+    return [];
+  }
+}
+
+function isAlive(pid: number): boolean {
+  try {
+    process.kill(pid, 0);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * Ends `claude` the way a person would — Ctrl+C twice — and only forces it if it does not exit in `graceMs`.
+ *
+ * Why not taskkill straight away: Claude Code arms a "fullscreen boot canary" in ~/.claude.json and only clears
+ * it ~10 s after the first frame or on a clean exit. A process killed before that leaves the canary behind, and
+ * two of those turn the fullscreen renderer off on the whole machine ("repeatedly failed to start"). A clean
+ * exit also lets it finish writing the session's .jsonl.
+ *
+ * The tree is still ended: the descendants are listed first (a clean exit would orphan them — a dev server
+ * started by claude, say) and whatever survives is killed at the end.
+ */
+export async function closeGracefully(ptyProcess: pty.IPty, { graceMs }: { graceMs: number }): Promise<void> {
+  let exited = false;
+  const done = new Promise<void>((resolve) => {
+    const subscription = ptyProcess.onExit(() => {
+      exited = true;
+      subscription.dispose();
+      resolve();
+    });
+  });
+  const tree = await listDescendants(ptyProcess.pid);
+  try {
+    ptyProcess.write('\x03');
+    await Promise.race([done, new Promise((r) => setTimeout(r, 250))]);
+    if (!exited) ptyProcess.write('\x03');
+  } catch {
+    // The PTY is already gone.
+  }
+  await Promise.race([done, new Promise((r) => setTimeout(r, graceMs))]);
+  if (!exited) await killProcessTree(ptyProcess);
+  const survivors = tree.filter(isAlive);
+  if (isWindows && survivors.length > 0) {
+    try {
+      await execFileAsync('taskkill', ['/F', ...survivors.flatMap((pid) => ['/PID', String(pid)])], { windowsHide: true });
+    } catch {
+      // Some had already exited between the check and the kill.
+    }
+  }
+}

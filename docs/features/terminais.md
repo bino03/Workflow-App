@@ -454,7 +454,7 @@ usar Chrome headless via CDP (ver `notes/learning.md`); nunca a password real nu
 
 | Pergunta | Bloqueia | Notas |
 |---|---|---|
-| O `claude` diz "fullscreen renderer has repeatedly failed to start on this machine, so it has been turned off here" — no modo inline, redimensionar (ex. dividir) deixa restos de desenho | Nada nesta spec (item no ToDo) | **Por investigar.** Pode ter sido provocado pelas corridas com o bug do `CLAUDE_CONFIG_DIR`; `/tui fullscreen` reativa. Ver se o renderer fullscreen arranca dentro do PTY da app |
+| O `claude` diz "fullscreen renderer has repeatedly failed to start on this machine, so it has been turned off here" | Nada (causa encontrada e corrigida a 2026-09-28) | **Causa**: o canary de arranque do fullscreen do Claude Code (`~/.claude.json`) — um `claude` morto à força nos primeiros ~10 s conta uma strike, 2 desligam o fullscreen na máquina toda; o fecho com `taskkill /F` (e as corridas de teste) fazia-o. **Corrigido**: fecho limpo (`closeGracefully`, ver [[../backend-conventions]] → Armadilhas). **Falta**: o dono reativar com `/tui fullscreen` e confirmar com `scripts/fullscreen-canary-spike.ts` que fechar não deixa o canary (ToDo) |
 
 ## Relacionado
 

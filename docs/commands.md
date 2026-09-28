@@ -18,6 +18,7 @@ npm start            # node dist/server.js — serve também o frontend/dist, se
 npm run hash-password  # gera o APP_PASSWORD_HASH (argon2id): pede a password duas vezes, sem eco (mín. 12
                        # caracteres); com stdin em pipe lê uma linha. Só o hash vai para o stdout
 npx tsx scripts/pty-spike.ts [cwd]  # spike manual: claude real num PTY (env, /status, resize, Ctrl+C, kill)
+npx tsx scripts/fullscreen-canary-spike.ts [cwd]      # spike manual: o fecho deixa o canary do fullscreen? (só lê ~/.claude.json)
 npx tsx scripts/statusline-spike.ts [cwd] [--prompt]  # spike manual: JSON da status line (rate_limits) e o
                        # .jsonl da sessão; --prompt manda uma mensagem curta (gasta um pouco de quota)
 ```
