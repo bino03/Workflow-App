@@ -5,7 +5,7 @@
 | **Estado** | 🚧 Em curso |
 | **Criada** | 2026-09-28 |
 | **Última sessão** | 2026-09-28 |
-| **Passos** | 5 / 17 concluídos |
+| **Passos** | 6 / 17 concluídos |
 
 > Escrita para uma sessão que **não viu a conversa que a originou**. Se algo só faz sentido com contexto
 > externo, falta escrevê-lo.
@@ -316,7 +316,7 @@ Ordem obrigatória. Tiers: `opus` (desenho, não delegar) · `sonnet` (implement
     running/exited/stopped pela tabela de §4.1; reabrir só de exited/stopped (`TERMINAL_006` se a correr) e
     revalida a pasta; limite conta só vivos; sessão já aberta → `TERMINAL_003`; `.jsonl` em falta →
     `TERMINAL_004`; fechar mata, grava em `closedTerminals` com `summary` e nunca falha por causa do resumo.
-- [ ] **6. Rotas REST dos terminais**
+- [x] **6. Rotas REST dos terminais** — ✅ 2026-09-28 (7 testes; curl a uma instância de teste com o `claude` real; `api.md` já atualizado)
   - Ficheiro: `backend/src/terminals/terminal.schemas.ts`, `backend/src/terminals/terminals.routes.ts`,
     `backend/test/terminals.routes.test.ts`
   - Skill: —

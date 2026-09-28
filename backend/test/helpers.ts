@@ -20,6 +20,8 @@ export function testEnv(overrides: Record<string, string | undefined> = {}): Nod
     FRONTEND_DIST: join(tmpdir(), 'workflow-app-no-frontend-dist'),
     // Never the real ~/.workflow-app; tests that write state use their own mkdtemp.
     DATA_DIR: join(tmpdir(), 'workflow-app-test-data'),
+    // Never the real ~/.claude: tests that need saved sessions write their own .jsonl here.
+    CLAUDE_CONFIG_DIR: join(tmpdir(), 'workflow-app-test-claude'),
     ...overrides,
   };
 }

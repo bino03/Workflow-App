@@ -46,11 +46,27 @@ pequenas e vêm inteiras. Se uma lista crescer, a forma decide-se com [[api-desi
 
 ---
 
-## Terminais (`terminals/`, `/api/terminals`) — 🚧 desenhado
+## Terminais (`terminals/`, `/api/terminals`) — ✅ REST · 🚧 WebSocket
 
-Rotas, corpos, respostas e erros (`TERMINAL_*`, `FOLDER_001`, `SESSION_001`) desenhados na spec
-[[features/terminais]] §4.2 e §4.5. Passam para aqui (✅) no passo 9 da spec, quando existirem — até lá a
-spec é a única cópia.
+Todas com sessão (`AUTH_002`). Corpos validados com zod (`terminals/terminal.schemas.ts`); um id que não é
+UUID dá o mesmo `TERMINAL_001` que um id desconhecido.
+
+| Método | Rota | Corpo | Resposta | Erros |
+|---|---|---|---|---|
+| GET | `/api/terminals` | — | `TerminalView[]` (os gravados, por `createdAt`) | — |
+| POST | `/api/terminals` | `{cwd, mode: 'new'\|'resume'\|'continue', sessionId?, label?, cols, rows}` — `sessionId` (UUID) obrigatório em `resume` | `201 TerminalView` | `COMMON_001` · `FOLDER_001` · `TERMINAL_002` · `TERMINAL_003` · `TERMINAL_004` · `TERMINAL_005` · `SESSION_001` |
+| POST | `/api/terminals/:id/reopen` | `{cols, rows}` | `200 TerminalView` | `TERMINAL_001` · `TERMINAL_002` · `TERMINAL_004` · `TERMINAL_005` · `TERMINAL_006` · `FOLDER_001` |
+| PATCH | `/api/terminals/:id` | `{label: string \| null}` | `200 TerminalView` | `COMMON_001` · `TERMINAL_001` |
+| DELETE | `/api/terminals/:id` | — | `204` | `TERMINAL_001` |
+
+- `TerminalView = {id, label, cwd, claudeSessionId, status: 'running'|'exited'|'stopped', exitCode, createdAt, lastOpenedAt}`.
+  `stopped` = gravado no `state.json` mas sem processo (o backend reiniciou) → só `reopen` ou `DELETE`.
+- `mode: 'new'` → `claude --session-id <uuid do backend>`; `'resume'` → `--resume <sessionId>`; `'continue'` →
+  `--resume` da sessão mais recente da pasta ([[adr/0012-argumentos-do-claude-e-status-line]]).
+- `label`: ≤ 80, só letras, dígitos, espaço e `. _ - ( )`; vazio ou `null` → a UI mostra o nome da pasta.
+- `DELETE` mata a árvore do processo e passa o terminal a `closedTerminals` com o resumo do `.jsonl`
+  ([[database]]); o resumo nunca faz o fecho falhar.
+- Só os terminais **a correr** contam para `MAX_TERMINALS`.
 
 ### Protocolo do WebSocket
 

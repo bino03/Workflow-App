@@ -12,7 +12,10 @@ import { healthRoutes } from './common/health.routes.js';
 import { hasSpaBuild, registerSpa, selfOrigins } from './common/spa.js';
 import { libraryRoutes } from './library/library.routes.js';
 import { LibraryService } from './library/libraryService.js';
+import { ClaudeSessions } from './sessions/claudeSessions.js';
 import type { StateStore } from './state/stateStore.js';
+import { terminalsRoutes } from './terminals/terminals.routes.js';
+import { TerminalsService } from './terminals/terminalsService.js';
 import type { TerminalManager } from './terminals/terminalManager.js';
 
 export type AppDeps = {
@@ -61,6 +64,15 @@ export async function buildApp({ config, terminalManager, sessionStore, stateSto
   await app.register(healthRoutes);
   await app.register(authRoutes, { config, sessionStore: sessions });
   await app.register(libraryRoutes, { libraryService: new LibraryService(config.workflowPath) });
+
+  const sessionsReader = new ClaudeSessions(config.terminals.claudeConfigDir);
+  const terminalsService = new TerminalsService({
+    stateStore,
+    terminalManager,
+    sessions: sessionsReader,
+    allowedRoots: config.terminals.allowedRoots,
+  });
+  await app.register(terminalsRoutes, { terminalsService });
 
   if (serveSpa) {
     await registerSpa(app, config.frontendDist);
