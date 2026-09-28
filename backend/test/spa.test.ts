@@ -6,7 +6,7 @@ import type { FastifyInstance } from 'fastify';
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 import { buildApp } from '../src/app.js';
 import { TerminalManager } from '../src/terminals/terminalManager.js';
-import { TEST_ORIGIN, TEST_USERNAME as USERNAME, testConfig } from './helpers.js';
+import { TEST_ORIGIN, TEST_USERNAME as USERNAME, testConfig, testStateStore } from './helpers.js';
 
 const PASSWORD = 'correct horse battery staple';
 const INDEX_HTML = '<!doctype html><title>Workflow App</title><div id="root"></div>';
@@ -46,7 +46,7 @@ describe('SPA served by the backend', () => {
 
   beforeEach(async () => {
     const config = testConfig({ FRONTEND_DIST: distDir, APP_PASSWORD_HASH: passwordHash, PORT: '7400' });
-    app = await buildApp({ config, terminalManager: noTerminals(), logger: false });
+    app = await buildApp({ stateStore: await testStateStore(), config, terminalManager: noTerminals(), logger: false });
     app.get('/api/test/ws', { websocket: true }, (socket) => {
       socket.on('message', () => socket.send('pong'));
     });
@@ -147,7 +147,7 @@ describe('without a frontend build', () => {
   let app: FastifyInstance;
 
   beforeEach(async () => {
-    app = await buildApp({ config: testConfig(), terminalManager: noTerminals(), logger: false });
+    app = await buildApp({ stateStore: await testStateStore(), config: testConfig(), terminalManager: noTerminals(), logger: false });
     app.get('/api/test/ws', { websocket: true }, (socket) => socket.close());
     await app.ready();
   });
@@ -169,7 +169,7 @@ describe('without a frontend build', () => {
 
 describe('WebSocket outside /api', () => {
   it('still needs a session — the SPA exemption is for plain HTTP only', async () => {
-    const app = await buildApp({ config: testConfig({ FRONTEND_DIST: distDir }), terminalManager: noTerminals(), logger: false });
+    const app = await buildApp({ stateStore: await testStateStore(), config: testConfig({ FRONTEND_DIST: distDir }), terminalManager: noTerminals(), logger: false });
     app.get('/elsewhere/ws', { websocket: true }, (socket) => socket.close());
     await app.ready();
     try {

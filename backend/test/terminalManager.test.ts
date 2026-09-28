@@ -1,41 +1,7 @@
 import { tmpdir } from 'node:os';
-import * as pty from 'node-pty';
 import { afterEach, describe, expect, it } from 'vitest';
-import { type SpawnPty, childEnv } from '../src/terminals/spawnClaude.js';
 import { TerminalLimitError, TerminalManager } from '../src/terminals/terminalManager.js';
-
-// A fake `claude`: echoes input, reports its size on resize, and spawns a long-lived grandchild.
-const FAKE = `
-const { spawn } = require('node:child_process');
-const child = spawn(process.execPath, ['-e', 'setInterval(() => {}, 1000)'], { stdio: 'ignore' });
-process.stdout.write('ready grandchild=' + child.pid + '\\n');
-process.stdin.setRawMode?.(true);
-process.stdin.on('data', (d) => {
-  if (d.toString() === 'q') process.exit(3);
-  process.stdout.write('echo:' + d.toString() + '\\n');
-});
-process.stdout.on('resize', () => process.stdout.write('size:' + process.stdout.columns + 'x' + process.stdout.rows + '\\n'));
-`;
-
-const fakeSpawn: SpawnPty = ({ cwd, cols, rows }) =>
-  pty.spawn(process.execPath, ['-e', FAKE], { cwd, cols, rows, env: childEnv() });
-
-function isAlive(pid: number): boolean {
-  try {
-    process.kill(pid, 0);
-    return true;
-  } catch {
-    return false;
-  }
-}
-
-async function waitFor(predicate: () => boolean, timeoutMs = 10_000): Promise<void> {
-  const start = Date.now();
-  while (!predicate()) {
-    if (Date.now() - start > timeoutMs) throw new Error('timed out');
-    await new Promise((resolve) => setTimeout(resolve, 50));
-  }
-}
+import { fakeSpawn, isAlive, waitFor } from './fakeClaude.js';
 
 describe('TerminalManager (fake process)', () => {
   const manager = new TerminalManager({ spawn: fakeSpawn, maxTerminals: 2, scrollbackBytes: 64 * 1024 });
@@ -95,5 +61,22 @@ describe('TerminalManager (fake process)', () => {
     open();
     open();
     expect(() => open()).toThrow(TerminalLimitError);
+  });
+
+  it('counts only running terminals for MAX_TERMINALS', async () => {
+    const first = open();
+    open();
+    await waitFor(() => first.output().includes('ready'));
+    manager.write(first.info.id, 'q');
+    await waitFor(() => first.exits.length > 0);
+    expect(() => open()).not.toThrow();
+  });
+
+  it('keeps a given id, and refuses it while a terminal with that id is still in memory', async () => {
+    const id = '0f5c4a9e-7b1d-4c2a-9e3f-1a2b3c4d5e6f';
+    expect(manager.create({ id, cwd: tmpdir(), cols: 80, rows: 24 }).id).toBe(id);
+    expect(() => manager.create({ id, cwd: tmpdir(), cols: 80, rows: 24 })).toThrow(/already in memory/);
+    await manager.kill(id);
+    expect(manager.create({ id, cwd: tmpdir(), cols: 80, rows: 24 }).id).toBe(id);
   });
 });

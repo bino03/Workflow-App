@@ -8,7 +8,7 @@ import { buildApp } from '../src/app.js';
 import { AppError } from '../src/common/errors.js';
 import { LibraryService } from '../src/library/libraryService.js';
 import { TerminalManager } from '../src/terminals/terminalManager.js';
-import { TEST_USERNAME as USERNAME, testConfig } from './helpers.js';
+import { TEST_USERNAME as USERNAME, testConfig, testStateStore } from './helpers.js';
 
 const PASSWORD = 'library test password';
 
@@ -110,7 +110,7 @@ describe('GET /api/library/*', () => {
   beforeAll(async () => {
     const config = testConfig({ WORKFLOW_PATH: workflow, APP_PASSWORD_HASH: passwordHash });
     const terminalManager = new TerminalManager({ spawn: () => { throw new Error('no spawn'); }, maxTerminals: 1, scrollbackBytes: 1024 });
-    app = await buildApp({ config, terminalManager, logger: false });
+    app = await buildApp({ stateStore: await testStateStore(), config, terminalManager, logger: false });
   });
 
   afterAll(async () => {

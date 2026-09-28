@@ -5,7 +5,7 @@
 | **Estado** | 🚧 Em curso |
 | **Criada** | 2026-09-28 |
 | **Última sessão** | 2026-09-28 |
-| **Passos** | 4 / 17 concluídos |
+| **Passos** | 5 / 17 concluídos |
 
 > Escrita para uma sessão que **não viu a conversa que a originou**. Se algo só faz sentido com contexto
 > externo, falta escrevê-lo.
@@ -306,7 +306,7 @@ Ordem obrigatória. Tiers: `opus` (desenho, não delegar) · `sonnet` (implement
   - Tier: `sonnet`
   - Aceite quando: só produz `--session-id <uuid>`, `--resume <uuid>` e `--settings <DATA_DIR>/claude-settings.json`;
     um UUID inválido lança; nenhum texto do cliente entra nos argumentos (teste com `; rm`, espaços, aspas).
-- [ ] **5. `TerminalsService` — o ciclo de vida**
+- [x] **5. `TerminalsService` — o ciclo de vida** — ✅ 2026-09-28 (14 testes; `TerminalManager` aceita o `id` e só conta vivos)
   - Ficheiro: `backend/src/terminals/terminalsService.ts` (liga `StateStore` + `TerminalManager` +
     sessões + pastas), `backend/test/terminalsService.test.ts` (spawn falso, `DATA_DIR` temporário);
     `app.ts`/`server.ts` passam a exigir `stateStore`

@@ -5,7 +5,7 @@ import { buildApp } from '../src/app.js';
 import { AppError } from '../src/common/errors.js';
 import { parseWith } from '../src/common/validation.js';
 import { TerminalManager } from '../src/terminals/terminalManager.js';
-import { TEST_ORIGIN, testConfig } from './helpers.js';
+import { TEST_ORIGIN, testConfig, testStateStore } from './helpers.js';
 
 describe('app base', () => {
   let app: FastifyInstance;
@@ -13,7 +13,7 @@ describe('app base', () => {
 
   beforeEach(async () => {
     terminalManager = new TerminalManager({ spawn: () => { throw new Error('no spawn in app tests'); }, maxTerminals: 1, scrollbackBytes: 1024 });
-    app = await buildApp({ config: testConfig(), terminalManager, logger: false });
+    app = await buildApp({ stateStore: await testStateStore(), config: testConfig(), terminalManager, logger: false });
     // Test-only routes to drive the single error handler.
     app.get('/test/boom', { config: { public: true } }, async () => {
       throw new Error('C:\\secret\\path exploded');

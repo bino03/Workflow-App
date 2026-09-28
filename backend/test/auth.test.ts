@@ -4,7 +4,7 @@ import { afterEach, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 import { buildApp } from '../src/app.js';
 import { SessionStore } from '../src/auth/sessionStore.js';
 import { TerminalManager } from '../src/terminals/terminalManager.js';
-import { TEST_ORIGIN, TEST_USERNAME, testConfig } from './helpers.js';
+import { TEST_ORIGIN, TEST_USERNAME, testConfig, testStateStore } from './helpers.js';
 
 const PASSWORD = 'correct horse battery staple';
 let passwordHash: string;
@@ -36,7 +36,7 @@ describe('auth', () => {
       maxMs: config.auth.sessionMaxMs,
       now: () => clock,
     });
-    app = await buildApp({ config, terminalManager: noTerminals(), sessionStore, logger: false });
+    app = await buildApp({ stateStore: await testStateStore(), config, terminalManager: noTerminals(), sessionStore, logger: false });
     app.get('/test/ws', { websocket: true }, (socket) => socket.on('message', (data) => socket.send(`echo:${data.toString()}`)));
     await app.ready();
   });

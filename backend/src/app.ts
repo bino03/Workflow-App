@@ -19,7 +19,7 @@ export type AppDeps = {
   config: Config;
   terminalManager: TerminalManager;
   sessionStore?: SessionStore;
-  stateStore?: StateStore;
+  stateStore: StateStore;
   logger?: boolean;
 };
 
@@ -34,7 +34,7 @@ export async function buildApp({ config, terminalManager, sessionStore, stateSto
   const sessions =
     sessionStore ?? new SessionStore({ idleMs: config.auth.sessionIdleMs, maxMs: config.auth.sessionMaxMs });
 
-  if (stateStore) stateStore.logger = app.log;
+  stateStore.logger = app.log;
 
   const serveSpa = hasSpaBuild(config.frontendDist);
   registerErrorHandler(app, { spaFallback: serveSpa });
@@ -71,7 +71,7 @@ export async function buildApp({ config, terminalManager, sessionStore, stateSto
   app.addHook('onClose', async () => {
     sessions.close();
     await terminalManager.killAll();
-    await stateStore?.flush();
+    await stateStore.flush();
   });
 
   return app;
