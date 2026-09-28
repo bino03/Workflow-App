@@ -14,6 +14,7 @@ import { libraryRoutes } from './library/library.routes.js';
 import { LibraryService } from './library/libraryService.js';
 import { ClaudeSessions } from './sessions/claudeSessions.js';
 import type { StateStore } from './state/stateStore.js';
+import { terminalsGateway } from './terminals/terminals.gateway.js';
 import { terminalsRoutes } from './terminals/terminals.routes.js';
 import { TerminalsService } from './terminals/terminalsService.js';
 import type { TerminalManager } from './terminals/terminalManager.js';
@@ -24,13 +25,16 @@ export type AppDeps = {
   sessionStore?: SessionStore;
   stateStore: StateStore;
   logger?: boolean;
+  /** Where the log goes (tests read it to prove terminal content never reaches it). Default: stdout. */
+  logStream?: NodeJS.WritableStream;
 };
 
-export async function buildApp({ config, terminalManager, sessionStore, stateStore, logger = true }: AppDeps): Promise<FastifyInstance> {
+export async function buildApp({ config, terminalManager, sessionStore, stateStore, logger = true, logStream }: AppDeps): Promise<FastifyInstance> {
   const app = Fastify({
     logger: logger && {
       level: config.logLevel,
       redact: ['req.headers.cookie', 'req.headers.authorization'],
+      ...(logStream ? { stream: logStream } : {}),
     },
   });
 
@@ -52,7 +56,8 @@ export async function buildApp({ config, terminalManager, sessionStore, stateSto
     global: false,
     errorResponseBuilder: () => new AppError('AUTH_004'),
   });
-  await app.register(websocket);
+  // A paste bigger than this is not typing; the default (100 MiB) would let one frame fill the PTY.
+  await app.register(websocket, { options: { maxPayload: 1024 * 1024 } });
 
   // A page served by this backend opens its WebSocket with the backend's own origin. Only the
   // WebSocket needs it: same-origin REST calls never depend on CORS.
@@ -73,6 +78,7 @@ export async function buildApp({ config, terminalManager, sessionStore, stateSto
     allowedRoots: config.terminals.allowedRoots,
   });
   await app.register(terminalsRoutes, { terminalsService });
+  await app.register(terminalsGateway, { terminalManager, sessionStore: sessions });
 
   if (serveSpa) {
     await registerSpa(app, config.frontendDist);

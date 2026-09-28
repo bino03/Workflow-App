@@ -5,7 +5,7 @@
 | **Estado** | 🚧 Em curso |
 | **Criada** | 2026-09-28 |
 | **Última sessão** | 2026-09-28 |
-| **Passos** | 6 / 17 concluídos |
+| **Passos** | 7 / 17 concluídos |
 
 > Escrita para uma sessão que **não viu a conversa que a originou**. Se algo só faz sentido com contexto
 > externo, falta escrevê-lo.
@@ -323,7 +323,7 @@ Ordem obrigatória. Tiers: `opus` (desenho, não delegar) · `sonnet` (implement
   - Tier: `sonnet`
   - Aceite quando: as 5 rotas de §4.2 com zod no corpo; testes com `app.inject` para cada erro da tabela;
     `curl` real ao backend cria um terminal numa pasta de teste e fecha-o.
-- [ ] **7. Gateway WebSocket**
+- [x] **7. Gateway WebSocket** — ✅ 2026-09-28 (7 testes; `claude` real na instância de teste: ready, TUI, resize, 4404 ao fechar, `Origin` alheio 403)
   - Ficheiro: `backend/src/terminals/terminals.gateway.ts`, `backend/test/terminals.gateway.test.ts`
   - Skill: —
   - Tier: `opus` (segurança: sessão + `Origin` + só bytes para o PTY)

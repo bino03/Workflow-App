@@ -46,7 +46,7 @@ pequenas e vêm inteiras. Se uma lista crescer, a forma decide-se com [[api-desi
 
 ---
 
-## Terminais (`terminals/`, `/api/terminals`) — ✅ REST · 🚧 WebSocket
+## Terminais (`terminals/`, `/api/terminals`) — ✅
 
 Todas com sessão (`AUTH_002`). Corpos validados com zod (`terminals/terminal.schemas.ts`); um id que não é
 UUID dá o mesmo `TERMINAL_001` que um id desconhecido.
@@ -70,9 +70,9 @@ UUID dá o mesmo `TERMINAL_001` que um id desconhecido.
 
 ### Protocolo do WebSocket
 
-> ✅ Fixado no spike do PTY (2026-09-28). Tipos e schemas em `backend/src/terminals/protocol.ts`,
-> espelhados em `frontend/src/types/terminal.ts`. O gateway (a rota WS em si) nasce com a feature
-> Terminais.
+> ✅ Fixado no spike do PTY (2026-09-28); gateway em `backend/src/terminals/terminals.gateway.ts` (2026-09-28).
+> Tipos e schemas em `backend/src/terminals/protocol.ts`, espelhados em `frontend/src/types/terminal.ts`.
+> `WS /api/terminals/:id/ws` — sessão **e** `Origin` verificados pela guarda antes do upgrade (401 / 403).
 
 **A regra: o tipo do frame diz o que é.** Frames **binários** são bytes do terminal (nos dois sentidos);
 frames de **texto** são sempre JSON de controlo. Assim uma colagem que por acaso seja JSON nunca é
@@ -88,6 +88,12 @@ confundida com uma mensagem de controlo.
 
 Os tamanhos iniciais vão no `POST` de criação (`cols`, `rows`), para a TUI não arrancar em 80×24 e
 redesenhar logo a seguir.
+
+- **Códigos de fecho**: `4404` — o terminal não está a correr em memória (parado, fechado, ou reaberto:
+  o cliente liga um socket novo); `4401` — a sessão de login acabou (logout, expiração, novo login).
+- Vários clientes no mesmo terminal recebem todos o output; o último `resize` ganha.
+- Um frame tem no máximo **1 MiB** (`maxPayload`).
+- O conteúdo do terminal **nunca** vai para os logs — só ids e eventos (testado em `terminals.gateway.test.ts`).
 
 ## Sessões gravadas e pastas (`sessions/`, `folders/`) — 🚧 desenhado
 

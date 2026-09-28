@@ -6,6 +6,8 @@ import { type SpawnPty, killProcessTree } from './spawnClaude.js';
 export type TerminalListener = {
   onData(data: string): void;
   onExit(code: number): void;
+  /** The terminal was forgotten (closed, or killed to be reopened): nothing more will come. */
+  onClose?(): void;
 };
 
 export type TerminalInfo = {
@@ -66,6 +68,7 @@ class Terminal {
 
   dispose(): void {
     for (const subscription of this.subscriptions) subscription.dispose();
+    for (const listener of [...this.listeners]) listener.onClose?.();
     this.listeners.clear();
   }
 
