@@ -74,6 +74,7 @@ O ciclo é `ideas → ToDo → plans → whatIveDone` — ver [[notes/README]].
 - **Estado das iniciativas** → [[notes/roadmap/backlog]]
 - **Work log** → [[notes/whatIveDone]]
 - **Bugs** → [[notes/bugs]] · **Refactoring** → [[notes/refactoring]] · **Lições** → [[notes/learning]]
+- **Dúvidas sobre o que veio do Workflow** → [[notes/workflow-feedback]]
 
 ---
 
@@ -99,3 +100,4 @@ O ciclo é `ideas → ToDo → plans → whatIveDone` — ver [[notes/README]].
 | Um facto sobre como o sistema funciona | `docs/` |
 | Um padrão que já repeti 2-3 vezes | `/create-new-skill` |
 | Algo que custou tempo e não era da app | `notes/learning.md` |
+| Um doc/skill herdado que confundiu ou não servia | `notes/workflow-feedback.md` |

@@ -201,6 +201,9 @@ Começar a tarefa 1.
   é nova; apagar se ficou ✅ sem restos). Se este passo se salta, o ficheiro fica vazio.
 - **Lição de ferramenta?** — perguntar uma vez se algo custou tempo que não fosse da app. Se sim, bullet
   datado em `notes/learning.md`.
+- **Algo herdado do Workflow atrapalhou?** — na mesma pergunta: um doc, skill ou regra que veio do
+  Workflow e confundiu, contradisse ou não servia. Se sim (e ainda não está lá), entrada em
+  `notes/workflow-feedback.md` com "como se resolveu".
 - Proposta de commit segundo [[skill-git-commits]] — **perguntar antes de qualquer `git push`**.
 - Drift entre `ideas.md` e `ToDo.md`, ou entradas do log fora do formato: mencionar uma vez, não corrigir
   (são ficheiros pessoais).
@@ -235,7 +238,7 @@ Para features multi-sessão planeadas com [[skill-plan-feature]]:
 - [ ] Cada tarefa testada (ou verificação registada como pendente) antes do bookkeeping
 - [ ] Final Checklist das skills invocadas fechado, incluindo documentação
 - [ ] ToDo e whatIveDone atualizados por tarefa; guia de integração apagado se o frontend fechou
-- [ ] backlog.md atualizado; learning.md se houve lição de ferramenta
+- [ ] backlog.md atualizado; learning.md se houve lição de ferramenta; workflow-feedback.md se algo herdado atrapalhou
 - [ ] Resumo + proposta de commit, sem push sem confirmação
 
 ## Related Skills

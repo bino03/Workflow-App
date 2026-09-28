@@ -25,6 +25,13 @@ e porquê. Ao terminar um trabalho, o resultado escreve-se no vault (`docs/` par
 onde ir, e convenções sobre *como trabalhar* naquela pasta. Duas cópias do mesmo facto divergem sempre, e
 o hook de pre-commit só vigia `docs/`.
 
+## Quando algo herdado do Workflow atrapalha
+
+Este vault foi gerado pelo Workflow. Se um doc, skill, referência ou regra herdada **confunde, contradiz
+outro, não se aplica ou falta** — mesmo a meio de outra tarefa — acrescenta-se uma entrada a
+[[notes/workflow-feedback]] (o formato está no topo), com **como se resolveu**. Uma linha agora poupa o
+mesmo tropeço no próximo projeto. Não interromper o trabalho para isso: registar e continuar.
+
 ## Atalhos, por pergunta
 
 | A pergunta | O ficheiro |
