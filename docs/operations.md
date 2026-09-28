@@ -22,6 +22,37 @@ máquina onde o dono trabalha, e os terminais correm nela a sério.
 - [ ] 2FA decidido
 - [ ] Checklist de [[../notes/roadmap/pre-deploy-security|pre-deploy-security]] fechada
 
+## Testar outras apps no browser a partir da app
+
+> 🚧 Decidido em conversa (2026-09-28), ainda por montar. Cenário: a app corre no desktop de casa; o dono
+> está noutro dispositivo, só com o browser.
+
+**O browser e os testes correm no desktop de casa, ao lado do código. O dispositivo do dono é só o ecrã.**
+
+O Claude controla o browser da máquina onde ele próprio corre: a extensão Claude in Chrome fala com o
+Claude Code local. Os terminais desta app correm o `claude` no desktop de casa — por isso o Chrome que ele
+controla é o de lá, e a app em teste, a API dela e o browser falam todos por `localhost` (sem CORS, sem
+portas expostas, sem cookies cross-site).
+
+| Para quê | Como, no desktop de casa |
+|---|---|
+| Verificação exploratória ("vê se isto ficou bem") | Chrome com a extensão Claude in Chrome; o resultado chega como capturas/GIFs. Ao vivo, só por remote desktop |
+| Regressões e fluxos críticos | Playwright headless — não precisa de sessão gráfica, reprodutível, corre num terminal como os outros testes |
+
+**Posto de parte**:
+- Controlar o Chrome do dispositivo remoto a partir do `claude` do desktop — precisaria de uma ponte entre
+  os dois: mais uma superfície exposta ([[adr/0004-exposicao-e-modelo-de-ameaca]]), frágil, e a app em
+  teste teria de ficar acessível de fora (CORS, `Origin`, `SameSite`). *Por verificar*: a extensão parece
+  suportar vários browsers ligados; não se sabe se isso funciona entre máquinas.
+- Correr os testes no dispositivo remoto — só faz sentido se for lá que se desenvolve; com a API no
+  desktop, obrigava a expô-la.
+
+**Pré-requisitos no desktop** (juntam-se ao deploy acima):
+- [ ] Chrome com a extensão Claude in Chrome, com login feito pelo **mesmo utilizador** que corre o backend
+- [ ] Sessão de utilizador aberta com ambiente gráfico — se o backend passar a correr como serviço sem
+      desktop, a extensão deixa de estar disponível (o Playwright headless continua)
+- [ ] Playwright e os browsers dele instalados nos projetos que o usem
+
 ## Cópia de segurança
 
 | O quê | Como | Quando |
