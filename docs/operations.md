@@ -60,6 +60,46 @@ portas expostas, sem cookies cross-site).
       desktop, a extensão deixa de estar disponível (o Playwright headless continua)
 - [ ] Playwright e os browsers dele instalados nos projetos que o usem
 
+## Ver uma app em desenvolvimento a partir de outro dispositivo
+
+> 🚧 Decidido em conversa (2026-09-28), ainda por montar. **Depende da forma de exposição** (ADR por
+> escrever, [[adr/README]] → "Como expor fora de casa"); os comandos abaixo assumem Tailscale, a opção que
+> tem estado à frente.
+
+Para testar à mão uma app em que o Claude está a trabalhar no desktop **não se faz push/pull**: a app corre
+no desktop e o dispositivo abre um URL que chega lá.
+
+**Privado, não público.** O caminho é a rede privada (tailnet) — só os dispositivos do dono a veem:
+
+```
+# no desktop, com a app em dev (ex.: Vite na 5173)
+tailscale serve --bg --https=8443 http://localhost:5173
+# no dispositivo: https://<desktop>.<tailnet>.ts.net:8443
+# desligar: tailscale serve --https=8443 off
+```
+
+HTTPS a sério, sem portas abertas no router, e o `serve` faz proxy para `localhost` — a app **não** precisa de
+escutar em `0.0.0.0`. Uma porta HTTPS por app ao mesmo tempo (8443, 8444, …).
+
+**Público só para mostrar a outra pessoa**, temporário e com autenticação à frente (`tailscale funnel` ou
+Cloudflare Tunnel + Access), desligado no fim. Uma app em dev (servidor do Vite, endpoints de debug, BD de
+desenvolvimento — às vezes com dados reais —, por vezes sem login) não é para a internet; mesmo princípio de
+[[adr/0004-exposicao-e-modelo-de-ameaca]].
+
+**⚠️ Armadilha: o `localhost` da API.** Se o frontend da app em teste chama a API em
+`http://localhost:8080`, no browser do dispositivo `localhost` é **o dispositivo** — a página abre, mas sem
+dados. Correção: **uma só origem** — o frontend chama `/api` (caminho relativo) e o proxy do servidor de dev
+(`server.proxy` no Vite) reencaminha para `localhost:8080` dentro do desktop. Assim expõe-se uma porta só e
+não há CORS. Outros sítios onde o URL novo tem de entrar:
+- *redirect URLs* do login (Supabase Auth ou equivalente);
+- `CORS_ALLOWED_ORIGINS`/equivalente, se a app não usar o proxy;
+- `server.allowedHosts` do Vite (recusa hosts que não conhece — acrescentar `.ts.net`).
+
+**Posto de parte**: pôr esta app (a Workflow App) a fazer de proxy da app em teste (`/preview/<projeto>`).
+Possível, mas o WebSocket de hot reload do Vite, os caminhos base e os cookies da app em teste complicam
+muito — o `tailscale serve` resolve com uma linha. A app pode, no máximo, **mostrar** o link
+([[../notes/ideas]] → Pré-visualizar).
+
 ## Cópia de segurança
 
 | O quê | Como | Quando |
