@@ -38,15 +38,11 @@ pequenas e vêm inteiras. Se uma lista crescer, a forma decide-se com [[api-desi
 
 ---
 
-## Terminais (`terminals/`, `/api/terminals`) — 🚧 proposta
+## Terminais (`terminals/`, `/api/terminals`) — 🚧 desenhado
 
-| Método | Rota | Acesso | Corpo | Resposta |
-|---|---|---|---|---|
-| GET | `/api/terminals` | sessão | — | `[{id, label, cwd, status, exitCode?, startedAt, resumedFrom?}]` |
-| POST | `/api/terminals` | sessão | `{cwd, label?, resumeSessionId?, cols, rows}` | `201 {id, …}` |
-| PATCH | `/api/terminals/:id` | sessão | `{label}` | `200` |
-| DELETE | `/api/terminals/:id` | sessão | — | `204` (mata o processo) |
-| WS | `/api/terminals/:id/ws` | sessão + Origin | ver protocolo | — |
+Rotas, corpos, respostas e erros (`TERMINAL_*`, `FOLDER_001`, `SESSION_001`) desenhados na spec
+[[features/terminais]] §4.2 e §4.5. Passam para aqui (✅) no passo 9 da spec, quando existirem — até lá a
+spec é a única cópia.
 
 ### Protocolo do WebSocket
 
@@ -69,11 +65,10 @@ confundida com uma mensagem de controlo.
 Os tamanhos iniciais vão no `POST` de criação (`cols`, `rows`), para a TUI não arrancar em 80×24 e
 redesenhar logo a seguir.
 
-## Sessões gravadas (`sessions/`, `/api/sessions`) — 🚧 proposta
+## Sessões gravadas e pastas (`sessions/`, `folders/`) — 🚧 desenhado
 
-| Método | Rota | Acesso | Corpo | Resposta |
-|---|---|---|---|---|
-| GET | `/api/sessions?cwd=…` | sessão | — | `[{id, startedAt, preview}]` — só leitura de `~/.claude/projects/` |
+`GET /api/sessions?cwd=`, `GET /api/folders`, `GET /api/folders/browse?path=`, `PUT /api/folders/favorite` —
+ver [[features/terminais]] §4.2.
 
 ## Biblioteca (`library/`, `/api/library`) — ✅
 
@@ -96,11 +91,10 @@ Só leitura, lida do disco a cada pedido ([[adr/0005-biblioteca-lida-do-disco]])
 - **Um manifesto inválido nunca é fatal**: vai para `invalid[]` como `{path, message}` (caminho relativo +
   razão do zod/YAML), e o resto da lista vem na mesma. Só a falta da pasta `library/` dá `500 LIBRARY_001`.
 
-## Quota (`usage/`, `/api/usage`) — ❓ fonte por decidir
+## Quota (`usage/`, `/api/usage`) — ❓ a confirmar no spike
 
-| Método | Rota | Acesso | Corpo | Resposta |
-|---|---|---|---|---|
-| GET | `/api/usage` | sessão | — | `{window5h:{usedPct, resetsAt}, weekly:{usedPct, resetsAt}, source, fetchedAt}` |
+`GET /api/usage` → `UsageView` ([[features/terminais]] §4.3), se o spike (passo 1) confirmar a fonte
+([[adr/0012-argumentos-do-claude-e-status-line]]).
 
 ## Auth e saúde (`auth/`, `common/health.routes.ts`) — ✅
 
