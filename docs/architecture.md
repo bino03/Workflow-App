@@ -49,15 +49,19 @@ implementar regras de negócio em SQL, RLS ou funções da plataforma, mesmo que
 
 ## Backend — `node-fastify` (📋)
 
-> 🚧 Estrutura proposta pelo `/create` — confirmar no scaffold. Convenções em [[backend-conventions]].
+> Estrutura confirmada no scaffold (2026-09-28) até `common/`; os domínios abaixo dele nascem com as
+> features. Convenções em [[backend-conventions]].
 
 ```
 backend/
-├── package.json  tsconfig.json  .env.example
+├── package.json  tsconfig.json  tsconfig.build.json  .env.example
+├── scripts/                 ← utilitários de linha de comando (hash-password)
+├── test/                    ← Vitest (app.inject, sem rede)
 └── src/
-    ├── server.ts            ← Fastify, plugins, rotas, graceful shutdown (mata todos os PTYs)
+    ├── server.ts            ← ponto de entrada: .env, config, listen, sinais → graceful shutdown
+    ├── app.ts               ← buildApp({config, terminalManager}): plugins, handler de erros, rotas, onClose mata os PTYs
     ├── config.ts            ← variáveis de ambiente validadas com zod — falha no arranque
-    ├── common/              ← errors (ErrorCode, AppError, error handler único), auth guard, origin check
+    ├── common/              ← errors (ErrorCode, AppError, error handler único), validation (parseWith), health, auth guard
     ├── auth/                ← login / logout / me, sessão em cookie HttpOnly
     ├── terminals/           ← TerminalManager (PTYs), rotas REST, gateway WebSocket, scrollback
     ├── sessions/            ← listar as sessões gravadas do Claude Code por pasta (para --resume)
@@ -81,13 +85,13 @@ backend/
 
 ```
 POST /api/terminals {cwd, resumeSessionId?}  → valida cwd ∈ ALLOWED_ROOTS e o uuid
-  → spawn(CLAUDE_BIN, [--resume <uuid>]?, {cwd, env sem ANTHROPIC_API_KEY/CLAUDECODE, cols, rows})
+  → spawn(CLAUDE_BIN, [--resume <uuid>]?, {cwd, env sem ANTHROPIC_*/CLAUDE_CODE_*/config da app, cols, rows})
   → 201 {id}
 WS  /api/terminals/:id/ws  (cookie + Origin verificados no upgrade)
-  → servidor envia o scrollback guardado, depois o output em tempo real
-  ← cliente envia input (bytes) e {type:"resize", cols, rows}
+  → servidor envia {type:"ready"}, o scrollback guardado (binário), depois o output em tempo real
+  ← cliente envia input (frames binários) e {type:"resize", cols, rows} (frames de texto)
 PTY termina → {type:"exit", code} → terminal fica "terminado" até ser fechado
-DELETE /api/terminals/:id → kill do processo (e da árvore) → 204
+DELETE /api/terminals/:id → taskkill /T /F (a árvore toda) → 204
 Backend pára → kill de todos
 ```
 

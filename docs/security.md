@@ -1,6 +1,7 @@
 # 🔐 Segurança & autenticação
 
-> 🚧 Desenho escolhido na criação do projeto; confirmar cada secção quando o código existir.
+> ✅ Fluxo de autenticação e CORS implementados e testados a 2026-09-28 (`backend/src/auth/`,
+> `backend/src/common/authGuard.ts`). O resto: desenho da criação do projeto, a confirmar com o código.
 
 ## Fluxo de autenticação
 
@@ -24,6 +25,20 @@ Um só utilizador, **sem provedor externo** — adaptação do padrão "JWT em c
 - **O frontend não guarda credenciais nem tokens.** `withCredentials: true` na instância HTTP.
 - **Endpoints públicos, explícitos**: `POST /api/auth/login`, `GET /api/health`. Tudo o resto — incluindo
   o WebSocket — exige sessão.
+- **Protegido por omissão**: a guarda é um hook `onRequest` global; uma rota só é pública se o disser
+  (`config: { public: true }`). Uma rota nova esquecida nasce fechada, não aberta. Corre antes do parse do
+  corpo — um pedido sem sessão nunca chega à validação.
+- **Sessão**: id de 32 bytes aleatórios (`base64url`), num `Map` em memória; cookie `session` assinado
+  (HMAC do `@fastify/cookie` com `SESSION_SECRET`), `HttpOnly`, `SameSite=Strict`, `Path=/`,
+  `Max-Age` = limite absoluto. Expira ao fim de **`SESSION_IDLE_HOURS` (12 h) sem pedidos** ou
+  **`SESSION_MAX_DAYS` (7 dias) desde o login**, o que vier primeiro; um varrimento por minuto apanha as
+  que expiram sem mais pedidos. O fim da sessão (logout, expiração, novo login) corre callbacks
+  `sessionStore.onEnd` — é aí que o gateway dos terminais fecha os WebSockets dessa sessão.
+- **Rate limit do login**: 5 pedidos por minuto por IP (`@fastify/rate-limit`, só nessa rota), certos ou
+  errados → `429 AUTH_004`. A password compara-se com `argon2.verify` (tempo constante).
+- **`Origin` no upgrade do WebSocket**: sem `Origin`, ou fora de `CORS_ALLOWED_ORIGINS` → `403 AUTH_003`,
+  antes do upgrade. Testado (ADR 0004): sem cookie → 401; com cookie e `Origin` alheio → 403; sem
+  `Origin` → 403; com os dois → liga.
 - Terminar a sessão (logout ou expiração) **fecha os WebSockets abertos** dessa sessão; os PTYs continuam
   (❓ a confirmar — [[adr/README]] → decisões em aberto).
 

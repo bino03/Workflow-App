@@ -1,19 +1,21 @@
 # ⚙️ Convenções do backend — Node + TypeScript + Fastify + node-pty
 
-> 🚧 **Stack `node-fastify` 📋 — criada na hora pelo `/create`**, sem código que a valide. Tudo nesta
-> página é intenção até ao scaffold e ao spike do PTY; o que ficar provado perde o 🚧. Quando o código
+> 🚧 **Stack `node-fastify` 📋 — criada na hora pelo `/create`.** Scaffold feito a 2026-09-28 (versões
+> abaixo ✅); o resto é intenção até ao spike do PTY — o que ficar provado perde o 🚧. Quando o código
 > amadurecer, correr `/harvest-project` no Workflow para a transformar num módulo a sério.
 
 ## Versões
 
 | Peça | Versão | Nota |
 |---|---|---|
-| Node | LTS atual | Fixar em `.nvmrc` / `engines` — o `node-pty` é nativo e parte ao mudar de versão |
-| TypeScript | 5.x, `strict: true` | ESM (`"type": "module"`) |
-| Fastify | 5.x | + `@fastify/websocket`, `@fastify/cookie`, `@fastify/cors`, `@fastify/rate-limit` |
-| node-pty | 1.x (fixar a versão exata) | ConPTY no Windows |
-| zod | 3.x | Configuração e corpos dos pedidos |
-| Vitest | atual | Testes |
+| Node | 24.x (LTS) | `.nvmrc` = `24`, `engines: ">=24 <25"`; `@types/node` na mesma major |
+| TypeScript | 6.x, `strict: true` + `noUncheckedIndexedAccess` | ESM (`"type": "module"`, `NodeNext`) |
+| Fastify | 5.x | + `@fastify/websocket` 11, `@fastify/cookie` 11, `@fastify/cors` 11, `@fastify/rate-limit` 11 |
+| node-pty | **1.1.0 exata** (`--save-exact`) | ConPTY no Windows; N-API |
+| zod | 4.x | Configuração e corpos dos pedidos |
+| argon2 | 0.45.x | Hash da password (argon2id) |
+| Vitest | **4.x + `vite@7` explícito** | Não o 5 — ver Armadilhas → Smart App Control |
+| ESLint | 10.x, flat config + `typescript-eslint` | |
 
 ## As regras de base (backend)
 
@@ -31,8 +33,11 @@
    `shell: true`, nunca um shell interativo.
 7. **A pasta de um terminal é validada** contra `ALLOWED_ROOTS` depois de resolvida (`realpath`) — um
    `..` ou um symlink não saem da raiz.
-8. **O processo filho recebe um ambiente limpo**: o do backend **menos** `ANTHROPIC_API_KEY`,
-   `ANTHROPIC_AUTH_TOKEN` e `CLAUDECODE` (ver Armadilhas).
+8. **O processo filho recebe um ambiente limpo** (`childEnv` em `terminals/spawnClaude.ts`): o do
+   backend **menos** uma denylist — tudo o que começa por `ANTHROPIC_` ou `CLAUDE_CODE_`, `CLAUDECODE`,
+   `CLAUDE_PID`, e as variáveis de configuração da própria app (segredos, `HOST`/`PORT`…), exceto
+   `CLAUDE_CONFIG_DIR`, que é partilhada de propósito. Nomes comparados sem maiúsculas (Windows). Ver
+   Armadilhas.
 9. **O conteúdo dos terminais nunca vai para os logs.** Logam-se eventos (terminal criado, terminou com
    código N), não bytes.
 10. **Cada PTY tem dono**: o `TerminalManager` é o único sítio que cria, guarda e mata processos; no
@@ -51,8 +56,10 @@
   *watermarks*. Sem isto, um output enorme enche a memória do backend.
 - **Fim do processo**: `onExit` → estado `exited` + código, mensagem `{type:"exit"}` aos clientes; o
   terminal fica listado até o utilizador o fechar.
-- **Matar**: no Windows, matar o PTY tem de levar a árvore toda (o `claude` pode ter lançado processos
-  filhos — dev servers, testes). Confirmar no spike; se não levar, matar a árvore explicitamente.
+- **Matar**: no Windows, `taskkill /PID <pid> /T /F` leva a árvore toda (confirmado com um neto de
+  longa duração); o `pty.kill()` do node-pty fica como fallback — ver Armadilhas.
+- **Scrollback**: guardado em pedaços inteiros (o que o `onData` entregou), cortados do mais antigo —
+  nunca parte um carácter UTF-8; ainda pode cortar a meio de uma sequência ANSI (ver Armadilhas).
 
 ## Autenticação
 
@@ -63,32 +70,62 @@ Ver [[security]] → "Fluxo de autenticação" e [[adr/0003-auth-utilizador-unic
 
 - Vitest para o que não precisa do `claude` real: `TerminalManager` com um processo falso (ex.: `node -e`
   a ecoar), política de pastas, guarda de auth, parsing dos manifestos da biblioteca.
-- O `claude` real só se testa à mão (gasta quota e depende do login) — a skill `run` + um terminal aberto.
+- O `claude` real testa-se com o spike manual `npx tsx scripts/pty-spike.ts [cwd]` — binário, ambiente
+  do filho, `/status`, resize, Ctrl+C e kill da árvore. Não fala com o modelo (o `/status` é local), por
+  isso não gasta quota; depende do login e de a pasta já ser *trusted*. Guarda os ecrãs (renderizados
+  num `@xterm/headless`) em `%TEMP%\wfa-spike-*.txt`.
 
 ## Armadilhas
 
-> 🚧 Candidatas — conhecidas da documentação e de relatos, **não confirmadas neste projeto**. O spike do
-> PTY confirma ou apaga cada uma.
+> ✅ = confirmada neste projeto (spike do PTY, 2026-09-28, Claude Code 2.1.283, Windows 11). As restantes
+> são candidatas — conhecidas da documentação e de relatos, ainda por provar.
 
-- **`ANTHROPIC_API_KEY` no ambiente → o Claude Code usa a API, não a subscrição.** Se a variável existir
+- ✅ **`ANTHROPIC_API_KEY` no ambiente → o Claude Code usa a API, não a subscrição.** Se a variável existir
   no ambiente do backend (ou do utilizador), o processo filho herda-a e passa a faturar por token — o
-  contrário do que esta app existe para fazer ([[adr/0002-motor-via-pty-sobre-subscricao]]). Retirá-la
-  (e `ANTHROPIC_AUTH_TOKEN`) do ambiente do filho, sempre. Confirmar com `/status` dentro de um terminal.
-- **`CLAUDECODE` herdado → o `claude` acha que está dentro de outra sessão.** Se o backend for arrancado
-  a partir de uma sessão do Claude Code (o `/run` faz isso), o ambiente traz `CLAUDECODE=1`, e o `claude`
-  filho pode recusar arrancar ou comportar-se como sessão aninhada. Retirar a variável.
-- **`claude` no Windows pode ser `claude.cmd`** (instalação por npm) — um `.cmd` não se lança
-  diretamente num PTY; é preciso o executável real ou `cmd.exe /c`. O instalador nativo dá `claude.exe`.
-  `CLAUDE_BIN` com o caminho completo evita adivinhar pelo `PATH`.
+  contrário do que esta app existe para fazer ([[adr/0002-motor-via-pty-sobre-subscricao]]). A denylist
+  retira todo o `ANTHROPIC_*` (inclui `ANTHROPIC_AUTH_TOKEN` e `ANTHROPIC_BASE_URL`). Provado no spike:
+  com uma chave falsa injetada no backend, o filho não a vê e o `/status` mostra **"Login method: Claude
+  Pro account"**.
+- ✅ **Um backend arrancado de dentro do Claude Code herda a sessão dele.** Não é só o `CLAUDECODE=1`: o
+  ambiente real trazia `CLAUDE_PID` e 8 `CLAUDE_CODE_*` (`SESSION_ID`, `CHILD_SESSION`, `ENTRYPOINT`,
+  `EXECPATH`, `SESSION_ATTENDED`, `MESSAGING_SOCKET`, **`MESSAGING_TOKEN`**…) — o filho comportar-se-ia
+  como sessão aninhada e receberia o token de mensagens da sessão pai. Retirados todos por prefixo.
+- ✅ **O `.env` do backend vai parar ao ambiente do filho.** O `process.loadEnvFile` põe
+  `SESSION_SECRET`, `APP_PASSWORD_HASH` e `PORT=7400` no `process.env` — sem denylist, o `claude` (e tudo
+  o que ele corre) via os segredos, e um dev server lançado por ele tentaria a porta 7400 do backend.
+- ✅ **`claude` no Windows**: nesta máquina é `C:\Users\jlalv\.local\bin\claude.exe` (instalador nativo,
+  sem `.cmd`). `resolveClaudeBin` procura no `PATH` com o `PATHEXT` e **recusa `.cmd`/`.bat`/`.ps1`**
+  (um shim de npm não se lança num PTY) com uma mensagem a dizer para usar o instalador nativo. Se o
+  `claude` não existir, o backend arranca na mesma (com um aviso no log) — só a criação de terminais falha.
+- ✅ **O `kill()` do node-pty no Windows não chega, e rebenta depois de um `taskkill`.** Só mata os
+  processos ligados à pseudo-consola; e o helper que os lista (`conpty_console_list_agent`) crasha com
+  `AttachConsole failed` se o processo já tiver morrido. Por isso: `taskkill /T /F` primeiro, e o
+  `pty.kill()` só se o `taskkill` falhar. Sem fuga de `OpenConsole.exe` (contados antes/depois dos testes).
+- ✅ **Sair do `claude` pelo teclado**: dois `\x03` (Ctrl+C) seguidos → sai com código 0.
+- **Pasta ainda não *trusted*** — na primeira vez numa pasta o `claude` mostra o diálogo de confiança
+  antes do prompt; o spike deteta-o e falha com essa razão. No produto, o diálogo aparece no terminal e
+  responde-se lá.
 - **O `PATH` do serviço não é o do utilizador.** Se o backend correr como serviço/tarefa agendada no
   desktop de casa, o `PATH` (e o `HOME`/`USERPROFILE`, logo o `~/.claude` com o login) pode ser outro — o
   `claude` não é encontrado ou arranca sem sessão iniciada. Correr com o utilizador que fez login no
   Claude Code.
 - **`tsx watch` reinicia o servidor a cada gravação e mata todos os terminais** — incluindo aquele em que
   o Claude Code está a editar o backend. Ver [[commands#⚠️ Desenvolver a app a partir dela própria]].
-- **`node-pty` e a versão do Node** — mudar de Node sem `npm rebuild node-pty` dá `NODE_MODULE_VERSION`
-  no arranque.
-- **Bytes partidos a meio de um carácter UTF-8** — o output chega em pedaços arbitrários; um carácter
+- ✅ **`node-pty` 1.1.0 instala no Windows x64 sem Build Tools nem Python** (confirmado a 2026-09-28, Node
+  24.16 via nvm4w): o pacote traz `prebuilds/win32-x64` (`pty.node`, `conpty.node`, `conpty.dll`,
+  `OpenConsole.exe`, winpty). **Não traz prebuilds para Linux** — num desktop Linux é preciso
+  `build-essential` + Python para o `node-gyp`.
+- **`node-pty` e a versão do Node** — o 1.1.0 é N-API, por isso mudar de Node *não deve* dar
+  `NODE_MODULE_VERSION`; não testado. Se der, `npm rebuild node-pty`.
+- ✅ **Smart App Control bloqueia binários nativos novos** — confirmado a 2026-09-28: o binding do
+  `rolldown` (Vite 8) é recusado; `node-pty`, `argon2` e `esbuild` passam. Antes de subir uma dependência
+  com binário nativo, correr os testes. Ver [[commands]] → Armadilhas.
+- ✅ **Depois do `onExit`, o ConPTY deixa handles vivos** (`PipeWrap` + `MessagePort` do worker) — o
+  processo Node não termina sozinho. Qualquer script que lance um PTY, e o graceful shutdown, têm de
+  acabar com `process.exit()` explícito.
+- **Bytes partidos a meio de um carácter UTF-8** — ✅ *do lado do PTY não acontece*: o node-pty entrega
+  strings já descodificadas com estado (o logótipo, `❯` e as linhas de caixa chegaram intactos ao
+  `@xterm/headless`). Continua a valer para o transporte: o output chega em pedaços arbitrários; um carácter
   multi-byte (acentos, emojis, os símbolos da TUI) pode ficar dividido entre dois frames. Enviar como
   binário e deixar o xterm.js descodificar, ou usar um descodificador com estado.
 - **Resize antes de o xterm.js medir** — criar o PTY com 80×24 e fazer resize logo a seguir provoca um

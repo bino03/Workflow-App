@@ -4,26 +4,33 @@ Tudo o que se corre neste projeto, num sítio só — com as armadilhas de cada 
 
 ## Backend — `node-fastify` (📋)
 
-> 🚧 Scripts propostos para o `package.json` — **não verificados** até ao scaffold.
+> ✅ Scripts do `backend/package.json` (scaffold de 2026-09-28).
 
 ```bash
 cd backend
-npm install          # dependências (node-pty compila/descarrega um binário nativo — ver armadilhas)
+npm install          # dependências (node-pty usa o binário pré-compilado para win32-x64 — ver armadilhas)
 npm run dev          # tsx watch src/server.ts — porta 7400, só em 127.0.0.1
-npm run typecheck    # tsc --noEmit (tsconfig único, sem referências — aqui --noEmit verifica mesmo)
+npm run typecheck    # tsc --noEmit — tsconfig sem referências (inclui src, scripts, test), verifica mesmo
 npm run lint         # ESLint
-npm test             # Vitest
-npm run build        # tsc → dist/
+npm test             # vitest run (test/**/*.test.ts)
+npm run build        # tsc -p tsconfig.build.json → dist/ (só src/, sem testes nem scripts)
 npm start            # node dist/server.js
-npm run hash-password  # gera o APP_PASSWORD_HASH (argon2id) a partir de uma password pedida no terminal
+npm run hash-password  # gera o APP_PASSWORD_HASH (argon2id): pede a password duas vezes, sem eco (mín. 12
+                       # caracteres); com stdin em pipe lê uma linha. Só o hash vai para o stdout
+npx tsx scripts/pty-spike.ts [cwd]  # spike manual: claude real num PTY (env, /status, resize, Ctrl+C, kill)
 ```
 
 ### Armadilhas dos comandos
 
-- **`npm install` falha no `node-pty`** — é um módulo nativo. Sem binário pré-compilado para a versão do
-  Node/SO, compila com `node-gyp`, e no Windows isso pede as *Visual Studio Build Tools* (C++) e Python.
-  Fixar a versão do `node-pty` e usar uma versão LTS do Node.
+- **`npm install` e o `node-pty`** — é um módulo nativo. No Windows x64 o 1.1.0 traz binário
+  pré-compilado (confirmado: instala sem Build Tools nem Python). Sem prebuild (Linux, outra versão),
+  compila com `node-gyp` e pede um compilador C++ e Python. Versão fixada exata no `package.json`.
 - **Mudar a versão do Node parte o `node-pty`** (`NODE_MODULE_VERSION` diferente) → `npm rebuild node-pty`.
+- 🚨 **`npm test` → `Cannot find native binding` / "An Application Control policy has blocked this
+  file"** — o **Smart App Control** do Windows (ligado nesta máquina) bloqueia binários nativos sem
+  reputação. Aconteceu com o `rolldown` do Vite 8 (puxado pelo Vitest 5); a mensagem do npm sobre
+  dependências opcionais é enganadora — o binário está lá. Por isso o Vitest fica no 4 com `vite@7`
+  fixado. Para diagnosticar: `node -e "require('<pacote-do-binding>')"` mostra o erro real.
 - **`npm run dev` com `tsx watch` reinicia o servidor a cada gravação — e cada reinício mata todos os
   terminais abertos.** Ver a secção seguinte.
 
@@ -90,8 +97,8 @@ npm run build      # tsc -b + build do Vite
 
 | Peça | O quê | Liga a | Estado |
 |---|---|---|---|
-| Backend | Vitest — `TerminalManager` (com um processo falso em vez do `claude`), política de pastas, guarda de auth, parsing dos manifestos da biblioteca | nada externo | 🚧 a criar no scaffold |
-| Backend | Spike manual do PTY no Windows: `claude` arranca, recebe input, faz resize, termina | o `claude` real | 🚧 primeira tarefa |
+| Backend | Vitest — `TerminalManager` (com um processo falso em vez do `claude`), política de pastas, guarda de auth, parsing dos manifestos da biblioteca | nada externo | ✅ config, erros, health, CORS, shutdown, `TerminalManager` + denylist, auth (login/logout/me, expiração, rate limit, cookie adulterado, WS sem cookie / `Origin` alheio) — 38 testes. Por fazer: política de pastas, biblioteca |
+| Backend | Spike manual do PTY no Windows (`scripts/pty-spike.ts`): binário, ambiente do filho, `/status` = subscrição, resize, Ctrl+C, kill da árvore | o `claude` real (sem gastar quota) | ✅ 7/7 a 2026-09-28 |
 | Frontend | `npx tsc -b` + lint | — | 🚧 |
 | Frontend | Testes automáticos | — | **nenhum** (omissão da stack) — verificação manual no browser |
 

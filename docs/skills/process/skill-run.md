@@ -40,8 +40,8 @@ cd backend && npm run dev          # se não há node_modules: npm install prime
 cd frontend && npm run dev         # se não há node_modules: npm install primeiro
 ```
 
-> ⚠️ Comandos da stack `node-fastify` (📋) ainda **não verificados** — nasceram antes do código. Na
-> primeira execução, confirmar e acertar aqui e em `docs/commands.md`.
+> ✅ Backend confirmado a 2026-09-28: `npm run dev` lê `backend/.env` e escreve o marcador abaixo.
+> Frontend ainda por confirmar (não existe).
 
 Cada processo em **background** (`run_in_background`), com o output num ficheiro que se possa ler — nunca a
 bloquear a sessão.

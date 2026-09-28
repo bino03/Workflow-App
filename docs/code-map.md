@@ -20,11 +20,17 @@ isso há os outros:
 
 | Coisa | Onde |
 |---|---|
-| Arranque, plugins, shutdown | `backend/src/server.ts` |
+| Arranque, sinais, shutdown | `backend/src/server.ts` |
+| Plugins, rotas, hooks (testável com `inject`) | `backend/src/app.ts` |
 | Configuração do ambiente | `backend/src/config.ts` |
 | Erros (`ErrorCode`, handler) | `backend/src/common/errors.ts` → espelho em `frontend/src/errors/errorMessages.ts` |
-| Guarda de auth (REST + WS) | `backend/src/common/authGuard.ts` |
-| Gestor de terminais (PTYs) | `backend/src/terminals/terminalManager.ts` |
+| Validação de pedidos (zod → `COMMON_001`) | `backend/src/common/validation.ts` |
+| `GET /api/health` | `backend/src/common/health.routes.ts` |
+| Guarda de auth (REST + WS, `Origin`) | `backend/src/common/authGuard.ts` |
+| Login / logout / me | `backend/src/auth/auth.routes.ts` · sessões em `auth/sessionStore.ts` · `scripts/hash-password.ts` |
+| Gestor de terminais (PTYs, scrollback) | `backend/src/terminals/terminalManager.ts` |
+| Binário `claude`, ambiente do filho, kill da árvore | `backend/src/terminals/spawnClaude.ts` |
+| Spike manual do PTY com o `claude` real | `backend/scripts/pty-spike.ts` |
 | Protocolo do WebSocket | `backend/src/terminals/protocol.ts` ↔ `frontend/src/types/terminal.ts` |
 | Rotas | `frontend/src/main.tsx` |
 | Navegação persistente | `frontend/src/layouts/AppLayout.tsx` |
