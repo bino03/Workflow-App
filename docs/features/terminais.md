@@ -5,7 +5,7 @@
 | **Estado** | 🚧 Em curso |
 | **Criada** | 2026-09-28 |
 | **Última sessão** | 2026-09-28 |
-| **Passos** | 3 / 17 concluídos |
+| **Passos** | 4 / 17 concluídos |
 
 > Escrita para uma sessão que **não viu a conversa que a originou**. Se algo só faz sentido com contexto
 > externo, falta escrevê-lo.
@@ -299,7 +299,7 @@ Ordem obrigatória. Tiers: `opus` (desenho, não delegar) · `sonnet` (implement
   - Aceite quando: com um `.jsonl` real confirma-se a codificação do caminho (§4.1); lista com `preview`
     e `messageCount`; `readSummary` devolve `ai-title` / última mensagem cortada a 600 / `null` e **nunca
     lança** (linhas inválidas, ficheiro vazio, ficheiro em falta).
-- [ ] **4. Argumentos do `claude`**
+- [x] **4. Argumentos do `claude`** — ✅ 2026-09-28 (4 testes)
   - Ficheiro: `backend/src/terminals/claudeArgs.ts` (`newSession(uuid)`, `resume(uuid)`, `+ --settings`
     quando a quota existe), `backend/test/claudeArgs.test.ts`
   - Skill: —
