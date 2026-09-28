@@ -1,6 +1,7 @@
 import { existsSync, realpathSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
-import { isAbsolute } from 'node:path';
+import { homedir } from 'node:os';
+import { isAbsolute, join } from 'node:path';
 import { z } from 'zod';
 
 const booleanString = z
@@ -52,6 +53,8 @@ const envSchema = z.object({
 
   WORKFLOW_PATH: existingDirectory,
 
+  DATA_DIR: optionalString.refine((path) => path === undefined || isAbsolute(path), 'must be an absolute path'),
+
   FRONTEND_DIST: optionalString.refine((path) => path === undefined || isAbsolute(path), 'must be an absolute path'),
 });
 
@@ -78,6 +81,8 @@ export type Config = {
     scrollbackBytes: number;
   };
   workflowPath: string;
+  /** Where state.json lives (ADR 0009); created at startup if missing. */
+  dataDir: string;
   /** Absolute path of the built SPA; served only if it has an index.html. */
   frontendDist: string;
 };
@@ -124,6 +129,7 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): Config {
       scrollbackBytes: e.SCROLLBACK_BYTES,
     },
     workflowPath: e.WORKFLOW_PATH,
+    dataDir: e.DATA_DIR ?? join(homedir(), '.workflow-app'),
     frontendDist: e.FRONTEND_DIST ?? DEFAULT_FRONTEND_DIST,
   };
 }

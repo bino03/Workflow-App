@@ -14,6 +14,8 @@ export function testEnv(overrides: Record<string, string | undefined> = {}): Nod
     WORKFLOW_PATH: tmpdir(),
     // Tests must not depend on whether frontend/dist happens to be built; spa.test.ts sets its own.
     FRONTEND_DIST: join(tmpdir(), 'workflow-app-no-frontend-dist'),
+    // Never the real ~/.workflow-app; tests that write state use their own mkdtemp.
+    DATA_DIR: join(tmpdir(), 'workflow-app-test-data'),
     ...overrides,
   };
 }

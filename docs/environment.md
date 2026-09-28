@@ -27,6 +27,7 @@ Nenhum destes ficheiros está no git. Num clone novo, criá-los a partir dos `.e
 | `CLAUDE_CONFIG_DIR` | — | `~/.claude` | Onde procurar as sessões gravadas |
 | `MAX_TERMINALS` | — | `8` | A quota é da conta: mais terminais não dão mais quota |
 | `SCROLLBACK_BYTES` | — | `1048576` | Buffer de output guardado por terminal para reenviar ao voltar a ligar |
+| `DATA_DIR` | — | `C:\Users\jlalv\.workflow-app` | Onde vive o `state.json` ([[database]], [[adr/0009-estado-em-ficheiro-json]]). **Omissão `~/.workflow-app`** — fora do repo, para nunca ser commitado. Absoluto; criada no arranque se não existir. `state.json` inválido → o backend não arranca (e nunca o sobrescreve) |
 | `FRONTEND_DIST` | — | `C:\…\frontend\dist` | Build do frontend que o backend serve. **Omissão: `frontend/dist` do repo.** Absoluto. Sem `index.html` lá dentro → só a API (aviso no arranque). Quando serve, a própria origem (`localhost`/`127.0.0.1` na `PORT`) passa a ser aceite no WebSocket ([[security]] → CORS) |
 
 **O que o processo `claude` recebe**: o ambiente do backend **sem** `ANTHROPIC_*`, `CLAUDE_CODE_*`,

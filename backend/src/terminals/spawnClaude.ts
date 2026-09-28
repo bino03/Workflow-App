@@ -32,6 +32,8 @@ const DENIED_NAMES = new Set([
   'MAX_TERMINALS',
   'SCROLLBACK_BYTES',
   'WORKFLOW_PATH',
+  'DATA_DIR',
+  'FRONTEND_DIST',
 ]);
 
 export function isDeniedEnvName(name: string): boolean {

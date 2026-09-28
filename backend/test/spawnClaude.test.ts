@@ -20,6 +20,8 @@ describe('childEnv', () => {
       APP_PASSWORD_HASH: '$argon2id$…',
       PORT: '7400',
       HOST: '127.0.0.1',
+      DATA_DIR: 'C:\\Users\\me\\.workflow-app',
+      FRONTEND_DIST: 'C:\\dist',
       CLAUDE_CONFIG_DIR: 'C:\\Users\\me\\.claude',
     });
     expect(env).toEqual({

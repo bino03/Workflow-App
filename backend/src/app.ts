@@ -10,16 +10,18 @@ import { registerAuthGuard } from './common/authGuard.js';
 import { AppError, registerErrorHandler } from './common/errors.js';
 import { healthRoutes } from './common/health.routes.js';
 import { hasSpaBuild, registerSpa, selfOrigins } from './common/spa.js';
+import type { StateStore } from './state/stateStore.js';
 import type { TerminalManager } from './terminals/terminalManager.js';
 
 export type AppDeps = {
   config: Config;
   terminalManager: TerminalManager;
   sessionStore?: SessionStore;
+  stateStore?: StateStore;
   logger?: boolean;
 };
 
-export async function buildApp({ config, terminalManager, sessionStore, logger = true }: AppDeps): Promise<FastifyInstance> {
+export async function buildApp({ config, terminalManager, sessionStore, stateStore, logger = true }: AppDeps): Promise<FastifyInstance> {
   const app = Fastify({
     logger: logger && {
       level: config.logLevel,
@@ -29,6 +31,8 @@ export async function buildApp({ config, terminalManager, sessionStore, logger =
 
   const sessions =
     sessionStore ?? new SessionStore({ idleMs: config.auth.sessionIdleMs, maxMs: config.auth.sessionMaxMs });
+
+  if (stateStore) stateStore.logger = app.log;
 
   const serveSpa = hasSpaBuild(config.frontendDist);
   registerErrorHandler(app, { spaFallback: serveSpa });
@@ -64,6 +68,7 @@ export async function buildApp({ config, terminalManager, sessionStore, logger =
   app.addHook('onClose', async () => {
     sessions.close();
     await terminalManager.killAll();
+    await stateStore?.flush();
   });
 
   return app;

@@ -1,8 +1,8 @@
 # 🗄️ Base de dados — estado persistido
 
 > ✅ **Modelo decidido a 2026-09-28** (`/design-database`, [[adr/0009-estado-em-ficheiro-json]]) — **sem base
-> de dados**: um ficheiro `state.json` escrito só pelo backend. Implementação por fazer (ver
-> `notes/ToDo.md` → "Modelo de dados").
+> de dados**: um ficheiro `state.json` escrito só pelo backend. **`StateStore` ✅** (`backend/src/state/`: ler, validar, limites, fila de
+> escrita); as coleções ainda não têm quem lhes escreva — chegam com a feature Terminais.
 > Migrações: nenhuma — o schema tem `version`; mudanças de schema são funções `migrate(vN → vN+1)` no
 > código que o lê, nunca edição à mão de ficheiros antigos.
 

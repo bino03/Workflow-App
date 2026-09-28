@@ -1,5 +1,6 @@
 import { realpathSync } from 'node:fs';
-import { tmpdir } from 'node:os';
+import { homedir, tmpdir } from 'node:os';
+import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
 import { ConfigError, loadConfig } from '../src/config.js';
 import { testEnv } from './helpers.js';
@@ -56,6 +57,12 @@ describe('loadConfig', () => {
     );
     expect(config.terminals.allowedRoots).toHaveLength(2);
     expect(config.corsAllowedOrigins).toEqual(['http://localhost:7401', 'http://127.0.0.1:7401']);
+  });
+
+  it('DATA_DIR defaults to ~/.workflow-app and must be absolute', () => {
+    expect(loadConfig(testEnv({ DATA_DIR: undefined })).dataDir).toBe(join(homedir(), '.workflow-app'));
+    expect(loadConfig(testEnv({ DATA_DIR: 'C:\\data' })).dataDir).toBe('C:\\data');
+    expect(issuesOf(testEnv({ DATA_DIR: 'relative' })).join()).toContain('DATA_DIR');
   });
 
   it('parses COOKIE_SECURE strictly', () => {

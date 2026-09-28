@@ -2,6 +2,7 @@ import { existsSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { buildApp } from './app.js';
 import { type Config, ConfigError, loadConfig } from './config.js';
+import { StateFileError, StateStore } from './state/stateStore.js';
 import { ClaudeBinError, type SpawnPty, claudeSpawner, resolveClaudeBin } from './terminals/spawnClaude.js';
 import { TerminalManager } from './terminals/terminalManager.js';
 
@@ -14,6 +15,17 @@ try {
   config = loadConfig();
 } catch (error) {
   if (error instanceof ConfigError) {
+    console.error(error.message);
+    process.exit(1);
+  }
+  throw error;
+}
+
+let stateStore: StateStore;
+try {
+  stateStore = await StateStore.load(config.dataDir);
+} catch (error) {
+  if (error instanceof StateFileError) {
     console.error(error.message);
     process.exit(1);
   }
@@ -37,7 +49,7 @@ const terminalManager = new TerminalManager({
   maxTerminals: config.terminals.maxTerminals,
   scrollbackBytes: config.terminals.scrollbackBytes,
 });
-const app = await buildApp({ config, terminalManager });
+const app = await buildApp({ config, terminalManager, stateStore });
 if (claudeBinError) app.log.warn(claudeBinError);
 
 const SHUTDOWN_TIMEOUT_MS = 5000;

@@ -59,9 +59,10 @@ backend/
 ├── test/                    ← Vitest (app.inject, sem rede)
 └── src/
     ├── server.ts            ← ponto de entrada: .env, config, listen, sinais → graceful shutdown
-    ├── app.ts               ← buildApp({config, terminalManager}): plugins, handler de erros, rotas, onClose mata os PTYs
+    ├── app.ts               ← buildApp({config, terminalManager, stateStore}): plugins, handler de erros, rotas, onClose mata os PTYs e esvazia a fila do state.json
     ├── config.ts            ← variáveis de ambiente validadas com zod — falha no arranque
     ├── common/              ← errors (ErrorCode, AppError, error handler único), validation (parseWith), health, auth guard, spa (servir o frontend/dist)
+    ├── state/               ← StateStore: DATA_DIR/state.json (ADR 0009) — schema zod v1, limites, fila de escrita atómica
     ├── auth/                ← login / logout / me, sessão em cookie HttpOnly
     ├── terminals/           ← TerminalManager (PTYs), rotas REST, gateway WebSocket, scrollback
     ├── sessions/            ← listar as sessões gravadas do Claude Code por pasta (para --resume)
