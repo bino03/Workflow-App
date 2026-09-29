@@ -14,6 +14,8 @@ import { libraryRoutes } from './library/library.routes.js';
 import { LibraryService } from './library/libraryService.js';
 import { foldersRoutes } from './folders/folders.routes.js';
 import { FoldersService } from './folders/foldersService.js';
+import { projectsRoutes } from './projects/projects.routes.js';
+import { ProjectsService } from './projects/projectsService.js';
 import { ClaudeSessions } from './sessions/claudeSessions.js';
 import { sessionsRoutes } from './sessions/sessions.routes.js';
 import type { StateStore } from './state/stateStore.js';
@@ -74,6 +76,9 @@ export async function buildApp({ config, terminalManager, sessionStore, stateSto
   await app.register(healthRoutes);
   await app.register(authRoutes, { config, sessionStore: sessions });
   await app.register(libraryRoutes, { libraryService: new LibraryService(config.workflowPath) });
+  await app.register(projectsRoutes, {
+    projectsService: new ProjectsService(config.workflowPath, config.terminals.allowedRoots),
+  });
 
   const sessionsReader = new ClaudeSessions(config.terminals.claudeConfigDir);
   const terminalsService = new TerminalsService({

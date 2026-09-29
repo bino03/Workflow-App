@@ -1,7 +1,8 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Alert, Button, Spin } from 'antd';
 import { NewTerminalDrawer } from '@/components/terminals/new/NewTerminalDrawer';
-import { displayNames, groupByProject, orderedTerminals } from '@/components/terminals/projects';
+import { ProjectTabs } from '@/components/terminals/ProjectTabs';
+import { displayNames, type Project, joinProjects, projectsWithTerminals } from '@/components/terminals/projects';
 import { QuotaMeter } from '@/components/terminals/QuotaMeter';
 import { TerminalGrid } from '@/components/terminals/TerminalGrid';
 import { TerminalPane } from '@/components/terminals/TerminalPane';
@@ -9,6 +10,7 @@ import { TerminalSidebar } from '@/components/terminals/TerminalSidebar';
 import { ErrorHandler, getApiErrorResponse } from '@/errors/errorHandler';
 import { useConfirm } from '@/hooks/useConfirm';
 import { useLayoutMode } from '@/hooks/useLayoutMode';
+import { useProjects } from '@/hooks/useProjects';
 import { type ShortcutAction, useTerminalShortcuts } from '@/hooks/useTerminalShortcuts';
 import { useTerminals } from '@/hooks/useTerminals';
 import { useUsage } from '@/hooks/useUsage';
@@ -21,30 +23,37 @@ const PANE_HEADER_HEIGHT = 44;
 
 type DrawerState = { open: boolean; key: number; folder?: string; mode?: 'new' | 'resume' };
 
+/** O foco/split/ampliado ficam por projeto — trocar de separador nunca mistura nem perde o de outro. */
+type ProjectLayout = { selectedId: string | null; splitId: string | null; enlargedId: string | null; activeId: string | null; previousId: string | null };
+const EMPTY_LAYOUT: ProjectLayout = { selectedId: null, splitId: null, enlargedId: null, activeId: null, previousId: null };
+
 /**
- * Terminais em foco dividido (protótipos 1g/1h), com a lateral por projetos (spec §3, 2026-09-28): a lateral e
- * um painel, ou dois com Alt+\. Os terminais fora do ecrã continuam montados — ligados, sem replay ao voltar.
+ * Terminais navegados **por projeto** (spec docs/features/separadores-de-projetos.md, 2026-09-28): a
+ * lateral lista os projetos (registo do Workflow + terminais existentes), cada projeto aberto ganha um
+ * separador tipo browser, e dentro dele mantém-se o foco dividido/grelha da spec original (docs/features/terminais.md
+ * §3) — mas só com os terminais desse projeto. Os terminais de projetos não ativos continuam montados
+ * (escondidos, sem replay), exatamente como um terminal "fora do ecrã" já ficava antes desta spec.
  */
 export function TerminalsPage() {
-  const { terminals, loading, error, refresh, create, reopen, rename, close, markExited } = useTerminals();
+  const { terminals, loading: terminalsLoading, error, refresh, create, reopen, rename, close, markExited } = useTerminals();
+  const { projects: registry, loading: registryLoading } = useProjects();
   const confirm = useConfirm();
   const mainRef = useRef<HTMLDivElement>(null);
   const [favorites, setFavorites] = useState<string[]>([]);
-  const [selectedId, setSelectedId] = useState<string | null>(null);
-  const [splitId, setSplitId] = useState<string | null>(null);
-  const [activeId, setActiveId] = useState<string | null>(null);
-  const previousId = useRef<string | null>(null);
-  // Cada abertura remonta o drawer (key): o formulário começa limpo sem reset num efeito.
+  const [favoritesVersion, setFavoritesVersion] = useState(0);
+  const [layout] = useLayoutMode();
+  const { usage, now } = useUsage();
+
+  const [openPaths, setOpenPaths] = useState<string[]>([]);
+  const [activePath, setActivePath] = useState<string | null>(null);
+  const [layouts, setLayouts] = useState<Record<string, ProjectLayout>>({});
+  const seeded = useRef(false);
+
   const [drawer, setDrawer] = useState<DrawerState>({ open: false, key: 0 });
   const [renamingId, setRenamingId] = useState<string | null>(null);
   const [reopening, setReopening] = useState<Set<string>>(new Set());
   const [reopeningAll, setReopeningAll] = useState(false);
   const [creatingIn, setCreatingIn] = useState<string | null>(null);
-  const [favoritesVersion, setFavoritesVersion] = useState(0);
-  const [layout] = useLayoutMode();
-  const { usage, now } = useUsage();
-  // Grelha: ampliar é temporário — não muda a preferência (spec §3).
-  const [enlargedId, setEnlargedId] = useState<string | null>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -56,63 +65,100 @@ export function TerminalsPage() {
     };
   }, [favoritesVersion]);
 
-  const projects = useMemo(() => groupByProject(terminals, favorites), [terminals, favorites]);
-  const ordered = useMemo(() => orderedTerminals(projects), [projects]);
+  const projects = useMemo(() => joinProjects(registry, terminals, favorites), [registry, terminals, favorites]);
   const names = useMemo(() => displayNames(projects), [projects]);
-  const shortcutIndex = useMemo(() => new Map(ordered.map((t, i) => [t.id, i])), [ordered]);
-
-  // A seleção tem de apontar sempre para um terminal que existe (fechar, fechar noutro separador…).
-  const exists = useCallback((id: string | null) => !!id && terminals.some((t) => t.id === id), [terminals]);
-  const primaryId = exists(selectedId) ? selectedId : (ordered[0]?.id ?? null);
-  const secondaryId = exists(splitId) && splitId !== primaryId ? splitId : null;
   const grid = layout === 'grid';
-  const enlarged = grid && exists(enlargedId) ? enlargedId : null;
+
+  // Ao carregar: um separador por cada projeto que já tem terminais (spec §3) — só uma vez.
+  useEffect(() => {
+    if (seeded.current || terminalsLoading || registryLoading) return;
+    seeded.current = true;
+    const withTerminals = projectsWithTerminals(projects).map((p) => p.path);
+    setOpenPaths(withTerminals);
+    setActivePath(withTerminals[0] ?? null);
+  }, [terminalsLoading, registryLoading, projects]);
+
+  const openProjects = useMemo(
+    () => openPaths.map((path) => projects.find((p) => p.path === path)).filter((p): p is Project => !!p),
+    [openPaths, projects],
+  );
+  const activeProject = useMemo(() => projects.find((p) => p.path === activePath) ?? null, [projects, activePath]);
+  const activeTerminals = useMemo(() => activeProject?.terminals ?? [], [activeProject]);
+
+  const layoutFor = useCallback((path: string) => layouts[path] ?? EMPTY_LAYOUT, [layouts]);
+  const updateLayout = useCallback((path: string, patch: Partial<ProjectLayout>) => {
+    setLayouts((prev) => ({ ...prev, [path]: { ...(prev[path] ?? EMPTY_LAYOUT), ...patch } }));
+  }, []);
+
+  const activeLayout = activePath ? layoutFor(activePath) : EMPTY_LAYOUT;
+  // A seleção tem de apontar sempre para um terminal do projeto ativo que existe (fechar, terminar…).
+  const existsInActive = useCallback((id: string | null) => !!id && activeTerminals.some((t) => t.id === id), [activeTerminals]);
+  const primaryId = existsInActive(activeLayout.selectedId) ? activeLayout.selectedId : (activeTerminals[0]?.id ?? null);
+  const secondaryId = existsInActive(activeLayout.splitId) && activeLayout.splitId !== primaryId ? activeLayout.splitId : null;
+  const enlarged = grid && existsInActive(activeLayout.enlargedId) ? activeLayout.enlargedId : null;
   const keyboardId = grid
-    ? (enlarged ?? (exists(activeId) ? activeId : null))
-    : activeId === secondaryId && secondaryId
+    ? (enlarged ?? (existsInActive(activeLayout.activeId) ? activeLayout.activeId : null))
+    : activeLayout.activeId === secondaryId && secondaryId
       ? secondaryId
       : primaryId;
   const visibleIds = grid
     ? enlarged
       ? [enlarged]
-      : ordered.map((t) => t.id)
+      : activeTerminals.map((t) => t.id)
     : [primaryId, secondaryId].filter((id): id is string => !!id);
+  const shortcutIndex = useMemo(() => new Map(activeTerminals.map((t, i) => [t.id, i])), [activeTerminals]);
 
   const openDrawer = useCallback((folder?: string, mode?: 'new' | 'resume') => {
     setDrawer((state) => ({ open: true, key: state.key + 1, folder, mode }));
   }, []);
 
-  const paneSize = useCallback((): TerminalSize => {
+  const paneSize = useCallback((split: boolean): TerminalSize => {
     const main = mainRef.current;
     const width = main?.clientWidth ?? window.innerWidth - 288;
     const height = (main?.clientHeight ?? window.innerHeight - 74) - PANE_HEADER_HEIGHT - 10;
-    return estimateTerminalSize(secondaryId ? width / 2 - 14 : width - 14, height);
-  }, [secondaryId]);
+    return estimateTerminalSize(split ? width / 2 - 14 : width - 14, height);
+  }, []);
 
-  const select = useCallback(
-    (id: string) => {
-      if (grid) {
-        setEnlargedId(id);
-        setActiveId(id);
-        return;
-      }
-      if (id === secondaryId) {
-        setActiveId(id);
-        return;
-      }
-      if (id !== primaryId) previousId.current = primaryId;
-      setSelectedId(id);
-      setActiveId(id);
+  /** Abre/foca o separador de `path` e faz de `id` o foco (respeita foco dividido vs. grelha). */
+  const focusTerminal = useCallback(
+    (path: string, id: string) => {
+      setOpenPaths((prev) => (prev.includes(path) ? prev : [...prev, path]));
+      setActivePath(path);
+      setLayouts((prev) => {
+        const current = prev[path] ?? EMPTY_LAYOUT;
+        if (grid) return { ...prev, [path]: { ...current, enlargedId: id, activeId: id } };
+        return { ...prev, [path]: { ...current, selectedId: id, splitId: null, activeId: id, previousId: current.selectedId } };
+      });
     },
-    [grid, primaryId, secondaryId],
+    [grid],
+  );
+
+  /** Clicar um terminal (lateral, mosaico, ou painel): abre/foca o separador do projeto dele. */
+  const selectTerminal = useCallback(
+    (id: string) => {
+      const project = projects.find((p) => p.terminals.some((t) => t.id === id));
+      if (!project) return;
+      const path = project.path;
+      setOpenPaths((prev) => (prev.includes(path) ? prev : [...prev, path]));
+      setActivePath(path);
+      setLayouts((prev) => {
+        const current = prev[path] ?? EMPTY_LAYOUT;
+        if (grid) return { ...prev, [path]: { ...current, enlargedId: id, activeId: id } };
+        if (id === current.splitId) return { ...prev, [path]: { ...current, activeId: id } };
+        const primary = existsInActive(current.selectedId) ? current.selectedId : (project.terminals[0]?.id ?? null);
+        if (id !== primary) return { ...prev, [path]: { ...current, previousId: primary, selectedId: id, activeId: id } };
+        return { ...prev, [path]: { ...current, activeId: id } };
+      });
+    },
+    [projects, grid, existsInActive],
   );
 
   const handleCreate = async (body: Omit<CreateTerminalBody, 'cols' | 'rows'>) => {
-    const view = await create({ ...body, ...paneSize() });
-    select(view.id);
+    const view = await create({ ...body, ...paneSize(false) });
+    focusTerminal(body.cwd, view.id);
   };
 
-  /** O + de um projeto: mais um terminal na mesma pasta, sessão nova, sem drawer. */
+  /** O "+" de um projeto (lateral, cabeçalho da grelha): mais um terminal, sessão nova, sem drawer. */
   const handleNewInProject = async (path: string) => {
     setCreatingIn(path);
     try {
@@ -124,6 +170,30 @@ export function TerminalsPage() {
     }
   };
 
+  /** Clicar um projeto na lateral: sem terminais, cria logo o primeiro; com terminais, abre/foca o separador. */
+  const handleSelectProject = async (path: string) => {
+    const project = projects.find((p) => p.path === path);
+    if (project && project.terminals.length > 0) {
+      setOpenPaths((prev) => (prev.includes(path) ? prev : [...prev, path]));
+      setActivePath(path);
+      return;
+    }
+    await handleNewInProject(path);
+  };
+
+  /** Esconde o separador — os terminais do projeto continuam a correr (spec §3). */
+  const closeTab = useCallback(
+    (path: string) => {
+      setOpenPaths((prev) => prev.filter((p) => p !== path));
+      setActivePath((current) => {
+        if (current !== path) return current;
+        const next = openPaths.filter((p) => p !== path);
+        return next[0] ?? null;
+      });
+    },
+    [openPaths],
+  );
+
   const handleToggleFavorite = async (path: string, favorite: boolean) => {
     try {
       await setFavoriteFolder(path, favorite);
@@ -134,7 +204,7 @@ export function TerminalsPage() {
   };
 
   const reopenOne = async (id: string) => {
-    const view = await reopen(id, paneSize());
+    const view = await reopen(id, paneSize(false));
     if (view.freshSession) {
       notificationService.info('Conversa nova', `${names.get(id) ?? 'O terminal'} não tinha conversa gravada — começou uma sessão nova.`);
     }
@@ -155,11 +225,11 @@ export function TerminalsPage() {
     }
   };
 
-  /** Reabre os parados pela ordem da lateral, e para no limite de terminais (o resto fica parado). */
+  /** Reabre os parados de todos os projetos, e para no limite de terminais (o resto fica parado). */
   const handleReopenAll = async () => {
     setReopeningAll(true);
     try {
-      for (const terminal of ordered.filter((t) => t.status === 'stopped')) {
+      for (const terminal of projects.flatMap((p) => p.terminals).filter((t) => t.status === 'stopped')) {
         try {
           await reopenOne(terminal.id);
         } catch (e) {
@@ -174,7 +244,6 @@ export function TerminalsPage() {
 
   const requestClose = useCallback(
     (id: string) => {
-      if (!exists(id)) return;
       confirm({
         title: `Fechar ${names.get(id)}?`,
         actionLabel: 'Fechar terminal',
@@ -188,40 +257,36 @@ export function TerminalsPage() {
         },
       });
     },
-    [exists, names, confirm, close],
+    [names, confirm, close],
   );
 
-  const toggleSplit = useCallback(() => {
+  const toggleSplit = () => {
+    if (!activePath) return;
     if (secondaryId) {
-      setSplitId(null);
-      setActiveId(primaryId);
+      updateLayout(activePath, { splitId: null, activeId: primaryId });
       return;
     }
-    // Divide com o terminal anterior; sem anterior, com o seguinte na ordem da lateral.
     const candidate =
-      (exists(previousId.current) && previousId.current !== primaryId ? previousId.current : null) ??
-      ordered.find((t) => t.id !== primaryId)?.id ??
+      (existsInActive(activeLayout.previousId) && activeLayout.previousId !== primaryId ? activeLayout.previousId : null) ??
+      activeTerminals.find((t) => t.id !== primaryId)?.id ??
       null;
-    if (candidate) {
-      setSplitId(candidate);
-      setActiveId(candidate);
-    }
-  }, [secondaryId, primaryId, exists, ordered]);
+    if (candidate) updateLayout(activePath, { splitId: candidate, activeId: candidate });
+  };
 
   useTerminalShortcuts((action: ShortcutAction) => {
     switch (action.type) {
       case 'new':
-        openDrawer();
+        if (activePath) void handleNewInProject(activePath);
         break;
       case 'jump': {
-        const target = ordered[action.index];
-        if (target) select(target.id);
+        const target = activeTerminals[action.index];
+        if (target) selectTerminal(target.id);
         break;
       }
       case 'split':
-        // Na grelha não há divisão: Alt+\ volta à grelha.
-        if (grid) setEnlargedId(null);
-        else toggleSplit();
+        if (grid) {
+          if (activePath) updateLayout(activePath, { enlargedId: null });
+        } else toggleSplit();
         break;
       case 'close':
         if (keyboardId) requestClose(keyboardId);
@@ -234,23 +299,24 @@ export function TerminalsPage() {
 
   // Esc volta à grelha — só fora do terminal: lá dentro o Esc é do Claude Code (interromper).
   useEffect(() => {
-    if (!enlarged || drawer.open) return;
+    if (!enlarged || drawer.open || !activePath) return;
+    const path = activePath;
     const onKeyDown = (event: KeyboardEvent) => {
       if (event.key !== 'Escape' || (event.target instanceof Element && event.target.closest('.xterm'))) return;
-      setEnlargedId(null);
+      updateLayout(path, { enlargedId: null });
     };
     window.addEventListener('keydown', onKeyDown);
     return () => window.removeEventListener('keydown', onKeyDown);
-  }, [enlarged, drawer.open]);
+  }, [enlarged, drawer.open, activePath, updateLayout]);
 
   // Um terminal que termina fora do ecrã só se nota por isto — não há estados "a trabalhar" no MVP.
   const handleExit = (id: string, code: number) => {
     markExited(id, code);
-    if (exists(id) && !visibleIds.includes(id)) {
+    if (!visibleIds.includes(id)) {
       notificationService.action(`${names.get(id)} terminou`, 'A sessão ficou gravada.', {
         label: 'Reabrir',
         onClick: () => {
-          select(id);
+          selectTerminal(id);
           void handleReopen(id);
         },
       });
@@ -267,7 +333,7 @@ export function TerminalsPage() {
     }
   };
 
-  if (loading) {
+  if (terminalsLoading || registryLoading) {
     return (
       <div className="h-full flex items-center justify-center">
         <Spin />
@@ -281,13 +347,13 @@ export function TerminalsPage() {
       name={names.get(terminal.id) ?? ''}
       variant={tile ? 'tile' : 'pane'}
       enlarged={tile && terminal.id === enlarged}
-      onBackToGrid={() => setEnlargedId(null)}
+      onBackToGrid={() => activePath && updateLayout(activePath, { enlargedId: null })}
       visible={visibleIds.includes(terminal.id)}
       focused={terminal.id === keyboardId}
       split={!tile && !!secondaryId}
       renaming={renamingId === terminal.id}
       reopening={reopening.has(terminal.id)}
-      onActivate={() => select(terminal.id)}
+      onActivate={() => selectTerminal(terminal.id)}
       onRenameStart={() => setRenamingId(terminal.id)}
       onRenameEnd={(label) => void handleRenameEnd(terminal.id, label)}
       onSplit={toggleSplit}
@@ -298,19 +364,25 @@ export function TerminalsPage() {
     />
   );
 
-  const emptyState = (
-    <div className="flex-1 bg-bg flex flex-col items-center justify-center gap-3">
-      <p className="m-0 text-text-1 font-semibold">Nenhum terminal aberto</p>
-      <p className="m-0 text-text-2 text-[13px]">Abre uma sessão do Claude Code numa das pastas autorizadas.</p>
-      <Button type="primary" onClick={() => openDrawer()}>
-        + Novo terminal <span className="font-mono text-[10.5px] opacity-75">Alt+N</span>
-      </Button>
-    </div>
-  );
-
   const errorState = error && (
     <div className="flex-1 bg-bg p-8">
       <Alert type="error" showIcon title={error} action={<Button size="small" onClick={refresh}>Tentar de novo</Button>} />
+    </div>
+  );
+
+  const noActiveProject = (
+    <div className="flex-1 bg-bg flex flex-col items-center justify-center gap-3">
+      <p className="m-0 text-text-1 font-semibold">Nenhum projeto aberto</p>
+      <p className="m-0 text-text-2 text-[13px]">Escolhe um projeto na lateral para abrir um separador.</p>
+    </div>
+  );
+
+  const emptyProject = activeProject && (
+    <div className="flex-1 bg-bg flex flex-col items-center justify-center gap-3">
+      <p className="m-0 text-text-1 font-semibold">Nenhum terminal em {activeProject.name}</p>
+      <Button type="primary" onClick={() => void handleNewInProject(activeProject.path)} loading={creatingIn === activeProject.path}>
+        + Novo terminal aqui
+      </Button>
     </div>
   );
 
@@ -328,63 +400,66 @@ export function TerminalsPage() {
     />
   );
 
-  if (grid) {
-    return (
-      <>
-        {errorState ?? (
+  const sidebar = (
+    <TerminalSidebar
+      projects={projects}
+      activePath={activePath}
+      names={names}
+      shortcutIndex={shortcutIndex}
+      visibleIds={visibleIds}
+      onSelectProject={(path) => void handleSelectProject(path)}
+      onSelectTerminal={selectTerminal}
+      onNewInProject={(path) => void handleNewInProject(path)}
+      onResumeInProject={(path) => openDrawer(path, 'resume')}
+      onToggleFavorite={(path, favorite) => void handleToggleFavorite(path, favorite)}
+      creatingIn={creatingIn}
+      onReopenAll={() => void handleReopenAll()}
+      reopeningAll={reopeningAll}
+      footer={<QuotaMeter usage={usage} now={now} variant="sidebar" />}
+    />
+  );
+
+  return (
+    <div className="h-full flex">
+      {sidebar}
+      <div className="flex-1 min-w-0 flex flex-col">
+        <ProjectTabs projects={openProjects} activePath={activePath} onSelect={setActivePath} onClose={closeTab} />
+        {errorState}
+        {!error && grid && (
           <TerminalGrid
-            terminals={ordered}
+            terminals={activeTerminals}
             enlarged={!!enlarged}
-            onNew={() => openDrawer()}
+            onNew={() => activePath && void handleNewInProject(activePath)}
             headerExtra={<QuotaMeter usage={usage} now={now} variant="header" />}
           >
-            {ordered.map((terminal) => (
+            {terminals.map((terminal) => (
               <div
                 key={`${terminal.id}:${terminal.lastOpenedAt}`}
-                className={enlarged && enlarged !== terminal.id ? 'hidden' : 'min-h-0 min-w-0 flex flex-1'}
+                className={visibleIds.includes(terminal.id) ? 'min-h-0 min-w-0 flex flex-1' : 'hidden'}
               >
                 {paneFor(terminal, true)}
               </div>
             ))}
+            {!activeProject && noActiveProject}
+            {activeProject && activeTerminals.length === 0 && emptyProject}
           </TerminalGrid>
         )}
-        {drawerElement}
-      </>
-    );
-  }
-
-  return (
-    <div className="h-full flex">
-      <TerminalSidebar
-        projects={projects}
-        names={names}
-        shortcutIndex={shortcutIndex}
-        visibleIds={visibleIds}
-        onSelect={select}
-        onNew={() => openDrawer()}
-        onNewInProject={(path) => void handleNewInProject(path)}
-        onResumeInProject={(path) => openDrawer(path, 'resume')}
-        onToggleFavorite={(path, favorite) => void handleToggleFavorite(path, favorite)}
-        creatingIn={creatingIn}
-        onReopenAll={() => void handleReopenAll()}
-        reopeningAll={reopeningAll}
-        footer={<QuotaMeter usage={usage} now={now} variant="sidebar" />}
-      />
-      <main ref={mainRef} className="flex-1 min-w-0 flex gap-px bg-border">
-        {errorState}
-        {!error && terminals.length === 0 && emptyState}
-        {!error &&
-          // A ordem no DOM é a da lista (os xterm.js não se remontam); a ordem visual é a do foco dividido.
-          terminals.map((terminal) => (
-            <div
-              key={`${terminal.id}:${terminal.lastOpenedAt}`}
-              className={visibleIds.includes(terminal.id) ? 'flex-1 min-w-0 flex' : 'hidden'}
-              style={{ order: terminal.id === secondaryId ? 2 : 1 }}
-            >
-              {paneFor(terminal, false)}
-            </div>
-          ))}
-      </main>
+        {!error && !grid && (
+          <main ref={mainRef} className="flex-1 min-w-0 flex gap-px bg-border">
+            {terminals.map((terminal) => (
+              <div
+                key={`${terminal.id}:${terminal.lastOpenedAt}`}
+                className={visibleIds.includes(terminal.id) ? 'flex-1 min-w-0 flex' : 'hidden'}
+                style={{ order: terminal.id === secondaryId ? 2 : 1 }}
+              >
+                {paneFor(terminal, false)}
+              </div>
+            ))}
+            {!activeProject && noActiveProject}
+            {activeProject && activeTerminals.length === 0 && emptyProject}
+          </main>
+        )}
+      </div>
       {drawerElement}
     </div>
   );

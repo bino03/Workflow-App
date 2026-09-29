@@ -138,6 +138,27 @@ Só leitura, lida do disco a cada pedido ([[adr/0005-biblioteca-lida-do-disco]])
 - **Um manifesto inválido nunca é fatal**: vai para `invalid[]` como `{path, message}` (caminho relativo +
   razão do zod/YAML), e o resto da lista vem na mesma. Só a falta da pasta `library/` dá `500 LIBRARY_001`.
 
+## Projetos (`projects/`, `/api/projects`) — ✅
+
+Só leitura, lida do disco a cada pedido ([[adr/0005-biblioteca-lida-do-disco]] — mesma postura da
+Biblioteca, aplicada ao registo de projetos do Workflow). **Nunca falha por causa dos dados do
+registo**: sem `projects/INDEX.md`, sem "Pasta base", ou uma linha mal formada da tabela → esse
+projeto (ou a lista toda) sai, nunca 500.
+
+| Método | Rota | Acesso | Lê | Resposta | Erros |
+|---|---|---|---|---|---|
+| GET | `/api/projects` | sessão | `WORKFLOW_PATH/projects/INDEX.md` | `ProjectEntry[]` | `AUTH_002` |
+
+- `ProjectEntry = {name, path, type, stack, status}` — `path` é absoluto (`Pasta base` + a coluna
+  "Caminho" da tabela) e já passou por `resolveAllowedPath`; `type`/`stack`/`status` vêm das colunas
+  Tipo/Stack/Estado, `null` quando a célula está vazia ou é "—".
+- Ficam de fora da lista: projetos com `Estado` a começar por "descartado", e projetos cujo caminho
+  resolvido cai fora de `ALLOWED_ROOTS` ou não existe no disco (mesma regra das pastas favoritas/recentes
+  fora das raízes, [[features/separadores-de-projetos]]).
+- `projects/INDEX.md` é uma tabela Markdown para humanos, sem frontmatter — ao contrário dos manifestos
+  da Biblioteca, é a única fonte que existe para o registo de projetos; o parser
+  (`backend/src/projects/projectIndexParser.ts`) tolera linhas mal formadas, saltando-as.
+
 ## Quota (`usage/`, `/api/usage`) — ✅
 
 | Método | Rota | Acesso | Resposta |

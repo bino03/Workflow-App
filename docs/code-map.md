@@ -69,6 +69,14 @@ isso há os outros:
 | **Dados** | `WORKFLOW_PATH/library` — só leitura ([[adr/0005-biblioteca-lida-do-disco]]) |
 | **Detalhe** | [[api]] → "Biblioteca" |
 
+## Projetos — 🚧 (spec [[features/separadores-de-projetos]] em curso)
+
+| Camada | Ficheiros |
+|---|---|
+| **Backend** | `backend/src/projects/` — `projects.routes.ts` · `projectsService.ts` (lê o disco, esconde `descartado` e o que sai de `ALLOWED_ROOTS`) · `projectIndexParser.ts` (tabela Markdown → linhas) · `project.schemas.ts` (`ProjectEntry`) |
+| **Dados** | `WORKFLOW_PATH/projects/INDEX.md` — só leitura, mesma postura da Biblioteca ([[adr/0005-biblioteca-lida-do-disco]]) |
+| **Detalhe** | [[api]] → "Projetos" |
+
 ---
 
 _(Uma secção por domínio, à medida que nasce:)_

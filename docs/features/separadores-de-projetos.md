@@ -2,10 +2,10 @@
 
 | | |
 |---|---|
-| **Estado** | 🚧 Em curso |
+| **Estado** | 🚧 Em curso — falta só a verificação manual no browser do passo 8 |
 | **Criada** | 2026-09-28 |
 | **Última sessão** | 2026-09-28 |
-| **Passos** | 0 / 8 concluídos |
+| **Passos** | 7 / 8 concluídos |
 
 > Escrita para uma sessão que **não viu a conversa que a originou**. Se algo só faz sentido com contexto
 > externo, falta escrevê-lo.
@@ -163,64 +163,93 @@ terminal continuam os `TERMINAL_*`/`FOLDER_001` já existentes ([[terminais]] §
 Ordem obrigatória. Tiers: `opus` (desenho, não delegar) · `sonnet` (implementação) · `haiku` (mecânico).
 **Regra 8 do `CLAUDE.md`**: nunca editar o backend a partir de um terminal servido por ele em `npm run dev`.
 
-- [ ] **1. Parser do `projects/INDEX.md`**
-  - Ficheiro: `backend/src/projects/projectIndexParser.ts`, `backend/test/projectIndexParser.test.ts` (fixture com uma cópia do `INDEX.md` real: linhas válidas, uma `descartado`, uma coluna em falta, ficheiro sem "Pasta base", ficheiro vazio)
+- [x] **1. Parser do `projects/INDEX.md`** — ✅ 2026-09-28 (6 testes)
+  - Ficheiro: `backend/src/projects/projectIndexParser.ts`, `backend/test/projectIndexParser.test.ts` (fixture com uma cópia do `INDEX.md` real: linhas válidas, uma `descartado`, uma linha sem caminho, ficheiro sem "Pasta base", sem tabela, vazio)
   - Skill: —
   - Tier: `sonnet`
-  - Aceite quando: extrai a "Pasta base" e as linhas da tabela; devolve caminho absoluto por linha; nunca lança (linha mal formada salta-se, ficheiro sem tabela → `[]`); `descartado` sai já aqui ou fica marcado para o passo 2 filtrar (decidir ao implementar, documentar onde ficou o filtro).
+  - Aceite quando: extrai a "Pasta base" e as linhas da tabela; devolve caminho absoluto por linha (`node:path.win32.join`, os caminhos do registo são sempre estilo Windows); nunca lança (linha mal formada salta-se, ficheiro sem tabela → `[]`).
+  - **Decisão ao implementar**: `descartado` **não** é filtrado aqui — o parser só lê o que está na página (devolve a linha com `status: "descartado (2026-09-06)"` tal como escrita); o passo 2 (`ProjectsService`) é que decide esconder. Mantém o parser de responsabilidade única.
 
-- [ ] **2. `ProjectsService`, rota `GET /api/projects` e docs**
+- [x] **2. `ProjectsService`, rota `GET /api/projects` e docs** — ✅ 2026-09-28 (4 testes)
   - Ficheiro: `backend/src/projects/{project.schemas.ts,projectsService.ts,projects.routes.ts}`, `backend/test/projects.routes.test.ts`; `docs/api.md`, `docs/code-map.md`
   - Skill: —
   - Tier: `sonnet`
   - Aceite quando: `GET /api/projects` (com sessão) devolve só projetos cujo caminho resolve dentro de `ALLOWED_ROOTS` via `resolveAllowedPath` (`backend/src/folders/cwdPolicy.ts`); sem `projects/INDEX.md` → `[]`/200; testado com `app.inject`; `api.md`/`code-map.md` atualizados no mesmo commit ([[../backend-conventions]]).
 
-- [ ] **3. Frontend: tipos, serviço, hook**
+- [x] **3. Frontend: tipos, serviço, hook** — ✅ 2026-09-28
   - Ficheiro: `frontend/src/types/project.ts`, `frontend/src/services/projectService.ts`, `frontend/src/hooks/useProjects.ts`
   - Skill: `frontend-design-system`
   - Tier: `sonnet`
   - Aceite quando: `useProjects` busca a lista uma vez e expõe `refresh`; `npx tsc -b` e lint limpos.
 
-- [ ] **4. `components/terminals/projects.ts` — juntar registo + terminais existentes**
+- [x] **4. `components/terminals/projects.ts` — juntar registo + terminais existentes** — ✅ 2026-09-28
   - Ficheiro: `frontend/src/components/terminals/projects.ts` (reescrito)
   - Skill: `frontend-design-system`
   - Tier: `opus` (a lógica de junção decide o resto da página — um erro aqui propaga a todos os passos seguintes)
   - Aceite quando: junta `ProjectEntry[]` (registo) com os terminais existentes por `cwd`; um projeto do registo sem terminal aparece como "por abrir"; um terminal cujo projeto saiu do registo (ou nunca lá esteve) não desaparece; devolve também os "abertos" (com terminais) para inicializar `openProjectPaths` no passo 7.
+  - **Decisão ao implementar**: `joinProjects` devolve `Project[]` com `registry: ProjectEntry | null` em vez de dois tipos separados — um projeto é sempre um só, com ou sem registo; `projectsWithTerminals()` é a função que dá os "abertos" ao passo 7.
 
-- [ ] **5. `ProjectTabs` — separadores tipo browser**
+- [x] **5. `ProjectTabs` — separadores tipo browser** — ✅ 2026-09-28
   - Ficheiro: `frontend/src/components/terminals/ProjectTabs.tsx`
   - Skill: `frontend-design-system`
   - Tier: `sonnet`
   - Aceite quando: um separador por `openProjectPaths`, pela ordem de abertura; nome do projeto, indicação de estado (ex.: quantos a correr), × que chama `onClose` (esconder, não mata); separador ativo destacado; só tokens, nenhum hex novo.
 
-- [ ] **6. `TerminalSidebar` — lista de projetos**
+- [x] **6. `TerminalSidebar` — lista de projetos** — ✅ 2026-09-28 (verificação no browser feita no passo 8, junto com o resto da página)
   - Ficheiro: `frontend/src/components/terminals/TerminalSidebar.tsx` (reescrito)
   - Skill: `frontend-design-system`, `frontend-error-handling`
   - Tier: `opus` (mexe na navegação principal da página)
   - Aceite quando: no browser — sem "+ Novo terminal" solto; clicar um projeto do registo sem terminais cria um terminal `claude` real (`mode: 'new'`) e abre/foca o separador; clicar um projeto com terminais reabre o separador tal como ficou; `descartado`/fora de `ALLOWED_ROOTS` não aparecem (já vêm filtrados do backend); estrela de favorito continua a marcar/desmarcar; "+" por projeto continua a abrir mais um terminal nesse projeto.
+  - **Decisão ao implementar (pergunta ao dono, 2026-09-28)**: sem o botão global, abrir um terminal numa pasta **fora** do registo do Workflow fica sem interface nesta v1 (volta com os casos "adotar"/"criar", §2 "Segunda fase") — o dono não escolheu entre as duas opções propostas e pediu para seguir com a recomendada.
 
-- [ ] **7. `TerminalsPage` — estado por projeto e isolamento**
+- [x] **7. `TerminalsPage` — estado por projeto e isolamento** — ✅ 2026-09-28
   - Ficheiro: `frontend/src/pages/TerminalsPage.tsx` (reescrito), `frontend/src/hooks/useTerminalShortcuts.ts` (sem mudar o contrato — só quem o consome)
   - Skill: `frontend-design-system`
   - Tier: `opus` (é o coração da spec [[terminais]] original, reescrito — o sítio onde um erro mistura terminais de projetos diferentes, o risco que o dono pediu explicitamente para evitar)
   - Aceite quando: no browser, com dois projetos e 2 terminais cada — foco dividido/grelha num separador nunca mostra nem deixa focar terminais do outro; `Alt+1…9` só salta os do separador ativo; `Alt+\` divide dentro do projeto ativo sem tocar no outro; esconder um separador com terminais a correr não os mata (continuam "a correr" quando se volta a esse projeto); Definições (grelha/foco dividido) continua a funcionar por separador; ao carregar a página, abre logo um separador por cada projeto com terminais existentes.
+  - **Decisões ao implementar**:
+    - O estado de foco/split/ampliado por projeto vive num `Record<path, ProjectLayout>` (não um `Map` — mais simples com `useState`); `layoutFor`/`updateLayout` leem/escrevem por caminho.
+    - Todos os terminais (de todos os projetos) continuam **sempre montados** no mesmo container (grelha ou foco, conforme o modo), só a classe `hidden` muda — o mesmo truque que já existia para "fora do ecrã"; troca de separador nunca desmonta xterm.js/WebSocket. Trocar entre foco dividido ↔ grelha continua a remontar tudo, como já acontecia antes desta spec (são duas árvores React diferentes).
+    - `Alt+N` (novo terminal) passa a abrir mais um terminal **no projeto ativo** em vez do drawer global (que já não tem para onde apontar sem o botão do topo).
+    - Reabrir (um ou "todos") não muda o separador ativo — replica o comportamento de antes desta spec, que também não mudava a seleção ao reabrir.
+    - `paneSize` ganhou um parâmetro `split: boolean` (a estimativa de largura da PTY); um terminal criado/reaberto começa sempre sem split (a `FitAddon` corrige o tamanho real a seguir, como já acontecia).
+  - **Verificação no browser**: feita no passo 8, para os dois passos (6 e 7) juntos — mexem na mesma árvore de componentes.
 
 - [ ] **8. Verificação ponta a ponta + fecho**
   - Ficheiro: `docs/product/use-cases.md` (ecrã Terminais → mencionar separadores por projeto), `docs/skills/references/design/*` (se houver padrão visual novo a registar dos separadores), `docs/features/terminais.md` (§ Relacionado — acrescentar link para esta spec, edição pontual, sem reescrever o histórico), `notes/ToDo.md`, `notes/whatIveDone.md`
   - Skill: `run`
   - Tier: `sonnet`
   - Aceite quando: no browser, com o `claude` real — dois projetos, separadores, troca sem perder nem misturar estado, esconder/reabrir um separador, recarregar a página mantém os separadores dos projetos com terminais; docs atualizados; plano e work log fechados.
+  - **Feito nesta sessão (2026-09-28)**: automático — 172 testes do backend a passar, `tsc -b`/lint do
+    frontend limpos, `typecheck`/lint do backend limpos (erro pré-existente em `test/auth.test.ts`, sem
+    relação); app a correr via `/run`, health checks OK; docs atualizados (`use-cases.md`,
+    `terminais.md` § Relacionado, `design/browser-tabs.md` — padrão novo registado).
+  - **Por fazer**: a extensão do Chrome (`claude-in-chrome`) não respondeu (`"No group with id"`, 5
+    tentativas, incluindo com o Chrome já aberto) — e a verificação real precisa de qualquer forma do
+    login com a password verdadeira, que só o dono tem. Checklist completo em
+    `notes/verificacao-browser-pendente.md` → "spec `separadores-de-projetos`, passo 8". Adiada, não
+    dispensada.
 
 ## 6. Estado atual
 
 > ⚠️ **Atualizar SEMPRE no fim de cada sessão.** É a secção que torna esta spec retomável.
 
-**Feito:** nada ainda.
-**Em curso:** —
-**Próxima ação concreta:** começar o passo 1 (`backend/src/projects/projectIndexParser.ts`), com uma
-cópia do `projects/INDEX.md` real (`WORKFLOW_PATH/projects/INDEX.md`, confirmado a 2026-09-28) como
-fixture de teste.
-**Desvios ao plano:** nenhum ainda.
+**Feito:**
+- Passos 1-7 (parser, `ProjectsService`/rota, tipos/serviço/hook do frontend, `joinProjects`, `ProjectTabs`,
+  `TerminalSidebar` e `TerminalsPage` reescritos) — ver as notas "Decisão ao implementar" de cada passo na
+  secção 5. 172 testes do backend a passar, `tsc -b`/lint do frontend limpos, `typecheck`/lint do backend
+  limpos (o único erro é pré-existente em `test/auth.test.ts`, sem relação com esta spec).
+- Passo 8 (parte automática) — docs atualizados (`docs/product/use-cases.md`, `docs/features/terminais.md`
+  § Relacionado, `docs/skills/references/design/browser-tabs.md` — padrão novo registado e ligado em
+  `frontend-visual-consistency.md`).
+**Em curso:** passo 8 — falta a verificação manual no browser (dois projetos, separadores, troca sem
+misturar estado, esconder/reabrir, recarregar a página).
+**Próxima ação concreta:** correr o checklist de `notes/verificacao-browser-pendente.md` → "spec
+`separadores-de-projetos`, passo 8" (precisa do dono: extensão do Chrome sem responder nesta sessão, e o
+login real precisa da password verdadeira de qualquer forma). Feito isso, marcar o passo 8 `[x]` e o Estado
+da spec como "✅ Concluída".
+**Desvios ao plano:** a secção 6 tinha ficado desatualizada numa sessão anterior (dizia só os passos 1-2
+feitos, quando o código já tinha os passos 3-7) — corrigido nesta sessão.
 **O que uma sessão nova precisa de saber:**
 - O `projects/INDEX.md` real está em `C:\Users\jlalv\Desktop\Workflow\Workflow\projects\INDEX.md`
   (`WORKFLOW_PATH` do `.env`); a "Pasta base" declarada lá dentro (`C:\Users\jlalv\Desktop\utad\projetos\`)

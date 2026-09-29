@@ -458,4 +458,5 @@ usar Chrome headless via CDP (ver `notes/learning.md`); nunca a password real nu
 ## Relacionado
 
 [[skill-plan-feature]] · [[skill-implement-todo]] · [[../adr/README]] · [[../database]] · [[../api]] ·
-[[../adr/0004-exposicao-e-modelo-de-ameaca]] · [[../adr/0012-argumentos-do-claude-e-status-line]]
+[[../adr/0004-exposicao-e-modelo-de-ameaca]] · [[../adr/0012-argumentos-do-claude-e-status-line]] ·
+[[separadores-de-projetos]] — reescreve a navegação desta feature para ser por projeto

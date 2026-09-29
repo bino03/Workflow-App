@@ -30,6 +30,7 @@ Lê **só** o(s) da área que estás a tocar.
 | Um formulário (campos, validação, submit, erros por campo) | [[design/forms-and-validation]] |
 | Uma chamada à API, serviço novo, tratamento de erro | [[design/services-and-error-handling]] |
 | Uma rota, item de menu, gate por role | [[design/app-shell-and-auth]] |
+| Separadores tipo browser (esconder, não fechar) | [[design/browser-tabs]] |
 
 ## Princípios
 
