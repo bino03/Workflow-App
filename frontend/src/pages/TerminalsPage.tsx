@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Alert, Button, Spin } from 'antd';
-import { NewTerminalDrawer } from '@/components/terminals/new/NewTerminalDrawer';
+import { ResumeSessionModal } from '@/components/terminals/new/ResumeSessionModal';
 import { ProjectTabs } from '@/components/terminals/ProjectTabs';
 import { DEFAULT_GRID_STYLE, type GridStyle, initialSlotIds, slotPlacement } from '@/components/terminals/gridStyle';
 import { GridStylePicker } from '@/components/terminals/GridStylePicker';
@@ -33,8 +33,6 @@ function readSidebarCollapsed(): boolean {
     return false;
   }
 }
-
-type DrawerState = { open: boolean; key: number; folder?: string; mode?: 'new' | 'resume' };
 
 /** O foco/split/ampliado ficam por projeto — trocar de separador nunca mistura nem perde o de outro.
  * `gridStyle`/`slotIds` (spec docs/features/estilos-de-grelha.md) só se usam fora de `classic` — os
@@ -112,7 +110,7 @@ export function TerminalsPage() {
   const [layouts, setLayouts] = useState<Record<string, ProjectLayout>>({});
   const seeded = useRef(false);
 
-  const [drawer, setDrawer] = useState<DrawerState>({ open: false, key: 0 });
+  const [resumePath, setResumePath] = useState<string | null>(null);
   const [renamingId, setRenamingId] = useState<string | null>(null);
   const [reopening, setReopening] = useState<Set<string>>(new Set());
   const [reopeningAll, setReopeningAll] = useState(false);
@@ -179,10 +177,6 @@ export function TerminalsPage() {
         : activeTerminals.map((t) => t.id)
     : [primaryId, secondaryId].filter((id): id is string => !!id);
   const shortcutIndex = useMemo(() => new Map(activeTerminals.map((t, i) => [t.id, i])), [activeTerminals]);
-
-  const openDrawer = useCallback((folder?: string, mode?: 'new' | 'resume') => {
-    setDrawer((state) => ({ open: true, key: state.key + 1, folder, mode }));
-  }, []);
 
   /** Esconde/mostra a lateral — botão na lateral ou `AltGr+.`, em qualquer sítio (também com um terminal focado). */
   const toggleSidebarCollapsed = useCallback(() => {
@@ -315,6 +309,12 @@ export function TerminalsPage() {
   const handleCreate = async (body: Omit<CreateTerminalBody, 'cols' | 'rows'>) => {
     const view = await create({ ...body, ...paneSize(false) });
     focusTerminal(body.cwd, view.id);
+  };
+
+  /** `ResumeSessionModal`: cria um terminal a retomar a sessão escolhida na pasta já conhecida. */
+  const handleResumeSession = async (sessionId: string) => {
+    if (!resumePath) return;
+    await handleCreate({ cwd: resumePath, mode: 'resume', sessionId });
   };
 
   /** O "+" de um projeto (lateral, cabeçalho da grelha): mais um terminal, sessão nova, sem drawer. */
@@ -470,18 +470,18 @@ export function TerminalsPage() {
         toggleSidebarCollapsed();
         break;
     }
-  }, !drawer.open);
+  }, !resumePath);
 
   // Esc volta à grelha — só fora do terminal: lá dentro o Esc é do Claude Code (interromper).
   useEffect(() => {
-    if (!enlarged || drawer.open || !activePath) return;
+    if (!enlarged || resumePath || !activePath) return;
     const onKeyDown = (event: KeyboardEvent) => {
       if (event.key !== 'Escape' || (event.target instanceof Element && event.target.closest('.xterm'))) return;
       exitEnlarge();
     };
     window.addEventListener('keydown', onKeyDown);
     return () => window.removeEventListener('keydown', onKeyDown);
-  }, [enlarged, drawer.open, activePath, exitEnlarge]);
+  }, [enlarged, resumePath, activePath, exitEnlarge]);
 
   // Um terminal que termina fora do ecrã só se nota por isto — não há estados "a trabalhar" no MVP.
   const handleExit = (id: string, code: number) => {
@@ -557,19 +557,7 @@ export function TerminalsPage() {
     </div>
   );
 
-  const drawerElement = (
-    <NewTerminalDrawer
-      key={drawer.key}
-      open={drawer.open}
-      initialFolder={drawer.folder}
-      initialMode={drawer.mode}
-      onClose={() => setDrawer((state) => ({ ...state, open: false }))}
-      onCreate={async (body) => {
-        await handleCreate(body);
-        setFavoritesVersion((n) => n + 1);
-      }}
-    />
-  );
+  const resumeModal = <ResumeSessionModal path={resumePath} onClose={() => setResumePath(null)} onResume={handleResumeSession} />;
 
   const sidebar = (
     <TerminalSidebar
@@ -581,7 +569,7 @@ export function TerminalsPage() {
       onSelectProject={(path) => void handleSelectProject(path)}
       onSelectTerminal={selectTerminal}
       onNewInProject={(path) => void handleNewInProject(path)}
-      onResumeInProject={(path) => openDrawer(path, 'resume')}
+      onResumeInProject={(path) => setResumePath(path)}
       onToggleFavorite={(path, favorite) => void handleToggleFavorite(path, favorite)}
       creatingIn={creatingIn}
       onReopenAll={() => void handleReopenAll()}
@@ -643,7 +631,7 @@ export function TerminalsPage() {
           </main>
         )}
       </div>
-      {drawerElement}
+      {resumeModal}
     </div>
   );
 }

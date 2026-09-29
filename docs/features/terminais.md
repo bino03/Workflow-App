@@ -254,11 +254,9 @@ sessão acabada de abrir (sem pedidos) **não** tem `rate_limits` — tem `sessi
     contagens por estado, lista (nome, pasta mono, estado · detalhe, `Alt+n`), **Reabrir todos** quando há
     parados, e a quota em baixo.
   - `components/terminals/TerminalGrid.tsx` — 3 colunas, cartão "Novo terminal" tracejado, scroll depois de 6.
-  - `components/terminals/new/NewTerminalDrawer.tsx` (540) + `FolderPicker.tsx` (favoritas · recentes,
-    chips das raízes, navegador um nível de cada vez com "N sessões gravadas") + `SessionPicker.tsx`
-    (Sessão nova · Continuar a última · Retomar uma sessão gravada + lista com data, mensagens, preview ou
-    rótulo+resumo do fechado) + `newTerminalFormSchema.ts`. Rodapé: resumo à esquerda ("Retoma 26 set ·
-    18:42 em D:\projetos\api-faturas"), Cancelar + ação primária ("Abrir terminal" / "Retomar sessão").
+  - ~~`components/terminals/new/NewTerminalDrawer.tsx` (540) + `FolderPicker.tsx` + `SessionPicker.tsx` +
+    `newTerminalFormSchema.ts`~~ — **substituído 2026-09-29** por `components/terminals/new/ResumeSessionModal.tsx`
+    (ver passo 13, abaixo).
   - `components/terminals/QuotaMeter.tsx` — variante lateral (barras 5 px) e variante cabeçalho (96 px),
     aviso "▲ Perto do limite" ≥ 80 %.
   - `components/settings/SettingsDrawer.tsx` (540) — aberto do menu de utilizador no `AppLayout`.
@@ -393,6 +391,16 @@ Ordem obrigatória. Tiers: `opus` (desenho, não delegar) · `sonnet` (implement
     persiste; navegador um nível de cada vez, sem subir acima da raiz; "Continuar a última" desativado sem
     sessões; sessões abertas noutro terminal desativadas; fechados mostram rótulo + resumo; rótulo com a
     pasta por omissão; `Alt+N` abre.
+  - **Substituído 2026-09-29** (pedido do dono): a spec [[separadores-de-projetos]] já tinha tirado o botão
+    "+ Novo terminal" global (`Alt+N` cria direto no projeto ativo, sem drawer) — este drawer só continuava
+    vivo pelo único entry point que sobrou, o ícone "Retomar" de um projeto já escolhido na lateral. Nesse
+    fluxo, a pasta já é conhecida (não é preciso o `FolderPicker`), e nem "Sessão nova" nem "Continuar a
+    última" nem um nome fazem falta — só a lista de sessões gravadas para escolher. Ficheiros apagados
+    (`NewTerminalDrawer.tsx`, `FolderPicker.tsx`, `SessionPicker.tsx`, `newTerminalFormSchema.ts`);
+    substituídos por `components/terminals/new/ResumeSessionModal.tsx` — um **Modal**, não um Drawer
+    (`drawers-and-modals.md` → "Modal: seletor de pesquisa"), `min(640px, 94vw)`, sem pasta/nome, só a
+    lista de sessões + Cancelar/Retomar. `onResumeInProject` (lateral) passa a abrir este modal em vez do
+    drawer; `TerminalsPage.tsx` perdeu o estado `DrawerState`/`openDrawer` (era só usado por este fluxo).
 - [x] **14. Fechar, renomear, atalhos** — ✅ 2026-09-28 (32/32 no browser)
   - Ficheiro: `components/terminals/TerminalPane.tsx`, `hooks/useTerminalShortcuts.ts`
   - Skill: `frontend-design-system`

@@ -1,6 +1,6 @@
 # Drawers & Modals
 
-> 🚧 Parcialmente validada: o drawer de detalhe baseia-se em `components/library/LibraryEntryDrawer.tsx`, verificado em Chrome headless a 2026-09-28 (600 px, kicker + título mono, `Esc` em `.kbd`, rodapé). Modals e confirmações ainda sem código.
+> 🚧 Parcialmente validada: o drawer de detalhe baseia-se em `components/library/LibraryEntryDrawer.tsx`, verificado em Chrome headless a 2026-09-28 (600 px, kicker + título mono, `Esc` em `.kbd`, rodapé). Confirmações em código desde 2026-09-28 (`ConfirmDialogContext.tsx`); Modal "seletor" desde 2026-09-29 (`ResumeSessionModal.tsx`, exemplo abaixo) — nenhum dos dois verificado no browser ainda.
 
 > Parte de [[../frontend-visual-consistency]]. Porquê: [[../../../../frontend/ux-patterns]] §1.
 
@@ -58,6 +58,40 @@ export function OrderViewDrawer({ id, onClose }: Props) {
 - **Nunca** um formulário completo de entidade num Modal.
 - Seletor sobre uma árvore grande: navegar **um nível de cada vez** (pai → filhos → netos), com
   pesquisa em todo o ramo aberto — achatar a árvore numa lista de centenas de linhas confunde.
+
+**Exemplo: seletor de lista** (`components/terminals/new/ResumeSessionModal.tsx`, 2026-09-29) — escolher
+uma sessão gravada para retomar, com a pasta já conhecida (nenhum campo de pasta, nome, ou modo, só a
+lista):
+
+```tsx
+<Modal open={path !== null} onCancel={onClose} width="min(640px, 94vw)"
+       title={<>Retomar sessão — <span className="font-mono">{folderName(path)}</span></>}
+       footer={<div className="flex justify-end gap-2">
+         <Button onClick={onClose}>Cancelar</Button>
+         <Button type="primary" disabled={!selected} loading={submitting} onClick={submit}>Retomar sessão</Button>
+       </div>}>
+  <div className="border border-border rounded-md overflow-hidden max-h-[420px] overflow-y-auto" role="listbox">
+    {items.map((item) => (
+      <button role="option" aria-selected={item.id === selected} onClick={() => setSelected(item.id)}
+              className={`w-full text-left px-3 py-2.5 border-0 border-b border-border last:border-b-0 ${
+                item.id === selected ? 'bg-surface-3 shadow-[inset_0_0_0_1px_var(--wfa-color-accent-border)]' : 'hover:bg-surface-2'
+              }`}>
+        {/* … */}
+      </button>
+    ))}
+  </div>
+</Modal>
+```
+
+- Cabeçalho e rodapé fixos (o `Modal` do antd já faz isto); só a lista faz scroll (`max-h-[…] overflow-y-auto`).
+- Linha selecionada: `bg-surface-3` + contorno interior `shadow-[inset_0_0_0_1px_var(--wfa-color-accent-border)]`
+  (nunca `border` a mais — mudava o tamanho da linha).
+- `Modal.titleFontSize: 18` já vem do tema (`theme.ts` → `components.Modal`) — não repetir a escala
+  20/26 do título do Drawer aqui.
+- Nasceu de substituir um Drawer partilhado (pasta + modo + sessão + nome) que só tinha um entry point
+  real (o ícone "Retomar" de um projeto já escolhido) — um seletor centrado, sem os campos que esse
+  entry point nunca precisava, é menos bloat do que um formulário completo com metade desligada
+  ([[../../../features/terminais|terminais]] passo 13, "Substituído 2026-09-29").
 
 ## Confirmações
 
