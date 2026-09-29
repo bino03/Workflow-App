@@ -38,7 +38,9 @@ Desenhados no `/choose-design` (2026-09-27) — protótipos em
   lugar sem terminal mostra um "+" para abrir um ali mesmo, e um terminal a mais do que lugares continua
   a correr, só troca para o lugar em foco se for clicado na lateral.
 - O dono **filtra a lateral por status** (a correr / terminados / parados) para encontrar depressa um
-  terminal entre vários projetos, e **esconde a lateral** para ganhar espaço, sem perder nenhum terminal.
+  terminal entre vários projetos — por omissão já só mostra "a correr" (projetos sem nada a correr, sejam
+  já abertos ou por abrir, ficam de fora; "Ver todos os projetos" limpa o filtro) — e **esconde a
+  lateral** (`AltGr+.`) para ganhar espaço, sem perder nenhum terminal.
 - O dono **ajusta o zoom de um terminal** sem afetar o resto da página — nunca precisa do zoom do browser.
 - O dono **consulta a biblioteca** do Workflow (que stacks e designs existem, quão maduros são, que skills há) sem abrir o Obsidian.
 - (Futuro) O dono **lança o `/create`** a partir de um formulário.

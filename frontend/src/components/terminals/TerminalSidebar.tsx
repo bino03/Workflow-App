@@ -26,19 +26,12 @@ type TerminalSidebarProps = {
   reopeningAll: boolean;
   /** A quota, em baixo (passo 16 da spec Terminais). */
   footer?: ReactNode;
+  /** Escondida/visível — estado do `TerminalsPage` (também alternado por `AltGr+.`). */
+  collapsed: boolean;
+  onToggleCollapsed: () => void;
 };
 
 const COUNT_LABELS: Record<TerminalStatus, string> = { running: 'a correr', exited: 'terminados', stopped: 'parados' };
-
-// Preferência do dispositivo — não sobrevive à falta de localStorage, mas nunca bloqueia a lateral.
-const COLLAPSE_KEY = 'workflow-app.sidebar-collapsed';
-function readCollapsed(): boolean {
-  try {
-    return localStorage.getItem(COLLAPSE_KEY) === '1';
-  } catch {
-    return false;
-  }
-}
 
 function IconButton({ label, onClick, children, loading }: { label: string; onClick: () => void; children: ReactNode; loading?: boolean }) {
   return (
@@ -63,20 +56,11 @@ function IconButton({ label, onClick, children, loading }: { label: string; onCl
  * fica para quando entrarem os casos "adotar"/"criar" (spec §2, fora desta v1).
  */
 export function TerminalSidebar(props: TerminalSidebarProps) {
-  const { projects, activePath, names, shortcutIndex, visibleIds } = props;
-  const [statusFilter, setStatusFilter] = useState<TerminalStatus | null>(null);
-  const [collapsed, setCollapsed] = useState(readCollapsed);
-  const toggleCollapsed = () => {
-    setCollapsed((prev) => {
-      const next = !prev;
-      try {
-        localStorage.setItem(COLLAPSE_KEY, next ? '1' : '0');
-      } catch {
-        // localStorage indisponível: a escolha dura só esta visita.
-      }
-      return next;
-    });
-  };
+  const { projects, activePath, names, shortcutIndex, visibleIds, collapsed, onToggleCollapsed } = props;
+  // Por omissão só "a correr" — se não há nada a correr num projeto (nem sequer um terminal aberto), não
+  // se está a trabalhar nele, e não aparece. Clicar o chip outra vez limpa o filtro e mostra tudo,
+  // incluindo os projetos do registo ainda sem nenhum terminal — é assim que se abrem projetos novos.
+  const [statusFilter, setStatusFilter] = useState<TerminalStatus | null>('running');
   const terminals = projects.flatMap((p) => p.terminals);
   const counts = (Object.keys(COUNT_LABELS) as TerminalStatus[])
     .map((status) => ({ status, n: terminals.filter((t) => t.status === status).length }))
@@ -92,7 +76,7 @@ export function TerminalSidebar(props: TerminalSidebarProps) {
   if (collapsed) {
     return (
       <aside className="w-11 flex-none flex flex-col items-center border-r border-border bg-surface-1 pt-4">
-        <IconButton label="Mostrar projetos" onClick={toggleCollapsed}>
+        <IconButton label="Mostrar projetos (AltGr+.)" onClick={onToggleCollapsed}>
           <MenuUnfoldOutlined />
         </IconButton>
       </aside>
@@ -106,7 +90,7 @@ export function TerminalSidebar(props: TerminalSidebarProps) {
           <span className="kicker">Projetos</span>
           <div className="flex items-center gap-2">
             <span className="font-mono text-[11px] text-text-3">{terminals.length} abertos</span>
-            <IconButton label="Esconder lateral" onClick={toggleCollapsed}>
+            <IconButton label="Esconder lateral (AltGr+.)" onClick={onToggleCollapsed}>
               <MenuFoldOutlined style={{ fontSize: 12 }} />
             </IconButton>
           </div>
@@ -142,7 +126,12 @@ export function TerminalSidebar(props: TerminalSidebarProps) {
           </p>
         )}
         {projects.length > 0 && statusFilter && visibleProjects.length === 0 && (
-          <p className="px-2.5 py-2 text-[12.5px] text-text-3">Nenhum terminal {COUNT_LABELS[statusFilter]} agora.</p>
+          <div className="px-2.5 py-2 flex flex-col gap-2">
+            <p className="m-0 text-[12.5px] text-text-3">Nenhum terminal {COUNT_LABELS[statusFilter]} agora.</p>
+            <Button size="small" onClick={() => setStatusFilter(null)}>
+              Ver todos os projetos
+            </Button>
+          </div>
         )}
         {visibleProjects.map((project) => {
           const empty = project.terminals.length === 0;

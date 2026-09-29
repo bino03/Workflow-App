@@ -208,6 +208,15 @@ Ordem obrigatória. Tiers: `opus` (desenho, não delegar) · `sonnet` (implement
       [[../skills/references/design/tables-and-lists|tables-and-lists]] §3.1) — clicar filtra a lista de
       terminais de todos os projetos por esse status; clicar outra vez limpa o filtro. Um projeto sem
       nenhum terminal no status escolhido some da lista enquanto o filtro está ativo.
+    - **Revisto 2026-09-29 (pedido do dono)**: o filtro "a correr" passa a estar **ativo por omissão** ao
+      abrir a página (era sem filtro nenhum) — se não há nada a correr num projeto, não se está a
+      trabalhar nele, e não aparece, **mesmo que ainda não tenha nenhum terminal aberto** (mesma regra do
+      filtro manual, sem exceção). Clicar o chip "a correr" outra vez limpa o filtro e mostra tudo —
+      inclui os projetos do registo por abrir. Se o filtro por omissão não deixar nada visível (ex.: uma
+      instalação nova, sem nenhum terminal ainda — nesse caso nem os chips aparecem, porque as contagens
+      são todas zero), a lateral mostra "Nenhum terminal a correr agora." com um botão "Ver todos os
+      projetos" que limpa o filtro — sem isto, a lateral ficava sem nenhuma forma de ver ou abrir um
+      projeto.
     - **Esconder a lateral**: um ícone (`MenuFoldOutlined`) junto à contagem "N abertos" colapsa a lateral
       para uma faixa de 44px com só um ícone (`MenuUnfoldOutlined`) para a devolver. Preferência por
       dispositivo em `localStorage` (`workflow-app.sidebar-collapsed`) — sobrevive a recarregar; sem

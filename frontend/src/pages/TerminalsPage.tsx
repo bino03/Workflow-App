@@ -24,6 +24,16 @@ import type { CreateTerminalBody, TerminalSize } from '@/types/terminal';
 const PANE_HEADER_HEIGHT = 44;
 const FONT_DELTA_LIMITS = { min: -4, max: 16 };
 
+// Preferência do dispositivo — não sobrevive à falta de localStorage, mas nunca bloqueia a lateral.
+const SIDEBAR_COLLAPSE_KEY = 'workflow-app.sidebar-collapsed';
+function readSidebarCollapsed(): boolean {
+  try {
+    return localStorage.getItem(SIDEBAR_COLLAPSE_KEY) === '1';
+  } catch {
+    return false;
+  }
+}
+
 type DrawerState = { open: boolean; key: number; folder?: string; mode?: 'new' | 'resume' };
 
 /** O foco/split/ampliado ficam por projeto — trocar de separador nunca mistura nem perde o de outro.
@@ -47,6 +57,38 @@ const EMPTY_LAYOUT: ProjectLayout = {
   gridStyle: DEFAULT_GRID_STYLE,
   slotIds: [],
 };
+
+/**
+ * O estilo/lugares da grelha, por projeto (spec estilos-de-grelha, revisto 2026-09-29 — o dono pediu que
+ * sobrevivesse a navegar para a Biblioteca, não só a trocar de separador): guardado no `localStorage` por
+ * caminho, sobrevive a desmontar `TerminalsPage` (a rota `/library` é outra árvore React) e a recarregar a
+ * página. O resto do `ProjectLayout` (foco/split/ampliado) continua só em memória, sem mudança.
+ */
+const GRID_LAYOUT_KEY_PREFIX = 'workflow-app.grid-layout.';
+type GridPreference = Pick<ProjectLayout, 'gridStyle' | 'slotIds'>;
+function readGridPreference(path: string): GridPreference {
+  try {
+    const raw = localStorage.getItem(GRID_LAYOUT_KEY_PREFIX + path);
+    if (!raw) return { gridStyle: DEFAULT_GRID_STYLE, slotIds: [] };
+    const parsed = JSON.parse(raw) as Partial<GridPreference>;
+    return {
+      gridStyle: parsed.gridStyle ?? DEFAULT_GRID_STYLE,
+      slotIds: Array.isArray(parsed.slotIds) ? parsed.slotIds : [],
+    };
+  } catch {
+    return { gridStyle: DEFAULT_GRID_STYLE, slotIds: [] };
+  }
+}
+function writeGridPreference(path: string, gridStyle: GridStyle, slotIds: (string | null)[]) {
+  try {
+    localStorage.setItem(GRID_LAYOUT_KEY_PREFIX + path, JSON.stringify({ gridStyle, slotIds }));
+  } catch {
+    // localStorage indisponível: a escolha dura só esta visita.
+  }
+}
+function defaultLayoutFor(path: string): ProjectLayout {
+  return { ...EMPTY_LAYOUT, ...readGridPreference(path) };
+}
 
 /**
  * Terminais navegados **por projeto** (spec docs/features/separadores-de-projetos.md, 2026-09-28): a
@@ -76,6 +118,7 @@ export function TerminalsPage() {
   const [reopeningAll, setReopeningAll] = useState(false);
   const [creatingIn, setCreatingIn] = useState<string | null>(null);
   const [fontDelta, setFontDelta] = useState(0);
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(readSidebarCollapsed);
 
   useEffect(() => {
     let cancelled = false;
@@ -107,9 +150,9 @@ export function TerminalsPage() {
   const activeProject = useMemo(() => projects.find((p) => p.path === activePath) ?? null, [projects, activePath]);
   const activeTerminals = useMemo(() => activeProject?.terminals ?? [], [activeProject]);
 
-  const layoutFor = useCallback((path: string) => layouts[path] ?? EMPTY_LAYOUT, [layouts]);
+  const layoutFor = useCallback((path: string) => layouts[path] ?? defaultLayoutFor(path), [layouts]);
   const updateLayout = useCallback((path: string, patch: Partial<ProjectLayout>) => {
-    setLayouts((prev) => ({ ...prev, [path]: { ...(prev[path] ?? EMPTY_LAYOUT), ...patch } }));
+    setLayouts((prev) => ({ ...prev, [path]: { ...(prev[path] ?? defaultLayoutFor(path)), ...patch } }));
   }, []);
 
   const activeLayout = activePath ? layoutFor(activePath) : EMPTY_LAYOUT;
@@ -141,6 +184,19 @@ export function TerminalsPage() {
     setDrawer((state) => ({ open: true, key: state.key + 1, folder, mode }));
   }, []);
 
+  /** Esconde/mostra a lateral — botão na lateral ou `AltGr+.`, em qualquer sítio (também com um terminal focado). */
+  const toggleSidebarCollapsed = useCallback(() => {
+    setSidebarCollapsed((prev) => {
+      const next = !prev;
+      try {
+        localStorage.setItem(SIDEBAR_COLLAPSE_KEY, next ? '1' : '0');
+      } catch {
+        // localStorage indisponível: a escolha dura só esta visita.
+      }
+      return next;
+    });
+  }, []);
+
   const paneSize = useCallback((split: boolean): TerminalSize => {
     const main = mainRef.current;
     const width = main?.clientWidth ?? window.innerWidth - 288;
@@ -154,7 +210,7 @@ export function TerminalsPage() {
       setOpenPaths((prev) => (prev.includes(path) ? prev : [...prev, path]));
       setActivePath(path);
       setLayouts((prev) => {
-        const current = prev[path] ?? EMPTY_LAYOUT;
+        const current = prev[path] ?? defaultLayoutFor(path);
         if (grid) return { ...prev, [path]: { ...current, enlargedId: id, activeId: id } };
         return { ...prev, [path]: { ...current, selectedId: id, splitId: null, activeId: id, previousId: current.selectedId } };
       });
@@ -178,7 +234,7 @@ export function TerminalsPage() {
       setOpenPaths((prev) => (prev.includes(path) ? prev : [...prev, path]));
       setActivePath(path);
       setLayouts((prev) => {
-        const current = prev[path] ?? EMPTY_LAYOUT;
+        const current = prev[path] ?? defaultLayoutFor(path);
         if (grid) {
           if (current.gridStyle.kind === 'classic' || current.slotIds.includes(id)) {
             return { ...prev, [path]: { ...current, activeId: id } };
@@ -186,6 +242,7 @@ export function TerminalsPage() {
           const targetIndex = current.slotIds.indexOf(current.activeId);
           const slotIds = [...current.slotIds];
           slotIds[targetIndex === -1 ? 0 : targetIndex] = id;
+          writeGridPreference(path, current.gridStyle, slotIds);
           return { ...prev, [path]: { ...current, slotIds, activeId: id } };
         }
         const inProject = (candidate: string | null) => !!candidate && project.terminals.some((t) => t.id === candidate);
@@ -199,11 +256,14 @@ export function TerminalsPage() {
   );
 
   /** Botão de estilo da grelha: muda o arranjo do projeto ativo e recalcula os lugares a partir dos
-   * terminais já visíveis (ordem do `shortcutIndex`, a mesma do Alt+1…9). */
+   * terminais já visíveis (ordem do `shortcutIndex`, a mesma do Alt+1…9). Guardado por projeto — sobrevive
+   * a trocar de separador, a navegar para a Biblioteca, e a recarregar a página. */
   const setGridStyle = useCallback(
     (style: GridStyle) => {
       if (!activePath) return;
-      updateLayout(activePath, { gridStyle: style, slotIds: initialSlotIds(style, activeTerminals.map((t) => t.id)) });
+      const slotIds = initialSlotIds(style, activeTerminals.map((t) => t.id));
+      writeGridPreference(activePath, style, slotIds);
+      updateLayout(activePath, { gridStyle: style, slotIds });
     },
     [activePath, activeTerminals, updateLayout],
   );
@@ -215,9 +275,10 @@ export function TerminalsPage() {
     try {
       const view = await create({ cwd: activePath, mode: 'new', ...paneSize(false) });
       setLayouts((prev) => {
-        const current = prev[activePath] ?? EMPTY_LAYOUT;
+        const current = prev[activePath] ?? defaultLayoutFor(activePath);
         const slotIds = [...current.slotIds];
         slotIds[index] = view.id;
+        writeGridPreference(activePath, current.gridStyle, slotIds);
         return { ...prev, [activePath]: { ...current, slotIds, activeId: view.id } };
       });
     } catch (e) {
@@ -405,6 +466,9 @@ export function TerminalsPage() {
           return Math.max(FONT_DELTA_LIMITS.min, Math.min(FONT_DELTA_LIMITS.max, next));
         });
         break;
+      case 'toggleSidebar':
+        toggleSidebarCollapsed();
+        break;
     }
   }, !drawer.open);
 
@@ -523,6 +587,8 @@ export function TerminalsPage() {
       onReopenAll={() => void handleReopenAll()}
       reopeningAll={reopeningAll}
       footer={<QuotaMeter usage={usage} now={now} variant="sidebar" />}
+      collapsed={sidebarCollapsed}
+      onToggleCollapsed={toggleSidebarCollapsed}
     />
   );
 

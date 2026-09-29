@@ -30,8 +30,9 @@ dois pequenos — aproveita melhor o ecrã do que a grelha genérica com scroll.
 grelha e os terminais desse projeto reorganizam-se em quatro quadrantes iguais; se só há dois terminais,
 os outros dois quadrantes mostram um "+" para abrir um terminal ali mesmo; se há seis, os dois a mais
 ficam de fora (continuam a correr) e clicar um deles na lateral troca-o para o quadrante que tinha o
-teclado. Ao recarregar a página, o projeto volta à grelha 3×2 de sempre. Duplo clique ou `Alt+1…9`
-continuam a ampliar um terminal para fullscreen, por cima de qualquer estilo.
+teclado. Troco de projeto, navego para a Biblioteca e volto, ou recarrego a página (F5): o projeto continua
+no estilo que escolhi, com os mesmos lugares. Duplo clique ou `Alt+1…9` continuam a ampliar um terminal
+para fullscreen, por cima de qualquer estilo.
 
 ## 2. Âmbito
 
@@ -40,9 +41,12 @@ continuam a ampliar um terminal para fullscreen, por cima de qualquer estilo.
   ativa): **Grelha 3×2** (o comportamento de hoje, por omissão) · **Colunas iguais** (2, 3 ou 4 colunas
   lado a lado, sem linhas) · **2×2** (quatro quadrantes iguais) · **Principal + laterais** (um grande à
   esquerda + dois pequenos empilhados à direita).
-- **Por projeto**: cada separador guarda o seu estilo (como o foco/split/ampliado de hoje,
-  [[separadores-de-projetos]] §4.1) — trocar de separador e voltar mostra o estilo tal como foi deixado
-  **durante a mesma visita à página**; recarregar (F5) volta todos os projetos à grelha 3×2.
+- **Por projeto, e persistido** (revisto 2026-09-29, pedido do dono): cada projeto guarda o seu estilo e
+  lugares em `localStorage`, por caminho — ao contrário do resto do estado do separador (foco/split/
+  ampliado, [[separadores-de-projetos]] §4.1), que continua só em memória. Trocar de separador, navegar
+  para a Biblioteca e voltar, ou recarregar a página (F5): o estilo e os lugares de cada projeto continuam
+  tal como foram deixados. Só se perde se o `localStorage` for limpo, ou nunca chegou a existir (projeto
+  novo começa em Grelha 3×2).
 - **Lugares vazios**: um estilo com mais lugares do que terminais (ex.: 2×2 com 2 terminais) mostra um
   "+" no(s) lugar(es) livre(s) — clicar abre logo um terminal novo (`mode: 'new'`) ali mesmo.
 - **Excesso**: um estilo com menos lugares do que terminais (ex.: 2×2 com 6) deixa os que não cabem de
@@ -57,8 +61,6 @@ continuam a ampliar um terminal para fullscreen, por cima de qualquer estilo.
 ### ⛔ Fora — não implementar nesta feature
 - **Redimensionar os divisores** entre lugares (arrastar para 60/40 em vez de 50/50). Todos os estilos
   desta versão têm proporções fixas e iguais entre lugares do mesmo tamanho.
-- **Persistir o estilo entre recarregamentos** (`localStorage` por projeto). Reinicia sempre para a
-  grelha 3×2, como o resto do estado por projeto hoje.
 - **Reordenar ou fixar manualmente** qual terminal vai para qual lugar, além do "+" (lugar vazio) e do
   clique na lateral (troca com o lugar em foco). Sem arrastar terminais entre lugares.
 - **Estilos assimétricos novos** além dos quatro listados (ex.: "2 grandes + 3 pequenos", colunas
@@ -69,8 +71,8 @@ continuam a ampliar um terminal para fullscreen, por cima de qualquer estilo.
 > Esta lista impede uma sessão futura de expandir o âmbito sozinha.
 
 ### Segunda fase (se houver)
-- Divisores arrastáveis, com a proporção a persistir por projeto.
-- O estilo escolhido sobreviver a recarregar a página.
+- Divisores arrastáveis, com a proporção a persistir por projeto (o estilo/lugares já persistem,
+  ver revisão de 2026-09-29 abaixo).
 - Mais estilos (assimétricos, colunas desiguais) se os quatro de agora não chegarem.
 - Atalho de teclado para trocar de estilo (esta versão é só clique, como os separadores de projeto).
 
@@ -85,7 +87,7 @@ continuam a ampliar um terminal para fullscreen, por cima de qualquer estilo.
 | Excesso (mais terminais que lugares) | Ficam de fora, a correr; clicar na lateral troca para o lugar em foco | Nunca perde trabalho (o terminal continua vivo) nem obriga a sair do estilo escolhido | Desligar o estilo sozinho e voltar à grelha 3×2 — surpreende o dono a meio do trabalho |
 | Principal + laterais | 2 laterais fixos (3 lugares no total) | Simples e previsível; o resto segue a regra do "Excesso" | Laterais sem limite, empilhados com scroll — mistura dois problemas (excesso já resolve isto) |
 | Redimensionar | Fixo nesta v1 | Menos trabalho, e nenhum dos quatro estilos precisa de proporções à medida para ser útil | Arrastável já nesta v1 — fica para 2ª fase se fizer falta |
-| Persistência entre recarregamentos | Reinicia (não fica em `localStorage`) | Mesma regra do resto do estado por projeto (spec [[separadores-de-projetos]] §4.1); nada novo para guardar | Persistir por projeto — acumula entradas para projetos apagados/renomeados, e o resto do estado do separador também não persiste |
+| Persistência entre recarregamentos | **Revisto 2026-09-29**: persiste em `localStorage`, por caminho de projeto | O dono pediu explicitamente, depois de usar a v1, que o estilo sobrevivesse a trocar de página (Biblioteca) e a recarregar — perdê-lo ao sair da página era mais surpreendente do que útil | Reiniciar sempre para a grelha 3×2 (decisão original desta spec) — descartada por pedido explícito; ver nota na spec [[separadores-de-projetos]] §4.1 sobre o resto do `ProjectLayout` continuar só em memória |
 | Estilo por omissão | Grelha 3×2 (a de hoje) | Continuidade — nenhum projeto muda de comportamento até o dono escolher outra coisa | Começar em "Colunas (2)" — mudaria o comportamento de hoje sem pedido explícito |
 | Ampliar (`Alt+1…9`, duplo clique) | Continua a funcionar tal como hoje, por cima de qualquer estilo | Reaproveita o mecanismo já testado nesta sessão (`enlargedId` no `ProjectLayout`); ampliar é sempre "um lugar, fullscreen", independente da forma dos outros | Um mecanismo de ampliar novo por estilo — complexidade sem benefício, o de hoje já serve |
 
@@ -96,9 +98,12 @@ auth — mesmo padrão de [[separadores-de-projetos]], que também não gerou AD
 
 ### 4.1 Dados
 
-Nenhum — sem base de dados ([[../adr/0009-estado-em-ficheiro-json|ADR 0009]]) e sem persistência nova.
-Estado só no frontend, em memória de componente, por projeto (`TerminalsPage.tsx`), tal como o resto do
-`ProjectLayout` — não sobrevive a recarregar.
+Sem base de dados ([[../adr/0009-estado-em-ficheiro-json|ADR 0009]]) e sem nada novo no backend. O
+`gridStyle`/`slotIds` de cada projeto (**revisto 2026-09-29**, pedido do dono) persistem no `localStorage`
+do browser, por caminho (`workflow-app.grid-layout.<caminho>`) — sobrevivem a navegar para a Biblioteca
+(desmonta `TerminalsPage`) e a recarregar a página. O resto do `ProjectLayout`
+(`selectedId`/`splitId`/`enlargedId`/`activeId`/`previousId`) continua só em memória de componente, como
+antes ([[separadores-de-projetos]] §4.1) — só o estilo da grelha ganhou persistência, não o foco/split.
 
 ### 4.2 Endpoints
 
@@ -234,8 +239,19 @@ Ordem obrigatória. Tiers: `opus` (desenho, não delegar) · `sonnet` (implement
     não aparecem na grelha mas continuam "a correr" na lateral; clicar um deles na lateral troca-o para o
     quadrante que tinha o teclado (substitui esse, não outro); duplo clique ou `Alt+1…9` continuam a
     ampliar por cima de qualquer estilo, e sair da ampliação devolve ao estilo e aos lugares de antes;
-    trocar de separador e voltar mantém o estilo desse projeto (sem persistir a recarregar); um projeto
-    novo (ou recarregar a página) começa sempre em Grelha 3×2.
+    trocar de separador e voltar mantém o estilo desse projeto; um projeto novo começa sempre em Grelha
+    3×2.
+  - **Revisto 2026-09-29 (pedido do dono, depois deste passo já feito)**: o estilo/lugares por projeto
+    passam a persistir em `localStorage` (`workflow-app.grid-layout.<caminho>`), não só em memória —
+    sobrevivem a navegar para a Biblioteca e a recarregar a página (F5), ao contrário da decisão original
+    da spec (§3). `defaultLayoutFor(path)` substitui os `?? EMPTY_LAYOUT` que materializavam o layout de
+    um projeto pela primeira vez (em `layoutFor`, `updateLayout`, `focusTerminal`, `selectTerminal`,
+    `handleSlotNew`) — lê a preferência guardada antes de cair no `DEFAULT_GRID_STYLE`/`[]`.
+    `writeGridPreference` grava sempre que `gridStyle`/`slotIds` mudam: em `setGridStyle`, em
+    `handleSlotNew`, e no ramo de troca de lugar do `selectTerminal`. `slotIds` guarda ids de terminais —
+    continuam a passar pelo filtro `existsInActive`/`sanitizedSlotIds` já existente, por isso um terminal
+    fechado entretanto não deixa o `localStorage` com um id morto a atrapalhar (o lugar mostra "+" na
+    mesma).
   - **Decisões ao implementar**:
     - `ProjectLayout` ganhou `gridStyle`/`slotIds` (por omissão `DEFAULT_GRID_STYLE`/`[]`); `sanitizedSlotIds`
       é um `const` simples (não `useMemo`) — o React Compiler do projeto não conseguia preservar a
@@ -258,8 +274,9 @@ Ordem obrigatória. Tiers: `opus` (desenho, não delegar) · `sonnet` (implement
   - Skill: `run`
   - Tier: `sonnet`
   - Aceite quando: no browser, com o `claude` real — os quatro estilos testados num projeto com terminais
-    a mais e a menos do que os lugares, ampliar/sair a funcionar por cima de qualquer estilo, e a troca de
-    separador a preservar o estilo; docs atualizados; plano e work log fechados.
+    a mais e a menos do que os lugares, ampliar/sair a funcionar por cima de qualquer estilo, a troca de
+    separador a preservar o estilo, **e o estilo/lugares a sobreviver a navegar para a Biblioteca e a
+    recarregar a página (F5)** (revisto 2026-09-29); docs atualizados; plano e work log fechados.
   - **Feito nesta sessão (2026-09-29)**: automático — `npx tsc -b` e `npm run lint` do frontend limpos
     (passos 1-4); docs atualizados (`use-cases.md`, `terminais.md` §"Layouts",
     `design/grid-styles.md` — padrão novo registado e ligado em `frontend-visual-consistency.md`).
@@ -279,17 +296,24 @@ Ordem obrigatória. Tiers: `opus` (desenho, não delegar) · `sonnet` (implement
 `TerminalsPage.tsx` (`ProjectLayout.gridStyle`/`slotIds`, `setGridStyle`, `handleSlotNew`, `selectTerminal`
 estendido para trocar de lugar). `npx tsc -b` e `npm run lint` limpos a cada passo. Passo 5 (parte
 automática): docs atualizados (`use-cases.md`, `terminais.md` §"Layouts", `design/grid-styles.md`).
+**Revisto 2026-09-29 (já com os passos 1-4 feitos)**: o estilo/lugares passam a persistir em
+`localStorage` por projeto (`defaultLayoutFor`/`readGridPreference`/`writeGridPreference` em
+`TerminalsPage.tsx`) — sobrevivem a navegar para a Biblioteca e a recarregar a página, não só a trocar de
+separador. Ver a decisão revista no passo 4 e em §3/§4.1. `tsc -b`/lint continuam limpos.
 **Em curso:** passo 5 — falta a verificação manual no browser.
 **Próxima ação concreta:** destravar a política de Application Control do Windows que bloqueia o Rollup
 nativo (`@rollup/rollup-win32-x64-msvc`) para o frontend arrancar, e depois correr o checklist de
 `notes/verificacao-browser-pendente.md` → "spec `estilos-de-grelha`, passo 5" (precisa do dono: a
-verificação real também precisa da password verdadeira).
+verificação real também precisa da password verdadeira) — inclui agora testar a persistência (Biblioteca
+e F5).
 **Desvios ao plano:**
 - `spotlight` usa CSS Grid com posição explícita por lugar em vez do flex aninhado do §4.4 — mesmo
   resultado visual, sem aninhar o DOM (nunca desmonta um terminal já montado só por trocar de estilo).
   Ver "Decisão ao implementar" do passo 3.
 - `slotPlacement` (originalmente pensada para viver em `TerminalGrid.tsx`) mudou para `gridStyle.ts` — um
   ficheiro de componente só pode exportar componentes (regra do `react-refresh` do ESLint deste projeto).
+- A persistência entre recarregamentos, explicitamente excluída na decisão original desta spec (§3),
+  passou a fazer-se — o dono pediu depois de o passo 4 já estar feito. Ver revisão em §3/§4.1/passo 4.
 - Nesta sessão o frontend não arrancou (bloqueio de Application Control do Windows no Rollup nativo, não
   relacionado com o código desta spec) — ver `notes/verificacao-browser-pendente.md`.
 **O que uma sessão nova precisa de saber:**
@@ -299,7 +323,8 @@ verificação real também precisa da password verdadeira).
   [[terminais]] §"Layouts") — o botão novo desta feature (`GridStylePicker`) fica no lugar onde ele
   estava, não é o mesmo botão.
 - `enlargedId`/`activeId`/`clearGridFocus`/`exitEnlarge` já existiam em `TerminalsPage.tsx` antes desta
-  feature e não mudaram — só `gridStyle`/`slotIds` são novos em `ProjectLayout`.
+  feature e não mudaram — só `gridStyle`/`slotIds` são novos em `ProjectLayout`, e só esses dois persistem
+  em `localStorage` (o resto continua só em memória).
 - O código está todo escrito e a passar `tsc`/lint; só falta a verificação no browser (passo 5) — não há
   mais nenhum passo de código por fazer.
 
