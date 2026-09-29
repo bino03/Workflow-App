@@ -1,6 +1,8 @@
 # Buttons & Icons
 
-> 🚧 Convenção prospetiva — ainda sem código neste projeto que a valide.
+> 🚧 Parcialmente validada: os atalhos `Alt+…` e o `useConfirm()` correm em
+> `components/terminals/` desde 2026-09-28/29. **Revisto 2026-09-29**: o painel de terminal deixou de
+> mostrar botões de ação e atalhos em `.kbd` no cabeçalho — ver a nota na secção "Atalhos de teclado".
 
 > Parte de [[../frontend-visual-consistency]].
 
@@ -13,7 +15,7 @@
 | Secundária | `<Button type="text" size="small">` |
 | Destrutiva | `<ListActionDanger>` em tabelas; fora delas `type="text"` + `color: var(--wfa-color-error)` |
 | Confirmar ação destrutiva (no diálogo) | `<Button type="primary" danger>`: fundo `error`, texto `on-accent`; rótulo = a ação real ("Fechar terminal") |
-| Ação no cabeçalho de um painel | Botão contornado pequeno (altura 26, borda `border`, `text-2`, raio `sm`) com o atalho em `.kbd` ("Dividir `Alt+\`") |
+| Ação no cabeçalho de um painel | Botão contornado pequeno (altura 26, borda `border`, `text-2`, raio `sm`) com o atalho em `.kbd` ("Dividir `Alt+\`") — **exceto o painel de terminal** (revisto 2026-09-29, ver abaixo) |
 | Voltar | `<Button type="text" size="small" icon={<ArrowLeftOutlined />} style={{ paddingLeft: 0, opacity: .7 }}>` |
 
 **Não simular botões preenchidos com estilo inline** (`background`/`border`/`boxShadow` +
@@ -45,14 +47,19 @@ A app usa **`Alt+…`**: Ctrl+… pertence ao Claude Code e ao browser, e Ctrl+A
 
 | Atalho | Ação |
 |---|---|
-| `Alt+1…9` | Saltar para o terminal N |
+| `Alt+1…9` | Saltar para o terminal N (na grelha: amplia-o; no já ampliado, alterna de volta à grelha) |
 | `Alt+N` | Novo terminal |
-| `Alt+\` | Dividir / juntar (modo foco dividido) |
+| `Alt+\` | Dividir / juntar (foco dividido) · na grelha, sai da ampliação |
 | `Alt+W` | Fechar terminal (com confirmação) |
 | `Alt+R` | Renomear |
+| `Alt+=` / `Alt+-` | Zoom só no terminal focado (nunca a página) |
+| `Alt+0` | Repor o zoom do terminal |
 
-O atalho aparece junto da ação, em `.kbd`, e a lista completa na barra de estado de baixo. Um atalho
-novo confirma-se primeiro contra os do Claude Code.
+**Revisto 2026-09-29**: o painel de terminal deixou de mostrar estes atalhos em `.kbd` no cabeçalho — o
+dono já os sabe de cor e pediu um cabeçalho limpo (`components/terminals/TerminalPane.tsx`: sem botões de
+Renomear/Dividir/Fechar/Voltar à grelha, sem o indicador "⌨ TECLADO AQUI"; ver
+[[../../../features/terminais|terminais]] §"Layouts"/"Atalhos"). A regra "o atalho aparece junto da ação,
+em `.kbd`" continua válida para **outros** painéis com ações visíveis — só o de terminal é exceção.
 
 ## Ícone + texto vs. só ícone
 

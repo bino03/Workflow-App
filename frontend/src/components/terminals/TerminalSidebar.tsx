@@ -1,5 +1,5 @@
-import type { ReactNode } from 'react';
-import { HistoryOutlined, PlusOutlined, StarFilled, StarOutlined } from '@ant-design/icons';
+import { useState, type ReactNode } from 'react';
+import { HistoryOutlined, MenuFoldOutlined, MenuUnfoldOutlined, PlusOutlined, StarFilled, StarOutlined } from '@ant-design/icons';
 import { Button, Tooltip } from 'antd';
 import type { TerminalStatus } from '@/types/terminal';
 import type { Project } from './projects';
@@ -30,6 +30,16 @@ type TerminalSidebarProps = {
 
 const COUNT_LABELS: Record<TerminalStatus, string> = { running: 'a correr', exited: 'terminados', stopped: 'parados' };
 
+// Preferência do dispositivo — não sobrevive à falta de localStorage, mas nunca bloqueia a lateral.
+const COLLAPSE_KEY = 'workflow-app.sidebar-collapsed';
+function readCollapsed(): boolean {
+  try {
+    return localStorage.getItem(COLLAPSE_KEY) === '1';
+  } catch {
+    return false;
+  }
+}
+
 function IconButton({ label, onClick, children, loading }: { label: string; onClick: () => void; children: ReactNode; loading?: boolean }) {
   return (
     <Tooltip title={label} mouseEnterDelay={0.4}>
@@ -54,26 +64,66 @@ function IconButton({ label, onClick, children, loading }: { label: string; onCl
  */
 export function TerminalSidebar(props: TerminalSidebarProps) {
   const { projects, activePath, names, shortcutIndex, visibleIds } = props;
+  const [statusFilter, setStatusFilter] = useState<TerminalStatus | null>(null);
+  const [collapsed, setCollapsed] = useState(readCollapsed);
+  const toggleCollapsed = () => {
+    setCollapsed((prev) => {
+      const next = !prev;
+      try {
+        localStorage.setItem(COLLAPSE_KEY, next ? '1' : '0');
+      } catch {
+        // localStorage indisponível: a escolha dura só esta visita.
+      }
+      return next;
+    });
+  };
   const terminals = projects.flatMap((p) => p.terminals);
   const counts = (Object.keys(COUNT_LABELS) as TerminalStatus[])
     .map((status) => ({ status, n: terminals.filter((t) => t.status === status).length }))
     .filter(({ n }) => n > 0);
   const stopped = terminals.filter((t) => t.status === 'stopped').length;
+  // Filtro discreto por status: reaproveita as contagens como chips clicáveis (mesmo padrão da Biblioteca).
+  const visibleProjects = statusFilter
+    ? projects
+        .map((project) => ({ ...project, terminals: project.terminals.filter((t) => t.status === statusFilter) }))
+        .filter((project) => project.terminals.length > 0)
+    : projects;
+
+  if (collapsed) {
+    return (
+      <aside className="w-11 flex-none flex flex-col items-center border-r border-border bg-surface-1 pt-4">
+        <IconButton label="Mostrar projetos" onClick={toggleCollapsed}>
+          <MenuUnfoldOutlined />
+        </IconButton>
+      </aside>
+    );
+  }
 
   return (
     <aside className="w-[288px] flex-none flex flex-col border-r border-border bg-surface-1">
       <div className="px-3.5 pt-4 pb-3 flex flex-col gap-3">
         <div className="flex items-baseline justify-between">
           <span className="kicker">Projetos</span>
-          <span className="font-mono text-[11px] text-text-3">{terminals.length} abertos</span>
+          <div className="flex items-center gap-2">
+            <span className="font-mono text-[11px] text-text-3">{terminals.length} abertos</span>
+            <IconButton label="Esconder lateral" onClick={toggleCollapsed}>
+              <MenuFoldOutlined style={{ fontSize: 12 }} />
+            </IconButton>
+          </div>
         </div>
         {counts.length > 0 && (
-          <div className="flex flex-wrap gap-x-3 gap-y-1 text-[12px] text-text-2">
+          <div className="flex flex-wrap gap-1.5" role="group" aria-label="Filtrar por status">
             {counts.map(({ status, n }) => (
-              <span key={status} className="flex items-center gap-1.5">
+              <button
+                key={status}
+                type="button"
+                className="filter-chip"
+                aria-pressed={statusFilter === status}
+                onClick={() => setStatusFilter((current) => (current === status ? null : status))}
+              >
                 <span className={`state-icon ${STATUS_META[status].icon}`} aria-hidden />
                 {n} {COUNT_LABELS[status]}
-              </span>
+              </button>
             ))}
           </div>
         )}
@@ -91,7 +141,10 @@ export function TerminalSidebar(props: TerminalSidebarProps) {
             <span className="font-mono">projects/INDEX.md</span>.
           </p>
         )}
-        {projects.map((project) => {
+        {projects.length > 0 && statusFilter && visibleProjects.length === 0 && (
+          <p className="px-2.5 py-2 text-[12.5px] text-text-3">Nenhum terminal {COUNT_LABELS[statusFilter]} agora.</p>
+        )}
+        {visibleProjects.map((project) => {
           const empty = project.terminals.length === 0;
           const active = project.path === activePath;
           return (

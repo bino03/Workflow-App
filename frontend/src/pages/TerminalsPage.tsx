@@ -20,6 +20,7 @@ import { estimateTerminalSize } from '@/terminal/terminalSize';
 import type { CreateTerminalBody, TerminalSize } from '@/types/terminal';
 
 const PANE_HEADER_HEIGHT = 44;
+const FONT_DELTA_LIMITS = { min: -4, max: 16 };
 
 type DrawerState = { open: boolean; key: number; folder?: string; mode?: 'new' | 'resume' };
 
@@ -54,6 +55,7 @@ export function TerminalsPage() {
   const [reopening, setReopening] = useState<Set<string>>(new Set());
   const [reopeningAll, setReopeningAll] = useState(false);
   const [creatingIn, setCreatingIn] = useState<string | null>(null);
+  const [fontDelta, setFontDelta] = useState(0);
 
   useEffect(() => {
     let cancelled = false;
@@ -133,7 +135,12 @@ export function TerminalsPage() {
     [grid],
   );
 
-  /** Clicar um terminal (lateral, mosaico, ou painel): abre/foca o separador do projeto dele. */
+  /**
+   * Clicar um terminal (lateral, mosaico, ou painel): abre/foca o separador do projeto dele e dá-lhe o
+   * teclado — na grelha, nunca amplia (um clique só edita no mosaico; duplo clique amplia, ver
+   * `enlargeTerminal`). Ao mudar de projeto mantém o separador tal como ficou ("trocar de separador e
+   * voltar mostra o projeto tal como foi deixado", spec separadores-de-projetos §3).
+   */
   const selectTerminal = useCallback(
     (id: string) => {
       const project = projects.find((p) => p.terminals.some((t) => t.id === id));
@@ -143,15 +150,40 @@ export function TerminalsPage() {
       setActivePath(path);
       setLayouts((prev) => {
         const current = prev[path] ?? EMPTY_LAYOUT;
-        if (grid) return { ...prev, [path]: { ...current, enlargedId: id, activeId: id } };
+        if (grid) return { ...prev, [path]: { ...current, activeId: id } };
+        const inProject = (candidate: string | null) => !!candidate && project.terminals.some((t) => t.id === candidate);
         if (id === current.splitId) return { ...prev, [path]: { ...current, activeId: id } };
-        const primary = existsInActive(current.selectedId) ? current.selectedId : (project.terminals[0]?.id ?? null);
+        const primary = inProject(current.selectedId) ? current.selectedId : (project.terminals[0]?.id ?? null);
         if (id !== primary) return { ...prev, [path]: { ...current, previousId: primary, selectedId: id, activeId: id } };
         return { ...prev, [path]: { ...current, activeId: id } };
       });
     },
-    [projects, grid, existsInActive],
+    [projects, grid],
   );
+
+  /** Duplo clique num mosaico (ou Alt+1…9): amplia-o para fullscreen — só dentro do projeto já ativo. */
+  const enlargeTerminal = useCallback(
+    (id: string) => {
+      if (!activePath) return;
+      updateLayout(activePath, { enlargedId: id, activeId: id });
+    },
+    [activePath, updateLayout],
+  );
+
+  /** Clique fora de qualquer mosaico, na grelha: larga o teclado do que estava em edição. */
+  const clearGridFocus = useCallback(() => {
+    if (!activePath) return;
+    updateLayout(activePath, { activeId: null });
+    if (document.activeElement instanceof HTMLElement) document.activeElement.blur();
+  }, [activePath, updateLayout]);
+
+  /** Sair da ampliação ("Voltar à grelha", Esc, Alt+\, Alt+N no já ampliado): larga o teclado também —
+   * ao voltar à grelha o terminal não deve continuar como se estivesse pronto a escrever. */
+  const exitEnlarge = useCallback(() => {
+    if (!activePath) return;
+    updateLayout(activePath, { enlargedId: null, activeId: null });
+    if (document.activeElement instanceof HTMLElement) document.activeElement.blur();
+  }, [activePath, updateLayout]);
 
   const handleCreate = async (body: Omit<CreateTerminalBody, 'cols' | 'rows'>) => {
     const view = await create({ ...body, ...paneSize(false) });
@@ -280,12 +312,18 @@ export function TerminalsPage() {
         break;
       case 'jump': {
         const target = activeTerminals[action.index];
-        if (target) selectTerminal(target.id);
+        if (target) {
+          if (grid) {
+            // Alt+N no terminal já ampliado: alterna de volta à grelha em vez de não fazer nada.
+            if (enlarged === target.id) exitEnlarge();
+            else enlargeTerminal(target.id);
+          } else selectTerminal(target.id);
+        }
         break;
       }
       case 'split':
         if (grid) {
-          if (activePath) updateLayout(activePath, { enlargedId: null });
+          if (enlarged) exitEnlarge();
         } else toggleSplit();
         break;
       case 'close':
@@ -294,20 +332,26 @@ export function TerminalsPage() {
       case 'rename':
         if (keyboardId) setRenamingId(keyboardId);
         break;
+      case 'zoom':
+        setFontDelta((current) => {
+          if (action.direction === 'reset') return 0;
+          const next = current + (action.direction === 'in' ? 1 : -1);
+          return Math.max(FONT_DELTA_LIMITS.min, Math.min(FONT_DELTA_LIMITS.max, next));
+        });
+        break;
     }
   }, !drawer.open);
 
   // Esc volta à grelha — só fora do terminal: lá dentro o Esc é do Claude Code (interromper).
   useEffect(() => {
     if (!enlarged || drawer.open || !activePath) return;
-    const path = activePath;
     const onKeyDown = (event: KeyboardEvent) => {
       if (event.key !== 'Escape' || (event.target instanceof Element && event.target.closest('.xterm'))) return;
-      updateLayout(path, { enlargedId: null });
+      exitEnlarge();
     };
     window.addEventListener('keydown', onKeyDown);
     return () => window.removeEventListener('keydown', onKeyDown);
-  }, [enlarged, drawer.open, activePath, updateLayout]);
+  }, [enlarged, drawer.open, activePath, exitEnlarge]);
 
   // Um terminal que termina fora do ecrã só se nota por isto — não há estados "a trabalhar" no MVP.
   const handleExit = (id: string, code: number) => {
@@ -345,19 +389,16 @@ export function TerminalsPage() {
     <TerminalPane
       terminal={terminal}
       name={names.get(terminal.id) ?? ''}
+      fontDelta={fontDelta}
       variant={tile ? 'tile' : 'pane'}
       enlarged={tile && terminal.id === enlarged}
-      onBackToGrid={() => activePath && updateLayout(activePath, { enlargedId: null })}
       visible={visibleIds.includes(terminal.id)}
       focused={terminal.id === keyboardId}
-      split={!tile && !!secondaryId}
       renaming={renamingId === terminal.id}
       reopening={reopening.has(terminal.id)}
       onActivate={() => selectTerminal(terminal.id)}
-      onRenameStart={() => setRenamingId(terminal.id)}
+      onEnlarge={() => enlargeTerminal(terminal.id)}
       onRenameEnd={(label) => void handleRenameEnd(terminal.id, label)}
-      onSplit={toggleSplit}
-      onClose={() => requestClose(terminal.id)}
       onReopen={() => void handleReopen(terminal.id)}
       onExit={(code) => handleExit(terminal.id, code)}
       onGone={refresh}
@@ -429,7 +470,7 @@ export function TerminalsPage() {
           <TerminalGrid
             terminals={activeTerminals}
             enlarged={!!enlarged}
-            onNew={() => activePath && void handleNewInProject(activePath)}
+            onBackgroundMouseDown={clearGridFocus}
             headerExtra={<QuotaMeter usage={usage} now={now} variant="header" />}
           >
             {terminals.map((terminal) => (

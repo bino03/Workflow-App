@@ -69,6 +69,11 @@ título "Fechar `<nome>`?" 18/24; o texto explica a consequência ("A conversa f
 retomá-la…"); um aviso de contexto opcional em caixa `state-*-subtle` ("Está a trabalhar agora — o
 passo em curso é interrompido"); botões Cancelar (contornado) + ação real (`danger`).
 
+**Navegação por teclado (2026-09-29)**: ao abrir, o foco vai para "Cancelar" (a ação mais segura); `←`/`→`
+trocam o foco entre os dois botões; `Enter` ativa o que estiver focado (comportamento nativo do
+`<button>`, sem código extra). Implementado em `ConfirmDialogContext.tsx` com `afterOpenChange` + `refs`
+nos dois botões — vale para **todo** diálogo aberto por `useConfirm()`, não só o de fechar terminal.
+
 ## Drift encontrado — não copiar
 
 _Nenhum ainda._ Vigiar: um formulário de entidade dentro de um Modal; larguras soltas por domínio.

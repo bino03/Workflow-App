@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Button, Input } from 'antd';
+import { Button, Input, Tooltip } from 'antd';
 import { z } from 'zod';
 import type { TerminalView as TerminalInfo } from '@/types/terminal';
 import { STATUS_META, statusDetail } from './terminalDisplay';
@@ -12,64 +12,78 @@ const labelSchema = z
   .max(80, 'No máximo 80 caracteres.')
   .regex(/^[\p{L}\p{N} ._\-()]*$/u, 'Só letras, números, espaços e . _ - ( )');
 
+/** Monta de novo a cada vez que entra em edição (o pai troca-a por `renaming`) — o rascunho arranca sempre
+ * do nome atual, sem precisar de um efeito a repor estado. */
+function RenameInput({ initialName, onFinish }: { initialName: string; onFinish: (label: string | null | undefined) => void }) {
+  const [draft, setDraft] = useState(initialName);
+  const [error, setError] = useState<string | null>(null);
+
+  const submit = () => {
+    const parsed = labelSchema.safeParse(draft);
+    if (!parsed.success) {
+      setError(parsed.error.issues[0]?.message ?? 'Nome inválido.');
+      return;
+    }
+    // Vazio = voltar ao nome da pasta.
+    onFinish(parsed.data === '' ? null : parsed.data);
+  };
+
+  return (
+    <Input
+      size="small"
+      autoFocus
+      className="max-w-[240px]"
+      value={draft}
+      status={error ? 'error' : undefined}
+      title={error ?? undefined}
+      aria-label="Nome do terminal"
+      placeholder="Nome da pasta"
+      onChange={(event) => {
+        setDraft(event.target.value);
+        setError(null);
+      }}
+      onFocus={(event) => event.target.select()}
+      onKeyDown={(event) => {
+        if (event.key === 'Enter') submit();
+        if (event.key === 'Escape') onFinish(undefined);
+        event.stopPropagation();
+      }}
+      onBlur={() => onFinish(undefined)}
+    />
+  );
+}
+
 type TerminalPaneProps = {
   terminal: TerminalInfo;
   /** Nome mostrado (o rótulo, ou a pasta numerada — projects.ts). */
   name: string;
   visible: boolean;
   focused: boolean;
-  split: boolean;
   renaming: boolean;
   reopening: boolean;
+  /** Zoom só deste terminal (Alt+=/Alt+-/Alt+0) — nunca a página toda. */
+  fontDelta: number;
   onActivate: () => void;
-  onRenameStart: () => void;
+  /** Duplo clique num mosaico da grelha: amplia (ver docs/features/terminais.md, decisão de zoom por clique). */
+  onEnlarge?: () => void;
   onRenameEnd: (label: string | null | undefined) => void;
-  onSplit: () => void;
-  onClose: () => void;
   onReopen: () => void;
   onExit: (code: number) => void;
   onGone: () => void;
   /** tile = mosaico da grelha (protótipo 1i): cabeçalho compacto, sem ações até ser ampliado. */
   variant?: 'pane' | 'tile';
   enlarged?: boolean;
-  onBackToGrid?: () => void;
 };
 
-function ActionButton({ label, shortcut, onClick }: { label: string; shortcut?: string; onClick: () => void }) {
-  return (
-    <button
-      type="button"
-      className="h-[26px] px-2.5 flex items-center gap-1.5 bg-transparent border border-border rounded-sm text-text-2 text-[12.5px] cursor-pointer whitespace-nowrap hover:text-text-1 hover:border-border-strong"
-      onClick={(event) => {
-        event.stopPropagation();
-        onClick();
-      }}
-    >
-      {label}
-      {shortcut && <span className="font-mono text-[10px] text-text-3">{shortcut}</span>}
-    </button>
-  );
-}
-
-/** Um terminal no ecrã: cabeçalho (protótipo 1g/1h), o xterm.js, e o banner de terminado/parado. */
+/** Um terminal no ecrã: cabeçalho (protótipo 1g/1h), o xterm.js, e o banner de terminado/parado. Sem
+ * botões de ação no cabeçalho — Renomear/Dividir/Fechar/Voltar à grelha são só `Alt+R`/`Alt+\`/`Alt+W`/`Esc`
+ * (2026-09-29: o dono já sabe os atalhos, o cabeçalho fica limpo). */
 export function TerminalPane(props: TerminalPaneProps) {
-  const { terminal, visible, focused, split, renaming, reopening, variant = 'pane', enlarged = false } = props;
+  const { terminal, visible, focused, renaming, reopening, variant = 'pane', enlarged = false } = props;
   const tile = variant === 'tile';
   const compactHeader = tile && !enlarged;
   const meta = STATUS_META[terminal.status];
   const { name } = props;
-  const [draft, setDraft] = useState(name);
-  const [renameError, setRenameError] = useState<string | null>(null);
-
-  const submitRename = () => {
-    const parsed = labelSchema.safeParse(draft);
-    if (!parsed.success) {
-      setRenameError(parsed.error.issues[0]?.message ?? 'Nome inválido.');
-      return;
-    }
-    // Vazio = voltar ao nome da pasta.
-    props.onRenameEnd(parsed.data === '' ? null : parsed.data);
-  };
 
   return (
     <section
@@ -78,6 +92,7 @@ export function TerminalPane(props: TerminalPaneProps) {
       }`}
       data-terminal-pane={terminal.id}
       onMouseDown={props.onActivate}
+      onDoubleClick={compactHeader ? props.onEnlarge : undefined}
     >
       <header
         className={`${compactHeader ? 'h-10 pl-3 pr-3' : 'h-11 pl-4 pr-3'} flex-none flex items-center gap-2.5 border-b border-border min-w-0 ${
@@ -86,70 +101,15 @@ export function TerminalPane(props: TerminalPaneProps) {
       >
         <span className={`state-icon ${meta.icon}`} aria-hidden />
         {renaming ? (
-          <Input
-            size="small"
-            autoFocus
-            className="max-w-[240px]"
-            value={draft}
-            status={renameError ? 'error' : undefined}
-            title={renameError ?? undefined}
-            aria-label="Nome do terminal"
-            placeholder="Nome da pasta"
-            onChange={(event) => {
-              setDraft(event.target.value);
-              setRenameError(null);
-            }}
-            onFocus={(event) => event.target.select()}
-            onKeyDown={(event) => {
-              if (event.key === 'Enter') submitRename();
-              if (event.key === 'Escape') props.onRenameEnd(undefined);
-              event.stopPropagation();
-            }}
-            onBlur={() => props.onRenameEnd(undefined)}
-          />
+          <RenameInput initialName={name} onFinish={props.onRenameEnd} />
         ) : (
-          <span className="font-semibold text-[14px] whitespace-nowrap">{name}</span>
+          <Tooltip title={terminal.cwd} mouseEnterDelay={0.4}>
+            <span className="font-semibold text-[14px] whitespace-nowrap">{name}</span>
+          </Tooltip>
         )}
         {!compactHeader && <span className={meta.tag}>{meta.label}</span>}
-        <span className={`font-mono text-text-3 overflow-hidden text-ellipsis whitespace-nowrap min-w-0 ${compactHeader ? 'flex-1 text-[11px]' : 'text-[11.5px]'}`}>
-          {terminal.cwd}
-        </span>
-        {compactHeader ? <span className={meta.tag}>{meta.label}</span> : <div className="flex-1" />}
-        {focused && !compactHeader && <span className="font-mono text-[10.5px] text-accent tracking-[0.04em] whitespace-nowrap">⌨ TECLADO AQUI</span>}
-        <div className={`flex gap-1 ${compactHeader ? 'hidden' : ''}`}>
-          {enlarged ? (
-            <>
-              <ActionButton
-                label="Renomear"
-                shortcut="Alt+R"
-                onClick={() => {
-                  setDraft(name);
-                  props.onRenameStart();
-                }}
-              />
-              <ActionButton label="Voltar à grelha" shortcut="Esc" onClick={() => props.onBackToGrid?.()} />
-              <ActionButton label="Fechar" shortcut="Alt+W" onClick={props.onClose} />
-            </>
-          ) : split ? (
-            <>
-              <ActionButton label="Juntar" shortcut="Alt+\" onClick={props.onSplit} />
-              <ActionButton label="Fechar" onClick={props.onClose} />
-            </>
-          ) : (
-            <>
-              <ActionButton
-                label="Renomear"
-                shortcut="Alt+R"
-                onClick={() => {
-                  setDraft(name);
-                  props.onRenameStart();
-                }}
-              />
-              <ActionButton label="Dividir" shortcut="Alt+\" onClick={props.onSplit} />
-              <ActionButton label="Fechar" shortcut="Alt+W" onClick={props.onClose} />
-            </>
-          )}
-        </div>
+        <div className="flex-1 min-w-0" />
+        {compactHeader && <span className={meta.tag}>{meta.label}</span>}
       </header>
 
       {terminal.status === 'stopped' ? (
@@ -168,6 +128,7 @@ export function TerminalPane(props: TerminalPaneProps) {
           <TerminalView
             terminalId={terminal.id}
             compact={tile}
+            fontDelta={props.fontDelta}
             visible={visible}
             focused={focused}
             onFocus={props.onActivate}

@@ -34,6 +34,9 @@ Desenhados no `/choose-design` (2026-09-27) — protótipos em
   terminais desse projeto — reabre-se clicando o projeto na lateral.
 - O dono **vê quanto da quota** da subscrição já gastou antes de abrir mais sessões — a quota é da conta, não do terminal.
 - O dono **escolhe nas Definições** se vê os terminais em foco dividido (um de cada vez, ou dois lado a lado) ou em grelha (todos à vista).
+- O dono **filtra a lateral por status** (a correr / terminados / parados) para encontrar depressa um
+  terminal entre vários projetos, e **esconde a lateral** para ganhar espaço, sem perder nenhum terminal.
+- O dono **ajusta o zoom de um terminal** sem afetar o resto da página — nunca precisa do zoom do browser.
 - O dono **consulta a biblioteca** do Workflow (que stacks e designs existem, quão maduros são, que skills há) sem abrir o Obsidian.
 - (Futuro) O dono **lança o `/create`** a partir de um formulário.
 

@@ -2,18 +2,23 @@ import { useEffect, useRef } from 'react';
 
 /**
  * Atalhos da app nos terminais: Alt+1…9 saltar · Alt+N novo · Alt+\ dividir/juntar · Alt+W fechar ·
- * Alt+R renomear (handoff de design; ADR 0008). Nunca Ctrl+… (é do Claude Code e do browser) nem
- * Ctrl+Alt+… (é o AltGr num teclado PT — escreve \ @ { [ …).
+ * Alt+R renomear · Alt+= / Alt+- zoom só no terminal · Alt+0 repor (handoff de design; ADR 0008).
+ * Nunca Ctrl+… (é do Claude Code e do browser — Ctrl+= faria zoom na página toda) nem Ctrl+Alt+… (é o
+ * AltGr num teclado PT — escreve \ @ { [ …).
  */
 export type ShortcutAction =
   | { type: 'jump'; index: number }
   | { type: 'new' }
   | { type: 'split' }
   | { type: 'close' }
-  | { type: 'rename' };
+  | { type: 'rename' }
+  | { type: 'zoom'; direction: 'in' | 'out' | 'reset' };
 
 // Por `code` (a tecla física) para não depender do layout; o \ num teclado PT é a tecla à esquerda do 1.
 const BACKSLASH_CODES = new Set(['Backslash', 'IntlBackslash', 'Backquote']);
+const ZOOM_IN_CODES = new Set(['Equal', 'NumpadAdd']);
+const ZOOM_OUT_CODES = new Set(['Minus', 'NumpadSubtract']);
+const ZOOM_RESET_CODES = new Set(['Digit0', 'Numpad0']);
 
 export function shortcutFromEvent(event: KeyboardEvent): ShortcutAction | null {
   if (!event.altKey || event.ctrlKey || event.metaKey || event.shiftKey) return null;
@@ -28,6 +33,9 @@ export function shortcutFromEvent(event: KeyboardEvent): ShortcutAction | null {
       return { type: 'rename' };
   }
   if (BACKSLASH_CODES.has(event.code) || event.key === '\\') return { type: 'split' };
+  if (ZOOM_IN_CODES.has(event.code) || event.key === '+') return { type: 'zoom', direction: 'in' };
+  if (ZOOM_OUT_CODES.has(event.code)) return { type: 'zoom', direction: 'out' };
+  if (ZOOM_RESET_CODES.has(event.code)) return { type: 'zoom', direction: 'reset' };
   return null;
 }
 

@@ -194,6 +194,7 @@ Ordem obrigatória. Tiers: `opus` (desenho, não delegar) · `sonnet` (implement
   - Skill: `frontend-design-system`
   - Tier: `sonnet`
   - Aceite quando: um separador por `openProjectPaths`, pela ordem de abertura; nome do projeto, indicação de estado (ex.: quantos a correr), × que chama `onClose` (esconder, não mata); separador ativo destacado; só tokens, nenhum hex novo.
+  - **Revisto 2026-09-29** (pedido do dono: "mais destaque, maior e mais clean"): faixa `h-14` (era `h-10`), separador `h-11` (era `h-[34px]`), texto 14.5px; sem caixa com borda nos inativos — só `hover:bg-surface-2`; o separador ativo destaca-se por uma linha de 2px em `accent` no topo (`border-t-accent`) + `font-semibold`, em vez da caixa com borda antiga.
 
 - [x] **6. `TerminalSidebar` — lista de projetos** — ✅ 2026-09-28 (verificação no browser feita no passo 8, junto com o resto da página)
   - Ficheiro: `frontend/src/components/terminals/TerminalSidebar.tsx` (reescrito)
@@ -201,6 +202,16 @@ Ordem obrigatória. Tiers: `opus` (desenho, não delegar) · `sonnet` (implement
   - Tier: `opus` (mexe na navegação principal da página)
   - Aceite quando: no browser — sem "+ Novo terminal" solto; clicar um projeto do registo sem terminais cria um terminal `claude` real (`mode: 'new'`) e abre/foca o separador; clicar um projeto com terminais reabre o separador tal como ficou; `descartado`/fora de `ALLOWED_ROOTS` não aparecem (já vêm filtrados do backend); estrela de favorito continua a marcar/desmarcar; "+" por projeto continua a abrir mais um terminal nesse projeto.
   - **Decisão ao implementar (pergunta ao dono, 2026-09-28)**: sem o botão global, abrir um terminal numa pasta **fora** do registo do Workflow fica sem interface nesta v1 (volta com os casos "adotar"/"criar", §2 "Segunda fase") — o dono não escolheu entre as duas opções propostas e pediu para seguir com a recomendada.
+  - **Revisto 2026-09-29**: duas coisas novas, ambas a pedido do dono.
+    - **Filtro por status**: as contagens do topo ("N a correr" / "N terminados" / "N parados") passam a
+      `<button class="filter-chip" aria-pressed>` clicáveis (mesmo padrão da Biblioteca,
+      [[../skills/references/design/tables-and-lists|tables-and-lists]] §3.1) — clicar filtra a lista de
+      terminais de todos os projetos por esse status; clicar outra vez limpa o filtro. Um projeto sem
+      nenhum terminal no status escolhido some da lista enquanto o filtro está ativo.
+    - **Esconder a lateral**: um ícone (`MenuFoldOutlined`) junto à contagem "N abertos" colapsa a lateral
+      para uma faixa de 44px com só um ícone (`MenuUnfoldOutlined`) para a devolver. Preferência por
+      dispositivo em `localStorage` (`workflow-app.sidebar-collapsed`) — sobrevive a recarregar; sem
+      `localStorage`, funciona na mesma, só não persiste.
 
 - [x] **7. `TerminalsPage` — estado por projeto e isolamento** — ✅ 2026-09-28
   - Ficheiro: `frontend/src/pages/TerminalsPage.tsx` (reescrito), `frontend/src/hooks/useTerminalShortcuts.ts` (sem mudar o contrato — só quem o consome)
@@ -214,6 +225,20 @@ Ordem obrigatória. Tiers: `opus` (desenho, não delegar) · `sonnet` (implement
     - Reabrir (um ou "todos") não muda o separador ativo — replica o comportamento de antes desta spec, que também não mudava a seleção ao reabrir.
     - `paneSize` ganhou um parâmetro `split: boolean` (a estimativa de largura da PTY); um terminal criado/reaberto começa sempre sem split (a `FitAddon` corrige o tamanho real a seguir, como já acontecia).
   - **Verificação no browser**: feita no passo 8, para os dois passos (6 e 7) juntos — mexem na mesma árvore de componentes.
+  - **Corrigido 2026-09-29 (bug encontrado pelo dono)**: mudar de separador clicando um terminal de **outro**
+    projeto na lateral amplia-o na grelha logo ao chegar, mesmo que esse projeto não estivesse ampliado —
+    `selectTerminal` forçava sempre `enlargedId`, e a validação do `selectedId` no modo foco dividido usava
+    `existsInActive` (os terminais do projeto **antigo**) em vez dos do projeto para onde se estava a
+    mudar. Corrigido: `selectTerminal` nunca amplia (só dá o teclado, `activeId`); a validação passa a usar
+    os terminais do **projeto do id clicado**. "Trocar de separador e voltar mostra o projeto tal como foi
+    deixado" volta a ser verdade em todos os casos, não só ao clicar o cabeçalho do projeto.
+  - **Revisto 2026-09-29 (grelha — pedido do dono)**: clicar um mosaico deixou de o ampliar — só lhe dá o
+    teclado (escreve-se ali, sem mudar de tamanho); duplo clique ou `Alt+1…9` ampliam; `Alt+1…9` no já
+    ampliado alterna de volta à grelha; clicar fora de qualquer mosaico larga o teclado; sair da ampliação
+    (`Esc`/`Alt+\`/"Voltar à grelha"/`Alt+N` no já ampliado) também larga o teclado, para o terminal não
+    ficar como se estivesse pronto a escrever. `Alt+=`/`Alt+-`/`Alt+0` fazem zoom só no terminal focado
+    (`fontSize` do xterm.js ao vivo, sem recriar o terminal nem reconectar o WebSocket) — nunca a página.
+    Detalhe completo em [[terminais]] §"Layouts"/"Atalhos".
 
 - [ ] **8. Verificação ponta a ponta + fecho**
   - Ficheiro: `docs/product/use-cases.md` (ecrã Terminais → mencionar separadores por projeto), `docs/skills/references/design/*` (se houver padrão visual novo a registar dos separadores), `docs/features/terminais.md` (§ Relacionado — acrescentar link para esta spec, edição pontual, sem reescrever o histórico), `notes/ToDo.md`, `notes/whatIveDone.md`

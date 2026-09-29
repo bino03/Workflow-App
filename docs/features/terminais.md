@@ -52,12 +52,20 @@ resumo.
   `CLAUDE_CONFIG_DIR/projects/`) e abrir com `--resume <uuid>`; **Continuar a última** = o backend descobre
   a mais recente e usa `--resume` (nunca `--continue`).
 - **Layouts** ([[../adr/0008-identidade-visual]]): **foco dividido** (por omissão: um terminal em foco;
-  `Alt+\` divide em dois lado a lado e junta) · **grelha** (3 colunas, scroll depois de 6; clicar amplia
-  temporariamente).
+  `Alt+\` divide em dois lado a lado e junta) · **grelha** (3 colunas, scroll depois de 6; um clique num
+  mosaico só lhe dá o teclado — escreve-se ali mesmo, sem mudar de tamanho; duplo clique ou `Alt+1…9`
+  ampliam-no temporariamente; clicar fora de qualquer mosaico larga o teclado — revisto 2026-09-29, a
+  versão original desta spec ampliava logo ao primeiro clique). O botão "+ Novo terminal" do cabeçalho da
+  grelha foi removido (2026-09-29) — duplicava o `Alt+N`; criar num projeto sem nenhum terminal continua a
+  ter o CTA do estado vazio. O caminho da pasta no cabeçalho de cada terminal deixou de ficar sempre
+  visível — é agora uma tooltip ao passar o rato sobre o nome (2026-09-29).
 - **Definições**: drawer "Definições" (Small, 540) no menu de utilizador, com a escolha **foco dividido**
   (por omissão) / **grelha**; persiste no `localStorage`.
-- **Atalhos** `Alt+1…9` saltar · `Alt+N` novo · `Alt+\` dividir/juntar · `Alt+W` fechar · `Alt+R`
-  renomear — intercetados **antes** do PTY.
+- **Atalhos** `Alt+1…9` saltar (na grelha, amplia/desamplia) · `Alt+N` novo · `Alt+\` dividir/juntar ·
+  `Alt+W` fechar · `Alt+R` renomear · `Alt+=`/`Alt+-` zoom só no terminal focado (nunca a página) · `Alt+0`
+  repõe o zoom — intercetados **antes** do PTY. **Revisto 2026-09-29**: o cabeçalho do painel deixou de
+  mostrar botões e atalhos (sem "⌨ TECLADO AQUI", sem `.kbd` junto de Renomear/Dividir/Fechar/Voltar à
+  grelha) — o dono já sabe os atalhos de cor; ver [[../skills/references/design/buttons-and-icons]].
 - **Quota** (se o spike do passo 1 a confirmar): janela de 5 h e semanal, com hora de reposição.
 
 ### ⛔ Fora — não implementar nesta feature
@@ -395,9 +403,12 @@ Ordem obrigatória. Tiers: `opus` (desenho, não delegar) · `sonnet` (implement
     `components/settings/SettingsDrawer.tsx`, `layouts/AppLayout.tsx` (item no menu de utilizador)
   - Skill: `frontend-design-system`
   - Tier: `sonnet`
-  - Aceite quando: `Alt+\` divide (terminal em foco + o anterior) e junta; grelha 3 colunas, scroll depois
-    de 6, clique amplia com "Voltar à grelha"/`Esc` sem mudar a preferência; Definições muda o modo e
-    sobrevive a recarregar; terminais escondidos continuam ligados (sem replay ao voltar).
+  - Aceite quando (na altura): `Alt+\` divide (terminal em foco + o anterior) e junta; grelha 3 colunas,
+    scroll depois de 6, clique amplia com "Voltar à grelha"/`Esc` sem mudar a preferência; Definições muda
+    o modo e sobrevive a recarregar; terminais escondidos continuam ligados (sem replay ao voltar).
+  - **Revisto 2026-09-29**: um clique num mosaico deixou de ampliar — só dá o teclado (escreve-se ali sem
+    mudar de tamanho); duplo clique ou `Alt+1…9` ampliam; clicar fora de qualquer mosaico larga o teclado.
+    "Voltar à grelha"/`Esc` continuam a fechar a ampliação.
 - [x] **16. Indicador de quota** — ✅ 2026-09-28
   - Ficheiro: `components/terminals/QuotaMeter.tsx`, `hooks/useUsage.ts`, `TerminalSidebar.tsx`, `layouts/AppLayout.tsx` (grelha)
   - Skill: `frontend-design-system`

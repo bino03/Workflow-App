@@ -15,6 +15,8 @@ type TerminalViewProps = {
   /** Tem o teclado: recebe o foco quando isto passa a true. */
   focused: boolean;
   compact?: boolean;
+  /** Zoom só deste terminal (Alt+=/Alt+-/Alt+0), em px acima/abaixo do tamanho base — nunca a página toda. */
+  fontDelta?: number;
   onFocus?: () => void;
   onExit?: (code: number) => void;
   /** O terminal deixou de estar em memória (fechado, parado, reaberto): a página recarrega a lista. */
@@ -28,7 +30,7 @@ const RECONNECT_DELAYS_MS = [500, 1000, 2000, 5000];
  * Context nem em estado de React (frontend-conventions → Terminais). Para reabrir, a página remonta-o
  * (key com o lastOpenedAt).
  */
-export function TerminalView({ terminalId, visible, focused, compact = false, onFocus, onExit, onGone }: TerminalViewProps) {
+export function TerminalView({ terminalId, visible, focused, compact = false, fontDelta = 0, onFocus, onExit, onGone }: TerminalViewProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const termRef = useRef<Terminal | null>(null);
   const fitRef = useRef<FitAddon | null>(null);
@@ -36,6 +38,7 @@ export function TerminalView({ terminalId, visible, focused, compact = false, on
   useEffect(() => {
     callbacks.current = { onFocus, onExit, onGone };
   });
+  const font = compact ? TERMINAL_FONT.grid : TERMINAL_FONT.focus;
 
   useEffect(() => {
     const container = containerRef.current;
@@ -45,7 +48,6 @@ export function TerminalView({ terminalId, visible, focused, compact = false, on
     let reconnectTimer: number | undefined;
     let attempt = 0;
     const cleanups: (() => void)[] = [];
-    const font = compact ? TERMINAL_FONT.grid : TERMINAL_FONT.focus;
 
     const send = (data: string | Uint8Array<ArrayBuffer>) => {
       if (socket?.readyState === WebSocket.OPEN) socket.send(data);
@@ -142,7 +144,16 @@ export function TerminalView({ terminalId, visible, focused, compact = false, on
       termRef.current = null;
       fitRef.current = null;
     };
-  }, [terminalId, compact]);
+  }, [terminalId, compact, font]);
+
+  // Zoom só deste terminal: muda o fontSize ao vivo (sem recriar o xterm.js nem reconectar o WebSocket).
+  useEffect(() => {
+    const term = termRef.current;
+    const fit = fitRef.current;
+    if (!term || !fit) return;
+    term.options.fontSize = font.size + fontDelta;
+    if (containerRef.current && containerRef.current.clientWidth > 0) fit.fit();
+  }, [fontDelta, font]);
 
   useEffect(() => {
     if (visible && fitRef.current && containerRef.current && containerRef.current.clientWidth > 0) fitRef.current.fit();
