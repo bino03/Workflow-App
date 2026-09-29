@@ -2,6 +2,8 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Alert, Button, Spin } from 'antd';
 import { NewTerminalDrawer } from '@/components/terminals/new/NewTerminalDrawer';
 import { ProjectTabs } from '@/components/terminals/ProjectTabs';
+import { DEFAULT_GRID_STYLE, type GridStyle, initialSlotIds, slotPlacement } from '@/components/terminals/gridStyle';
+import { GridStylePicker } from '@/components/terminals/GridStylePicker';
 import { displayNames, type Project, joinProjects, projectsWithTerminals } from '@/components/terminals/projects';
 import { QuotaMeter } from '@/components/terminals/QuotaMeter';
 import { TerminalGrid } from '@/components/terminals/TerminalGrid';
@@ -24,9 +26,27 @@ const FONT_DELTA_LIMITS = { min: -4, max: 16 };
 
 type DrawerState = { open: boolean; key: number; folder?: string; mode?: 'new' | 'resume' };
 
-/** O foco/split/ampliado ficam por projeto — trocar de separador nunca mistura nem perde o de outro. */
-type ProjectLayout = { selectedId: string | null; splitId: string | null; enlargedId: string | null; activeId: string | null; previousId: string | null };
-const EMPTY_LAYOUT: ProjectLayout = { selectedId: null, splitId: null, enlargedId: null, activeId: null, previousId: null };
+/** O foco/split/ampliado ficam por projeto — trocar de separador nunca mistura nem perde o de outro.
+ * `gridStyle`/`slotIds` (spec docs/features/estilos-de-grelha.md) só se usam fora de `classic` — os
+ * lugares fixos do estilo escolhido, na Grelha. */
+type ProjectLayout = {
+  selectedId: string | null;
+  splitId: string | null;
+  enlargedId: string | null;
+  activeId: string | null;
+  previousId: string | null;
+  gridStyle: GridStyle;
+  slotIds: (string | null)[];
+};
+const EMPTY_LAYOUT: ProjectLayout = {
+  selectedId: null,
+  splitId: null,
+  enlargedId: null,
+  activeId: null,
+  previousId: null,
+  gridStyle: DEFAULT_GRID_STYLE,
+  slotIds: [],
+};
 
 /**
  * Terminais navegados **por projeto** (spec docs/features/separadores-de-projetos.md, 2026-09-28): a
@@ -103,10 +123,17 @@ export function TerminalsPage() {
     : activeLayout.activeId === secondaryId && secondaryId
       ? secondaryId
       : primaryId;
+  const gridStyle = activeLayout.gridStyle;
+  const usesSlots = gridStyle.kind !== 'classic';
+  // Um lugar cujo id já não existe (fechado) conta como vazio — lido sempre por este filtro, nunca por um
+  // efeito que limpa `slotIds` à parte (spec estilos-de-grelha §4.1).
+  const sanitizedSlotIds = activeLayout.slotIds.map((id) => (existsInActive(id) ? id : null));
   const visibleIds = grid
     ? enlarged
       ? [enlarged]
-      : activeTerminals.map((t) => t.id)
+      : usesSlots
+        ? sanitizedSlotIds.filter((id): id is string => !!id)
+        : activeTerminals.map((t) => t.id)
     : [primaryId, secondaryId].filter((id): id is string => !!id);
   const shortcutIndex = useMemo(() => new Map(activeTerminals.map((t, i) => [t.id, i])), [activeTerminals]);
 
@@ -139,7 +166,9 @@ export function TerminalsPage() {
    * Clicar um terminal (lateral, mosaico, ou painel): abre/foca o separador do projeto dele e dá-lhe o
    * teclado — na grelha, nunca amplia (um clique só edita no mosaico; duplo clique amplia, ver
    * `enlargeTerminal`). Ao mudar de projeto mantém o separador tal como ficou ("trocar de separador e
-   * voltar mostra o projeto tal como foi deixado", spec separadores-de-projetos §3).
+   * voltar mostra o projeto tal como foi deixado", spec separadores-de-projetos §3). Fora de `classic`
+   * (spec estilos-de-grelha), um terminal que não está em nenhum lugar troca para o lugar que tinha o
+   * teclado — nunca o mais antigo (§2 "Excesso").
    */
   const selectTerminal = useCallback(
     (id: string) => {
@@ -150,7 +179,15 @@ export function TerminalsPage() {
       setActivePath(path);
       setLayouts((prev) => {
         const current = prev[path] ?? EMPTY_LAYOUT;
-        if (grid) return { ...prev, [path]: { ...current, activeId: id } };
+        if (grid) {
+          if (current.gridStyle.kind === 'classic' || current.slotIds.includes(id)) {
+            return { ...prev, [path]: { ...current, activeId: id } };
+          }
+          const targetIndex = current.slotIds.indexOf(current.activeId);
+          const slotIds = [...current.slotIds];
+          slotIds[targetIndex === -1 ? 0 : targetIndex] = id;
+          return { ...prev, [path]: { ...current, slotIds, activeId: id } };
+        }
         const inProject = (candidate: string | null) => !!candidate && project.terminals.some((t) => t.id === candidate);
         if (id === current.splitId) return { ...prev, [path]: { ...current, activeId: id } };
         const primary = inProject(current.selectedId) ? current.selectedId : (project.terminals[0]?.id ?? null);
@@ -160,6 +197,35 @@ export function TerminalsPage() {
     },
     [projects, grid],
   );
+
+  /** Botão de estilo da grelha: muda o arranjo do projeto ativo e recalcula os lugares a partir dos
+   * terminais já visíveis (ordem do `shortcutIndex`, a mesma do Alt+1…9). */
+  const setGridStyle = useCallback(
+    (style: GridStyle) => {
+      if (!activePath) return;
+      updateLayout(activePath, { gridStyle: style, slotIds: initialSlotIds(style, activeTerminals.map((t) => t.id)) });
+    },
+    [activePath, activeTerminals, updateLayout],
+  );
+
+  /** O "+" de um lugar vazio na grelha (estilo != classic): cria um terminal novo e ocupa-o logo. */
+  const handleSlotNew = async (index: number) => {
+    if (!activePath) return;
+    setCreatingIn(activePath);
+    try {
+      const view = await create({ cwd: activePath, mode: 'new', ...paneSize(false) });
+      setLayouts((prev) => {
+        const current = prev[activePath] ?? EMPTY_LAYOUT;
+        const slotIds = [...current.slotIds];
+        slotIds[index] = view.id;
+        return { ...prev, [activePath]: { ...current, slotIds, activeId: view.id } };
+      });
+    } catch (e) {
+      ErrorHandler.handle(e);
+    } finally {
+      setCreatingIn(null);
+    }
+  };
 
   /** Duplo clique num mosaico (ou Alt+1…9): amplia-o para fullscreen — só dentro do projeto já ativo. */
   const enlargeTerminal = useCallback(
@@ -472,15 +538,25 @@ export function TerminalsPage() {
             enlarged={!!enlarged}
             onBackgroundMouseDown={clearGridFocus}
             headerExtra={<QuotaMeter usage={usage} now={now} variant="header" />}
+            stylePicker={<GridStylePicker value={gridStyle} onChange={setGridStyle} />}
+            style={gridStyle}
+            slotIds={sanitizedSlotIds}
+            onSlotNew={(index) => void handleSlotNew(index)}
           >
-            {terminals.map((terminal) => (
-              <div
-                key={`${terminal.id}:${terminal.lastOpenedAt}`}
-                className={visibleIds.includes(terminal.id) ? 'min-h-0 min-w-0 flex flex-1' : 'hidden'}
-              >
-                {paneFor(terminal, true)}
-              </div>
-            ))}
+            {terminals.map((terminal) => {
+              const visible = visibleIds.includes(terminal.id);
+              const placement =
+                visible && !enlarged && usesSlots ? slotPlacement(gridStyle, sanitizedSlotIds.indexOf(terminal.id)) : undefined;
+              return (
+                <div
+                  key={`${terminal.id}:${terminal.lastOpenedAt}`}
+                  className={visible ? 'min-h-0 min-w-0 flex flex-1' : 'hidden'}
+                  style={placement}
+                >
+                  {paneFor(terminal, true)}
+                </div>
+              );
+            })}
             {!activeProject && noActiveProject}
             {activeProject && activeTerminals.length === 0 && emptyProject}
           </TerminalGrid>

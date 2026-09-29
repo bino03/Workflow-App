@@ -31,6 +31,7 @@ Lê **só** o(s) da área que estás a tocar.
 | Uma chamada à API, serviço novo, tratamento de erro | [[design/services-and-error-handling]] |
 | Uma rota, item de menu, gate por role | [[design/app-shell-and-auth]] |
 | Separadores tipo browser (esconder, não fechar) | [[design/browser-tabs]] |
+| Grelha com estilos/arranjos escolhíveis, lugares fixos e "+" vazio | [[design/grid-styles]] |
 
 ## Princípios
 

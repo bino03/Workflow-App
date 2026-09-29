@@ -2,10 +2,10 @@
 
 | | |
 |---|---|
-| **Estado** | 📋 Planeada |
+| **Estado** | 🚧 Em curso — falta só a verificação manual no browser do passo 5 |
 | **Criada** | 2026-09-29 |
 | **Última sessão** | 2026-09-29 |
-| **Passos** | 0 / 5 concluídos |
+| **Passos** | 4 / 5 concluídos |
 
 > Escrita para uma sessão que **não viu a conversa que a originou**. Se algo só faz sentido com contexto
 > externo, falta escrevê-lo.
@@ -186,7 +186,7 @@ Ordem obrigatória. Tiers: `opus` (desenho, não delegar) · `sonnet` (implement
 **Regra 8 do `CLAUDE.md`**: nunca editar o backend a partir de um terminal servido por ele em `npm run dev`
 (não se aplica aqui — feature 100% frontend).
 
-- [ ] **1. `gridStyle.ts` — tipos e lógica pura**
+- [x] **1. `gridStyle.ts` — tipos e lógica pura** — ✅ 2026-09-29
   - Ficheiro: `frontend/src/components/terminals/gridStyle.ts`
   - Skill: `frontend-design-system`
   - Tier: `sonnet`
@@ -195,15 +195,17 @@ Ordem obrigatória. Tiers: `opus` (desenho, não delegar) · `sonnet` (implement
     preenche pela ordem dada e usa `null` para os lugares que sobram quando há menos terminais do que
     lugares; `npx tsc -b` e lint limpos.
 
-- [ ] **2. `GridStylePicker` — o botão e as 6 opções**
+- [x] **2. `GridStylePicker` — o botão e as 6 opções** — ✅ 2026-09-29
   - Ficheiro: `frontend/src/components/terminals/GridStylePicker.tsx`
   - Skill: `frontend-design-system`
   - Tier: `sonnet`
   - Aceite quando: um botão no cabeçalho da grelha abre uma lista com Grelha 3×2 · Colunas 2 · Colunas 3 ·
     Colunas 4 · 2×2 · Principal + laterais; a opção atual aparece marcada; só tokens, nenhum hex novo;
     `npx tsc -b` e lint limpos (ainda sem estar ligado à página — isso é o passo 4).
+  - **Decisão ao implementar**: `Dropdown` do antd com `menu.items`, o mesmo padrão do menu de utilizador
+    em `AppLayout.tsx` — sem componente de dropdown próprio.
 
-- [ ] **3. `TerminalGrid` — as quatro disposições e o lugar vazio**
+- [x] **3. `TerminalGrid` — as quatro disposições e o lugar vazio** — ✅ 2026-09-29
   - Ficheiro: `frontend/src/components/terminals/TerminalGrid.tsx` (reescrito)
   - Skill: `frontend-design-system`
   - Tier: `opus` (a disposição CSS de cada estilo é reutilizada por toda a página — um erro aqui aparece
@@ -211,8 +213,18 @@ Ordem obrigatória. Tiers: `opus` (desenho, não delegar) · `sonnet` (implement
   - Aceite quando: recebe `style: GridStyle` e `slotIds: (string | null)[]`; `classic` continua igual a
     hoje; `columns`/`quad`/`spotlight` mostram os lugares nas proporções do §4.4; um `slotIds[i] === null`
     mostra o "+" tracejado; `onSlotNew(index)` chamado ao clicar nesse "+"; `npx tsc -b` e lint limpos.
+  - **Decisão ao implementar (desvio do §4.4)**: `spotlight` usa **CSS Grid** com `grid-column`/`grid-row`
+    explícitos por lugar (`slotPlacement`, movida para `gridStyle.ts` — um ficheiro de componente só pode
+    exportar componentes, regra do `react-refresh` do ESLint), não o flex aninhado (lugar principal +
+    coluna lateral com 2 filhos) descrito na spec. Mesmo resultado visual (1 grande + 2 empilhados), mas
+    **sem aninhar o DOM**: os mosaicos continuam todos filhos diretos do mesmo contentor plano
+    (`TerminalGrid`), só com `grid-column`/`grid-row` (ou `order`, em `columns`) a posicioná-los — trocar
+    de estilo nunca desmonta um terminal já montado nem desliga o WebSocket, a mesma garantia que o passo
+    7 da spec `separadores-de-projetos` já tinha para trocar de separador/modo. `columns`/`quad` só
+    precisam de `order` (grid/flex já respeitam `order` no auto-placement); só `spotlight` precisa de
+    posição explícita por não caber num auto-placement uniforme.
 
-- [ ] **4. `TerminalsPage` — estado por projeto, troca e excesso**
+- [x] **4. `TerminalsPage` — estado por projeto, troca e excesso** — ✅ 2026-09-29 (automático; browser no passo 5)
   - Ficheiro: `frontend/src/pages/TerminalsPage.tsx`
   - Skill: `frontend-design-system`
   - Tier: `opus` (mexe no coração da página — `ProjectLayout`, `selectTerminal`, `visibleIds` — os mesmos
@@ -224,6 +236,20 @@ Ordem obrigatória. Tiers: `opus` (desenho, não delegar) · `sonnet` (implement
     ampliar por cima de qualquer estilo, e sair da ampliação devolve ao estilo e aos lugares de antes;
     trocar de separador e voltar mantém o estilo desse projeto (sem persistir a recarregar); um projeto
     novo (ou recarregar a página) começa sempre em Grelha 3×2.
+  - **Decisões ao implementar**:
+    - `ProjectLayout` ganhou `gridStyle`/`slotIds` (por omissão `DEFAULT_GRID_STYLE`/`[]`); `sanitizedSlotIds`
+      é um `const` simples (não `useMemo`) — o React Compiler do projeto não conseguia preservar a
+      memoização manual com `activeLayout` (objeto recalculado a cada render por `layoutFor`), e o
+      compilador já memoiza automaticamente onde vale a pena.
+    - `selectTerminal`, no ramo `grid`: se o estilo é `classic` ou o id já está num lugar, só muda
+      `activeId` (como antes); senão, substitui o lugar de `current.slotIds.indexOf(current.activeId)`
+      (ou o lugar 0, se nada tinha o teclado) — é o "troca-o para o quadrante que tinha o teclado".
+    - `handleSlotNew` (o "+" de um lugar) chama `create` diretamente (não `handleCreate`/`focusTerminal`,
+      que **amplia** o terminal novo em vez de o pôr num lugar) e escreve o id no índice certo de `slotIds`.
+    - `setGridStyle` recalcula `slotIds` com `initialSlotIds(novoEstilo, activeTerminals.map(t => t.id))` —
+      os primeiros N terminais do projeto (ordem do Alt+1…9) preenchem os lugares novos.
+    - Verificação no browser adiada para o passo 5 (mexe na mesma árvore de componentes, e o dono só tem a
+      password real — mesma situação da spec `separadores-de-projetos`, passo 8).
 
 - [ ] **5. Verificação ponta a ponta + registo do padrão + fecho**
   - Ficheiro: `docs/skills/references/design/grid-styles.md` (novo, como `browser-tabs.md`),
@@ -234,25 +260,48 @@ Ordem obrigatória. Tiers: `opus` (desenho, não delegar) · `sonnet` (implement
   - Aceite quando: no browser, com o `claude` real — os quatro estilos testados num projeto com terminais
     a mais e a menos do que os lugares, ampliar/sair a funcionar por cima de qualquer estilo, e a troca de
     separador a preservar o estilo; docs atualizados; plano e work log fechados.
+  - **Feito nesta sessão (2026-09-29)**: automático — `npx tsc -b` e `npm run lint` do frontend limpos
+    (passos 1-4); docs atualizados (`use-cases.md`, `terminais.md` §"Layouts",
+    `design/grid-styles.md` — padrão novo registado e ligado em `frontend-visual-consistency.md`).
+  - **Por fazer**: o backend arrancou (`/run`, health check 200), mas o frontend não — `npm run dev`
+    falhou a carregar o Rollup nativo (`@rollup/rollup-win32-x64-msvc`), bloqueado por uma política de
+    Application Control do Windows nesta máquina (não é um `node_modules` corrompido; reinstalar não
+    resolve). A verificação real também precisa do login com a password verdadeira, que só o dono tem —
+    mesma situação da spec `separadores-de-projetos`, passo 8. Checklist completo em
+    `notes/verificacao-browser-pendente.md` → "spec `estilos-de-grelha`, passo 5". Adiada, não dispensada.
 
 ## 6. Estado atual
 
 > ⚠️ **Atualizar SEMPRE no fim de cada sessão.** É a secção que torna esta spec retomável.
 
-**Feito:** nada ainda — spec escrita e entrevistada em 2026-09-29.
-**Em curso:** —
-**Próxima ação concreta:** passo 1 — `frontend/src/components/terminals/gridStyle.ts`.
-**Desvios ao plano:** nenhum ainda.
+**Feito:** passos 1-4 — `gridStyle.ts` (`GridStyle`, `DEFAULT_GRID_STYLE`, `slotCount`, `initialSlotIds`,
+`slotPlacement`), `GridStylePicker.tsx`, `TerminalGrid.tsx` (as quatro disposições + lugar vazio),
+`TerminalsPage.tsx` (`ProjectLayout.gridStyle`/`slotIds`, `setGridStyle`, `handleSlotNew`, `selectTerminal`
+estendido para trocar de lugar). `npx tsc -b` e `npm run lint` limpos a cada passo. Passo 5 (parte
+automática): docs atualizados (`use-cases.md`, `terminais.md` §"Layouts", `design/grid-styles.md`).
+**Em curso:** passo 5 — falta a verificação manual no browser.
+**Próxima ação concreta:** destravar a política de Application Control do Windows que bloqueia o Rollup
+nativo (`@rollup/rollup-win32-x64-msvc`) para o frontend arrancar, e depois correr o checklist de
+`notes/verificacao-browser-pendente.md` → "spec `estilos-de-grelha`, passo 5" (precisa do dono: a
+verificação real também precisa da password verdadeira).
+**Desvios ao plano:**
+- `spotlight` usa CSS Grid com posição explícita por lugar em vez do flex aninhado do §4.4 — mesmo
+  resultado visual, sem aninhar o DOM (nunca desmonta um terminal já montado só por trocar de estilo).
+  Ver "Decisão ao implementar" do passo 3.
+- `slotPlacement` (originalmente pensada para viver em `TerminalGrid.tsx`) mudou para `gridStyle.ts` — um
+  ficheiro de componente só pode exportar componentes (regra do `react-refresh` do ESLint deste projeto).
+- Nesta sessão o frontend não arrancou (bloqueio de Application Control do Windows no Rollup nativo, não
+  relacionado com o código desta spec) — ver `notes/verificacao-browser-pendente.md`.
 **O que uma sessão nova precisa de saber:**
 - Esta feature vive **só dentro do modo Grelha** ([[../adr/0008-identidade-visual|ADR 0008]]) — o Foco
   dividido não muda em nada.
 - O botão "+ Novo terminal" do cabeçalho da grelha já **não existe** (removido em 2026-09-29, ver
   [[terminais]] §"Layouts") — o botão novo desta feature (`GridStylePicker`) fica no lugar onde ele
   estava, não é o mesmo botão.
-- `enlargedId`/`activeId`/`clearGridFocus`/`exitEnlarge` já existem em `TerminalsPage.tsx` (sessão de
-  2026-09-29) e **não mudam** — esta feature só acrescenta `gridStyle`/`slotIds` ao lado.
-- `selectTerminal` (em `TerminalsPage.tsx`) hoje só sabe focar um terminal já visível; o passo 4 tem de
-  lhe ensinar a trocar um terminal "de fora" para o lugar em foco quando o estilo não é `classic`.
+- `enlargedId`/`activeId`/`clearGridFocus`/`exitEnlarge` já existiam em `TerminalsPage.tsx` antes desta
+  feature e não mudaram — só `gridStyle`/`slotIds` são novos em `ProjectLayout`.
+- O código está todo escrito e a passar `tsc`/lint; só falta a verificação no browser (passo 5) — não há
+  mais nenhum passo de código por fazer.
 
 ## 7. Perguntas em aberto
 

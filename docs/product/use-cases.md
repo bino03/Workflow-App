@@ -18,7 +18,7 @@ Desenhados no `/choose-design` (2026-09-27) — protótipos em
 
 | Ecrã | Para quê | Estado |
 |---|---|---|
-| Terminais | Navegação **por projeto** (lateral lista projetos do registo do Workflow, um separador tipo browser por projeto aberto — [[../features/separadores-de-projetos]]); dentro de um separador, sessões abertas com estado de cada uma, novo terminal (drawer: pasta, sessão nova / continuar / retomar), fechar (confirmação), quota à vista. Dois modos: **foco dividido** (por omissão) e **grelha** | ✅ desenhado |
+| Terminais | Navegação **por projeto** (lateral lista projetos do registo do Workflow, um separador tipo browser por projeto aberto — [[../features/separadores-de-projetos]]); dentro de um separador, sessões abertas com estado de cada uma, novo terminal (drawer: pasta, sessão nova / continuar / retomar), fechar (confirmação), quota à vista. Dois modos: **foco dividido** (por omissão) e **grelha** — na grelha, quatro arranjos à escolha por projeto (3×2 · colunas · 2×2 · principal + laterais — [[../features/estilos-de-grelha]]) | ✅ desenhado |
 | Biblioteca | Stacks · Designs · Skills, pesquisa, filtro por maturidade, drawer de detalhe com o manifesto | ✅ desenhado |
 | Login | Entrar (um só utilizador) | ✅ desenhado |
 | Definições | Drawer no menu de utilizador: escolher o modo de layout dos terminais | ✅ decidido (sem protótipo — segue o drawer do Novo terminal) |
@@ -34,6 +34,9 @@ Desenhados no `/choose-design` (2026-09-27) — protótipos em
   terminais desse projeto — reabre-se clicando o projeto na lateral.
 - O dono **vê quanto da quota** da subscrição já gastou antes de abrir mais sessões — a quota é da conta, não do terminal.
 - O dono **escolhe nas Definições** se vê os terminais em foco dividido (um de cada vez, ou dois lado a lado) ou em grelha (todos à vista).
+- O dono **escolhe o arranjo da grelha** por projeto (3×2 · colunas · 2×2 · principal + laterais); um
+  lugar sem terminal mostra um "+" para abrir um ali mesmo, e um terminal a mais do que lugares continua
+  a correr, só troca para o lugar em foco se for clicado na lateral.
 - O dono **filtra a lateral por status** (a correr / terminados / parados) para encontrar depressa um
   terminal entre vários projetos, e **esconde a lateral** para ganhar espaço, sem perder nenhum terminal.
 - O dono **ajusta o zoom de um terminal** sem afetar o resto da página — nunca precisa do zoom do browser.

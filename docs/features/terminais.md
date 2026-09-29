@@ -58,7 +58,9 @@ resumo.
   versão original desta spec ampliava logo ao primeiro clique). O botão "+ Novo terminal" do cabeçalho da
   grelha foi removido (2026-09-29) — duplicava o `Alt+N`; criar num projeto sem nenhum terminal continua a
   ter o CTA do estado vazio. O caminho da pasta no cabeçalho de cada terminal deixou de ficar sempre
-  visível — é agora uma tooltip ao passar o rato sobre o nome (2026-09-29).
+  visível — é agora uma tooltip ao passar o rato sobre o nome (2026-09-29). Dentro do modo Grelha, o
+  arranjo (3×2 · colunas · 2×2 · principal + laterais) é escolhido por projeto — ver
+  [[estilos-de-grelha]].
 - **Definições**: drawer "Definições" (Small, 540) no menu de utilizador, com a escolha **foco dividido**
   (por omissão) / **grelha**; persiste no `localStorage`.
 - **Atalhos** `Alt+1…9` saltar (na grelha, amplia/desamplia) · `Alt+N` novo · `Alt+\` dividir/juntar ·
