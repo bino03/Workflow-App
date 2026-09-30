@@ -1,7 +1,8 @@
 # Formulários e validação
 
 > 🚧 Parcialmente validada: `FieldError` e o login (`pages/login/`) existem e foram verificados a
-> 2026-09-28; submit/criar/editar em drawers ainda sem código.
+> 2026-09-28; submit/criar/editar em drawers ainda sem código. §4.1 (zona de arrastar ficheiro) baseia-se
+> em `components/library/UploadSkillDrawer.tsx` (2026-09-30) — **ainda não verificado no browser**.
 
 > Parte de [[../frontend-visual-consistency]]. Regras de base em [[skill-frontend-design-system]] → "Forms".
 
@@ -66,6 +67,33 @@ Nunca o bloco `{errors.x && <p style={{...}}>}` copiado campo a campo.
 
 Erros de validação vindos da API (`fieldErrors`): no `catch`, `form.setError(field, { message })`
 para cada um, além do `ErrorHandler.handle(e)`.
+
+## 4.1 Zona de arrastar ficheiro (2026-09-30)
+
+Nasceu do upload de skills (`components/library/UploadSkillDrawer.tsx`,
+[[../../../features/upload-de-skills|upload-de-skills]] passo 5). **Não usar o `Upload` do antd** — traz
+lista de ficheiros e pedido próprios, e aqui o envio é um `POST` do serviço do domínio.
+
+- Um `<button type="button">` a ocupar a largura toda, com `border border-dashed border-border`,
+  `bg-surface-2`, `rounded-md`, `px-4 py-7`, conteúdo centrado. Sendo um botão a sério, chega-se lá por
+  teclado e o `disabled` funciona sem código extra.
+- **A arrastar** (`onDragOver`): `border-accent` + `bg-surface-3`. Em repouso: `hover:bg-surface-3`.
+  `onDragOver` e `onDrop` têm de chamar `preventDefault()`, senão o browser abre o ficheiro.
+- O `<input type="file">` fica escondido (`className="hidden"`) e é aberto pelo `onClick` do botão.
+  No fim do `onChange`, `event.target.value = ''` — sem isso, escolher **o mesmo** ficheiro outra vez
+  não dispara o evento.
+- Escolhido: mostra só **nome** (mono) e **tamanho**, nunca uma pré-visualização do conteúdo, mais um
+  "Escolher outro" em `text-accent`. O limite de tamanho aparece no texto de repouso ("até 256 KB").
+- **Erro do backend dentro do drawer**, não em toast: `Alert` `type="error"` com a mensagem mapeada em
+  `title` e os `fieldErrors` numa `<ul>` no `description` — o ficheiro escolhido não se perde e o
+  utilizador vê o erro ao lado do que o causou. O serviço marca `skipErrorNotification: true` para o
+  interceptor não notificar por cima ([[services-and-error-handling]]).
+- Sem React Hook Form quando o "formulário" é só um `Select` e um ficheiro: não há nada para validar do
+  lado do cliente além de "os dois escolhidos" (o botão fica `disabled`), porque o que torna o ficheiro
+  válido está *dentro* dele e quem decide é o backend.
+- Todo o fecho do drawer (Cancelar, ✕, `Esc`, máscara, sucesso) passa por **uma** função que limpa o
+  estado antes de chamar o `onClose` do pai — nunca um `useEffect` no `open` (o ESLint deste projeto
+  recusa `setState` síncrono dentro de um efeito: `react-hooks/set-state-in-effect`).
 
 ## 5. Criar e editar partilham secções
 

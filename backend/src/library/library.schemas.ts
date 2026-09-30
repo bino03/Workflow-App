@@ -55,6 +55,19 @@ export const skillManifestSchema = z.object({
   updated,
 });
 
+/** The Workflow names skills in kebab-case: `name: create-new-skill` in `skill-create-new-skill.md`. */
+const kebab = z
+  .string()
+  .trim()
+  .regex(/^[a-z0-9]+(-[a-z0-9]+)*$/, "tem de ser kebab-case (letras minúsculas, dígitos, hífen)");
+
+/**
+ * Like `skillManifestSchema`, but `name` must be kebab-case — only for uploads (ADR 0014). Reading
+ * stays tolerant: a skill already on disk with an odd name still shows up in the Library.
+ * The uploaded file lands at `skill-<name>.md`, so a loose `name` here would decide a file path.
+ */
+export const skillUploadManifestSchema = skillManifestSchema.extend({ name: kebab });
+
 type Common = {
   maturity: Maturity;
   /** The value written in the manifest, shown in the tag. */

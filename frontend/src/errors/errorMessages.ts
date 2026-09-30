@@ -14,6 +14,10 @@ export const ERROR_MESSAGES: Record<string, string> = {
   AUTH_004: 'Demasiadas tentativas. Espera um minuto e tenta outra vez.',
   // ── LIBRARY ────────────────────────────
   LIBRARY_001: 'A biblioteca do Workflow não foi encontrada. Confirma o WORKFLOW_PATH do backend.',
+  LIBRARY_002: 'O ficheiro não é uma skill válida. Confirma o frontmatter no topo (kind, name, category, status).',
+  LIBRARY_003: 'Já existe uma skill com este nome nesta stack. Apaga ou renomeia a antiga primeiro.',
+  LIBRARY_004: 'Esta stack não existe na biblioteca.',
+  LIBRARY_005: 'O ficheiro está em falta, vazio, ou é maior do que 256 KB.',
   // ── TERMINAL ───────────────────────────
   TERMINAL_001: 'Este terminal já não existe.',
   TERMINAL_002: 'Já tens o máximo de terminais abertos. Fecha um para abrir outro.',

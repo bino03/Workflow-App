@@ -27,6 +27,10 @@ próprio Fastify (JSON mal formado, content-type errado → `COMMON_001`) e as r
 | `AUTH_003` | 403 | `Origin` fora de `CORS_ALLOWED_ORIGINS` (upgrade do WebSocket) |
 | `AUTH_004` | 429 | Demasiadas tentativas de login |
 | `LIBRARY_001` | 500 | A pasta `WORKFLOW_PATH/library` não existe |
+| `LIBRARY_002` | 400 | O ficheiro enviado não é uma skill válida — `fieldErrors` com o que falha no frontmatter |
+| `LIBRARY_003` | 409 | Já existe uma skill com esse nome nessa stack (nunca sobrescreve) |
+| `LIBRARY_004` | 404 | A stack não existe na biblioteca |
+| `LIBRARY_005` | 400 | Ficheiro em falta, vazio, ou acima de 256 KiB |
 | `TERMINAL_001` | 404 | O terminal não existe |
 | `TERMINAL_002` | 409 | `MAX_TERMINALS` atingido (só contam os vivos) |
 | `TERMINAL_003` | 409 | A sessão já está aberta noutro terminal |
@@ -119,7 +123,7 @@ Todas com sessão (`AUTH_002`). Qualquer pasta passa por `resolveAllowedPath` (`
 
 ## Biblioteca (`library/`, `/api/library`) — ✅
 
-Só leitura, lida do disco a cada pedido ([[adr/0005-biblioteca-lida-do-disco]]). As três rotas devolvem
+Lida do disco a cada pedido ([[adr/0005-biblioteca-lida-do-disco]]). As três rotas `GET` devolvem
 `{entries, invalid}`, com `entries` ordenadas por `name`:
 
 | Método | Rota | Acesso | Lê | Cada entrada | Erros |
@@ -127,6 +131,7 @@ Só leitura, lida do disco a cada pedido ([[adr/0005-biblioteca-lida-do-disco]])
 | GET | `/api/library/stacks` | sessão | `library/stacks/<id>/STACK.md` | `{id, name, layer, technologies, pairsWith, providesSkills, …comum}` | `AUTH_002` · `LIBRARY_001` |
 | GET | `/api/library/themes` | sessão | `library/frontend/themes/<id>/THEME.md` | `{id, name, mode, density, suits, frontendStacks, fonts, …comum}` | `AUTH_002` · `LIBRARY_001` |
 | GET | `/api/library/skills` | sessão | `library/skills/**` e `library/stacks/<id>/skills/**` | `{name, category, appliesWhen, description, stack, …comum}` | `AUTH_002` · `LIBRARY_001` |
+| POST | `/api/library/stacks/:stackId/skills` | sessão | escreve — ver abaixo | `201` com a mesma entrada do `GET /api/library/skills` | `COMMON_001` · `AUTH_002` · `LIBRARY_002` · `LIBRARY_003` · `LIBRARY_004` · `LIBRARY_005` |
 
 - **Comum**: `maturity` (`proven`/`partial`/`draft`: os três chips do ecrã), `maturityRaw` (o valor escrito
   no manifesto, mostrado na tag), `updated` (string ou `null`), `path` (caminho absoluto do manifesto).
@@ -137,6 +142,26 @@ Só leitura, lida do disco a cada pedido ([[adr/0005-biblioteca-lida-do-disco]])
 - Pastas começadas por `_` ou `.` são ignoradas; agentes não entram.
 - **Um manifesto inválido nunca é fatal**: vai para `invalid[]` como `{path, message}` (caminho relativo +
   razão do zod/YAML), e o resto da lista vem na mesma. Só a falta da pasta `library/` dá `500 LIBRARY_001`.
+
+### `POST /api/library/stacks/:stackId/skills` — a única escrita
+
+A única porta de escrita da app no `WORKFLOW_PATH` ([[adr/0014-escrita-controlada-biblioteca]]).
+`multipart/form-data` com **um** campo `file` (o `.md` da skill); o corpo em JSON dá `COMMON_001`.
+
+- **`:stackId`** tem de ser um dos `id` do `GET /api/library/stacks` — caso contrário `LIBRARY_004`. Nunca
+  entra num caminho: a pasta de destino vem do `STACK.md` que o serviço encontrou ao varrer `stacks/`, por
+  isso um `../../etc` só pode falhar o *match*, nunca sair da biblioteca.
+- **O nome do ficheiro vem do frontmatter**, não do ficheiro enviado: escreve `stacks/<pasta>/skills/skill-<name>.md`,
+  com `name` validado em kebab-case (`^[a-z0-9]+(-[a-z0-9]+)*$`). O frontmatter tem de passar no mesmo
+  schema de skill da leitura, mais essa regra → senão `LIBRARY_002` com `fieldErrors`.
+- **Nunca sobrescreve**: destino já existente → `LIBRARY_003` (a criação usa `wx`, por isso a corrida
+  também dá 409).
+- **Tamanho**: vazio ou acima de **256 KiB** (constante no código, não é variável de ambiente) → `LIBRARY_005`.
+- **Nada é escrito antes de tudo estar validado.** Depois de a skill ser escrita, o `provides-skills` do
+  `STACK.md` dessa stack ganha o nome — em **melhor esforço**: se falhar, fica um aviso no log e a resposta
+  é `201` na mesma (a listagem lê a pasta, não o manifesto). Só esse array é alterado; o resto do
+  `STACK.md` fica byte-a-byte igual.
+- `library/stacks/README.md` **não** é atualizado — limitação conhecida do ADR 0014.
 
 ## Projetos (`projects/`, `/api/projects`) — ✅
 

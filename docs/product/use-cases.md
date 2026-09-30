@@ -19,7 +19,7 @@ Desenhados no `/choose-design` (2026-09-27) — protótipos em
 | Ecrã | Para quê | Estado |
 |---|---|---|
 | Terminais | Navegação **por projeto** (lateral lista projetos do registo do Workflow, um separador tipo browser por projeto aberto — [[../features/separadores-de-projetos]]); dentro de um separador, sessões abertas com estado de cada uma, "+" cria logo um terminal novo nesse projeto (sem drawer), "Retomar" abre um modal só com as sessões gravadas dessa pasta (sem escolher pasta nem nome), fechar (confirmação), quota à vista. Dois modos: **foco dividido** (por omissão) e **grelha** — na grelha, quatro arranjos à escolha por projeto (3×2 · colunas · 2×2 · principal + laterais — [[../features/estilos-de-grelha]]) | ✅ desenhado |
-| Biblioteca | Stacks · Designs · Skills, pesquisa, filtro por maturidade, drawer de detalhe com o manifesto | ✅ desenhado |
+| Biblioteca | Stacks · Designs · Skills, pesquisa, filtro por maturidade, drawer de detalhe com o manifesto, upload de uma skill para uma stack | ✅ desenhado |
 | Login | Entrar (um só utilizador) | ✅ desenhado |
 | Definições | Drawer no menu de utilizador: escolher o modo de layout dos terminais | ✅ decidido (sem protótipo — segue o drawer do Novo terminal) |
 
@@ -43,6 +43,11 @@ Desenhados no `/choose-design` (2026-09-27) — protótipos em
   lateral** (`AltGr+.`) para ganhar espaço, sem perder nenhum terminal.
 - O dono **ajusta o zoom de um terminal** sem afetar o resto da página — nunca precisa do zoom do browser.
 - O dono **consulta a biblioteca** do Workflow (que stacks e designs existem, quão maduros são, que skills há) sem abrir o Obsidian.
+- O dono **acrescenta uma skill já escrita** à biblioteca: na tab Skills, escolhe a stack, arrasta o
+  `skill-*.md` e ele passa a viver em `WORKFLOW_PATH/library/stacks/<id>/skills/` — sem abrir o Obsidian
+  nem um terminal no Workflow ([[../features/upload-de-skills]],
+  [[../adr/0014-escrita-controlada-biblioteca]]). Stacks e designs completos continuam a fazer-se pelos
+  terminais.
 - (Futuro) O dono **lança o `/create`** a partir de um formulário.
 
 ## Relacionado

@@ -2,10 +2,10 @@
 
 | | |
 |---|---|
-| **Estado** | 📋 Planeada |
+| **Estado** | 🚧 Em curso — verificado no browser (39/39) contra uma cópia da biblioteca; falta a passagem contra a real |
 | **Criada** | 2026-09-29 |
-| **Última sessão** | 2026-09-29 |
-| **Passos** | 0 / 6 concluídos |
+| **Última sessão** | 2026-09-30 |
+| **Passos** | 5 / 6 concluídos (falta só a passagem do passo 6 contra a biblioteca REAL) |
 
 > Escrita para uma sessão que **não viu a conversa que a originou**. Se algo só faz sentido com contexto
 > externo, falta escrevê-lo.
@@ -219,7 +219,7 @@ tipo novo.
 Ordem obrigatória. Tiers: `opus` (desenho, não delegar) · `sonnet` (implementação) · `haiku` (mecânico).
 **Regra 8 do `CLAUDE.md`**: nunca editar o backend a partir de um terminal servido por ele em `npm run dev`.
 
-- [ ] **1. ADR — escrita controlada da app na biblioteca do Workflow**
+- [x] **1. ADR — escrita controlada da app na biblioteca do Workflow**
   - Ficheiro: `docs/adr/0014-escrita-controlada-biblioteca.md`, `docs/adr/README.md` (linha nova),
     `docs/adr/0005-biblioteca-lida-do-disco.md` (só o campo "Estado" da tabela do README a apontar para o
     novo ADR, como já se fez com o 0003/0011 — **não reescrever a decisão original do 0005**)
@@ -231,7 +231,7 @@ Ordem obrigatória. Tiers: `opus` (desenho, não delegar) · `sonnet` (implement
     validado, sem overwrite) e as consequências (o que fica de fora — §2 desta spec); `docs/adr/README.md`
     tem a linha nova; o 0005 não teve a sua decisão original editada.
 
-- [ ] **2. `frontmatterEditor.ts` + `skillUploadManifestSchema` — lógica pura**
+- [x] **2. `frontmatterEditor.ts` + `skillUploadManifestSchema` — lógica pura**
   - Ficheiro: `backend/src/library/frontmatterEditor.ts`, `backend/src/library/library.schemas.ts`
     (extend), `backend/test/frontmatterEditor.test.ts`
   - Skill: —
@@ -242,7 +242,7 @@ Ordem obrigatória. Tiers: `opus` (desenho, não delegar) · `sonnet` (implement
     ficheiro não tiver bloco `--- … ---`. `skillUploadManifestSchema` aceita `name: "add-thing"` e rejeita
     `"Add Thing"`/`"add_thing"`/`"Add-Thing"`. `npm run typecheck`/`test`/`lint` limpos.
 
-- [ ] **3. `POST /api/library/stacks/:stackId/skills` — rota, serviço, multipart**
+- [x] **3. `POST /api/library/stacks/:stackId/skills` — rota, serviço, multipart**
   - Ficheiro: `backend/src/library/library.routes.ts`, `backend/src/library/libraryService.ts`,
     `backend/src/app.ts`, `backend/package.json` (+`@fastify/multipart`),
     `backend/test/library.routes.test.ts`, `docs/api.md`
@@ -258,7 +258,7 @@ Ordem obrigatória. Tiers: `opus` (desenho, não delegar) · `sonnet` (implement
     vazio ou > 256 KiB → `400 LIBRARY_005`; `docs/api.md` atualizado no mesmo commit
     ([[../backend-conventions]]); `npm run typecheck`/`test`/`lint` limpos.
 
-- [ ] **4. Frontend: serviço + erros**
+- [x] **4. Frontend: serviço + erros**
   - Ficheiro: `frontend/src/services/libraryService.ts` (extend), `frontend/src/errors/errorMessages.ts`
     (`LIBRARY_002`–`LIBRARY_005`)
   - Skill: `frontend-error-handling`
@@ -266,7 +266,7 @@ Ordem obrigatória. Tiers: `opus` (desenho, não delegar) · `sonnet` (implement
   - Aceite quando: `uploadSkill(stackId, file)` envia multipart e devolve `SkillEntry`; os quatro códigos
     novos têm mensagem em `errorMessages.ts`, na mesma ordem do backend; `npx tsc -b` e lint limpos.
 
-- [ ] **5. `UploadSkillDrawer` + botão na `LibraryPage`**
+- [x] **5. `UploadSkillDrawer` + botão na `LibraryPage`**
   - Ficheiro: `frontend/src/components/library/UploadSkillDrawer.tsx`,
     `frontend/src/pages/LibraryPage.tsx` (reescrito na tab Skills)
   - Skill: `frontend-design-system`, `frontend-error-handling`
@@ -295,19 +295,68 @@ Ordem obrigatória. Tiers: `opus` (desenho, não delegar) · `sonnet` (implement
 
 > ⚠️ **Atualizar SEMPRE no fim de cada sessão.** É a secção que torna esta spec retomável.
 
-**Feito:** nada ainda — spec escrita e pronta a implementar.
-**Em curso:** nada.
-**Próxima ação concreta:** `/implement-todo` → "Implementar a partir de uma spec" → começar pelo passo 1
-(ADR).
-**Desvios ao plano:** nenhum ainda.
+**Feito (2026-09-30, sessão `/implement-todo` em modo spec LAZY):**
+- **Passo 1** — [[../adr/0014-escrita-controlada-biblioteca|ADR 0014]] escrito e aceite; linha nova em
+  `docs/adr/README.md`; o 0005 **não** teve a decisão original editada, só ganhou a nota de que a regra
+  "nunca escreve" foi parcialmente aberta.
+- **Passo 2** — `backend/src/library/frontmatterEditor.ts` (`withSkillAddedToProvidesSkills`, pura, sem
+  I/O) + `skillUploadManifestSchema` em `library.schemas.ts`; 23 testes em `test/frontmatterEditor.test.ts`.
+- **Passo 3** — `POST /api/library/stacks/:stackId/skills` (`library.routes.ts`), `LibraryService.uploadSkill`,
+  `@fastify/multipart` 10.1.2 registado em `app.ts`, `LIBRARY_002`–`LIBRARY_005` em `common/errors.ts`;
+  22 testes em `test/library.upload.test.ts`; `docs/api.md` atualizado.
+- **Passo 4** — `uploadSkill(stackId, file)` em `frontend/src/services/libraryService.ts` e as quatro
+  mensagens novas em `errorMessages.ts`, pela ordem do backend.
+- **Passo 5 (código)** — `UploadSkillDrawer.tsx`, botão "+ Adicionar skill" só na tab Skills e cabeçalho
+  revisto em `LibraryPage.tsx`, `addSkill` em `useLibrary.ts` (a entrada devolvida entra na lista sem
+  segundo GET). Padrão visual novo registado em `design/forms-and-validation.md` §4.1.
+- **Passo 6 (parte automática)** — `docs/product/use-cases.md`, `docs/architecture.md`, `docs/database.md`,
+  `docs/code-map.md`, `docs/security.md` e `docs/skills/references/project-vocabulary.md` deixaram de dizer
+  que a biblioteca é só de leitura.
+
+**Verificado:** 217 testes do backend a passar (45 novos); `npm run typecheck`/`lint` do backend limpos (o
+erro em `test/auth.test.ts` é pré-existente e sem relação); `npx tsc -b` e `npm run lint` do frontend
+limpos; app a arrancar (`/run`) com health checks OK. Prova extra sem browser: o
+`withSkillAddedToProvidesSkills` corrido **em leitura** contra os 6 `STACK.md` reais do Workflow — em todos
+muda exatamente uma linha e é idempotente; **nada foi escrito no `WORKFLOW_PATH`**.
+
+**Verificado no browser (2026-09-30), 39/39 em Chrome headless via CDP** — a extensão do Chrome voltou a
+falhar, por isso o fluxo correu numa segunda instância do backend com credenciais de teste geradas na hora
+e o `WORKFLOW_PATH` a apontar para uma **cópia** da biblioteca real (SPA servida do `frontend/dist`,
+login a sério). Provado por DOM + rede + disco: 36/36 no fluxo principal (caminho feliz, duplicado 409,
+frontmatter inválido 400, kebab-case, > 256 KB, escolher por clique, reabrir limpa o estado, lista sem F5
+e sem segundo GET, consola limpa) e 3/3 no estado vazio (sem stacks). Detalhe em
+`notes/verificacao-browser-pendente.md`.
+
+**Em curso:** passo 6 — falta **só** a passagem contra a biblioteca **real** (o mesmo código, já provado
+contra a cópia). A sessão foi impedida de escrever no `WORKFLOW_PATH` real por ser uma pasta partilhada
+fora deste repo, e o guarda faz sentido: essa passagem é do dono.
+**Próxima ação concreta:** um upload contra a biblioteca real, na stack `Tauri v2` ou `Rust + Axum`
+(nunca uma `proven`), com `notes/skill-teste-upload.md`, e limpar a seguir — passo a passo em
+`notes/verificacao-browser-pendente.md`.
+
+**Desvios ao plano:**
+- Os testes da rota foram para `backend/test/library.upload.test.ts`, não `library.routes.test.ts` (esse
+  ficheiro nunca existiu; os testes da biblioteca vivem em `library.test.ts`). Um ficheiro próprio evita
+  que os fixtures de escrita interfiram com os de leitura.
+- `uploadSkill` recebe um terceiro argumento opcional, o logger (`request.log`), em vez de uma propriedade
+  mutável no serviço ao estilo do `StateStore` — a rota já tem o logger do pedido à mão.
+- O destino segue a **pasta** onde o `STACK.md` foi encontrado, não o `id` do manifesto (os dois podem
+  divergir). É o que torna o path traversal impossível por construção, e há um teste dedicado.
+- O drawer **não** usa React Hook Form (§4.4 não o exigia, mas `forms-and-validation` §1 sim): só há um
+  `Select` e um ficheiro, e a validação real está dentro do ficheiro, do lado do backend. Justificação
+  escrita no componente e em `design/forms-and-validation.md` §4.1.
+- A limpeza do estado do drawer ficou numa função `close()` em vez de um `useEffect` no `open` — o ESLint
+  deste projeto recusa `setState` síncrono dentro de um efeito (`react-hooks/set-state-in-effect`).
+- O bloqueio de Application Control do Windows no Rollup nativo, que travou as duas sessões anteriores,
+  **já não acontece**: o frontend arrancou à primeira.
+
 **O que uma sessão nova precisa de saber:**
 - Esta feature **escreve no disco do Workflow** (`WORKFLOW_PATH/library`), partilhado por todos os
-  projetos gerados por ele — não é um dado só desta app. Qualquer teste manual (passo 6) tem de ser
-  limpo no fim.
+  projetos gerados por ele. A verificação manual usa `tauri` ou `rust-axum` (ambas com
+  `provides-skills: []`, nenhuma `proven`) e **limpa o que escreveu** no fim.
 - O âmbito ficou deliberadamente pequeno (só skills, sempre dentro de uma stack existente, sem overwrite)
   — ver §2 "Fora" antes de adicionar stacks/designs completos ou skills soltas: são 2ª fase.
-- O passo 1 (ADR) tem de existir e ser aceite **antes** do código — é uma decisão estrutural que reverte
-  parte da [[../adr/0005-biblioteca-lida-do-disco|ADR 0005]].
+- Não falta nenhum passo de código. O que falta é abrir o browser.
 
 ## 7. Perguntas em aberto
 

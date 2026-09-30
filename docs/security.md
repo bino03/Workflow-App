@@ -53,7 +53,7 @@ o que se executa na máquina**:
 
 | Quem | Pode | Não pode |
 |---|---|---|
-| Browser | Pedir um terminal numa pasta; enviar bytes a um terminal que existe; ler a biblioteca; listar sub-pastas e sessões gravadas **só dentro** de `ALLOWED_ROOTS` (sem pastas escondidas nem junctions; nunca acima de uma raiz) | Escolher o binário, os argumentos ou o ambiente do processo; abrir fora de `ALLOWED_ROOTS` |
+| Browser | Pedir um terminal numa pasta; enviar bytes a um terminal que existe; ler a biblioteca e acrescentar-lhe uma skill validada (ADR 0014); listar sub-pastas e sessões gravadas **só dentro** de `ALLOWED_ROOTS` (sem pastas escondidas nem junctions; nunca acima de uma raiz) | Escolher o binário, os argumentos ou o ambiente do processo; abrir fora de `ALLOWED_ROOTS`; escrever no `WORKFLOW_PATH` fora de `stacks/<id>/skills/skill-*.md` e do `provides-skills` desse `STACK.md` |
 | Backend | Lançar **apenas** `CLAUDE_BIN`, com os argumentos de [[adr/0012-argumentos-do-claude-e-status-line]] (`--session-id <uuid do backend>`, `--resume <uuid validado>`, `--settings <DATA_DIR>/claude-settings.json`) | Construir comandos a partir de texto do cliente; lançar um shell |
 | Processo `claude` | Tudo o que o Claude Code pode fazer na pasta, com as permissões que ele próprio pede | — (a app não o limita; o modelo de permissões é o do Claude Code) |
 

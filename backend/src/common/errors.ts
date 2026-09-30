@@ -18,6 +18,10 @@ export const ErrorCode = {
   AUTH_004: { status: 429, message: 'Too many login attempts' },
   // LIBRARY
   LIBRARY_001: { status: 500, message: 'Workflow library folder not found (WORKFLOW_PATH/library)' },
+  LIBRARY_002: { status: 400, message: 'Uploaded file is not a valid skill manifest' },
+  LIBRARY_003: { status: 409, message: 'A skill with this name already exists in this stack' },
+  LIBRARY_004: { status: 404, message: 'Stack not found in the library' },
+  LIBRARY_005: { status: 400, message: 'Missing, empty or oversized file' },
   // TERMINAL
   TERMINAL_001: { status: 404, message: 'Terminal not found' },
   TERMINAL_002: { status: 409, message: 'MAX_TERMINALS reached' },

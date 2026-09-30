@@ -60,7 +60,7 @@ Conceito (PT, na UI e nos docs) → identificador (EN, no código). ✅ Confirma
 | Terminal fechado (histórico) | `ClosedTerminal` | ✅ `state.json` → `closedTerminals` (últimos 200, com resumo) |
 | Pasta recente / favorita | `Folder` | ✅ `state.json` → `folders` |
 | Sessão gravada do Claude Code | `ClaudeSession` | ✅ lida de `~/.claude/projects/`, não é da app |
-| Entrada da biblioteca (stack, design, skill) | `LibraryEntry` (`kind`: `stack` · `theme` · `skill`) | ✅ só leitura, de `library/` |
+| Entrada da biblioteca (stack, design, skill) | `LibraryEntry` (`kind`: `stack` · `theme` · `skill`) | ✅ de `library/`; skills também se escrevem (ADR 0014) |
 | Quota / uso | `UsageSnapshot` | ✅ calculada, não guardada — fonte por decidir |
 | Projeto | `Project` | futura (painel de projetos é ideia, não MVP) |
 
@@ -73,4 +73,4 @@ Conceito (PT, na UI e nos docs) → identificador (EN, no código). ✅ Confirma
 | **Reabrir** | Relançar um terminal **parado** com `--resume <claudeSessionId>` | **Retomar** — escolher uma sessão gravada qualquer da pasta |
 | **Retomar** | Abrir um terminal novo com `--resume <uuid>` | **Religar** — voltar a ligar o browser a um terminal que nunca parou |
 | **Quota** | Uso da subscrição (janela de 5h, tecto semanal) — da conta | Rate limits da API (não se aplicam — não se usa a API) |
-| **Biblioteca** | `library/` do Workflow (só leitura) | O vault deste projeto |
+| **Biblioteca** | `library/` do Workflow (leitura + upload de skills) | O vault deste projeto |

@@ -20,7 +20,7 @@ Estados: `proposto` → `aceite` → `substituído`. Template: `Templates/ADR.md
 | [[0002-motor-via-pty-sobre-subscricao]] | O motor é o Claude Code interativo num PTY — nunca a API/SDK | `aceite` | 2026-09-27 |
 | [[0003-auth-utilizador-unico]] | Login próprio de um só utilizador, sessão em cookie HttpOnly | `aceite` (contrato de login substituído por [[0011-nome-de-utilizador-no-login]]) | 2026-09-27 |
 | [[0004-exposicao-e-modelo-de-ameaca]] | Um terminal é um shell: `127.0.0.1` por omissão, proteções obrigatórias antes de expor | `aceite` | 2026-09-27 |
-| [[0005-biblioteca-lida-do-disco]] | A biblioteca do Workflow é lida do disco, só leitura | `aceite` | 2026-09-27 |
+| [[0005-biblioteca-lida-do-disco]] | A biblioteca do Workflow é lida do disco, só leitura | `aceite` (a regra "nunca escreve" foi parcialmente aberta por [[0014-escrita-controlada-biblioteca]]) | 2026-09-27 |
 | [[0006-organizacao-por-dominio]] | Backend organizado por domínio (módulos) | `aceite` | 2026-09-27 |
 | [[0007-omissoes-do-frontend]] | Estado, ícones e terminal no frontend (omissões da stack) | `aceite` | 2026-09-27 |
 | [[0008-identidade-visual]] | Violeta + Geist, só escuro; dois layouts de terminais (foco dividido · grelha); só desktop | `aceite` | 2026-09-27 |
@@ -29,6 +29,7 @@ Estados: `proposto` → `aceite` → `substituído`. Template: `Templates/ADR.md
 | [[0011-nome-de-utilizador-no-login]] | Login com `{username, password}`: `APP_USERNAME` no `.env`, o mesmo `AUTH_001` para os dois, comparação em tempo constante (substitui o contrato de login do 0003) | `aceite` | 2026-09-28 |
 | [[0012-argumentos-do-claude-e-status-line]] | Argumentos do `claude`: `--session-id` (novo), `--resume` (retomar/continuar/reabrir), `--settings` com a status line da quota (confirmada no spike) | `aceite` | 2026-09-28 |
 | [[0013-linux-no-desktop-de-casa]] | Desktop de casa em Linux com ambiente gráfico leve (Xubuntu/Debian + Xfce, login automático) — pela RAM (8 GB) e para a extensão Claude in Chrome ter sessão | `aceite` | 2026-09-28 |
+| [[0014-escrita-controlada-biblioteca]] | A app escreve na biblioteca do Workflow em dois sítios só: `stacks/<id>/skills/skill-*.md` (criar, nunca sobrescrever) + `provides-skills` do `STACK.md` dessa stack (abre parcialmente o [[0005-biblioteca-lida-do-disco]]) | `aceite` | 2026-09-30 |
 
 ## Decisões que ainda vão precisar de ADR
 

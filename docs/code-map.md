@@ -64,9 +64,9 @@ isso há os outros:
 | Camada | Ficheiros |
 |---|---|
 | **Entrada** | rota `/library` → `frontend/src/pages/LibraryPage.tsx` (tabs, pesquisa com `/`, chips de maturidade, filtro por camada/categoria) |
-| **Frontend** | `components/library/` (`LibraryEntryDrawer`, `MaturityTag`, `libraryFormat.ts`) · `hooks/useLibrary.ts` · `services/libraryService.ts` · `types/library.ts` |
-| **Backend** | `backend/src/library/` — `library.routes.ts` · `libraryService.ts` (lê o disco) · `library.schemas.ts` (zod dos manifestos + `maturityOf`) |
-| **Dados** | `WORKFLOW_PATH/library` — só leitura ([[adr/0005-biblioteca-lida-do-disco]]) |
+| **Frontend** | `components/library/` (`LibraryEntryDrawer`, `UploadSkillDrawer`, `MaturityTag`, `libraryFormat.ts`) · `hooks/useLibrary.ts` (`addSkill` insere a skill enviada sem refazer o GET) · `services/libraryService.ts` · `types/library.ts` |
+| **Backend** | `backend/src/library/` — `library.routes.ts` · `libraryService.ts` (lê o disco; `uploadSkill` é a única escrita) · `library.schemas.ts` (zod dos manifestos + `maturityOf`) · `frontmatterEditor.ts` (edita só o `provides-skills` de um `STACK.md`) |
+| **Dados** | `WORKFLOW_PATH/library` — leitura ([[adr/0005-biblioteca-lida-do-disco]]) + duas escritas estreitas no upload de skills ([[adr/0014-escrita-controlada-biblioteca]]) |
 | **Detalhe** | [[api]] → "Biblioteca" |
 
 ## Projetos — 🚧 (spec [[features/separadores-de-projetos]] em curso)

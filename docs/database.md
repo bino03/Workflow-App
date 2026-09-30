@@ -16,7 +16,7 @@
 | Sessão de login | memória do backend | ❌ — [[adr/0003-auth-utilizador-unico]] |
 | Modo de layout (foco dividido / grelha) | `localStorage` do browser | ✅ por dispositivo |
 | Sessões gravadas (`ClaudeSession`) | `~/.claude/projects/` — do Claude Code, **só leitura** | apagadas pelo Claude Code ao fim de 30 dias (`cleanupPeriodDays`) |
-| Biblioteca (`LibraryEntry`) | `WORKFLOW_PATH/library` — **só leitura** | — |
+| Biblioteca (`LibraryEntry`) | `WORKFLOW_PATH/library` — leitura, mais duas escritas estreitas ([[adr/0014-escrita-controlada-biblioteca]]) | — |
 | Quota (`UsageSnapshot`) | `DATA_DIR/usage.json` — só o último `rate_limits` visto pela status line de qualquer terminal, com `fetchedAt` ([[adr/0012-argumentos-do-claude-e-status-line]]). Escrito pelo `statusline.cjs`, não pelo `StateStore` | ✅ — mas pode estar velho (sem atividade não se atualiza) |
 
 ## O ficheiro

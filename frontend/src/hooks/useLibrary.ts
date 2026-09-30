@@ -55,5 +55,16 @@ export function useLibrary() {
     setAttempt((current) => current + 1);
   }, []);
 
-  return { ...data, loading, error, reload };
+  /** A skill acabada de enviar entra na lista sem refazer o GET, na mesma ordem que o backend usa. */
+  const addSkill = useCallback((entry: SkillEntry) => {
+    setData((current) => ({
+      ...current,
+      skills: {
+        ...current.skills,
+        entries: [...current.skills.entries, entry].sort((a, b) => a.name.localeCompare(b.name)),
+      },
+    }));
+  }, []);
+
+  return { ...data, loading, error, reload, addSkill };
 }

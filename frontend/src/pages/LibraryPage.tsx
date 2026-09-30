@@ -1,9 +1,10 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { Alert, Button, Input, Select, Table, Tabs, type InputRef } from 'antd';
 import type { ColumnsType } from 'antd/es/table';
-import { SearchOutlined } from '@ant-design/icons';
+import { PlusOutlined, SearchOutlined } from '@ant-design/icons';
 import { LibraryEntryDrawer } from '@/components/library/LibraryEntryDrawer';
 import { MaturityTag } from '@/components/library/MaturityTag';
+import { UploadSkillDrawer } from '@/components/library/UploadSkillDrawer';
 import { KIND_LABEL, MATURITY_CLASS, MATURITY_LABEL, formatShortDate } from '@/components/library/libraryFormat';
 import { useLibrary } from '@/hooks/useLibrary';
 import type {
@@ -56,6 +57,7 @@ export function LibraryPage() {
   const [maturity, setMaturity] = useState<MaturityFilter>('all');
   const [group, setGroup] = useState<string | null>(null);
   const [selected, setSelected] = useState<LibraryEntry | null>(null);
+  const [uploading, setUploading] = useState(false);
   const searchRef = useRef<InputRef>(null);
 
   // "/" leva à pesquisa, como no protótipo — nunca enquanto se escreve noutro campo.
@@ -265,8 +267,15 @@ export function LibraryPage() {
         <div className="flex-1 flex flex-col gap-1">
           <span className="kicker">Biblioteca</span>
           <h1 className="text-display m-0">Workflow</h1>
-          <span className="text-[13.5px] text-text-2">Stacks, designs e skills do teu registo. Só leitura.</span>
+          <span className="text-[13.5px] text-text-2">
+            Stacks, designs e skills do teu registo. Só as skills se acrescentam aqui.
+          </span>
         </div>
+        {kind === 'skills' && (
+          <Button type="primary" icon={<PlusOutlined />} onClick={() => setUploading(true)}>
+            Adicionar skill
+          </Button>
+        )}
         {groupPlaceholder && (
           <Select
             className="w-[200px]"
@@ -347,6 +356,12 @@ export function LibraryPage() {
       )}
 
       <LibraryEntryDrawer selected={selected} onClose={() => setSelected(null)} />
+      <UploadSkillDrawer
+        open={uploading}
+        onClose={() => setUploading(false)}
+        stacks={library.stacks.entries}
+        onUploaded={library.addSkill}
+      />
     </div>
   );
 }

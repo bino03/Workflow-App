@@ -1,5 +1,6 @@
 import cookie from '@fastify/cookie';
 import cors from '@fastify/cors';
+import multipart from '@fastify/multipart';
 import rateLimit from '@fastify/rate-limit';
 import websocket from '@fastify/websocket';
 import Fastify, { type FastifyInstance } from 'fastify';
@@ -11,7 +12,7 @@ import { AppError, registerErrorHandler } from './common/errors.js';
 import { healthRoutes } from './common/health.routes.js';
 import { hasSpaBuild, registerSpa, selfOrigins } from './common/spa.js';
 import { libraryRoutes } from './library/library.routes.js';
-import { LibraryService } from './library/libraryService.js';
+import { MAX_SKILL_UPLOAD_BYTES, LibraryService } from './library/libraryService.js';
 import { foldersRoutes } from './folders/folders.routes.js';
 import { FoldersService } from './folders/foldersService.js';
 import { projectsRoutes } from './projects/projects.routes.js';
@@ -65,6 +66,8 @@ export async function buildApp({ config, terminalManager, sessionStore, stateSto
   });
   // A paste bigger than this is not typing; the default (100 MiB) would let one frame fill the PTY.
   await app.register(websocket, { options: { maxPayload: 1024 * 1024 } });
+  // Only the skill upload takes multipart (ADR 0014); the route sets its own limits on top of these.
+  await app.register(multipart, { limits: { fileSize: MAX_SKILL_UPLOAD_BYTES, files: 1, fields: 0 } });
 
   // A page served by this backend opens its WebSocket with the backend's own origin. Only the
   // WebSocket needs it: same-origin REST calls never depend on CORS.

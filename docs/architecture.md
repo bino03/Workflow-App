@@ -21,7 +21,7 @@ backend, com a subscrição Pro/Max já paga — nunca a API nem a Agent SDK ([[
 | Backend (API REST + WebSocket + gestor de PTYs) | `backend/` | `node-fastify` 📋 | 7400 |
 | Frontend (SPA) | `frontend/` | `react-vite-antd` ✅ + xterm.js | 7401 (dev, Vite com proxy de `/api`) — em produção o **backend serve o `frontend/dist`** na 7400, mesma origem (✅ 2026-09-28, `common/spa.ts`) |
 | Claude Code (`claude`) | — (binário instalado na máquina) | processo filho, um por terminal | — |
-| Biblioteca do Workflow | `WORKFLOW_PATH/library` | ficheiros Markdown, só leitura | — |
+| Biblioteca do Workflow | `WORKFLOW_PATH/library` | ficheiros Markdown; leitura, e a escrita estreita do upload de skills ([[adr/0014-escrita-controlada-biblioteca]]) | — |
 | Sessões gravadas do Claude Code | `~/.claude/projects/` | ficheiros `.jsonl`, só leitura | — |
 
 ## Diagrama de comunicação
