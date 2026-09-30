@@ -50,7 +50,9 @@ export function OrderViewDrawer({ id, onClose }: Props) {
 
 ## Modals — só utilitários curtos
 
-- **Drawer**: criar/editar/ver uma entidade (padrão dominante).
+- **Drawer**: criar/editar/ver uma entidade (padrão dominante). Um drawer que recebe um **ficheiro**
+  (zona de arrastar, erro do backend mostrado lá dentro) segue [[forms-and-validation]] §4.1 —
+  `UploadSkillDrawer.tsx` é o exemplo.
 - **Modal**: seletor de pesquisa, visualizador de documento, histórico, reordenar, importar,
   exportar em passos (`Steps size="small"` no topo, rodapé troca Cancelar/Continuar por
   Voltar/Descarregar). Largura típica `min(640px, 94vw)`, `max-height: 88vh`, cabeçalho e rodapé fixos
