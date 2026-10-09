@@ -32,6 +32,16 @@ spinner pára, parece sucesso, e o erro sobe como promise rejeitada não tratada
   componente corre numa microtask, portanto já passou).
 - **Erros de rede** (sem `response`) notificam de imediato.
 
+### Erros que não vêm da API — as cerimónias de passkey (2026-10-09)
+
+O `navigator.credentials` (via `@simplewebauthn/browser`) falha com `DOMException`s sem `errorCode`, e o
+`ErrorHandler.getMessage` só daria o `DEFAULT`. Nesses fluxos, o `catch` chama na mesma
+`ErrorHandler.handle(e, { showNotification: false })` e mostra `getPasskeyErrorMessage(e)`
+(`errors/passkeyErrors.ts`). Os erros da API vão para o mapa PT; os do browser mapeiam-se pelo `name`:
+`NotAllowedError`/`AbortError` → cancelado, `InvalidStateError` → já registada, `SecurityError` → "abre
+em localhost". Mostram-se inline, como os do login, nunca em toast. Um `AbortError` do pedido condicional
+(o autofill) não é erro: outro pedido começou ou a página saiu.
+
 ## 3. Camada de serviços
 
 - **Uma instância Axios** (`@/api`). Nunca uma segunda.
