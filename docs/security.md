@@ -43,8 +43,47 @@ Um só utilizador, **sem provedor externo** — adaptação do padrão "JWT em c
 - **`Origin` no upgrade do WebSocket**: sem `Origin`, ou fora de `CORS_ALLOWED_ORIGINS` → `403 AUTH_003`,
   antes do upgrade. Testado (ADR 0004): sem cookie → 401; com cookie e `Origin` alheio → 403; sem
   `Origin` → 403; com os dois → liga.
+- **Endpoints públicos das passkeys**: `POST /api/auth/passkeys/login/options` e `POST /api/auth/passkeys/login`
+  (secção abaixo).
 - Terminar a sessão (logout ou expiração) **fecha os WebSockets abertos** dessa sessão; os PTYs continuam
   (❓ a confirmar — [[adr/README]] → decisões em aberto).
+
+## Passkeys (WebAuthn) — ✅ segundo caminho de entrada (em `localhost`; o iPhone espera pela exposição)
+
+Um caminho **independente** da password, que continua a funcionar e serve de recuperação
+([[adr/0015-passkeys-webauthn]]). Biblioteca: `@simplewebauthn/server` (`backend/src/auth/passkey.routes.ts`) e `@simplewebauthn/browser` (botão + autofill em `pages/login/LoginPage.tsx`; registar/listar/revogar em Definições → `components/settings/PasskeysSection.tsx`).
+
+```
+Registar (com sessão, no ecrã de definições):
+1. UI → POST /api/auth/passkeys/registration/options {password}   ← a password outra vez; conta no rate limit
+2. backend → opções (residentKey + userVerification "required", excludeCredentials); challenge preso à sessão
+3. browser → navigator.credentials.create() (Face ID / Windows Hello)
+4. UI → POST /api/auth/passkeys {name, response} → verifica challenge (uso único, desta sessão), origem, rpID,
+   UV → guarda id + chave pública + contador em DATA_DIR/passkeys.json
+
+Entrar (público):
+1. UI → POST /api/auth/passkeys/login/options → challenge (sem allowCredentials: passkey descobrível)
+2. browser → navigator.credentials.get() — botão "Entrar com passkey" ou autofill do campo do nome
+3. UI → POST /api/auth/passkeys/login {response} → verifica assinatura, challenge, origem, rpID, UV →
+   atualiza o contador → a MESMA sessão/cookie do login com password
+```
+
+- **Rate limit partilhado**: o login com password, o login com passkey e a password pedida ao registar
+  gastam o **mesmo** contador de 5/min por IP (um handler `app.rateLimit()` ligado às três rotas — um
+  `config.rateLimit` por rota daria um contador a cada uma, e o `groupId` não partilha entre rotas com o
+  store em memória). As opções de login têm um limite próprio de 30/min: não provam nada.
+- **Challenges** em memória, de uso único, 5 min, máx. 100 pendentes. O do login não precisa de cookie — vem
+  dentro do `clientDataJSON` assinado e só é aceite se foi emitido e ainda não usado (um replay dá `AUTH_005`).
+  O do registo fica preso à sessão que o pediu.
+- **Resposta opaca**: passkey desconhecida, assinatura forjada, origem ou `rpID` errados, challenge inventado
+  ou repetido → sempre o mesmo `401 AUTH_005`. Testado com um autenticador por software
+  (`backend/test/softAuthenticator.ts`) contra a verificação real da biblioteca.
+- **`rpID` e origens** vêm do `.env` (`WEBAUTHN_RP_ID`, omissão `localhost`; [[environment]]). `127.0.0.1`
+  nunca serve de `rpID` → em local abre-se a app em `localhost`. **O iPhone só funciona com a app exposta em
+  HTTPS com um domínio fixo**, e mudar o `rpID` invalida as passkeys registadas.
+- **Revogar** (`DELETE /api/auth/passkeys/:id`) apaga a passkey **e termina as sessões abertas com ela** (a
+  sessão guarda `passkeyId`). iPhone perdido: entrar com a password noutro sítio e revogar.
+- Só a parte pública é guardada; a chave pública e o contador nunca saem do backend.
 
 ## Modelo de confiança — o que se executa na máquina
 

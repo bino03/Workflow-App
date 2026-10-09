@@ -25,7 +25,12 @@ próprio Fastify (JSON mal formado, content-type errado → `COMMON_001`) e as r
 | `AUTH_001` | 401 | Nome de utilizador ou password errados — nunca diz qual |
 | `AUTH_002` | 401 | Sem sessão, ou sessão expirada |
 | `AUTH_003` | 403 | `Origin` fora de `CORS_ALLOWED_ORIGINS` (upgrade do WebSocket) |
-| `AUTH_004` | 429 | Demasiadas tentativas de login |
+| `AUTH_004` | 429 | Demasiadas tentativas de login (password, passkey e password pedida ao registar uma passkey partilham o contador) |
+| `AUTH_005` | 401 | Login com passkey recusado — passkey desconhecida, assinatura errada, origem/`rpID` errados, challenge expirado ou repetido; nunca diz qual |
+| `AUTH_006` | 403 | Password errada ao pedir para registar uma passkey (403, não 401: a sessão continua válida) |
+| `AUTH_007` | 409 | Já há 20 passkeys registadas |
+| `AUTH_008` | 400 | O registo da passkey não verificou (challenge de outra sessão ou expirado, origem/`rpID` errados, sem verificação do utilizador, passkey já registada) |
+| `AUTH_009` | 404 | A passkey a revogar não existe |
 | `LIBRARY_001` | 500 | A pasta `WORKFLOW_PATH/library` não existe |
 | `LIBRARY_002` | 400 | O ficheiro enviado não é uma skill válida — `fieldErrors` com o que falha no frontmatter |
 | `LIBRARY_003` | 409 | Já existe uma skill com esse nome nessa stack (nunca sobrescreve) |
@@ -201,6 +206,12 @@ projeto (ou a lista toda) sai, nunca 500.
 | Método | Rota | Acesso | Corpo | Resposta | Erros |
 |---|---|---|---|---|---|
 | POST | `/api/auth/login` | **público**, 5/min por IP | `{username, password}` (nome 1–64 depois de `trim`, password 1–1024) | `204` + `Set-Cookie: session` | `COMMON_001` corpo inválido · `AUTH_001` nome ou password errados (o mesmo para os dois, [[adr/0011-nome-de-utilizador-no-login]]) · `AUTH_004` 429 |
+| POST | `/api/auth/passkeys/login/options` | **público**, 30/min por IP (limite próprio — só emite um challenge) | — | `PublicKeyCredentialRequestOptionsJSON` (sem `allowCredentials`: passkeys descobríveis; `userVerification: required`) | `AUTH_004` 429 |
+| POST | `/api/auth/passkeys/login` | **público**, no contador partilhado de 5/min | `{response}` (o `AuthenticationResponseJSON` do `startAuthentication()`) | `204` + `Set-Cookie: session` (igual ao login com password) | `COMMON_001` · `AUTH_005` · `AUTH_004` 429 |
+| POST | `/api/auth/passkeys/registration/options` | sessão, no contador partilhado de 5/min | `{password}` | `PublicKeyCredentialCreationOptionsJSON` (`residentKey`/`userVerification: required`, `excludeCredentials` = as já registadas); challenge preso a esta sessão | `COMMON_001` · `AUTH_006` · `AUTH_007` · `AUTH_004` 429 |
+| POST | `/api/auth/passkeys` | sessão | `{name, response}` (nome 1–64 depois de `trim`; o `RegistrationResponseJSON` do `startRegistration()`) | `201` + `PasskeySummary` | `COMMON_001` · `AUTH_007` · `AUTH_008` |
+| GET | `/api/auth/passkeys` | sessão | — | `{passkeys: PasskeySummary[]}` | `AUTH_002` |
+| DELETE | `/api/auth/passkeys/:id` | sessão | — | `204` — e **termina as sessões abertas com essa passkey** | `AUTH_009` |
 | POST | `/api/auth/logout` | sessão | — | `204` + cookie limpo | `AUTH_002` |
 | GET | `/api/auth/me` | sessão | — | `{authenticated:true}` | `AUTH_002` |
 | GET | `/api/health` | **público** | — | `{status:"ok"}` | — |
@@ -208,6 +219,7 @@ projeto (ou a lista toda) sai, nunca 500.
 - **Sem sessão, qualquer rota não pública dá `401 AUTH_002`** — incluindo rotas que não existem (só com
   sessão é que uma rota inexistente dá `404 COMMON_003`); a API não revela que rotas tem.
 - Um login com sucesso termina a sessão anterior que o browser trazia (id novo a cada login).
+- `PasskeySummary` = `{id, name, deviceType: "singleDevice"|"multiDevice", backedUp, createdAt, lastUsedAt|null, current}` — `current` diz que a sessão deste pedido foi aberta com essa passkey (revogá-la termina-a). A chave pública e o contador nunca saem do backend. Passkeys: [[adr/0015-passkeys-webauthn]], fluxo em [[security]].
 
 ### Fora de `/api` — a SPA (✅)
 

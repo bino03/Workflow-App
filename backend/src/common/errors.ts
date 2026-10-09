@@ -16,6 +16,11 @@ export const ErrorCode = {
   AUTH_002: { status: 401, message: 'Not authenticated' },
   AUTH_003: { status: 403, message: 'Origin not allowed' },
   AUTH_004: { status: 429, message: 'Too many login attempts' },
+  AUTH_005: { status: 401, message: 'Passkey not accepted' },
+  AUTH_006: { status: 403, message: 'Wrong password' },
+  AUTH_007: { status: 409, message: 'Passkey limit reached' },
+  AUTH_008: { status: 400, message: 'Passkey registration failed' },
+  AUTH_009: { status: 404, message: 'Passkey not found' },
   // LIBRARY
   LIBRARY_001: { status: 500, message: 'Workflow library folder not found (WORKFLOW_PATH/library)' },
   LIBRARY_002: { status: 400, message: 'Uploaded file is not a valid skill manifest' },

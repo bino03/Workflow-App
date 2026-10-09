@@ -14,6 +14,7 @@
 | node-pty | **1.1.0 exata** (`--save-exact`) | ConPTY no Windows; N-API |
 | zod | 4.x | Configuração e corpos dos pedidos |
 | argon2 | 0.45.x | Hash da password (argon2id) |
+| @simplewebauthn/server | 14.x | Passkeys ([[adr/0015-passkeys-webauthn]]); `@simplewebauthn/browser` 14.x no frontend. Só JS |
 | Vitest | **4.x + `vite@7` explícito** | Não o 5 — ver Armadilhas → Smart App Control |
 | ESLint | 10.x, flat config + `typescript-eslint` | |
 

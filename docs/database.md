@@ -14,6 +14,8 @@
 | Terminal a correr (PTY, estado, código de saída) | memória do backend (`TerminalManager`) | ❌ — o processo morre com o backend |
 | Scrollback | memória do backend | ❌ — de propósito: é conteúdo sensível, e a conversa já está no `.jsonl` do Claude Code |
 | Sessão de login | memória do backend | ❌ — [[adr/0003-auth-utilizador-unico]] |
+| Passkeys (só a parte pública: id, chave pública, contador, nome, datas) | `DATA_DIR/passkeys.json` — `{version: 1, passkeys: []}`, máx. 20, escrito só pelo `PasskeyStore` (`backend/src/auth/passkeyStore.ts`), escrita atómica, e **só fica em memória depois de estar no disco**. À parte do `state.json` de propósito: credenciais não se misturam com estado de terminais ([[adr/0015-passkeys-webauthn]]). Inválido → o backend não arranca | ✅ |
+| Challenges WebAuthn por usar | memória do backend (uso único, 5 min, máx. 100) | ❌ — um reinício só obriga a recomeçar a cerimónia |
 | Modo de layout (foco dividido / grelha) | `localStorage` do browser | ✅ por dispositivo |
 | Sessões gravadas (`ClaudeSession`) | `~/.claude/projects/` — do Claude Code, **só leitura** | apagadas pelo Claude Code ao fim de 30 dias (`cleanupPeriodDays`) |
 | Biblioteca (`LibraryEntry`) | `WORKFLOW_PATH/library` — leitura, mais duas escritas estreitas ([[adr/0014-escrita-controlada-biblioteca]]) | — |

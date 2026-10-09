@@ -12,6 +12,11 @@ export const ERROR_MESSAGES: Record<string, string> = {
   AUTH_002: 'A sessão terminou. Entra outra vez.',
   AUTH_003: 'Pedido recusado: esta origem não está autorizada.',
   AUTH_004: 'Demasiadas tentativas. Espera um minuto e tenta outra vez.',
+  AUTH_005: 'A passkey não foi aceite. Tenta outra vez, ou entra com a password.',
+  AUTH_006: 'Password incorreta.',
+  AUTH_007: 'Já tens 20 passkeys registadas. Revoga uma para acrescentar outra.',
+  AUTH_008: 'Não foi possível registar a passkey. Tenta outra vez.',
+  AUTH_009: 'Esta passkey já não existe.',
   // ── LIBRARY ────────────────────────────
   LIBRARY_001: 'A biblioteca do Workflow não foi encontrada. Confirma o WORKFLOW_PATH do backend.',
   LIBRARY_002: 'O ficheiro não é uma skill válida. Confirma o frontmatter no topo (kind, name, category, status).',

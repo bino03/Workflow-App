@@ -4,6 +4,8 @@ export type Session = {
   id: string;
   createdAt: number;
   lastSeenAt: number;
+  /** The passkey this session was opened with (ADR 0015); revoking it ends the session. Null for the password. */
+  passkeyId: string | null;
 };
 
 type Entry = Session & { onEnd: Set<() => void> };
@@ -31,9 +33,9 @@ export class SessionStore {
     this.sweeper.unref();
   }
 
-  create(): Session {
+  create({ passkeyId = null }: { passkeyId?: string | null } = {}): Session {
     const at = this.now();
-    const entry: Entry = { id: randomBytes(32).toString('base64url'), createdAt: at, lastSeenAt: at, onEnd: new Set() };
+    const entry: Entry = { id: randomBytes(32).toString('base64url'), createdAt: at, lastSeenAt: at, passkeyId, onEnd: new Set() };
     this.sessions.set(entry.id, entry);
     return toSession(entry);
   }
@@ -68,6 +70,13 @@ export class SessionStore {
     for (const callback of entry.onEnd) callback();
   }
 
+  /** Ends every session opened with this passkey. Returns how many ended. */
+  destroyByPasskey(passkeyId: string): number {
+    const ended = [...this.sessions.values()].filter((entry) => entry.passkeyId === passkeyId);
+    for (const entry of ended) this.destroy(entry.id);
+    return ended.length;
+  }
+
   sweep(): void {
     for (const entry of [...this.sessions.values()]) {
       if (this.isExpired(entry)) this.destroy(entry.id);
@@ -85,6 +94,6 @@ export class SessionStore {
   }
 }
 
-function toSession({ id, createdAt, lastSeenAt }: Entry): Session {
-  return { id, createdAt, lastSeenAt };
+function toSession({ id, createdAt, lastSeenAt, passkeyId }: Entry): Session {
+  return { id, createdAt, lastSeenAt, passkeyId };
 }

@@ -30,6 +30,7 @@ isso há os outros:
 | Servir o `frontend/dist` (fallback da SPA, cache, origem própria) | `backend/src/common/spa.ts` |
 | Estado persistido (`state.json`: schema, limites, fila de escrita) | `backend/src/state/stateStore.ts` · schema em `state/state.schema.ts` · `tmp`+`rename` com retry em `state/atomicWrite.ts` |
 | Login / logout / me | `backend/src/auth/auth.routes.ts` · sessões em `auth/sessionStore.ts` · `scripts/hash-password.ts` |
+| Passkeys (WebAuthn) | `backend/src/auth/passkey.routes.ts` · `auth/passkeyStore.ts` (`DATA_DIR/passkeys.json`) · `auth/challengeStore.ts` · testes com `test/softAuthenticator.ts` · frontend: `services/passkeyService.ts`, `pages/login/LoginPage.tsx`, `components/settings/PasskeysSection.tsx` |
 | Gestor de terminais (PTYs, scrollback) | `backend/src/terminals/terminalManager.ts` |
 | Política de pastas (`ALLOWED_ROOTS`: `realpath`, junctions, prefixo, maiúsculas) | `backend/src/folders/cwdPolicy.ts` |
 | Binário `claude`, ambiente do filho, kill da árvore | `backend/src/terminals/spawnClaude.ts` |

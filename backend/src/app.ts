@@ -6,6 +6,7 @@ import websocket from '@fastify/websocket';
 import Fastify, { type FastifyInstance } from 'fastify';
 import type { Config } from './config.js';
 import { authRoutes } from './auth/auth.routes.js';
+import { PasskeyStore } from './auth/passkeyStore.js';
 import { SessionStore } from './auth/sessionStore.js';
 import { registerAuthGuard } from './common/authGuard.js';
 import { AppError, registerErrorHandler } from './common/errors.js';
@@ -32,12 +33,14 @@ export type AppDeps = {
   terminalManager: TerminalManager;
   sessionStore?: SessionStore;
   stateStore: StateStore;
+  /** Default: loaded from config.dataDir (tests point DATA_DIR at a temporary folder). */
+  passkeyStore?: PasskeyStore;
   logger?: boolean;
   /** Where the log goes (tests read it to prove terminal content never reaches it). Default: stdout. */
   logStream?: NodeJS.WritableStream;
 };
 
-export async function buildApp({ config, terminalManager, sessionStore, stateStore, logger = true, logStream }: AppDeps): Promise<FastifyInstance> {
+export async function buildApp({ config, terminalManager, sessionStore, stateStore, passkeyStore, logger = true, logStream }: AppDeps): Promise<FastifyInstance> {
   const app = Fastify({
     logger: logger && {
       level: config.logLevel,
@@ -59,7 +62,7 @@ export async function buildApp({ config, terminalManager, sessionStore, stateSto
     credentials: true,
   });
   await app.register(cookie, { secret: config.auth.sessionSecret });
-  // Only routes that opt in (the login) are limited.
+  // Only routes that opt in (the logins) are limited.
   await app.register(rateLimit, {
     global: false,
     errorResponseBuilder: () => new AppError('AUTH_004'),
@@ -77,7 +80,11 @@ export async function buildApp({ config, terminalManager, sessionStore, stateSto
   registerAuthGuard(app, { sessionStore: sessions, allowedOrigins: websocketOrigins });
 
   await app.register(healthRoutes);
-  await app.register(authRoutes, { config, sessionStore: sessions });
+  await app.register(authRoutes, {
+    config,
+    sessionStore: sessions,
+    passkeyStore: passkeyStore ?? (await PasskeyStore.load(config.dataDir)),
+  });
   await app.register(libraryRoutes, { libraryService: new LibraryService(config.workflowPath) });
   await app.register(projectsRoutes, {
     projectsService: new ProjectsService(config.workflowPath, config.terminals.allowedRoots),

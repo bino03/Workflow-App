@@ -1,6 +1,7 @@
 import { Button, Drawer } from 'antd';
 import { DRAWER_WIDTH } from '@/config/drawer';
 import { type LayoutMode, useLayoutMode } from '@/hooks/useLayoutMode';
+import { PasskeysSection } from './PasskeysSection';
 
 type SettingsDrawerProps = { open: boolean; onClose: () => void };
 
@@ -9,7 +10,10 @@ const OPTIONS: { value: LayoutMode; title: string; detail: string }[] = [
   { value: 'grid', title: 'Grelha', detail: 'Todos os terminais em mosaico, 3 colunas; clicar num amplia-o.' },
 ];
 
-/** Drawer "Definições" (Small, 540): o modo de layout dos terminais — guardado neste browser (localStorage). */
+/**
+ * Drawer "Definições" (Small, 540): o modo de layout dos terminais — guardado neste browser
+ * (localStorage) — e as passkeys, guardadas no servidor (ADR 0015).
+ */
 export function SettingsDrawer({ open, onClose }: SettingsDrawerProps) {
   const [mode, setMode] = useLayoutMode();
 
@@ -27,7 +31,7 @@ export function SettingsDrawer({ open, onClose }: SettingsDrawerProps) {
       }
       footer={
         <div className="flex items-center gap-2">
-          <span className="text-[12px] text-text-3">Guardado neste browser</span>
+          <span className="text-[12px] text-text-3">O layout fica guardado neste browser</span>
           <span className="flex-1" />
           <Button type="primary" onClick={onClose}>
             Fechar
@@ -67,6 +71,10 @@ export function SettingsDrawer({ open, onClose }: SettingsDrawerProps) {
           })}
         </div>
       </div>
+
+      <div className="border-t border-border my-6" />
+      {/* Só monta com o drawer aberto: a lista carrega quando se abre, não com a app. */}
+      {open && <PasskeysSection />}
     </Drawer>
   );
 }

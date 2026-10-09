@@ -1,7 +1,9 @@
+import type { AuthenticationResponseJSON } from '@simplewebauthn/browser';
 import { useCallback, useEffect, useMemo, useState, type ReactNode } from 'react';
 import { setSessionExpiredHandler } from '@/api';
 import { ErrorHandler } from '@/errors/errorHandler';
 import * as authService from '@/services/authService';
+import * as passkeyService from '@/services/passkeyService';
 import type { LoginCredentials } from '@/types/auth';
 import { AuthContext, type AuthStatus } from './authContextValue';
 
@@ -63,6 +65,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     [setAuthenticated],
   );
 
+  const loginWithPasskey = useCallback(
+    async (response: AuthenticationResponseJSON) => {
+      await passkeyService.loginWithPasskey(response);
+      setAuthenticated(true);
+    },
+    [setAuthenticated],
+  );
+
   const logout = useCallback(async () => {
     try {
       await authService.logout();
@@ -72,6 +82,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   }, [setAuthenticated]);
 
-  const value = useMemo(() => ({ status, login, logout }), [status, login, logout]);
+  const value = useMemo(() => ({ status, login, loginWithPasskey, logout }), [status, login, loginWithPasskey, logout]);
   return <AuthContext value={value}>{children}</AuthContext>;
 }

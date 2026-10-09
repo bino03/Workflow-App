@@ -47,6 +47,20 @@ const envSchema = z.object({
     .transform(splitList(','))
     .pipe(z.array(z.url()).min(1, 'at least one origin is required')),
 
+  // Passkeys (ADR 0015). The rpID is a host name, never an IP: changing it invalidates every passkey.
+  WEBAUTHN_RP_ID: z
+    .string()
+    .trim()
+    .toLowerCase()
+    .default('localhost')
+    .refine((host) => /^[a-z0-9-]+(\.[a-z0-9-]+)*$/.test(host) && !/^[0-9.]+$/.test(host), 'must be a host name, not an IP'),
+  WEBAUTHN_RP_NAME: z.string().trim().min(1).max(64).default('Workflow App'),
+  WEBAUTHN_ORIGINS: z
+    .string()
+    .optional()
+    .transform((value) => splitList(',')(value ?? ''))
+    .pipe(z.array(z.url())),
+
   CLAUDE_BIN: z.string().trim().min(1).default('claude'),
   ALLOWED_ROOTS: z
     .string()
@@ -80,6 +94,12 @@ export type Config = {
     cookieSecure: boolean;
   };
   corsAllowedOrigins: string[];
+  webauthn: {
+    rpId: string;
+    rpName: string;
+    /** Page origins a passkey ceremony may come from; each one is the rpId or a subdomain of it. */
+    origins: string[];
+  };
   terminals: {
     claudeBin: string;
     allowedRoots: string[];
@@ -104,6 +124,27 @@ export class ConfigError extends Error {
 
 const HOUR_MS = 60 * 60 * 1000;
 
+function belongsToRpId(origin: string, rpId: string): boolean {
+  const { hostname } = new URL(origin);
+  return hostname === rpId || hostname.endsWith(`.${rpId}`);
+}
+
+/**
+ * Explicit WEBAUTHN_ORIGINS must all belong to the rpID. Without it: the CORS origins plus the
+ * backend's own localhost origin, keeping those under the rpID (127.0.0.1 never is). A string is the error.
+ */
+function webauthnOrigins(e: Env, corsOrigins: string[]): string[] | string {
+  const explicit = e.WEBAUTHN_ORIGINS.map((origin) => new URL(origin).origin);
+  if (explicit.length > 0) {
+    const foreign = explicit.filter((origin) => !belongsToRpId(origin, e.WEBAUTHN_RP_ID));
+    return foreign.length > 0 ? `WEBAUTHN_ORIGINS: ${foreign.join(', ')} not under WEBAUTHN_RP_ID` : explicit;
+  }
+  const derived = [...new Set([...corsOrigins, `http://localhost:${e.PORT}`])].filter((origin) =>
+    belongsToRpId(origin, e.WEBAUTHN_RP_ID),
+  );
+  return derived.length > 0 ? derived : 'WEBAUTHN_ORIGINS: no origin is under WEBAUTHN_RP_ID; set it explicitly';
+}
+
 // Same relative path from src/ (tsx) and dist/ (node).
 const DEFAULT_FRONTEND_DIST = fileURLToPath(new URL('../../frontend/dist', import.meta.url));
 
@@ -115,6 +156,9 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): Config {
   }
   const e = parsed.data;
   const [firstRoot] = e.ALLOWED_ROOTS as [string, ...string[]];
+  const corsAllowedOrigins = e.CORS_ALLOWED_ORIGINS.map((origin) => new URL(origin).origin);
+  const passkeyOrigins = webauthnOrigins(e, corsAllowedOrigins);
+  if (typeof passkeyOrigins === 'string') throw new ConfigError([passkeyOrigins]);
 
   return {
     host: e.HOST,
@@ -128,7 +172,8 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): Config {
       sessionMaxMs: e.SESSION_MAX_DAYS * 24 * HOUR_MS,
       cookieSecure: e.COOKIE_SECURE,
     },
-    corsAllowedOrigins: e.CORS_ALLOWED_ORIGINS.map((origin) => new URL(origin).origin),
+    corsAllowedOrigins,
+    webauthn: { rpId: e.WEBAUTHN_RP_ID, rpName: e.WEBAUTHN_RP_NAME, origins: passkeyOrigins },
     terminals: {
       claudeBin: e.CLAUDE_BIN,
       allowedRoots: e.ALLOWED_ROOTS,

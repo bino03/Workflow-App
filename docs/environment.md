@@ -21,6 +21,9 @@ Nenhum destes ficheiros está no git. Num clone novo, criá-los a partir dos `.e
 | `SESSION_MAX_DAYS` | — | `7` | Limite absoluto da sessão, com ou sem atividade |
 | `COOKIE_SECURE` | — | `false` em dev | Só `true`/`false`. `true` sempre que não for `localhost` |
 | `CORS_ALLOWED_ORIGINS` | ✅ | `http://localhost:7401,http://127.0.0.1:7401` | URLs separados por `,`. Também é a lista de `Origin` aceites no upgrade do WebSocket. As duas formas do dev server porque `localhost` e `127.0.0.1` são origens diferentes para o browser |
+| `WEBAUTHN_RP_ID` | — | `localhost` · `desktop.tail1234.ts.net` | O domínio a que as passkeys ficam presas ([[adr/0015-passkeys-webauthn]]). **Omissão `localhost`.** Um nome, nunca um IP. ⚠️ **Mudá-lo invalida todas as passkeys registadas.** Fixa-se quando se escolher como expor a app |
+| `WEBAUTHN_RP_NAME` | — | `Workflow App` | O nome que o iPhone/Windows Hello mostra ao criar a passkey |
+| `WEBAUTHN_ORIGINS` | — | `https://desktop.tail1234.ts.net` | Origens (separadas por `,`) de onde uma cerimónia é aceite; cada uma tem de ser o `rpID` ou um subdomínio. **Omissão: as de `CORS_ALLOWED_ORIGINS` mais `http://localhost:<PORT>` que estejam sob o `rpID`** (por isso `127.0.0.1` nunca serve — abrir a app em `localhost`). Nenhuma sob o `rpID` → não arranca |
 | `CLAUDE_BIN` | — | `claude` ou caminho completo | No Windows confirmar se é `claude.exe` (instalador nativo) ou `claude.cmd` (npm) — um `.cmd` não se lança diretamente num PTY |
 | `ALLOWED_ROOTS` | ✅ | `C:\Users\jlalv\Desktop\utad\projetos;C:\Users\jlalv\Desktop\Workflow` | Pastas (separadas por `;`) onde se podem abrir terminais. Cada uma tem de ser absoluta e existir; guarda-se o `realpath` |
 | `DEFAULT_CWD` | — | a primeira de `ALLOWED_ROOTS` | |

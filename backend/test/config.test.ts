@@ -81,4 +81,29 @@ describe('loadConfig', () => {
     expect(loadConfig(testEnv({ COOKIE_SECURE: 'true' })).auth.cookieSecure).toBe(true);
     expect(issuesOf(testEnv({ COOKIE_SECURE: 'yes' })).join()).toContain('COOKIE_SECURE');
   });
+
+  describe('WebAuthn (ADR 0015)', () => {
+    it('defaults to rpID localhost and the localhost origins (never 127.0.0.1)', () => {
+      const config = loadConfig(testEnv({ CORS_ALLOWED_ORIGINS: 'http://localhost:7401,http://127.0.0.1:7401' }));
+      expect(config.webauthn).toEqual({
+        rpId: 'localhost',
+        rpName: 'Workflow App',
+        origins: ['http://localhost:7401', 'http://localhost:7400'],
+      });
+    });
+
+    it('refuses an IP as rpID', () => {
+      expect(issuesOf(testEnv({ WEBAUTHN_RP_ID: '127.0.0.1' })).join()).toContain('WEBAUTHN_RP_ID');
+    });
+
+    it('explicit origins must be under the rpID', () => {
+      const env = { WEBAUTHN_RP_ID: 'desktop.tail1234.ts.net' };
+      expect(loadConfig(testEnv({ ...env, WEBAUTHN_ORIGINS: 'https://desktop.tail1234.ts.net' })).webauthn.origins).toEqual([
+        'https://desktop.tail1234.ts.net',
+      ]);
+      expect(issuesOf(testEnv({ ...env, WEBAUTHN_ORIGINS: 'https://evil.example' })).join()).toContain('not under WEBAUTHN_RP_ID');
+      // No explicit origins and none of the CORS ones match: refuse to start rather than accept nothing.
+      expect(issuesOf(testEnv(env)).join()).toContain('set it explicitly');
+    });
+  });
 });

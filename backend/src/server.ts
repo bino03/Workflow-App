@@ -1,6 +1,7 @@
 import { existsSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { buildApp } from './app.js';
+import { PasskeyFileError, PasskeyStore } from './auth/passkeyStore.js';
 import { type Config, ConfigError, loadConfig } from './config.js';
 import { StateFileError, StateStore } from './state/stateStore.js';
 import { ClaudeBinError, type SpawnPty, claudeSpawner, resolveClaudeBin } from './terminals/spawnClaude.js';
@@ -32,6 +33,17 @@ try {
   throw error;
 }
 
+let passkeyStore: PasskeyStore;
+try {
+  passkeyStore = await PasskeyStore.load(config.dataDir);
+} catch (error) {
+  if (error instanceof PasskeyFileError) {
+    console.error(error.message);
+    process.exit(1);
+  }
+  throw error;
+}
+
 // A missing `claude` must not stop the rest of the app (library, sessions) — terminals fail on create.
 let claudeBinError: string | undefined;
 let spawn: SpawnPty = () => {
@@ -49,7 +61,7 @@ const terminalManager = new TerminalManager({
   maxTerminals: config.terminals.maxTerminals,
   scrollbackBytes: config.terminals.scrollbackBytes,
 });
-const app = await buildApp({ config, terminalManager, stateStore });
+const app = await buildApp({ config, terminalManager, stateStore, passkeyStore });
 if (claudeBinError) app.log.warn(claudeBinError);
 
 const SHUTDOWN_TIMEOUT_MS = 5000;
