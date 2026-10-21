@@ -2,10 +2,10 @@
 
 | | |
 |---|---|
-| **Estado** | 🚧 Em curso — falta só a verificação manual no browser do passo 8 |
+| **Estado** | ✅ Concluída (2026-10-21) |
 | **Criada** | 2026-09-28 |
-| **Última sessão** | 2026-09-28 |
-| **Passos** | 7 / 8 concluídos |
+| **Última sessão** | 2026-10-21 |
+| **Passos** | 8 / 8 concluídos |
 
 > Escrita para uma sessão que **não viu a conversa que a originou**. Se algo só faz sentido com contexto
 > externo, falta escrevê-lo.
@@ -249,7 +249,7 @@ Ordem obrigatória. Tiers: `opus` (desenho, não delegar) · `sonnet` (implement
     (`fontSize` do xterm.js ao vivo, sem recriar o terminal nem reconectar o WebSocket) — nunca a página.
     Detalhe completo em [[terminais]] §"Layouts"/"Atalhos".
 
-- [ ] **8. Verificação ponta a ponta + fecho**
+- [x] **8. Verificação ponta a ponta + fecho** — ✅ 2026-10-21
   - Ficheiro: `docs/product/use-cases.md` (ecrã Terminais → mencionar separadores por projeto), `docs/skills/references/design/*` (se houver padrão visual novo a registar dos separadores), `docs/features/terminais.md` (§ Relacionado — acrescentar link para esta spec, edição pontual, sem reescrever o histórico), `notes/ToDo.md`, `notes/whatIveDone.md`
   - Skill: `run`
   - Tier: `sonnet`
@@ -263,6 +263,14 @@ Ordem obrigatória. Tiers: `opus` (desenho, não delegar) · `sonnet` (implement
     login com a password verdadeira, que só o dono tem. Checklist completo em
     `notes/verificacao-browser-pendente.md` → "spec `separadores-de-projetos`, passo 8". Adiada, não
     dispensada.
+  - **Verificado (2026-10-21)**: Chrome headless via CDP contra uma instância de teste (porta 7498,
+    credenciais descartáveis, login a sério pelo formulário, `WORKFLOW_PATH` com um registo de teste de três
+    projetos, `CLAUDE_CONFIG_DIR` próprio, `claude` real sem nenhum prompt). Provado por DOM + API: um
+    separador por projeto com terminais; clicar um projeto do registo sem terminais cria um e ganha
+    separador; trocar de separador nunca mostra os terminais do outro, `Alt+N` e `Alt+\` só agem no ativo,
+    e o projeto volta tal como ficou; esconder (×) mantém os terminais a correr e reabrir devolve o
+    separador sem criar outro terminal; F5 reabre um separador por projeto com terminais. Sem erros na
+    consola.
 
 ## 6. Estado atual
 
@@ -276,12 +284,10 @@ Ordem obrigatória. Tiers: `opus` (desenho, não delegar) · `sonnet` (implement
 - Passo 8 (parte automática) — docs atualizados (`docs/product/use-cases.md`, `docs/features/terminais.md`
   § Relacionado, `docs/skills/references/design/browser-tabs.md` — padrão novo registado e ligado em
   `frontend-visual-consistency.md`).
-**Em curso:** passo 8 — falta a verificação manual no browser (dois projetos, separadores, troca sem
-misturar estado, esconder/reabrir, recarregar a página).
-**Próxima ação concreta:** correr o checklist de `notes/verificacao-browser-pendente.md` → "spec
-`separadores-de-projetos`, passo 8" (precisa do dono: extensão do Chrome sem responder nesta sessão, e o
-login real precisa da password verdadeira de qualquer forma). Feito isso, marcar o passo 8 `[x]` e o Estado
-da spec como "✅ Concluída".
+- Passo 8 (verificação no browser, 2026-10-21) — feita por CDP contra uma instância de teste, ver a nota
+  "Verificado" do passo 8.
+**Em curso:** —
+**Próxima ação concreta:** nenhuma — spec concluída.
 **Desvios ao plano:** a secção 6 tinha ficado desatualizada numa sessão anterior (dizia só os passos 1-2
 feitos, quando o código já tinha os passos 3-7) — corrigido nesta sessão.
 **O que uma sessão nova precisa de saber:**

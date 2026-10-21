@@ -2,10 +2,10 @@
 
 | | |
 |---|---|
-| **Estado** | 🚧 Em curso — falta só a verificação manual no browser do passo 5 |
+| **Estado** | ✅ Concluída (2026-10-21) |
 | **Criada** | 2026-09-29 |
-| **Última sessão** | 2026-09-29 |
-| **Passos** | 4 / 5 concluídos |
+| **Última sessão** | 2026-10-21 |
+| **Passos** | 5 / 5 concluídos |
 
 > Escrita para uma sessão que **não viu a conversa que a originou**. Se algo só faz sentido com contexto
 > externo, falta escrevê-lo.
@@ -267,7 +267,7 @@ Ordem obrigatória. Tiers: `opus` (desenho, não delegar) · `sonnet` (implement
     - Verificação no browser adiada para o passo 5 (mexe na mesma árvore de componentes, e o dono só tem a
       password real — mesma situação da spec `separadores-de-projetos`, passo 8).
 
-- [ ] **5. Verificação ponta a ponta + registo do padrão + fecho**
+- [x] **5. Verificação ponta a ponta + registo do padrão + fecho** — ✅ 2026-10-21
   - Ficheiro: `docs/skills/references/design/grid-styles.md` (novo, como `browser-tabs.md`),
     `docs/features/terminais.md` (§"Layouts" — link para esta spec, edição pontual),
     `docs/product/use-cases.md`, `notes/ToDo.md`, `notes/whatIveDone.md`
@@ -286,6 +286,16 @@ Ordem obrigatória. Tiers: `opus` (desenho, não delegar) · `sonnet` (implement
     resolve). A verificação real também precisa do login com a password verdadeira, que só o dono tem —
     mesma situação da spec `separadores-de-projetos`, passo 8. Checklist completo em
     `notes/verificacao-browser-pendente.md` → "spec `estilos-de-grelha`, passo 5". Adiada, não dispensada.
+  - **Verificado (2026-10-21)**: o frontend voltou a arrancar (o bloqueio do Rollup não se repetiu). Chrome
+    headless via CDP contra uma instância de teste (a mesma da spec [[separadores-de-projetos]], passo 8),
+    provado por DOM + API: os seis itens do seletor (3×2, Colunas 2/3/4, 2×2, Principal + laterais) com o
+    número certo de mosaicos e lugares "+"; o "+" do 2×2 cria um terminal que ocupa esse quadrante; 2×2 com
+    6 terminais deixa 2 de fora, "A correr" na lateral, e clicar um troca-o para o quadrante com o teclado;
+    duplo clique e `Alt+1` ampliam por cima do 2×2 e Esc / `Alt+1` devolvem os mesmos lugares; o estilo e
+    os lugares sobrevivem a ir à Biblioteca e a F5, por projeto, e um projeto nunca tocado fica em 3×2.
+    Sem erros na consola. O `AltGr+.` não se simula por CDP — fica no checklist da spec `atalhos-editaveis`.
+    Observado, e conforme esta spec: um terminal criado fora do "+" (ex.: o "+" da lateral) não ocupa um
+    lugar vazio sozinho.
 
 ## 6. Estado atual
 
@@ -300,12 +310,10 @@ automática): docs atualizados (`use-cases.md`, `terminais.md` §"Layouts", `des
 `localStorage` por projeto (`defaultLayoutFor`/`readGridPreference`/`writeGridPreference` em
 `TerminalsPage.tsx`) — sobrevivem a navegar para a Biblioteca e a recarregar a página, não só a trocar de
 separador. Ver a decisão revista no passo 4 e em §3/§4.1. `tsc -b`/lint continuam limpos.
-**Em curso:** passo 5 — falta a verificação manual no browser.
-**Próxima ação concreta:** destravar a política de Application Control do Windows que bloqueia o Rollup
-nativo (`@rollup/rollup-win32-x64-msvc`) para o frontend arrancar, e depois correr o checklist de
-`notes/verificacao-browser-pendente.md` → "spec `estilos-de-grelha`, passo 5" (precisa do dono: a
-verificação real também precisa da password verdadeira) — inclui agora testar a persistência (Biblioteca
-e F5).
+**Passo 5 (verificação no browser, 2026-10-21)**: feita por CDP contra uma instância de teste — ver a nota
+"Verificado" do passo 5.
+**Em curso:** —
+**Próxima ação concreta:** nenhuma — spec concluída.
 **Desvios ao plano:**
 - `spotlight` usa CSS Grid com posição explícita por lugar em vez do flex aninhado do §4.4 — mesmo
   resultado visual, sem aninhar o DOM (nunca desmonta um terminal já montado só por trocar de estilo).
