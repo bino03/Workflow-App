@@ -574,7 +574,7 @@ export function TerminalsPage() {
       creatingIn={creatingIn}
       onReopenAll={() => void handleReopenAll()}
       reopeningAll={reopeningAll}
-      footer={<QuotaMeter usage={usage} now={now} variant="sidebar" />}
+      footer={<QuotaMeter usage={usage} now={now} />}
       collapsed={sidebarCollapsed}
       onToggleCollapsed={toggleSidebarCollapsed}
     />
@@ -591,7 +591,6 @@ export function TerminalsPage() {
             terminals={activeTerminals}
             enlarged={!!enlarged}
             onBackgroundMouseDown={clearGridFocus}
-            headerExtra={<QuotaMeter usage={usage} now={now} variant="header" />}
             stylePicker={<GridStylePicker value={gridStyle} onChange={setGridStyle} />}
             style={gridStyle}
             slotIds={sanitizedSlotIds}

@@ -1,6 +1,6 @@
 import type { UsageView, UsageWindow } from '@/types/usage';
 
-type QuotaMeterProps = { usage: UsageView | null; now: number; variant: 'sidebar' | 'header' };
+type QuotaMeterProps = { usage: UsageView | null; now: number };
 
 const WARN_PCT = 80;
 /** Mais velho do que isto, o valor passa a cinzento com "há X min" — sem atividade não há atualizações. */
@@ -18,16 +18,19 @@ function resetText(resetsAt: string, now: number): string {
 
 function ago(fetchedAt: string, now: number): string {
   const minutes = Math.max(1, Math.round((now - Date.parse(fetchedAt)) / 60_000));
-  return minutes < 60 ? `há ${minutes} min` : `há ${Math.round(minutes / 60)} h`;
+  if (minutes < 60) return `há ${minutes} min`;
+  if (minutes < 24 * 60) return `há ${Math.round(minutes / 60)} h`;
+  const days = Math.floor(minutes / (24 * 60));
+  return `há ${days} ${days === 1 ? 'dia' : 'dias'}`;
 }
 
 type Row = { label: string; short: string; window: UsageWindow | null };
 
 /**
- * Quota da conta (protótipo 1g lateral / 1i cabeçalho). Vem da status line dos terminais (ADR 0012): só se
- * atualiza quando algum terminal recebe uma resposta.
+ * Quota da conta, na lateral (protótipo 1g). Vem da status line dos terminais (ADR 0012): só se atualiza
+ * quando algum terminal recebe uma resposta.
  */
-export function QuotaMeter({ usage, now, variant }: QuotaMeterProps) {
+export function QuotaMeter({ usage, now }: QuotaMeterProps) {
   const rows: Row[] = [
     { label: 'Janela de 5 h', short: '5 h', window: usage?.fiveHour ?? null },
     { label: 'Semanal', short: 'Semana', window: usage?.weekly ?? null },
@@ -43,28 +46,6 @@ export function QuotaMeter({ usage, now, variant }: QuotaMeterProps) {
     const warn = pct !== null && pct >= WARN_PCT && !stale;
     return { ...row, window, pct, warn };
   });
-
-  if (variant === 'header') {
-    return (
-      <div className="flex items-center gap-6" data-quota="header" aria-label="Quota da conta">
-        {cells.map((cell) => (
-          <div key={cell.short} className="flex items-center gap-2.5 text-[12.5px]">
-            <span className="text-text-2">{cell.short}</span>
-            <div className="w-24 h-1 rounded-sm bg-surface-3 overflow-hidden">
-              {cell.pct !== null && (
-                <div className={`h-full ${cell.warn ? 'bg-warning' : 'bg-text-2'} ${stale ? 'opacity-40' : ''}`} style={{ width: `${cell.pct}%` }} />
-              )}
-            </div>
-            <span className={`font-mono font-semibold ${cell.warn ? 'text-warning' : stale ? 'text-text-3' : 'text-text-1'}`}>
-              {cell.pct === null ? '—' : `${cell.pct}%`}
-            </span>
-            {cell.window && <span className="text-text-3">{resetText(cell.window.resetsAt, now)}</span>}
-          </div>
-        ))}
-        {stale && fetchedAt && <span className="text-[12px] text-text-3">{ago(fetchedAt, now)}</span>}
-      </div>
-    );
-  }
 
   return (
     <div className="flex flex-col gap-3.5" data-quota="sidebar" aria-label="Quota da conta">

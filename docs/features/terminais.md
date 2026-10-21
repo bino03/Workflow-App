@@ -111,7 +111,7 @@ resumo.
 | Clicar na grelha | **Amplia temporariamente** (foco sem mudar a preferência; `Esc` ou "Voltar à grelha") | Olhar para um terminal não é mudar de modo | Mudar para foco dividido; só dar o teclado |
 | Fonte da quota | Status line injetada: `claude --settings <DATA_DIR>/claude-settings.json` com um `statusLine` fixo que grava o JSON recebido (`rate_limits.five_hour` / `seven_day`) em `DATA_DIR/usage.json` — **confirmado no spike (passo 1)**, formato em §4.3 | É a única fonte sem API ([[../adr/0002-motor-via-pty-sobre-subscricao]]) | Ler `~/.claude` (não tem a quota); chamar a API |
 | Se o spike não confirmar a quota | O indicador **sai da spec** e volta a `ideas.md` com o que se encontrou; o resto segue | Não bloquear os terminais por causa do indicador | Mostrar custo/tokens da sessão no lugar |
-| Quota sem valor fresco | Último valor a cinzento + "há X min"; "—" depois da hora de reposição | Um valor velho não pode parecer atual | Esconder |
+| Quota sem valor fresco | Último valor a cinzento + "há X min" / "há X h" / "há X dias" (a partir de 24 h); "—" depois da hora de reposição | Um valor velho não pode parecer atual | Esconder |
 | Pastas fora de `ALLOWED_ROOTS` | Escondidas (favoritas/recentes que já não cabem nas raízes não aparecem) | As raízes podem mudar no `.env` | Mostrar desativadas |
 | Diálogo de *trust* do `claude` numa pasta nova | Aparece no próprio terminal e responde-se lá | É do `claude`; a app não escreve no PTY | Aceitar automaticamente |
 | Atalhos `Alt+…` | Intercetados no `attachCustomKeyEventHandler` do xterm.js antes de chegarem ao PTY | `Ctrl+…` é do Claude Code/browser; `Ctrl+Alt` é AltGr em teclado PT | `Ctrl+Shift+…` |
@@ -257,8 +257,8 @@ sessão acabada de abrir (sem pedidos) **não** tem `rate_limits` — tem `sessi
   - ~~`components/terminals/new/NewTerminalDrawer.tsx` (540) + `FolderPicker.tsx` + `SessionPicker.tsx` +
     `newTerminalFormSchema.ts`~~ — **substituído 2026-09-29** por `components/terminals/new/ResumeSessionModal.tsx`
     (ver passo 13, abaixo).
-  - `components/terminals/QuotaMeter.tsx` — variante lateral (barras 5 px) e variante cabeçalho (96 px),
-    aviso "▲ Perto do limite" ≥ 80 %.
+  - `components/terminals/QuotaMeter.tsx` — só a lateral (barras 5 px), aviso "▲ Perto do limite" ≥ 80 %.
+    A variante do cabeçalho (96 px, só no modo Grelha) foi removida em 2026-10-20 — duplicava a lateral.
   - `components/settings/SettingsDrawer.tsx` (540) — aberto do menu de utilizador no `AppLayout`.
   - `services/{terminalService,sessionService,folderService,usageService}.ts`, `types/{terminal,session,folder,usage}.ts`.
 - **Estado vazio**: sem terminais → no lugar do painel, "Nenhum terminal aberto" + botão **Novo terminal

@@ -12,8 +12,6 @@ type TerminalGridProps = {
   onBackgroundMouseDown: () => void;
   /** Os mosaicos, já na ordem da lateral (a página é que sabe montá-los). */
   children: ReactNode;
-  /** A quota no cabeçalho (passo 16). */
-  headerExtra?: ReactNode;
   /** O `GridStylePicker`, no lugar onde estava o antigo botão "+ Novo terminal" (removido 2026-09-29). */
   stylePicker?: ReactNode;
   /** Estilo ativo (spec docs/features/estilos-de-grelha.md). */
@@ -74,7 +72,6 @@ export function TerminalGrid({
   enlarged,
   onBackgroundMouseDown,
   children,
-  headerExtra,
   stylePicker,
   style,
   slotIds,
@@ -102,7 +99,6 @@ export function TerminalGrid({
         </div>
         <div className="flex-1" />
         {!enlarged && stylePicker}
-        {headerExtra}
       </div>
       <div
         className={containerClasses(style, enlarged)}
