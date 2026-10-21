@@ -1,12 +1,14 @@
 import { useState } from 'react';
 import { DownOutlined, LogoutOutlined, SettingOutlined, UserOutlined } from '@ant-design/icons';
 import { Dropdown, type MenuProps } from 'antd';
-import { Link, NavLink, Outlet } from 'react-router';
+import { Link, NavLink, Outlet, useNavigate } from 'react-router';
 import { Wordmark } from '@/components/common/Wordmark';
 import { SettingsDrawer } from '@/components/settings/SettingsDrawer';
+import { KeybindingsProvider } from '@/contexts/KeybindingsContext';
 import { useAuth } from '@/hooks/useAuth';
 import { useBackendHealth, type BackendHealth } from '@/hooks/useBackendHealth';
 import { useConfirm } from '@/hooks/useConfirm';
+import { useShortcuts } from '@/hooks/useShortcuts';
 
 // Única fonte de verdade da navegação persistente (app-shell-and-auth.md §2).
 const NAV_ITEMS = [
@@ -26,7 +28,30 @@ const HEALTH_DOT: Record<BackendHealth, string> = {
   offline: 'bg-error',
 };
 
+const NAV_SHORTCUTS: Record<string, string> = { goTerminals: '/terminals', goLibrary: '/library' };
+
+/** "Ir para Terminais/Biblioteca" (ADR 0016): no layout, para funcionarem em qualquer página. */
+function NavigationShortcuts() {
+  const navigate = useNavigate();
+  useShortcuts((actionId) => {
+    const to = NAV_SHORTCUTS[actionId];
+    if (!to) return false;
+    void navigate(to);
+    return true;
+  });
+  return null;
+}
+
 export function AppLayout() {
+  return (
+    <KeybindingsProvider>
+      <NavigationShortcuts />
+      <AppShell />
+    </KeybindingsProvider>
+  );
+}
+
+function AppShell() {
   const { logout } = useAuth();
   const confirm = useConfirm();
   const health = useBackendHealth();

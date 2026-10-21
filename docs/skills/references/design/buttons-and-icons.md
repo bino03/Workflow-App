@@ -54,6 +54,12 @@ A app usa **`Alt+…`**: Ctrl+… pertence ao Claude Code e ao browser, e Ctrl+A
 | `Alt+R` | Renomear |
 | `Alt+=` / `Alt+-` | Zoom só no terminal focado (nunca a página) |
 | `Alt+0` | Repor o zoom do terminal |
+| `AltGr+.` | Esconder / mostrar a lateral |
+
+Estes são os **predefinidos** (desde 2026-10-20 editáveis nas Definições, mais ações novas sem bind —
+[[../../../features/atalhos-editaveis|atalhos-editaveis]]). Numa lista de atalhos editáveis, a bind aparece
+em `.kbd` e uma ação sem bind diz "sem atalho" em `text-3`; a captura é um campo com
+`border-accent-border bg-accent-subtle` que apanha a tecla seguinte (`components/settings/ShortcutCapture.tsx`).
 
 **Revisto 2026-09-29**: o painel de terminal deixou de mostrar estes atalhos em `.kbd` no cabeçalho — o
 dono já os sabe de cor e pediu um cabeçalho limpo (`components/terminals/TerminalPane.tsx`: sem botões de

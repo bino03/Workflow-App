@@ -44,6 +44,9 @@ próprio Fastify (JSON mal formado, content-type errado → `COMMON_001`) e as r
 | `TERMINAL_006` | 409 | Reabrir um terminal que já está a correr |
 | `FOLDER_001` | 403 | Pasta inexistente, não é pasta, relativa, ou fora de `ALLOWED_ROOTS` (depois de resolver `..`, symlinks e junctions) — nunca diz qual |
 | `SESSION_001` | 404 | "Continuar a última" numa pasta sem sessões gravadas |
+| `KEYBIND_001` | 400 | Tecla não permitida para esse modificador (Esc, setas, F-keys, AltGr sem ser com `.`, código não canónico) |
+| `KEYBIND_002` | 409 | A combinação já é a bind em vigor de outra ação (o frontend mostra qual antes de enviar) |
+| `KEYBIND_003` | 404 | Id de ação que o catálogo não tem |
 
 O frontend espelha esta tabela em `frontend/src/errors/errorMessages.ts`, pela mesma ordem — os dois
 mudam no mesmo commit.
@@ -125,6 +128,28 @@ Todas com sessão (`AUTH_002`). Qualquer pasta passa por `resolveAllowedPath` (`
   não aparecem. Desmarcar uma favorita nunca usada esquece-a.
 - `browse`: um nível; pastas começadas por `.` e links/junctions ficam de fora; `parent` é `null` na raiz
   (nunca se sobe acima dela); `sessionCount` conta os `.jsonl` sem os ler.
+
+## Atalhos (`keybindings/`, `/api/keybindings`) — ✅
+
+Todas com sessão (`AUTH_002`); todas devolvem a vista inteira, `KeybindingsView`
+([[adr/0016-atalhos-editaveis-no-state]], [[features/atalhos-editaveis]]).
+
+| Método | Rota | Corpo | Resposta | Erros |
+|---|---|---|---|---|
+| GET | `/api/keybindings` | — | `KeybindingsView` | — |
+| PUT | `/api/keybindings/:actionId` | `{binding: {modifier: 'alt'\|'altGraph', code} \| null}` | `KeybindingsView` | `COMMON_001` (ex.: `modifier: 'ctrl'`) · `KEYBIND_001` · `KEYBIND_002` · `KEYBIND_003` |
+| DELETE | `/api/keybindings/:actionId` | — | `KeybindingsView` (essa ação no predefinido) | `KEYBIND_003` |
+| POST | `/api/keybindings/reset` | — | `KeybindingsView` (todas no predefinido) | — |
+
+- `KeybindingsView = {actions: [{id, label, group, default, binding}], warnings: [{modifier, code, reason}]}`.
+  `binding` é a bind em vigor (alteração ou predefinido), `null` = sem atalho. `group` é
+  `terminals`/`jump`/`projects`/`navigation`. O catálogo (rótulos, predefinidos, teclas permitidas, avisos) só
+  existe em `backend/src/keybindings/catalog.ts` — o frontend lê-o daqui.
+- `code` canónico: o frontend converte o teclado numérico e o `\` do teclado PT (`Backquote`/`IntlBackslash` →
+  `Backslash`) antes de enviar.
+- `warnings`: combinações que funcionam mas tiram a tecla ao shell ou ao browser — o servidor aceita-as; a UI
+  avisa e pede confirmação.
+- Gravar o predefinido de volta apaga a alteração do `state.json` (fica só o que mudou).
 
 ## Biblioteca (`library/`, `/api/library`) — ✅
 

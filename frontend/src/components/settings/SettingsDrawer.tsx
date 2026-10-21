@@ -2,6 +2,7 @@ import { Button, Drawer } from 'antd';
 import { DRAWER_WIDTH } from '@/config/drawer';
 import { type LayoutMode, useLayoutMode } from '@/hooks/useLayoutMode';
 import { PasskeysSection } from './PasskeysSection';
+import { ShortcutsSection } from './ShortcutsSection';
 
 type SettingsDrawerProps = { open: boolean; onClose: () => void };
 
@@ -12,7 +13,7 @@ const OPTIONS: { value: LayoutMode; title: string; detail: string }[] = [
 
 /**
  * Drawer "Definições" (Small, 540): o modo de layout dos terminais — guardado neste browser
- * (localStorage) — e as passkeys, guardadas no servidor (ADR 0015).
+ * (localStorage) —, os atalhos (ADR 0016) e as passkeys (ADR 0015), guardados no servidor.
  */
 export function SettingsDrawer({ open, onClose }: SettingsDrawerProps) {
   const [mode, setMode] = useLayoutMode();
@@ -71,6 +72,10 @@ export function SettingsDrawer({ open, onClose }: SettingsDrawerProps) {
           })}
         </div>
       </div>
+
+      <div className="border-t border-border my-6" />
+      {/* Só monta com o drawer aberto: fechar larga uma captura a meio. As binds já vêm carregadas do layout. */}
+      {open && <ShortcutsSection />}
 
       <div className="border-t border-border my-6" />
       {/* Só monta com o drawer aberto: a lista carrega quando se abre, não com a app. */}

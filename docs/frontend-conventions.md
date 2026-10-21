@@ -83,9 +83,12 @@ Ant Design para componentes, Tailwind para estilo próprio, tokens CSS como font
 - **Lateral por projetos**: um projeto é uma pasta (`components/terminals/projects.ts` agrupa, ordena e dá
   nomes). A ordem da lateral é a do `Alt+1…9`.
 - **Teclado**: com um terminal em foco, o teclado é dele (Ctrl+C, Esc, setas, Tab são do Claude Code).
-  Atalhos da app: `Alt+1…9/N/\/W/R` (`hooks/useTerminalShortcuts.ts`) — o xterm.js recusa-os (não chegam ao
-  PTY) e **um só** listener na janela executa-os. Nunca `Ctrl+Alt` (AltGr em PT). Um `Esc` da app (voltar à
-  grelha) só conta fora do terminal (`event.target.closest('.xterm')`).
+  Atalhos da app: editáveis nas Definições (ADR 0016); predefinidos `Alt+1…9/N/\/W/R`. O mapa vem do
+  backend (`KeybindingsProvider` no `AppLayout`) e é lido por `keyboard/shortcuts.ts` — o xterm.js recusa as
+  combinações **com bind** (não chegam ao PTY; as sem bind continuam a ir para o shell) e um listener na
+  janela (`hooks/useShortcuts.ts`) executa-as: um no `TerminalsPage`, um no `AppLayout` para a navegação.
+  Nunca `Ctrl+Alt` (AltGr em PT). Um `Esc` da app (voltar à grelha) só conta fora do terminal
+  (`event.target.closest('.xterm')`).
 - Portas: dev server em **7401** com `strictPort` (não colidir com os dev servers dos projetos abertos
   dentro dos terminais).
 

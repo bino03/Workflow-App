@@ -13,7 +13,7 @@ import { ErrorHandler, getApiErrorResponse } from '@/errors/errorHandler';
 import { useConfirm } from '@/hooks/useConfirm';
 import { useLayoutMode } from '@/hooks/useLayoutMode';
 import { useProjects } from '@/hooks/useProjects';
-import { type ShortcutAction, useTerminalShortcuts } from '@/hooks/useTerminalShortcuts';
+import { useShortcuts } from '@/hooks/useShortcuts';
 import { useTerminals } from '@/hooks/useTerminals';
 import { useUsage } from '@/hooks/useUsage';
 import { getFolders, setFavoriteFolder } from '@/services/folderService';
@@ -432,43 +432,83 @@ export function TerminalsPage() {
     if (candidate) updateLayout(activePath, { splitId: candidate, activeId: candidate });
   };
 
-  useTerminalShortcuts((action: ShortcutAction) => {
-    switch (action.type) {
-      case 'new':
+  /**
+   * Saltar para um terminal do projeto ativo. Na grelha, o salto por número amplia (e, no já ampliado,
+   * volta à grelha em vez de não fazer nada); seguinte/anterior só muda o teclado — ou o ampliado, se há um.
+   */
+  const jumpTo = (id: string, byNumber: boolean) => {
+    if (!grid) return selectTerminal(id);
+    if (enlarged === id && byNumber) return exitEnlarge();
+    if (enlarged || byNumber) return enlargeTerminal(id);
+    selectTerminal(id);
+  };
+
+  /** Terminal seguinte/anterior a partir do que tem o teclado, a dar a volta no fim. */
+  const stepTerminal = (delta: 1 | -1) => {
+    const count = activeTerminals.length;
+    if (count === 0) return;
+    const current = activeTerminals.findIndex((t) => t.id === keyboardId);
+    const index = current === -1 ? (delta > 0 ? 0 : count - 1) : (current + delta + count) % count;
+    jumpTo(activeTerminals[index]!.id, false);
+  };
+
+  /** Separador de projeto seguinte/anterior, pela ordem dos separadores. */
+  const stepProject = (delta: 1 | -1) => {
+    const count = openProjects.length;
+    if (count === 0) return;
+    const current = openProjects.findIndex((p) => p.path === activePath);
+    const index = current === -1 ? 0 : (current + delta + count) % count;
+    setActivePath(openProjects[index]!.path);
+  };
+
+  // Ações dos Terminais (ADR 0016). As de navegação entre páginas são do AppLayout.
+  useShortcuts((actionId) => {
+    const jump = /^jump([1-9])$/.exec(actionId);
+    if (jump) {
+      const target = activeTerminals[Number(jump[1]) - 1];
+      if (target) jumpTo(target.id, true);
+      return true;
+    }
+    switch (actionId) {
+      case 'newTerminal':
         if (activePath) void handleNewInProject(activePath);
-        break;
-      case 'jump': {
-        const target = activeTerminals[action.index];
-        if (target) {
-          if (grid) {
-            // Alt+N no terminal já ampliado: alterna de volta à grelha em vez de não fazer nada.
-            if (enlarged === target.id) exitEnlarge();
-            else enlargeTerminal(target.id);
-          } else selectTerminal(target.id);
-        }
-        break;
-      }
-      case 'split':
+        return true;
+      case 'terminalNext':
+      case 'terminalPrev':
+        stepTerminal(actionId === 'terminalNext' ? 1 : -1);
+        return true;
+      case 'splitToggle':
         if (grid) {
           if (enlarged) exitEnlarge();
         } else toggleSplit();
-        break;
-      case 'close':
+        return true;
+      case 'closeTerminal':
         if (keyboardId) requestClose(keyboardId);
-        break;
-      case 'rename':
+        return true;
+      case 'renameTerminal':
         if (keyboardId) setRenamingId(keyboardId);
-        break;
-      case 'zoom':
+        return true;
+      case 'zoomIn':
+      case 'zoomOut':
+      case 'zoomReset':
         setFontDelta((current) => {
-          if (action.direction === 'reset') return 0;
-          const next = current + (action.direction === 'in' ? 1 : -1);
+          if (actionId === 'zoomReset') return 0;
+          const next = current + (actionId === 'zoomIn' ? 1 : -1);
           return Math.max(FONT_DELTA_LIMITS.min, Math.min(FONT_DELTA_LIMITS.max, next));
         });
-        break;
+        return true;
       case 'toggleSidebar':
         toggleSidebarCollapsed();
-        break;
+        return true;
+      case 'projectNext':
+      case 'projectPrev':
+        stepProject(actionId === 'projectNext' ? 1 : -1);
+        return true;
+      case 'projectClose':
+        if (activePath) closeTab(activePath);
+        return true;
+      default:
+        return false;
     }
   }, !resumePath);
 

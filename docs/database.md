@@ -10,7 +10,7 @@
 
 | Dado | Onde | Sobrevive a um reinício? |
 |---|---|---|
-| Terminais abertos (para reabrir), histórico de fechados, pastas recentes/favoritas | `state.json` em `DATA_DIR` | ✅ |
+| Terminais abertos (para reabrir), histórico de fechados, pastas recentes/favoritas, atalhos alterados | `state.json` em `DATA_DIR` | ✅ |
 | Terminal a correr (PTY, estado, código de saída) | memória do backend (`TerminalManager`) | ❌ — o processo morre com o backend |
 | Scrollback | memória do backend | ❌ — de propósito: é conteúdo sensível, e a conversa já está no `.jsonl` do Claude Code |
 | Sessão de login | memória do backend | ❌ — [[adr/0003-auth-utilizador-unico]] |
@@ -36,12 +36,18 @@
 
 ```json
 {
-  "version": 1,
+  "version": 2,
   "terminals": [],
   "closedTerminals": [],
-  "folders": []
+  "folders": [],
+  "keybindings": {}
 }
 ```
+
+- **Versões**: `STATE_VERSION` em `backend/src/state/state.schema.ts`. Um ficheiro mais velho passa por
+  `migrate` ao carregar (em memória — só é reescrito na próxima alteração); um mais novo é recusado.
+  **v1 → v2** (2026-10-20, [[adr/0016-atalhos-editaveis-no-state]]): acrescenta `keybindings: {}`. Depois de
+  escrito como v2, uma app anterior a esta mudança já não o abre.
 
 ```mermaid
 erDiagram
@@ -103,6 +109,21 @@ O que representa: uma pasta usada para abrir terminais, para as sugerir no drawe
   saem.
 - **Favoritas**: nunca saem nem contam para o limite; desmarcar uma devolve-a às recentes (e ao limite).
 
+### Atalhos — `keybindings` (desde a v2)
+
+O que representa: as binds de teclado que o dono **mudou** ([[adr/0016-atalhos-editaveis-no-state]],
+[[features/atalhos-editaveis]]). Não é uma lista: um mapa `id da ação → bind`.
+
+| Chave / valor | Tipo | Nota |
+|---|---|---|
+| chave | texto ≤ 64 | id da ação do catálogo (`backend/src/keybindings/catalog.ts`), ex.: `newTerminal`, `jump1`, `goLibrary` |
+| valor | `{modifier: 'alt' \| 'altGraph', code}` ou `null` | `code` = `KeyboardEvent.code` (tecla física); `null` = sem atalho |
+
+- **Só alterações**: uma ação ausente usa o predefinido do catálogo; voltar a pôr o predefinido apaga a
+  chave. "Repor predefinidos" deixa `{}`.
+- O esquema só valida a **forma**. Que teclas são permitidas e as colisões decide o `KeybindingsService`
+  ao gravar. Um id que o catálogo já não tem fica no ficheiro, mas é ignorado (nunca impede o arranque).
+
 ## Relações
 
 | De | Para | Cardinalidade | Obrigatória? | Se o "Para" desaparece | Nota |
@@ -119,10 +140,11 @@ O que representa: uma pasta usada para abrir terminais, para as sugerir no drawe
 
 ## Deixado de fora (deliberadamente)
 
-- **Base de dados (SQLite/Postgres)** — três coleções pequenas, um escritor, sem pesquisa; ver ADR 0009.
+- **Base de dados (SQLite/Postgres)** — três coleções pequenas e um mapa de atalhos, um escritor, sem pesquisa; ver ADR 0009.
   Se o histórico passar a ser ilimitado ou pesquisável, reabrir a decisão (`node:sqlite`, sem binário nativo).
 - **Scrollback em disco** — conteúdo sensível; a conversa já fica no `.jsonl`.
-- **Preferência de layout no backend** — é do dispositivo; `localStorage`.
+- **Preferência de layout no backend** — é do dispositivo; `localStorage`. (Os atalhos, ao contrário,
+  ficam no `state.json`, por decisão do dono — [[adr/0016-atalhos-editaveis-no-state]].)
 - **Apagar entradas do histórico à mão** — não pedido; o limite de 200 chega.
 - **Histórico da quota** — só se guarda o último valor (`usage.json`), para o indicador ter o que mostrar depois de um reinício.
 

@@ -12,6 +12,8 @@ import { registerAuthGuard } from './common/authGuard.js';
 import { AppError, registerErrorHandler } from './common/errors.js';
 import { healthRoutes } from './common/health.routes.js';
 import { hasSpaBuild, registerSpa, selfOrigins } from './common/spa.js';
+import { keybindingsRoutes } from './keybindings/keybindings.routes.js';
+import { KeybindingsService } from './keybindings/keybindingsService.js';
 import { libraryRoutes } from './library/library.routes.js';
 import { MAX_SKILL_UPLOAD_BYTES, LibraryService } from './library/libraryService.js';
 import { foldersRoutes } from './folders/folders.routes.js';
@@ -106,6 +108,7 @@ export async function buildApp({ config, terminalManager, sessionStore, stateSto
   await app.register(foldersRoutes, {
     foldersService: new FoldersService({ stateStore, sessions: sessionsReader, allowedRoots: config.terminals.allowedRoots }),
   });
+  await app.register(keybindingsRoutes, { keybindingsService: new KeybindingsService(stateStore) });
 
   if (serveSpa) {
     await registerSpa(app, config.frontendDist);

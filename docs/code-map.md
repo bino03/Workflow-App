@@ -41,6 +41,7 @@ isso há os outros:
 | Sessão (`useAuth`), guarda de rota | `frontend/src/contexts/AuthContext.tsx` · `hooks/useAuth.ts` · `components/PrivateRoute.tsx` · `services/authService.ts` |
 | Login | `frontend/src/pages/login/LoginPage.tsx` |
 | Confirmação (`useConfirm`) | `frontend/src/contexts/ConfirmDialogContext.tsx` · `hooks/useConfirm.ts` |
+| Atalhos de teclado (ADR 0016) | backend: `keybindings/catalog.ts` (o único catálogo: ações, predefinidos, teclas permitidas, avisos) · `keybindings/keybindingsService.ts` · `keybindings/keybindings.routes.ts` · frontend: `keyboard/shortcuts.ts` (evento → bind → ação, sinónimos, rótulos) · `contexts/KeybindingsContext.tsx` (no `AppLayout`) · `hooks/{useKeybindings,useShortcuts}.ts` · `components/settings/{ShortcutsSection,ShortcutCapture}.tsx` · `services/keybindingService.ts` |
 | Instância HTTP, endereço do backend | `frontend/src/api.ts` · `config/apiBase.ts` |
 | Erros e toasts | `frontend/src/errors/` · `services/general/notificationService.tsx` |
 | Tokens | `frontend/src/index.css` + `theme.ts` · `terminal/xtermTheme.ts` · pré-visualização em `/_tokens` (só dev) |
@@ -54,7 +55,7 @@ isso há os outros:
 |---|---|
 | **Entrada** | rota `/terminals` → `frontend/src/pages/TerminalsPage.tsx` (foco dividido / grelha, atalhos, reabrir) |
 | **Frontend** | `components/terminals/` — `TerminalView.tsx` (xterm.js + WS) · `TerminalPane.tsx` (cabeçalho, banner; variante `tile`) · `TerminalSidebar.tsx` (por projetos) · `TerminalGrid.tsx` · `QuotaMeter.tsx` · `projects.ts` · `new/` (drawer Novo terminal) |
-| | `components/settings/SettingsDrawer.tsx` · `hooks/{useTerminals,useTerminalShortcuts,useLayoutMode,useUsage}.ts` · `services/{terminal,session,folder,usage}Service.ts` · `types/{terminal,session,folder,usage}.ts` · `terminal/terminalSize.ts` |
+| | `components/settings/SettingsDrawer.tsx` · `hooks/{useTerminals,useLayoutMode,useUsage}.ts` · `services/{terminal,session,folder,usage}Service.ts` · `types/{terminal,session,folder,usage}.ts` · `terminal/terminalSize.ts` |
 | **Backend** | `backend/src/terminals/` — `terminals.routes.ts` · `terminals.gateway.ts` (WS) · `terminalsService.ts` (ciclo de vida) · `terminalManager.ts` (PTYs) · `claudeArgs.ts` · `terminal.schemas.ts` |
 | | `backend/src/sessions/` (`.jsonl` do Claude Code) · `backend/src/folders/` (política de pastas, favoritas, browse) · `backend/src/usage/` (quota) |
 | **Dados** | `DATA_DIR/state.json` (`terminals`, `closedTerminals`, `folders`) · `DATA_DIR/usage.json` · `~/.claude/projects/` (só leitura) |

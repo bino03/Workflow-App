@@ -31,6 +31,7 @@ Estados: `proposto` → `aceite` → `substituído`. Template: `Templates/ADR.md
 | [[0013-linux-no-desktop-de-casa]] | Desktop de casa em Linux com ambiente gráfico leve (Xubuntu/Debian + Xfce, login automático) — pela RAM (8 GB) e para a extensão Claude in Chrome ter sessão | `aceite` | 2026-09-28 |
 | [[0014-escrita-controlada-biblioteca]] | A app escreve na biblioteca do Workflow em dois sítios só: `stacks/<id>/skills/skill-*.md` (criar, nunca sobrescrever) + `provides-skills` do `STACK.md` dessa stack (abre parcialmente o [[0005-biblioteca-lida-do-disco]]) | `aceite` | 2026-09-30 |
 | [[0015-passkeys-webauthn]] | Passkeys (WebAuthn) como alternativa à password: descobríveis, várias, em `DATA_DIR/passkeys.json`, registo exige a password, rate limit partilhado, revogar mata as sessões dessa passkey; `rpID` por `.env` (complementa o 0003/0011) | `aceite` | 2026-10-09 |
+| [[0016-atalhos-editaveis-no-state]] | Atalhos de teclado editáveis nas Definições, guardados no `state.json` (só as alterações, `STATE_VERSION` 2); restrições `Alt+…`, colisões internas recusadas, Claude Code avisa | `aceite` | 2026-10-20 |
 
 ## Decisões que ainda vão precisar de ADR
 

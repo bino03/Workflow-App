@@ -3,7 +3,8 @@ import { FitAddon } from '@xterm/addon-fit';
 import { Terminal } from '@xterm/xterm';
 import '@xterm/xterm/css/xterm.css';
 import { apiWebSocketUrl } from '@/config/apiBase';
-import { shortcutFromEvent } from '@/hooks/useTerminalShortcuts';
+import { useKeybindings } from '@/hooks/useKeybindings';
+import { actionFromEvent } from '@/keyboard/shortcuts';
 import { TERMINAL_FONT, loadTerminalFont } from '@/terminal/terminalSize';
 import { xtermTheme } from '@/terminal/xtermTheme';
 import { type ServerControlMessage, WS_CLOSE } from '@/types/terminal';
@@ -38,6 +39,7 @@ export function TerminalView({ terminalId, visible, focused, compact = false, fo
   useEffect(() => {
     callbacks.current = { onFocus, onExit, onGone };
   });
+  const { indexRef } = useKeybindings();
   const font = compact ? TERMINAL_FONT.grid : TERMINAL_FONT.focus;
 
   useEffect(() => {
@@ -108,8 +110,9 @@ export function TerminalView({ terminalId, visible, focused, compact = false, fo
       termRef.current = term;
       fitRef.current = fit;
 
-      // Os atalhos da app nunca chegam ao PTY; quem os executa é o listener da janela (useTerminalShortcuts).
-      term.attachCustomKeyEventHandler((event) => !(event.type === 'keydown' && shortcutFromEvent(event)));
+      // Uma combinação com bind nunca chega ao PTY; quem a executa é o listener da janela (useShortcuts).
+      // Sem bind (ex.: Alt+B), continua a ir para o shell/Claude Code.
+      term.attachCustomKeyEventHandler((event) => !(event.type === 'keydown' && actionFromEvent(event, indexRef.current)));
       const encoder = new TextEncoder();
       const input = term.onData((data) => send(encoder.encode(data)));
       const binary = term.onBinary((data) => send(Uint8Array.from(data, (c) => c.charCodeAt(0))));
@@ -144,7 +147,8 @@ export function TerminalView({ terminalId, visible, focused, compact = false, fo
       termRef.current = null;
       fitRef.current = null;
     };
-  }, [terminalId, compact, font]);
+    // indexRef é estável (um useRef no provider): nunca recria o terminal, só satisfaz a regra.
+  }, [terminalId, compact, font, indexRef]);
 
   // Zoom só deste terminal: muda o fontSize ao vivo (sem recriar o xterm.js nem reconectar o WebSocket).
   useEffect(() => {

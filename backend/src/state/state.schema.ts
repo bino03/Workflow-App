@@ -1,7 +1,7 @@
 import { z } from 'zod';
 
 /** The version this code writes. Older files go through `migrate` on load. */
-export const STATE_VERSION = 1;
+export const STATE_VERSION = 2;
 
 /** Closed terminals kept in the history, newest by `closedAt`. */
 export const MAX_CLOSED_TERMINALS = 200;
@@ -37,6 +37,19 @@ export const folderSchema = z.object({
   lastUsedAt: instant.optional(),
 });
 
+/**
+ * One key combination (ADR 0016). `code` is a `KeyboardEvent.code` — the physical key. Only the shape is
+ * checked here; which actions and keys are allowed is the catalogue's job, so an action dropped from the
+ * catalogue never stops the backend from starting.
+ */
+export const keyBindingSchema = z.object({
+  modifier: z.enum(['alt', 'altGraph']),
+  code: z.string().min(1).max(32),
+});
+
+/** Only the user's changes: a missing action keeps its default, `null` = no binding. */
+export const keyBindingsSchema = z.record(z.string().min(1).max(64), keyBindingSchema.nullable());
+
 function uniqueBy<T>(items: T[], key: (item: T) => string): boolean {
   return new Set(items.map(key)).size === items.length;
 }
@@ -47,6 +60,7 @@ export const stateSchema = z
     terminals: z.array(savedTerminalSchema),
     closedTerminals: z.array(closedTerminalSchema),
     folders: z.array(folderSchema),
+    keybindings: keyBindingsSchema,
   })
   .refine((state) => uniqueBy(state.terminals, (terminal) => terminal.id), {
     message: 'terminal ids must be unique',
@@ -60,10 +74,11 @@ export const stateSchema = z
 export type SavedTerminal = z.infer<typeof savedTerminalSchema>;
 export type ClosedTerminal = z.infer<typeof closedTerminalSchema>;
 export type Folder = z.infer<typeof folderSchema>;
+export type KeyBinding = z.infer<typeof keyBindingSchema>;
 export type AppState = z.infer<typeof stateSchema>;
 
 export function emptyState(): AppState {
-  return { version: STATE_VERSION, terminals: [], closedTerminals: [], folders: [] };
+  return { version: STATE_VERSION, terminals: [], closedTerminals: [], folders: [], keybindings: {} };
 }
 
 /**
@@ -76,6 +91,8 @@ export function migrate(raw: unknown): unknown {
   if (typeof version === 'number' && version > STATE_VERSION) {
     throw new Error(`state.json has version ${version}, written by a newer Workflow App (this one reads ${STATE_VERSION})`);
   }
+  // v1 → v2: keyboard shortcuts (ADR 0016). No changes yet = every action on its default.
+  if (version === 1) return { ...raw, version: 2, keybindings: {} };
   return raw;
 }
 

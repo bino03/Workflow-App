@@ -65,7 +65,8 @@ resumo.
   (por omissão) / **grelha**; persiste no `localStorage`.
 - **Atalhos** `Alt+1…9` saltar (na grelha, amplia/desamplia) · `Alt+N` novo · `Alt+\` dividir/juntar ·
   `Alt+W` fechar · `Alt+R` renomear · `Alt+=`/`Alt+-` zoom só no terminal focado (nunca a página) · `Alt+0`
-  repõe o zoom — intercetados **antes** do PTY. **Revisto 2026-09-29**: o cabeçalho do painel deixou de
+  repõe o zoom — intercetados **antes** do PTY. **Revisto 2026-10-20**: estes são agora os predefinidos —
+  todos editáveis nas Definições, com ações novas ([[atalhos-editaveis]]). **Revisto 2026-09-29**: o cabeçalho do painel deixou de
   mostrar botões e atalhos (sem "⌨ TECLADO AQUI", sem `.kbd` junto de Renomear/Dividir/Fechar/Voltar à
   grelha) — o dono já sabe os atalhos de cor; ver [[../skills/references/design/buttons-and-icons]].
 - **Quota** (se o spike do passo 1 a confirmar): janela de 5 h e semanal, com hora de reposição.
@@ -241,7 +242,8 @@ sessão acabada de abrir (sem pedidos) **não** tem `rate_limits` — tem `sessi
   - `hooks/useTerminals.ts` — lista, criar, reabrir, renomear, fechar; dono do estado da página.
   - `hooks/useLayoutMode.ts` — `useSyncExternalStore` sobre `localStorage` (`workflow-app.layout`:
     `focus` = foco dividido | `grid` = grelha; omissão `focus`), partilhado entre a página e o drawer Definições.
-  - `hooks/useTerminalShortcuts.ts` — `Alt+…` (também usado pelo `TerminalView`).
+  - ~~`hooks/useTerminalShortcuts.ts`~~ — **substituído 2026-10-20** por `keyboard/shortcuts.ts` +
+    `hooks/useShortcuts.ts` (atalhos editáveis, [[atalhos-editaveis]]).
   - `hooks/useUsage.ts` — `GET /api/usage` a cada 60 s.
   - `components/terminals/TerminalView.tsx` — xterm.js + `FitAddon` + WebSocket; **a instância e o socket
     não vão para Context nem para estado de React** ([[../frontend-conventions]] → Terminais).

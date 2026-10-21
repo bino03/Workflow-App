@@ -57,7 +57,7 @@ describe('StateStore', () => {
 
   it('missing file → empty state, and nothing written until the first change', async () => {
     const store = await StateStore.load(dataDir);
-    expect(store.read()).toEqual({ version: 1, terminals: [], closedTerminals: [], folders: [] });
+    expect(store.read()).toEqual({ version: 2, terminals: [], closedTerminals: [], folders: [], keybindings: {} });
     await store.flush();
     expect(existsSync(file)).toBe(false);
   });
@@ -85,11 +85,40 @@ describe('StateStore', () => {
     ['not JSON', '{ "version": 1,'],
     ['wrong shape', JSON.stringify({ version: 1, terminals: [{ id: 'nope' }], closedTerminals: [], folders: [] })],
     ['duplicate folder paths', JSON.stringify({ version: 1, terminals: [], closedTerminals: [], folders: [{ path: 'C:\\a' }, { path: 'C:\\a' }] })],
-    ['newer version', JSON.stringify({ version: 2, terminals: [], closedTerminals: [], folders: [] })],
+    ['newer version', JSON.stringify({ version: 3, terminals: [], closedTerminals: [], folders: [], keybindings: {} })],
+    ['v2 without keybindings', JSON.stringify({ version: 2, terminals: [], closedTerminals: [], folders: [] })],
+    [
+      'unknown modifier',
+      JSON.stringify({ version: 2, terminals: [], closedTerminals: [], folders: [], keybindings: { newTerminal: { modifier: 'ctrl', code: 'KeyN' } } }),
+    ],
   ])('invalid file (%s) → StateFileError, and the file is left untouched', async (_case, content) => {
     await writeFile(file, content);
     await expect(StateStore.load(dataDir)).rejects.toBeInstanceOf(StateFileError);
     expect(await readFile(file, 'utf8')).toBe(content);
+  });
+
+  it('a v1 file loads as v2 with no shortcut changes, and is only rewritten on the next change', async () => {
+    const terminal = savedTerminal({ label: 'api' });
+    const v1 = JSON.stringify({ version: 1, terminals: [terminal], closedTerminals: [], folders: [] });
+    await writeFile(file, v1);
+
+    const store = await StateStore.load(dataDir);
+    expect(store.read()).toMatchObject({ version: 2, terminals: [terminal], keybindings: {} });
+    await store.flush();
+    expect(await readFile(file, 'utf8')).toBe(v1);
+
+    store.update((draft) => void (draft.keybindings.newTerminal = { modifier: 'alt', code: 'KeyM' }));
+    await store.flush();
+    const onDisk = JSON.parse(await readFile(file, 'utf8'));
+    expect(onDisk.version).toBe(2);
+    expect(onDisk.keybindings).toEqual({ newTerminal: { modifier: 'alt', code: 'KeyM' } });
+  });
+
+  it('keeps keybindings for actions it does not know, and null as "no binding"', async () => {
+    const keybindings = { someRemovedAction: { modifier: 'altGraph', code: 'Period' }, projectNext: null };
+    await writeFile(file, JSON.stringify({ version: 2, terminals: [], closedTerminals: [], folders: [], keybindings }));
+    const store = await StateStore.load(dataDir);
+    expect(store.read().keybindings).toEqual(keybindings);
   });
 
   it('the error lists paths and reasons', async () => {

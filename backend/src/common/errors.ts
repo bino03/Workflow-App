@@ -38,6 +38,10 @@ export const ErrorCode = {
   FOLDER_001: { status: 403, message: 'Folder does not exist or is outside ALLOWED_ROOTS' },
   // SESSION
   SESSION_001: { status: 404, message: 'No saved session in this folder' },
+  // KEYBIND
+  KEYBIND_001: { status: 400, message: 'Key combination not allowed' },
+  KEYBIND_002: { status: 409, message: 'Key combination already used by another action' },
+  KEYBIND_003: { status: 404, message: 'Unknown shortcut action' },
 } as const satisfies Record<string, { status: number; message: string }>;
 
 export type ErrorCode = keyof typeof ErrorCode;

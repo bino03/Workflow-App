@@ -34,6 +34,10 @@ export const ERROR_MESSAGES: Record<string, string> = {
   FOLDER_001: 'Esta pasta não existe ou está fora das pastas autorizadas.',
   // ── SESSION ────────────────────────────
   SESSION_001: 'Não há nenhuma sessão gravada nesta pasta.',
+  // ── KEYBIND ────────────────────────────
+  KEYBIND_001: 'Esta combinação não é permitida. Usa Alt com uma letra, um número ou pontuação (AltGr só com o ponto).',
+  KEYBIND_002: 'Esta combinação já é usada por outra ação. Muda ou remove essa primeiro.',
+  KEYBIND_003: 'Esta ação de atalho já não existe. Recarrega a página.',
 
   DEFAULT: 'Ocorreu um erro. Tenta outra vez.',
 };
