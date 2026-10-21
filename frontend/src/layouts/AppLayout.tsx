@@ -52,7 +52,7 @@ export function AppLayout() {
 }
 
 function AppShell() {
-  const { logout } = useAuth();
+  const { logout, username } = useAuth();
   const confirm = useConfirm();
   const health = useBackendHealth();
   const [settingsOpen, setSettingsOpen] = useState(false);
@@ -106,6 +106,11 @@ function AppShell() {
             <span className="w-[26px] h-[26px] rounded-full bg-surface-3 border border-border-strong flex items-center justify-center text-text-1 text-[12px]">
               <UserOutlined />
             </span>
+            {username && (
+              <span className="max-w-[160px] truncate text-[13px] font-medium text-text-2" data-username>
+                {username}
+              </span>
+            )}
             <DownOutlined className="text-[10px]" />
           </button>
         </Dropdown>

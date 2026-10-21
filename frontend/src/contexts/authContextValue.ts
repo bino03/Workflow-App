@@ -6,6 +6,8 @@ export type AuthStatus = 'checking' | 'authenticated' | 'anonymous';
 
 export type AuthContextValue = {
   status: AuthStatus;
+  /** O `APP_USERNAME` do backend; `null` até o `/auth/me` responder (também logo a seguir ao login). */
+  username: string | null;
   login: (credentials: LoginCredentials) => Promise<void>;
   /** O segundo caminho de entrada (ADR 0015): a resposta do navigator.credentials.get(). */
   loginWithPasskey: (response: AuthenticationResponseJSON) => Promise<void>;

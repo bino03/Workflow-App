@@ -238,7 +238,7 @@ projeto (ou a lista toda) sai, nunca 500.
 | GET | `/api/auth/passkeys` | sessão | — | `{passkeys: PasskeySummary[]}` | `AUTH_002` |
 | DELETE | `/api/auth/passkeys/:id` | sessão | — | `204` — e **termina as sessões abertas com essa passkey** | `AUTH_009` |
 | POST | `/api/auth/logout` | sessão | — | `204` + cookie limpo | `AUTH_002` |
-| GET | `/api/auth/me` | sessão | — | `{authenticated:true}` | `AUTH_002` |
+| GET | `/api/auth/me` | sessão | — | `{authenticated:true, username}` — `username` = `APP_USERNAME` (mostrado no cabeçalho, junto ao ícone; só com sessão, por isso não ajuda a adivinhar o nome) | `AUTH_002` |
 | GET | `/api/health` | **público** | — | `{status:"ok"}` | — |
 
 - **Sem sessão, qualquer rota não pública dá `401 AUTH_002`** — incluindo rotas que não existem (só com

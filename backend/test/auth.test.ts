@@ -104,7 +104,7 @@ describe('auth', () => {
     const cookie = sessionCookie(await login());
     const res = await app.inject({ method: 'GET', url: '/api/auth/me', headers: { cookie } });
     expect(res.statusCode).toBe(200);
-    expect(res.json()).toEqual({ authenticated: true });
+    expect(res.json()).toEqual({ authenticated: true, username: TEST_USERNAME });
   });
 
   it('unknown route with a session → 404 COMMON_003', async () => {

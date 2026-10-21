@@ -29,10 +29,23 @@ function writeCachedSession(active: boolean) {
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [status, setStatus] = useState<AuthStatus>(() => (readCachedSession() ? 'authenticated' : 'checking'));
+  // Não vai para a cache: vem sempre do /auth/me, para nunca mostrar um nome antigo.
+  const [username, setUsername] = useState<string | null>(null);
 
   const setAuthenticated = useCallback((active: boolean) => {
     writeCachedSession(active);
     setStatus(active ? 'authenticated' : 'anonymous');
+    if (!active) setUsername(null);
+  }, []);
+
+  /** Depois de entrar (password ou passkey), o login não devolve o nome — pede-se ao /auth/me. */
+  const loadUsername = useCallback(() => {
+    authService
+      .currentUser()
+      .then((name) => setUsername(name))
+      .catch(() => {
+        // Só o nome falhou; a sessão está boa. O cabeçalho fica sem nome até à próxima vez.
+      });
   }, []);
 
   useEffect(() => {
@@ -43,9 +56,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     let cancelled = false;
     authService
-      .hasSession()
-      .then((active) => {
-        if (!cancelled) setAuthenticated(active);
+      .currentUser()
+      .then((name) => {
+        if (cancelled) return;
+        setAuthenticated(name !== null);
+        setUsername(name);
       })
       .catch((error: unknown) => {
         if (cancelled) return;
@@ -61,16 +76,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     async (credentials: LoginCredentials) => {
       await authService.login(credentials);
       setAuthenticated(true);
+      loadUsername();
     },
-    [setAuthenticated],
+    [setAuthenticated, loadUsername],
   );
 
   const loginWithPasskey = useCallback(
     async (response: AuthenticationResponseJSON) => {
       await passkeyService.loginWithPasskey(response);
       setAuthenticated(true);
+      loadUsername();
     },
-    [setAuthenticated],
+    [setAuthenticated, loadUsername],
   );
 
   const logout = useCallback(async () => {
@@ -82,6 +99,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   }, [setAuthenticated]);
 
-  const value = useMemo(() => ({ status, login, loginWithPasskey, logout }), [status, login, loginWithPasskey, logout]);
+  const value = useMemo(
+    () => ({ status, username, login, loginWithPasskey, logout }),
+    [status, username, login, loginWithPasskey, logout],
+  );
   return <AuthContext value={value}>{children}</AuthContext>;
 }

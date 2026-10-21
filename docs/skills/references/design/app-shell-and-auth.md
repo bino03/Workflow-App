@@ -49,11 +49,13 @@ Um `Dropdown` cujo gatilho é o cartão de perfil (avatar + nome + tag de role):
 
 | Item | Faz |
 |---|---|
-| Definições | ✅ Abre o drawer `SettingsDrawer` (Small, 540): **layout dos terminais** (foco dividido / grelha). Separado de "Terminar sessão" por um divisor |
+| Definições | ✅ Abre o drawer `SettingsDrawer` (Small, 540): **layout dos terminais** (foco dividido / grelha), **atalhos** ([[../../../features/atalhos-editaveis|atalhos-editaveis]]) e **passkeys**. Separado de "Terminar sessão" por um divisor |
 | Terminar sessão | `useConfirm()` (`title` "Terminar sessão?", `actionLabel` "Sair", `danger: false`) → logout |
 
 Sem "Minha conta" (um só utilizador, sem perfil) e sem idioma (só pt-PT). O gatilho é o avatar (26 px,
-`surface-3`) + `▾` — com um **ícone de utilizador**, não iniciais: o `/auth/me` não devolve nome.
+`surface-3`, com um **ícone de utilizador**, não iniciais) + o **nome do utilizador** (`APP_USERNAME`, vindo do
+`/auth/me` — 13px, `font-medium`, `text-2`, cortado com reticências acima de 160 px; desde 2026-10-20) + `▾`.
+Sem tag de role (não há roles).
 
 - Ação transversal nova entra neste menu, **não** como mais um ícone no header.
 - O gatilho é um `<button>` com `aria-label`.
@@ -85,7 +87,8 @@ primário a toda a largura.
 ## 3. Role do utilizador autenticado
 
 **Não há roles** ([[../../../adr/0003-auth-utilizador-unico]]). `useAuth()` expõe só
-`{ status, login, logout }`, com `status` = `checking` | `authenticated` | `anonymous`. Sem
+`{ status, username, login, loginWithPasskey, logout }`, com `status` = `checking` | `authenticated` |
+`anonymous` e `username` = `null` até o `/auth/me` responder (não vai para a cache de sessão). Sem
 `isAdmin()`/`hasRole()`.
 
 ## 4. Guarda de rota

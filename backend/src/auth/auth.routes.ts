@@ -68,7 +68,8 @@ export async function authRoutes(
     return reply.clearCookie(SESSION_COOKIE, cookieOptions).status(204).send();
   });
 
-  app.get('/api/auth/me', async () => ({ authenticated: true }));
+  // One user (ADR 0003/0011): the name is APP_USERNAME — only behind a session, so it never helps a guess.
+  app.get('/api/auth/me', async () => ({ authenticated: true, username: config.auth.username }));
 
   await passkeyRoutes(app, { config, sessionStore, passkeyStore, challenges, identityAttempts, startSession });
 }
