@@ -2,10 +2,10 @@
 
 | | |
 |---|---|
-| **Estado** | 📋 Planeada |
+| **Estado** | 🚧 Em curso |
 | **Criada** | 2026-10-22 |
 | **Última sessão** | 2026-10-22 |
-| **Passos** | 0 / 8 concluídos |
+| **Passos** | 1 / 8 concluídos |
 
 > Escrita para uma sessão que **não viu a conversa que a originou**. Se algo só faz sentido com contexto
 > externo, falta escrevê-lo.
@@ -52,7 +52,7 @@ está na lateral do projeto, com a etiqueta **RC**, a correr, e posso escrever n
 - Ligar/desligar o RC a partir da UI da app (botão "Ligar RC") — segunda fase.
 - Ligar o RC num terminal a correr sem o reiniciar (escrever `/remote-control` no PTY) — recusado no ADR 0017.
 - Modo servidor `claude remote-control`, webhook do Telegram, vários utilizadores de Telegram, grupos.
-- O link direto da sessão (`claude.ai/code/...`) na resposta do bot — o backend não o conhece sem ler o ecrã da TUI.
+- O link direto da sessão (`claude.ai/code/session_…`) na resposta do bot — o `claude` escreve-o no ecrã e dava para o ler, mas o dono recusou (2026-10-22): "não é preciso visto que ao fazer remote-control o claude abre logo a sessão na mobile app" (a notificação de "pronto" do app Claude).
 - Abrir pastas fora do registo de projetos, ou pastas recentes/favoritas.
 - Escolher o modelo, o modo de permissões ou qualquer outro argumento a partir do bot.
 
@@ -146,9 +146,15 @@ stop(id): Promise<TerminalView>                         // mata o processo, mant
 - O **nome RC** é calculado no serviço (`remoteControlName(cwd, sessionId)`, ficheiro
   `backend/src/terminals/remoteName.ts`): `basename(cwd)` + " · " + `preview` da sessão (`ClaudeSessions`), limpo
   para a allowlist e cortado a 80; conversa nova → sem nome. Se o resultado ficar vazio → sem nome.
-- **Trust**: antes de lançar com RC, o serviço confirma que a pasta é de confiança para o Claude Code (onde isso
-  está guardado — previsto `<CLAUDE_CONFIG_DIR ou ~>/.claude.json` → `projects[<path>].hasTrustDialogAccepted`, e
-  se uma pasta-mãe conta — **confirma o spike, passo 1**). Não é → `TERMINAL_007`.
+- **Trust** (confirmado no spike, passo 1): antes de lançar com RC, o serviço confirma que a pasta é de confiança
+  para o Claude Code. Fonte: `.claude.json` na pasta de configuração (`<CLAUDE_CONFIG_DIR>/.claude.json` se definido,
+  senão `~/.claude.json`) → `projects[<caminho>].hasTrustDialogAccepted === true`. As chaves usam `/` (`C:/Users/…`)
+  e há duplicados só com a letra da drive em minúscula (`c:/…`, às vezes `false`): comparar sem distinguir maiúsculas
+  em `win32` e aceitar se **alguma** entrada equivalente for `true`. **Uma pasta-mãe de confiança conta** (uma
+  subpasta não fica registada) → subir de `cwd` até à raiz. Ficheiro ilegível ou ausente → não é de confiança.
+  Não é → `TERMINAL_007`. Só se lê; nunca se escreve no `.claude.json`.
+- **Nome RC** (spike): chega ao app numa conversa nova; ao retomar uma conversa que já teve RC, o Claude Code reutiliza
+  a sessão remota e o nome pode não mudar — aceitável, não se tenta corrigir.
 
 `backend/src/config.ts`:
 
@@ -191,7 +197,7 @@ O ciclo arranca em `app.ts` (onde os serviços existem) e para no `onClose` (abo
 
 Ordem obrigatória. Tiers: `opus` (desenho, não delegar) · `sonnet` (implementação) · `haiku` (mecânico).
 
-- [ ] **1. Spike do `--remote-control` num PTY**
+- [x] **1. Spike do `--remote-control` num PTY** — ✅ 2026-10-22 (resultados no ADR 0017 §Estado e em §4.3)
   - Ficheiro: `backend/scripts/remote-control-spike.ts` (como `pty-spike.ts`/`statusline-spike.ts`)
   - Skill: — (spike; resultado no ADR 0017 §Estado e aqui em §4.3/§6)
   - Tier: `opus` (inline — precisa do dono a confirmar no telemóvel)
@@ -271,11 +277,14 @@ Ordem obrigatória. Tiers: `opus` (desenho, não delegar) · `sonnet` (implement
 
 > ⚠️ **Atualizar SEMPRE no fim de cada sessão.** É a secção que torna esta spec retomável.
 
-**Feito:** spec e [[../adr/0017-bot-telegram-e-remote-control|ADR 0017]] escritos (2026-10-22). Nada de código.
+**Feito:** spec e [[../adr/0017-bot-telegram-e-remote-control|ADR 0017]] escritos (2026-10-22). Passo 1 (spike) feito
+e confirmado no telemóvel do dono: `npx tsx backend/scripts/remote-control-spike.ts --hold 180` (fases A–D) e
+`--name-test --prompt --hold 300` (E, nome numa conversa nova). Resultados no ADR 0017 §Estado e em §4.3 (trust, nome).
 **Em curso:** —
-**Próxima ação concreta:** passo 1 — escrever `backend/scripts/remote-control-spike.ts` a partir de
-`backend/scripts/pty-spike.ts` e corrê-lo com o dono a ver o app Claude no telemóvel.
-**Desvios ao plano:** —
+**Próxima ação concreta:** passo 2 — `backend/src/terminals/claudeArgs.ts` (`remoteControl?: {name?}` em
+`ClaudeArgsOptions`, `REMOTE_NAME`) + `backend/test/claudeArgs.test.ts`.
+**Desvios ao plano:** o spike mostrou que uma conversa sem mensagens não aparece na lista do app Claude; o dono chega
+lá pela notificação de "pronto" do próprio app, por isso o bot **não** envia o link (decisão do dono, §2 Fora).
 **O que uma sessão nova precisa de saber:**
 - Criar o bot é manual e do dono: `@BotFather` → `/newbot` → token; o ID de Telegram dele obtém-se com
   `@userinfobot`. Os dois vão para `backend/.env`, nunca para o git.
@@ -287,8 +296,7 @@ Ordem obrigatória. Tiers: `opus` (desenho, não delegar) · `sonnet` (implement
 
 | Pergunta | Bloqueia | Notas |
 |---|---|---|
-| O `--remote-control` num PTY pede algum consentimento na primeira vez? | Passo 1 | No modo servidor há um `Enable Remote Control? (y/n)` de uma vez; no interativo não está documentado |
-| Onde o Claude Code guarda a confiança de uma pasta, e se a de uma pasta-mãe conta | Passo 3 | Previsto `.claude.json` → `projects[path].hasTrustDialogAccepted` |
+| No desktop de casa (Linux, ADR 0013), o primeiro `--remote-control` pede consentimento? | Não (instalação) | No spike, no portátil, não pediu — mas o RC já tinha sido usado lá. Se pedir, aceitar uma vez à mão num terminal normal |
 | Um browser ligado a um terminal que o bot para recebe o fim do processo? | Passo 7 | `kill` faz `dispose`; ver se o painel aberto passa a parado ou fica pendurado |
 
 ## Relacionado

@@ -71,5 +71,11 @@ Falta uma forma de **mandar o desktop abrir** essa sessão a partir do telemóve
 
 ## Estado
 
-`aceite` — falta o spike (spec [[../features/bot-telegram]] passo 1) confirmar: `--remote-control` combinado com
-`--resume`/`--session-id` e `--settings` num PTY, sem prompts extra; e onde o Claude Code guarda a confiança das pastas.
+`aceite` por inteiro. **Spike de 2026-10-22** (`backend/scripts/remote-control-spike.ts`, `claude` 2.1.308, Windows):
+`--session-id`/`--resume` + `--settings` + `--remote-control [<nome>]` arrancam num PTY sem nenhum prompt extra (numa
+máquina que já tinha usado o RC — o consentimento de primeira vez no desktop Linux fica por ver), e a status line
+continua a trazer `rate_limits`. O nome chega ao app Claude numa conversa nova; ao retomar uma conversa que já teve RC,
+o Claude Code reutiliza a mesma sessão remota (mesmo URL) e o nome pode não mudar. Uma sessão sem mensagens não aparece
+na lista do app — o dono chega lá pela notificação de "pronto" do próprio app. A confiança das pastas está em
+`~/.claude.json` → `projects["C:/…"].hasTrustDialogAccepted`, e **uma pasta-mãe de confiança conta** (a subpasta não
+fica registada); numa pasta sem confiança o ecrã mostra o diálogo "No, exit / Yes, I trust this folder".
