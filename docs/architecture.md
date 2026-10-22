@@ -23,6 +23,8 @@ backend, com a subscrição Pro/Max já paga — nunca a API nem a Agent SDK ([[
 | Claude Code (`claude`) | — (binário instalado na máquina) | processo filho, um por terminal | — |
 | Biblioteca do Workflow | `WORKFLOW_PATH/library` | ficheiros Markdown; leitura, e a escrita estreita do upload de skills ([[adr/0014-escrita-controlada-biblioteca]]) | — |
 | Sessões gravadas do Claude Code | `~/.claude/projects/` | ficheiros `.jsonl`, só leitura | — |
+| Bot de Telegram (opcional) | `backend/src/telegram/` | dentro do backend; long polling à Bot API (só saída) | — |
+| App Claude (Remote Control) | — | os terminais lançados com `--remote-control` ligam-se à Anthropic (só saída) e continuam-se no telemóvel ([[adr/0017-bot-telegram-e-remote-control]]) | — |
 
 ## Diagrama de comunicação
 
@@ -39,6 +41,9 @@ backend, com a subscrição Pro/Max já paga — nunca a API nem a Agent SDK ([[
                                                                        claude ─▶ Anthropic
                                                                        (login da subscrição —
                                                                         nunca uma API key da app)
+
+ Telegram (telemóvel) ◀── long polling (só saída) ── telegram/ ──▶ TerminalsService ──▶ claude --remote-control
+ App Claude (telemóvel) ◀────────────── Anthropic ◀──────────────────────────────────── (Remote Control, só saída)
 ```
 
 ## A regra que sustenta a arquitetura
@@ -68,7 +73,8 @@ backend/
     ├── folders/             ← ✅ política de pastas (cwdPolicy: só dentro de ALLOWED_ROOTS), favoritas/recentes, browse
     ├── sessions/            ← ✅ ler as sessões gravadas do Claude Code (.jsonl, só leitura): lista, a mais recente, resumo
     ├── library/             ← ✅ registo da biblioteca do Workflow: frontmatter dos manifestos com yaml + zod, lido a cada pedido
-    └── usage/               ← ✅ quota pela status line injetada (claude-settings.json + statusline.cjs → usage.json)
+    ├── usage/               ← ✅ quota pela status line injetada (claude-settings.json + statusline.cjs → usage.json)
+    └── telegram/            ← ✅ bot de Telegram (ADR 0017): long polling, só o dono; abre/retoma terminais com --remote-control sobre o TerminalsService
 ```
 
 ### Onde vive cada coisa

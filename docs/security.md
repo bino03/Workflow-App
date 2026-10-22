@@ -93,8 +93,17 @@ o que se executa na máquina**:
 | Quem | Pode | Não pode |
 |---|---|---|
 | Browser | Pedir um terminal numa pasta; enviar bytes a um terminal que existe; ler a biblioteca e acrescentar-lhe uma skill validada (ADR 0014); listar sub-pastas e sessões gravadas **só dentro** de `ALLOWED_ROOTS` (sem pastas escondidas nem junctions; nunca acima de uma raiz) | Escolher o binário, os argumentos ou o ambiente do processo; abrir fora de `ALLOWED_ROOTS`; escrever no `WORKFLOW_PATH` fora de `stacks/<id>/skills/skill-*.md` e do `provides-skills` desse `STACK.md` |
-| Backend | Lançar **apenas** `CLAUDE_BIN`, com os argumentos de [[adr/0012-argumentos-do-claude-e-status-line]] (`--session-id <uuid do backend>`, `--resume <uuid validado>`, `--settings <DATA_DIR>/claude-settings.json`) | Construir comandos a partir de texto do cliente; lançar um shell |
+| Bot de Telegram (só com `TELEGRAM_BOT_TOKEN`; só o `TELEGRAM_ALLOWED_USER_ID`, numa conversa privada) | Listar os projetos do registo e as conversas gravadas (títulos); abrir/retomar um terminal **com Remote Control** numa pasta de confiança do Claude Code; ver os terminais a correr e a quota; parar um terminal (fica parado, não fechado) | Ver ou escrever no que um terminal mostra (isso exige o login claude.ai, no app Claude); abrir fora do registo/`ALLOWED_ROOTS`; escolher argumentos — [[adr/0017-bot-telegram-e-remote-control]] |
+| Backend | Lançar **apenas** `CLAUDE_BIN`, com os argumentos de [[adr/0012-argumentos-do-claude-e-status-line]] e [[adr/0017-bot-telegram-e-remote-control]] (`--session-id <uuid do backend>`, `--resume <uuid validado>`, `--settings <DATA_DIR>/claude-settings.json`, `--remote-control [<nome gerado pelo backend>]`) | Construir comandos a partir de texto do cliente; lançar um shell |
 | Processo `claude` | Tudo o que o Claude Code pode fazer na pasta, com as permissões que ele próprio pede | — (a app não o limita; o modelo de permissões é o do Claude Code) |
+
+**O bot é uma porta de entrada que não é a app** ([[adr/0017-bot-telegram-e-remote-control]]): só faz ligações de
+saída (long polling, nunca webhook), não depende de expor a app, e quem controlar a conta de Telegram do dono pode
+**abrir e parar** terminais (gastar quota, interromper trabalho) mas não **ver nem escrever** neles. Mensagens de
+outras pessoas ou de grupos são ignoradas sem resposta; os botões levam só uma chave curta em memória (10 min) e cada
+ação revalida projeto, conversa e terminal. Para o Telegram e para os logs só vão nomes, títulos, estados e a quota —
+nunca o conteúdo de um terminal nem o token (o URL da Bot API contém-no: os erros são reescritos sem ele;
+`TELEGRAM_*` fora do ambiente do `claude`). Reforço opcional do lado da Anthropic: *Require trusted devices* no claude.ai.
 
 Consequência a não esquecer: **um terminal desta app é um shell na máquina** — o Claude Code executa
 comandos. Quem entra na app entra na máquina. Por isso a exposição à rede é uma decisão própria

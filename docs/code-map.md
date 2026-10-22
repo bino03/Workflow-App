@@ -79,7 +79,7 @@ isso há os outros:
 | **Dados** | `WORKFLOW_PATH/projects/INDEX.md` — só leitura, mesma postura da Biblioteca ([[adr/0005-biblioteca-lida-do-disco]]) |
 | **Detalhe** | [[api]] → "Projetos" |
 
-## Bot de Telegram — 🚧 (spec [[features/bot-telegram]], [[adr/0017-bot-telegram-e-remote-control]])
+## Bot de Telegram — ✅ (spec [[features/bot-telegram]], [[adr/0017-bot-telegram-e-remote-control]])
 
 | Camada | Ficheiros |
 |---|---|

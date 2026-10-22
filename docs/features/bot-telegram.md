@@ -2,10 +2,10 @@
 
 | | |
 |---|---|
-| **Estado** | 🚧 Em curso |
+| **Estado** | ✅ Concluída (2026-10-22) |
 | **Criada** | 2026-10-22 |
 | **Última sessão** | 2026-10-22 |
-| **Passos** | 7 / 8 concluídos |
+| **Passos** | 8 / 8 concluídos |
 
 > Escrita para uma sessão que **não viu a conversa que a originou**. Se algo só faz sentido com contexto
 > externo, falta escrevê-lo.
@@ -264,7 +264,7 @@ Ordem obrigatória. Tiers: `opus` (desenho, não delegar) · `sonnet` (implement
     app aberta, um terminal criado pelo bot aparece ao voltar à janela, sem recarregar; um terminal parado pelo bot
     mostra o estado parado com **Reabrir**, e Reabrir volta com RC. `npm run typecheck` + `lint` verdes.
 
-- [ ] **8. Verificação a sério e documentação**
+- [x] **8. Verificação a sério e documentação** — ✅ 2026-10-22 (bot real no telemóvel do dono)
   - Ficheiro: `docs/api.md`, `docs/architecture.md`, `docs/code-map.md`, `docs/security.md`, `docs/database.md`,
     esta spec (§6), `notes/whatIveDone.md`
   - Skill: `implement-todo` (fecho) · [[testing-and-verification]]
@@ -307,13 +307,17 @@ Passo 7 feito: `remoteControl` no tipo; etiqueta **RC** (classe `.tag`, `data-re
 `CLAUDE_CONFIG_DIR`/`WORKFLOW_PATH`/`DATA_DIR` próprios), 11/11: RC no parado e depois de Reabrir; o `claude` real
 lançado com `--resume … --remote-control "proj-rc · Conversa RC de teste"`; `TERMINAL_007` mostrado ao reabrir numa
 pasta sem confiança; terminal criado por fora aparece ao voltar à janela, sem recarregar.
-**Em curso:** —
-**Próxima ação concreta:** passo 8 — o dono cria o bot (`@BotFather` → `/newbot`), tira o ID (`@userinfobot`) e põe
-`TELEGRAM_BOT_TOKEN`/`TELEGRAM_ALLOWED_USER_ID` no `backend/.env`; reiniciar o backend **fora** de um terminal servido
-por ele; percorrer o critério do passo 8 no telemóvel. Por responder aí: §7 "um browser ligado a um terminal que o bot
-para" (sem rota REST de stop, só se vê com o bot real).
+Passo 8 feito: com o bot real (`@workflow_app_bot`), o dono percorreu no telemóvel `/start` → `/projetos` → BizManager
+→ abrir → sessão no app Claude, escreveu e o Claude respondeu → `/estado` → `/parar` (log do backend, sem erros, sem
+token). O teste na app revelou um bug — a lista só se relia ao ganhar foco, e com a janela do PC sempre focada o
+terminal reaberto pelo bot ficou "Parado" e o Reabrir deu `TERMINAL_006` — corrigido (releitura de 10 em 10 s +
+`TERMINAL_006` no Reabrir relê e liga; commit `b453cda`, verificado 3/3 no browser) e confirmado pelo dono no PC ("funciona
+tudo"; duas aberturas pelo bot depois da correção no log). Docs: `security.md` (porta de entrada nova), `architecture.md`.
+**Em curso:** — (feature concluída)
+**Próxima ação concreta:** nenhuma. Restos em §7.
 **Desvios ao plano:** o spike mostrou que uma conversa sem mensagens não aparece na lista do app Claude; o dono chega
-lá pela notificação de "pronto" do próprio app, por isso o bot **não** envia o link (decisão do dono, §2 Fora).
+lá pela notificação de "pronto" do próprio app, por isso o bot **não** envia o link (decisão do dono, §2 Fora). A lista
+de terminais na app passou de "relida ao ganhar foco" para "também de 10 em 10 s" (§3, §4.4).
 **O que uma sessão nova precisa de saber:**
 - Criar o bot é manual e do dono: `@BotFather` → `/newbot` → token; o ID de Telegram dele obtém-se com
   `@userinfobot`. Os dois vão para `backend/.env`, nunca para o git.
@@ -326,7 +330,8 @@ lá pela notificação de "pronto" do próprio app, por isso o bot **não** envi
 | Pergunta | Bloqueia | Notas |
 |---|---|---|
 | No desktop de casa (Linux, ADR 0013), o primeiro `--remote-control` pede consentimento? | Não (instalação) | No spike, no portátil, não pediu — mas o RC já tinha sido usado lá. Se pedir, aceitar uma vez à mão num terminal normal |
-| Um browser ligado a um terminal que o bot para recebe o fim do processo? | Passo 7 | `kill` faz `dispose`; ver se o painel aberto passa a parado ou fica pendurado |
+| Um browser ligado a um terminal que o bot para recebe o fim do processo? | Nada (não verificado) | Não houve nenhum `/parar` com a página aberta **depois** da correção de 2026-10-22. Com a releitura de 10 s, o painel passa a "Parado" no máximo 10 s depois, mesmo que o WebSocket não avise |
+| "Continuar a última" pode retomar uma conversa aberta num `claude` **fora** da app (ex.: a sessão de desenvolvimento no próprio WorkFlow App) | Nada (já existia na app) | O `sessionsInUse` só conhece os terminais da app; dois processos no mesmo `.jsonl` corrompem a conversa. Possível correção: ver se o `.jsonl` foi escrito há poucos segundos / se há um `claude` com esse `--resume`/`--session-id` |
 
 ## Relacionado
 
