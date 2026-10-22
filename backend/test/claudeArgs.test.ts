@@ -18,6 +18,38 @@ describe('claudeArgs', () => {
     expect(() => claudeArgs({ kind: 'new', sessionId: ID }, { settingsPath: 'claude-settings.json' })).toThrow(ClaudeArgsError);
   });
 
+  it('adds --remote-control last, with or without a name (ADR 0017)', () => {
+    expect(claudeArgs({ kind: 'new', sessionId: ID }, { remoteControl: {} })).toEqual(['--session-id', ID, '--remote-control']);
+    expect(claudeArgs({ kind: 'resume', sessionId: ID }, { settingsPath: SETTINGS, remoteControl: { name: 'WorkFlow App · bot telegram' } })).toEqual([
+      '--resume',
+      ID,
+      '--settings',
+      SETTINGS,
+      '--remote-control',
+      'WorkFlow App · bot telegram',
+    ]);
+    expect(claudeArgs({ kind: 'new', sessionId: ID }, { remoteControl: { name: 'Gestão (v2) - ação_1.0' } }).at(-1)).toBe('Gestão (v2) - ação_1.0');
+  });
+
+  it('refuses a remote control name that could read as a flag or carry anything odd', () => {
+    for (const name of [
+      '',
+      ' WorkFlow',
+      '-x',
+      '--dangerously-skip-permissions',
+      'App "quoted"',
+      'App $(whoami)',
+      'App; rm -rf /',
+      'App\nsecond line',
+      'App\tTab',
+      'App `x`',
+      'a'.repeat(81),
+    ]) {
+      expect(() => claudeArgs({ kind: 'new', sessionId: ID }, { remoteControl: { name } })).toThrow(ClaudeArgsError);
+    }
+    expect(claudeArgs({ kind: 'new', sessionId: ID }, { remoteControl: { name: 'a'.repeat(80) } })).toHaveLength(4);
+  });
+
   it('refuses anything that is not a UUID — no text becomes a flag or a command', () => {
     for (const sessionId of [
       `${ID}; rm -rf /`,

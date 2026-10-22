@@ -5,7 +5,7 @@
 | **Estado** | 🚧 Em curso |
 | **Criada** | 2026-10-22 |
 | **Última sessão** | 2026-10-22 |
-| **Passos** | 1 / 8 concluídos |
+| **Passos** | 2 / 8 concluídos |
 
 > Escrita para uma sessão que **não viu a conversa que a originou**. Se algo só faz sentido com contexto
 > externo, falta escrevê-lo.
@@ -207,7 +207,7 @@ Ordem obrigatória. Tiers: `opus` (desenho, não delegar) · `sonnet` (implement
     `usage.json`; (c) a sessão aparece no app Claude com o nome dado; (d) onde fica guardada a confiança de uma
     pasta e se uma pasta-mãe conta; (e) o que o PTY mostra numa pasta sem trust. Se (a) falhar, parar e rever o ADR.
 
-- [ ] **2. `claudeArgs` com `--remote-control`**
+- [x] **2. `claudeArgs` com `--remote-control`** — ✅ 2026-10-22
   - Ficheiro: `backend/src/terminals/claudeArgs.ts`, `backend/test/claudeArgs.test.ts`
   - Skill: — (não há skill de backend; seguir [[../backend-conventions]] e [[security-baseline]])
   - Tier: `sonnet`
@@ -281,8 +281,10 @@ Ordem obrigatória. Tiers: `opus` (desenho, não delegar) · `sonnet` (implement
 e confirmado no telemóvel do dono: `npx tsx backend/scripts/remote-control-spike.ts --hold 180` (fases A–D) e
 `--name-test --prompt --hold 300` (E, nome numa conversa nova). Resultados no ADR 0017 §Estado e em §4.3 (trust, nome).
 **Em curso:** —
-**Próxima ação concreta:** passo 2 — `backend/src/terminals/claudeArgs.ts` (`remoteControl?: {name?}` em
-`ClaudeArgsOptions`, `REMOTE_NAME`) + `backend/test/claudeArgs.test.ts`.
+Passo 2 feito: `claudeArgs(launch, {settingsPath, remoteControl: {name?}})` põe `--remote-control [<nome>]` em último;
+`REMOTE_NAME` exportado de `claudeArgs.ts` (usar o mesmo regex ao gerar o nome no passo 3). 261 testes verdes.
+**Próxima ação concreta:** passo 3 — `remoteControl` em `savedTerminalSchema` (`state.schema.ts`), depois
+`terminalsService.ts` (`create`/`reopen`/`stop`, nome por `remoteName.ts`, trust → `TERMINAL_007`).
 **Desvios ao plano:** o spike mostrou que uma conversa sem mensagens não aparece na lista do app Claude; o dono chega
 lá pela notificação de "pronto" do próprio app, por isso o bot **não** envia o link (decisão do dono, §2 Fora).
 **O que uma sessão nova precisa de saber:**
