@@ -79,6 +79,15 @@ isso há os outros:
 | **Dados** | `WORKFLOW_PATH/projects/INDEX.md` — só leitura, mesma postura da Biblioteca ([[adr/0005-biblioteca-lida-do-disco]]) |
 | **Detalhe** | [[api]] → "Projetos" |
 
+## Bot de Telegram — 🚧 (spec [[features/bot-telegram]], [[adr/0017-bot-telegram-e-remote-control]])
+
+| Camada | Ficheiros |
+|---|---|
+| **Entrada** | long polling a partir de `backend/src/app.ts` (só com `config.telegram`; arranca no `onReady`, pára no `onClose`) — sem rota HTTP |
+| **Backend** | `backend/src/telegram/` — `telegramBot.ts` (ciclo, autorização, comandos e botões) · `botActions.ts` (menus e ações sobre os serviços) · `botMessages.ts` (todos os textos) · `menuStore.ts` (chaves dos botões em memória) · `telegramApi.ts` (Bot API sobre `fetch`) |
+| | Remote Control nos terminais: `terminals/claudeArgs.ts` (`--remote-control`) · `terminals/remoteName.ts` · `sessions/claudeTrust.ts` (confiança da pasta no `.claude.json`) · `TerminalsService.stop` |
+| **Dados** | `remoteControl` em cada terminal do `state.json`; menus só em memória |
+
 ---
 
 _(Uma secção por domínio, à medida que nasce:)_

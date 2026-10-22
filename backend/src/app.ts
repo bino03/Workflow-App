@@ -28,7 +28,11 @@ import { terminalsGateway } from './terminals/terminals.gateway.js';
 import { terminalsRoutes } from './terminals/terminals.routes.js';
 import { TerminalsService } from './terminals/terminalsService.js';
 import { usageRoutes } from './usage/usage.routes.js';
-import { writeUsageFiles } from './usage/usageFiles.js';
+import { readUsage, writeUsageFiles } from './usage/usageFiles.js';
+import { type BotAction, BotActions } from './telegram/botActions.js';
+import { MenuStore } from './telegram/menuStore.js';
+import { TelegramApi } from './telegram/telegramApi.js';
+import { TelegramBot } from './telegram/telegramBot.js';
 import type { TerminalManager } from './terminals/terminalManager.js';
 
 export type AppDeps = {
@@ -89,9 +93,8 @@ export async function buildApp({ config, terminalManager, sessionStore, stateSto
     passkeyStore: passkeyStore ?? (await PasskeyStore.load(config.dataDir)),
   });
   await app.register(libraryRoutes, { libraryService: new LibraryService(config.workflowPath) });
-  await app.register(projectsRoutes, {
-    projectsService: new ProjectsService(config.workflowPath, config.terminals.allowedRoots),
-  });
+  const projectsService = new ProjectsService(config.workflowPath, config.terminals.allowedRoots);
+  await app.register(projectsRoutes, { projectsService });
 
   const sessionsReader = new ClaudeSessions(config.terminals.claudeConfigDir);
   const terminalsService = new TerminalsService({
@@ -111,6 +114,26 @@ export async function buildApp({ config, terminalManager, sessionStore, stateSto
     foldersService: new FoldersService({ stateStore, sessions: sessionsReader, allowedRoots: config.terminals.allowedRoots }),
   });
   await app.register(keybindingsRoutes, { keybindingsService: new KeybindingsService(stateStore) });
+
+  // The Telegram bot (ADR 0017): only with TELEGRAM_BOT_TOKEN, a client of the same services as the routes.
+  if (config.telegram) {
+    const menus = new MenuStore<BotAction>();
+    const bot = new TelegramBot({
+      api: new TelegramApi(config.telegram.botToken),
+      allowedUserId: config.telegram.allowedUserId,
+      menus,
+      actions: new BotActions({
+        projects: projectsService,
+        sessions: sessionsReader,
+        terminals: terminalsService,
+        readUsage: () => readUsage(config.dataDir),
+        menus,
+      }),
+      log: app.log.child({ module: 'telegram' }),
+    });
+    app.addHook('onReady', async () => bot.start());
+    app.addHook('onClose', async () => bot.stop());
+  }
 
   if (serveSpa) {
     await registerSpa(app, config.frontendDist);
