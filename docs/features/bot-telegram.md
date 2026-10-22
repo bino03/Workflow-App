@@ -5,7 +5,7 @@
 | **Estado** | 🚧 Em curso |
 | **Criada** | 2026-10-22 |
 | **Última sessão** | 2026-10-22 |
-| **Passos** | 4 / 8 concluídos |
+| **Passos** | 5 / 8 concluídos |
 
 > Escrita para uma sessão que **não viu a conversa que a originou**. Se algo só faz sentido com contexto
 > externo, falta escrevê-lo.
@@ -235,7 +235,7 @@ Ordem obrigatória. Tiers: `opus` (desenho, não delegar) · `sonnet` (implement
     errado → `Invalid environment:` sem mostrar o valor; `childEnv` nunca passa `TELEGRAM_*` (teste); as duas
     variáveis documentadas em [[../environment]].
 
-- [ ] **5. Cliente da Bot API**
+- [x] **5. Cliente da Bot API** — ✅ 2026-10-22
   - Ficheiro: `backend/src/telegram/telegramApi.ts`, `backend/test/telegramApi.test.ts`
   - Skill: — ([[../backend-conventions]])
   - Tier: `sonnet`
@@ -291,9 +291,14 @@ frontend; `docs/api.md` e `docs/database.md` atualizados. 274 testes verdes; con
 Passo 4 feito: `config.telegram = {botToken, allowedUserId} | undefined`; token sem ID → `Invalid environment:` (sem
 mostrar o valor, verificado a arrancar o `server.ts` a sério); `TELEGRAM_` na denylist do filho; `.env.example` e
 `docs/environment.md`. 278 testes verdes (uma corrida teve 1 falha intermitente que não se repetiu — não identificada).
+Passo 5 feito: `TelegramApi(token, fetch?, baseUrl?)` com os 5 métodos, texto simples (sem `parse_mode`);
+`TelegramApiError {method, status, retryAfter, aborted}` sem `cause` e com o token apagado de qualquer texto; chamada
+real a api.telegram.org com um token falso → `401 Unauthorized`, sem o token no erro.
 **Em curso:** —
-**Próxima ação concreta:** passo 5 — `backend/src/telegram/telegramApi.ts` (`getUpdates`, `sendMessage`,
-`editMessageText`, `answerCallbackQuery`, `setMyCommands`; `fetch` injetável; erros sem o token) + `backend/test/telegramApi.test.ts`.
+**Próxima ação concreta:** passo 6 — `backend/src/telegram/{menuStore,botMessages,botActions,telegramBot}.ts`,
+arrancar em `backend/src/app.ts` só com `config.telegram` (parar no `onClose`), `backend/test/telegramBot.test.ts`
+com uma `TelegramApi` falsa (`fetch` injetado). Os serviços: `ProjectsService.list()`, `ClaudeSessions.listSessions/latestSessionId`,
+`TerminalsService.{list,create,reopen,stop,sessionsInUse}`, `readUsage(dataDir)`.
 **Desvios ao plano:** o spike mostrou que uma conversa sem mensagens não aparece na lista do app Claude; o dono chega
 lá pela notificação de "pronto" do próprio app, por isso o bot **não** envia o link (decisão do dono, §2 Fora).
 **O que uma sessão nova precisa de saber:**
