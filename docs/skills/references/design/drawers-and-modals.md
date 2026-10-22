@@ -25,7 +25,6 @@ Valores do handoff de 2026-09-27 (Small e Medium vêm dos protótipos; Large é 
 - O rodapé pode ter, à esquerda, um resumo do que a ação vai fazer ("Retoma 26 set · 18:42 em
   D:\projetos\api-faturas") em caption `text-3`.
 - Rodapé: `<Space>` alinhado à direita; cancelar/fechar primeiro, ação primária mais à direita.
-- Texto dos botões via i18n (`t('common.cancel')`, `t('common.save')`), nunca hardcoded.
 - Drawer de detalhe carrega por `id` (`open={!!id}`), mostra `<Spin>` enquanto carrega. **Exceção**: se a lista já
   traz a entrada inteira e não há rota de detalhe (Biblioteca), o drawer recebe a entrada (`selected={…}`,
   `open={!!selected}`) — sem segundo pedido.

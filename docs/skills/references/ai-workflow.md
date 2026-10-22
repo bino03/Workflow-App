@@ -95,4 +95,4 @@ para `notes/learning.md`, datado. Se a lição muda um procedimento, muda-se a s
 
 ## Relacionado
 
-[[documentation-rules]] · [[../skills/README]] · [[../skills/agents/README]]
+[[documentation-rules]] · [[SKILLS-INDEX]]

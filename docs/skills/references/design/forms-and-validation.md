@@ -6,10 +6,12 @@
 
 > Parte de [[../frontend-visual-consistency]]. Regras de base em [[skill-frontend-design-system]] → "Forms".
 
-## 1. Biblioteca: React Hook Form + Zod, sempre
+## 1. Biblioteca: React Hook Form + Zod, sempre que há validação no cliente
 
 `useForm` + `zodResolver`. Nada de `Form.useForm()` do AntD em código novo (os dois a competir por
-domínio foi o drift principal de um projeto real). Exceção documentada: um card que fala com
+domínio foi o drift principal de um projeto real). Sem campos com regras de validação no cliente (ex.: um drawer com uma escolha e um ficheiro, cuja validade só
+o servidor decide) não há esquema a escrever: estado local e botão `disabled`, com o porquê num comentário.
+Outra exceção documentada: um card que fala com
 vários endpoints em passos (ex.: galeria de ficheiros com upload imediato + guardar diferido) pode
 ter estado local — escrevendo porquê.
 

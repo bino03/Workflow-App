@@ -27,6 +27,17 @@ As respostas da entrevista estão em [[product/project-profile]].
 Quando este projeto amadurecer uma prática melhor do que a da biblioteca (uma skill, uma convenção, uma
 armadilha), corre-se `/harvest-project` **no Workflow** apontado a este projeto.
 
+## Atualizações do Workflow
+
+Cada passagem do `/upgrade-project` (feito **no Workflow**) regista-se aqui. O último commit desta tabela é o
+ponto de partida do relatório seguinte; o que ficou de fora escreve-se na linha, com a razão — deixa de aparecer
+no relatório seguinte (`--from <commit>` para o rever).
+
+| Data | Workflow | O que se aplicou · o que ficou de fora e porquê |
+|---|---|---|
+| 2026-09-27 | `6d8aaff` | Geração inicial |
+| 2026-10-09 | `eff6838` | **Aplicado (13)**: regra do Zod/RHF só com validação no cliente (skill `frontend-design-system` e `forms-and-validation`, com a exceção «escolha + ficheiro»); tirado o i18n que este projeto não tem (skill, `drawers-and-modals`, checklist); `refine-idea` (Step 0 em texto, rondas extra só para contradições, destino «módulo inteiro», «reabrir a decisão X»); `implement-todo` Fase 2 (hipótese, não dado); links do `ai-workflow` e do `security-baseline`. **Fora**: `skill-design-database` ×2 (este projeto não tem BD — `state.json`); `docs/commands.md` e `docs/operations.md` (só redação do molde); os ⚠️ (`CLAUDE.md` regra 3, `database.md`, `operations.md`, `tables-and-lists` — editados de propósito por este projeto). |
+
 ## Relacionado
 
 [[product/project-profile]] · [[adr/README]]

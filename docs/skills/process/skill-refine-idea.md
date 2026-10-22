@@ -21,9 +21,10 @@ ser implementada mais tarde — ou queres pegar numa ideia de `notes/ideas.md` e
 
 - **Veio com a invocação** (`/refine-idea quero exportar X para Excel`) → guardar o texto **verbatim**
   e seguir.
-- **Não veio** → ler `notes/ideas.md` e perguntar: **Uma ideia nova** (escreve-a) · **Uma de
-  `ideas.md`** (listar numeradas; as que têm `> Contexto (via …)` primeiro, com a pergunta que as
-  bloqueou — são as mais perto de sair).
+- **Não veio** → ler `notes/ideas.md`, listar as ideias **numeradas no texto** (as que têm `> Contexto (via …)`
+  primeiro, com a pergunta que as bloqueou — são as mais perto de sair) e perguntar **em texto**: "escreve a ideia
+  nova, ou o número de uma destas". Sem `AskUserQuestion`: a opção "ideia nova" não tem onde escrever, e a lista
+  não cabe em 4 vagas.
 
 Porquê verbatim: o texto original é o que o utilizador vai reconhecer daqui a um mês no ToDo, e o que o
 work log cita quando a tarefa fechar.
@@ -60,8 +61,9 @@ Mostrar ao utilizador, em 3-6 linhas: **o que já existe**, **com o que se relac
 ## Step 2: Perguntar só o que falta
 
 Perguntas **em bloco**, com **defaults propostos** a partir do Step 1, sem perguntar o que o vault já
-responde. Máximo duas rondas — mais do que isso é sinal de que a ideia não amadureceu, e isso também é
-um resultado.
+responde. Duas rondas — mais do que isso, a entrevistar sem rumo, é sinal de que a ideia não amadureceu, e isso também
+é um resultado. Exceção: o utilizador pede mais profundidade, ou uma resposta contradiz outra; a ronda extra serve
+para **resolver a contradição**, não para alargar o âmbito. Uma contradição só descoberta no fim diz-se no Step 4.
 
 Escolher das seguintes as que a ideia precisa:
 
@@ -86,6 +88,7 @@ não se decide num bullet: marcar "⚠️ precisa de ADR".
 | Idem, mas falta um detalhe pequeno (um texto, um limite, um default) | `ToDo.md` com **⚠️** — o `/implement-todo` pergunta antes de implementar |
 | Falta o valor, o âmbito, ou uma decisão estrutural | `ideas.md`, com contexto |
 | Grande demais para uma tarefa, mas partível em passos de uma sessão | vários bullets no `ToDo.md`, na ordem das dependências |
+| Um **módulo** inteiro — vários temas, decisões que não cabem num bullet e se perdem | `notes/roadmap/<modulo>.md` (decisões e porquê, fases) + só as fases como bullets no `ToDo.md` + linha no `backlog.md` |
 | Várias sessões, atravessa camadas (dados → API → UI) | **`/plan-feature`** — ver abaixo |
 
 Porquê o teste "o que / onde / como se verifica": é exatamente o que o `/implement-todo` precisa para
@@ -99,7 +102,7 @@ passando o que o Step 1 e o Step 2 já apuraram (para não perguntar duas vezes)
 ## Step 4: Mostrar, confirmar, escrever
 
 Mostrar **o texto exato** e o sítio (ficheiro + secção), e perguntar: **Gravar** · **Ajustar o texto**
-· **Mudar de destino** (ToDo ↔ ideas).
+· **Mudar de destino** (ToDo ↔ ideas). Se há uma contradição entre respostas, dizê-la antes do texto, com a síntese proposta, e juntar a opção **Reabrir a decisão X** — o confirmar serve também para a fechar.
 
 **No `ToDo.md`** — na secção temática que **existe** e encaixa (criar uma só se nenhuma encaixa):
 

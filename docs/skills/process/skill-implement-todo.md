@@ -103,7 +103,7 @@ Bullets do ToDo (verbatim) que têm de vir ANTES deste tema.
 S/M/L + 1 linha.
 ```
 
-Quem orquestra **não lê código diretamente** — só os relatórios. Se o projeto ganhar roadmaps técnicos
+Quem orquestra **não lê código diretamente** — só os relatórios. Se uma investigação anterior (ex.: o `/refine-idea` de há minutos) já apurou parte, o prompt leva-a como **hipótese a confirmar, não como dado** (com `ficheiro:linha`) e aponta o agente às lacunas — é o que apanha o erro de quem orquestra. Se o projeto ganhar roadmaps técnicos
 por domínio (`docs/<area>/roadmap.md`), acrescentar uma secção `### Known Gaps` consultada por grep
 dirigido, nunca leitura integral.
 

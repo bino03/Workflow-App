@@ -2,7 +2,7 @@
 
 **When to use**: sempre que se escreve código que toca em autenticação, autorização, input do
 utilizador, ficheiros, segredos ou logs. As regras específicas de cada arquitetura (cookies,
-tenants) estão nos padrões de [[../architecture/README]].
+tenants) estão nos padrões de `library/architecture/` do Workflow.
 
 ---
 

@@ -23,7 +23,7 @@ continuar sem ele se o utilizador disser explicitamente que é um ecrã descart�
 2. **Naming** → "Naming" abaixo.
 3. **Sem `try/catch` nos serviços** — o erro sobe ao componente, que chama o `ErrorHandler` ([[skill-frontend-error-handling]]).
 4. **Um ficheiro de serviço por domínio**, funções nomeadas, sem lógica de UI.
-5. **Formulários sempre Zod + React Hook Form.**
+5. **Formulários com regras de validação no cliente: Zod + React Hook Form.** Sem campos para validar no cliente (uma escolha + um ficheiro, validados pelo servidor) não há formulário a montar — estado local e botão `disabled`.
 6. **Texto livre restringe caracteres** (lista branca) e tem `max`; o frontend nunca é mais permissivo
    do que o backend.
 7. **Visibilidade de campos por role é sempre perguntada**, e o backend filtra primeiro.
@@ -85,7 +85,7 @@ Se o DTO já filtra, isso responde à pergunta para esse campo.
 
 **Caracteres**: texto livre com lista branca (`/^[\p{L}\p{N}\s.,'-]+$/u`); rejeitar sempre
 `< > \` { } $`; email com `z.string().email()`; telefone `/^[\d+\s-]+$/`; texto longo com `.max(N)`;
-números com limites explícitos. Mensagens como chaves i18n.
+números com limites explícitos.
 
 Detalhe (submit, erro por campo, criar/editar partilhados) em [[forms-and-validation]].
 
@@ -133,7 +133,6 @@ Ant Design para componentes, Tailwind para estilo próprio, tokens `--wfa-*` par
 - [ ] Perguntada a visibilidade por role; o backend já filtra esses campos
 - [ ] Obrigatórios do backend são `.min(1)` sem exceção; só perguntei pelos opcionais
 - [ ] Zod com restrição de caracteres em todo o texto livre, e `max`
-- [ ] Mensagens de erro de Zod como chaves i18n (se `i18n`)
 - [ ] `ErrorHandler.handle()` em todos os `catch`; sem `try/catch` nos serviços
 - [ ] Um serviço por domínio, funções nomeadas
 - [ ] Drawer para entidades; Modal só para utilitários
