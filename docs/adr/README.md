@@ -32,6 +32,7 @@ Estados: `proposto` → `aceite` → `substituído`. Template: `Templates/ADR.md
 | [[0014-escrita-controlada-biblioteca]] | A app escreve na biblioteca do Workflow em dois sítios só: `stacks/<id>/skills/skill-*.md` (criar, nunca sobrescrever) + `provides-skills` do `STACK.md` dessa stack (abre parcialmente o [[0005-biblioteca-lida-do-disco]]) | `aceite` | 2026-09-30 |
 | [[0015-passkeys-webauthn]] | Passkeys (WebAuthn) como alternativa à password: descobríveis, várias, em `DATA_DIR/passkeys.json`, registo exige a password, rate limit partilhado, revogar mata as sessões dessa passkey; `rpID` por `.env` (complementa o 0003/0011) | `aceite` | 2026-10-09 |
 | [[0016-atalhos-editaveis-no-state]] | Atalhos de teclado editáveis nas Definições, guardados no `state.json` (só as alterações, `STATE_VERSION` 2); restrições `Alt+…`, colisões internas recusadas, Claude Code avisa | `aceite` | 2026-10-20 |
+| [[0017-bot-telegram-e-remote-control]] | Bot de Telegram (long polling, opcional, só o ID autorizado) que abre terminais com `--remote-control [<nome>]` — argumento novo à lista do 0012; nunca conteúdo dos terminais no Telegram (complementa o 0004/0012) | `aceite` (spike por fazer) | 2026-10-22 |
 
 ## Decisões que ainda vão precisar de ADR
 
