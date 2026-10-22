@@ -1,9 +1,10 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { ErrorHandler } from '@/errors/errorHandler';
 import * as terminalService from '@/services/terminalService';
 import type { CreateTerminalBody, TerminalSize, TerminalView } from '@/types/terminal';
 
 const REFRESH_ON_RETURN_MS = 5000;
+const REFRESH_EVERY_MS = 10_000;
 
 /**
  * Hook local dos Terminais: dono da lista (a ordem é a do backend — por createdAt). As ações devolvem o
@@ -15,19 +16,24 @@ export function useTerminals() {
   const [error, setError] = useState<string | null>(null);
   const [attempt, setAttempt] = useState(0);
 
+  const loaded = useRef(false);
+
   useEffect(() => {
     let cancelled = false;
     terminalService
       .getTerminals()
       .then((list) => {
         if (cancelled) return;
-        setTerminals(list);
+        loaded.current = true;
+        // Igual ao que já está → o mesmo estado, sem re-renderizar a página a cada releitura.
+        setTerminals((current) => (JSON.stringify(current) === JSON.stringify(list) ? current : list));
         setError(null);
       })
       .catch((e: unknown) => {
         // Reclamado mesmo num efeito cancelado (StrictMode) — senão o interceptor notifica por cima.
         ErrorHandler.handle(e, { showNotification: false });
-        if (!cancelled) setError(ErrorHandler.getMessage(e));
+        // Uma releitura que falha (o backend a reiniciar) não troca a página por um erro: fica a última lista.
+        if (!cancelled && !loaded.current) setError(ErrorHandler.getMessage(e));
       })
       .finally(() => !cancelled && setLoading(false));
     return () => {
@@ -38,18 +44,22 @@ export function useTerminals() {
   /** Relê a lista (um terminal terminou, foi reaberto noutro separador…). */
   const refresh = useCallback(() => setAttempt((n) => n + 1), []);
 
-  // O bot de Telegram abre e para terminais sem esta página saber (ADR 0017): ao voltar à janela, relê a lista
-  // — no máximo uma vez a cada 5 s, porque focus e visibilitychange chegam juntos.
+  // O bot de Telegram abre e para terminais sem esta página saber (ADR 0017). Voltar à janela não chega — com a
+  // janela do PC sempre focada enquanto se usa o telemóvel não há evento nenhum (visto a 2026-10-22) —, por isso
+  // relê também de REFRESH_EVERY_MS em REFRESH_EVERY_MS enquanto a página está visível.
   useEffect(() => {
     let last = Date.now();
-    const onReturn = () => {
-      if (document.visibilityState !== 'visible' || Date.now() - last < REFRESH_ON_RETURN_MS) return;
+    const reread = (minGapMs: number) => {
+      if (document.visibilityState !== 'visible' || Date.now() - last < minGapMs) return;
       last = Date.now();
       refresh();
     };
+    const onReturn = () => reread(REFRESH_ON_RETURN_MS);
+    const timer = window.setInterval(() => reread(REFRESH_EVERY_MS - 500), REFRESH_EVERY_MS);
     window.addEventListener('focus', onReturn);
     document.addEventListener('visibilitychange', onReturn);
     return () => {
+      window.clearInterval(timer);
       window.removeEventListener('focus', onReturn);
       document.removeEventListener('visibilitychange', onReturn);
     };

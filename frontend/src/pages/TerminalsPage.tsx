@@ -369,12 +369,20 @@ export function TerminalsPage() {
     }
   };
 
+  /** "Já está a correr": outro cliente (o bot de Telegram) reabriu-o entretanto — o que se queria já aconteceu. */
+  const alreadyRunning = (e: unknown) => getApiErrorResponse(e)?.errorCode === 'TERMINAL_006';
+
   const handleReopen = async (id: string) => {
     setReopening((set) => new Set(set).add(id));
     try {
       await reopenOne(id);
     } catch (e) {
-      ErrorHandler.handle(e);
+      if (alreadyRunning(e)) {
+        ErrorHandler.handle(e, { showNotification: false });
+        refresh();
+      } else {
+        ErrorHandler.handle(e);
+      }
     } finally {
       setReopening((set) => {
         const next = new Set(set);
@@ -392,11 +400,12 @@ export function TerminalsPage() {
         try {
           await reopenOne(terminal.id);
         } catch (e) {
-          ErrorHandler.handle(e);
+          ErrorHandler.handle(e, { showNotification: !alreadyRunning(e) });
           if (getApiErrorResponse(e)?.errorCode === 'TERMINAL_002') break;
         }
       }
     } finally {
+      refresh();
       setReopeningAll(false);
     }
   };

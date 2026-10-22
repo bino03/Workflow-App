@@ -73,7 +73,7 @@ está na lateral do projeto, com a etiqueta **RC**, a correr, e posso escrever n
 | Nome no app Claude | "<projeto> · <título>" ao retomar; **nenhum** numa conversa nova | Pedido do dono; sem nome o Claude Code dá um automático que muda para o tema do 1.º prompt | Nome fixo "<projeto> · nova conversa" (não mudaria sozinho) |
 | `/parar` | Mata o processo, o terminal fica parado (Reabrir) | Pedido do dono: retomar no PC com um clique | Fechar como na app (vai para o histórico) |
 | Reabrir um terminal com RC | Mantém o RC (`remoteControl` guardado no `state.json`) | Pedido do dono | RC só enquanto vive o processo do bot |
-| Na app | Terminal normal + etiqueta **RC**; lista relida ao ganhar foco | Pedido do dono: "deve aparecer na mesma como se tivesse aberto pelo frontend" | Só a etiqueta (terminal novo só aparecia ao recarregar) |
+| Na app | Terminal normal + etiqueta **RC**; lista relida ao ganhar foco **e de 10 em 10 s** (corrigido a 2026-10-22) | Pedido do dono: "deve aparecer na mesma como se tivesse aberto pelo frontend". Só ao ganhar foco falhou no teste real: com a janela do PC sempre focada não há evento, o terminal reaberto pelo bot ficou "Parado" e o Reabrir deu `TERMINAL_006` | Só a etiqueta (só aparecia ao recarregar); só ao ganhar foco (falhou); push pelo WebSocket (mais peças para o mesmo efeito, num backend local) |
 | Autenticação do bot | Só conversa privada com `from.id` = `TELEGRAM_ALLOWED_USER_ID`; o resto ignorado em silêncio | Uso pessoal; responder a desconhecidos revelava que o bot existe | Senha no chat; lista de vários IDs |
 | Bot opcional | Sem `TELEGRAM_BOT_TOKEN` → o módulo não arranca | A app funciona como hoje para quem não o quer; instâncias de teste sem token | Obrigatório |
 | Cliente Telegram | `fetch` do Node 24, ~5 métodos da Bot API | Sem dependência nova; superfície pequena | grammY/telegraf |
@@ -182,7 +182,9 @@ O ciclo arranca em `app.ts` (onde os serviços existem) e para no `onClose` (abo
   título "Remote Control — também no app Claude". Cores dos tokens ([[../skills/references/design/tokens-and-colors]]),
   mesmo estilo das etiquetas que o cabeçalho já tem (`meta.tag`).
 - **Lista**: `useTerminals` chama `refresh()` em `window` `focus` e `visibilitychange` → visível (no máximo uma
-  vez a cada 5 s).
+  vez a cada 5 s) **e de 10 em 10 s enquanto a página está visível** (só re-renderiza se a lista mudou; uma releitura
+  que falha mantém a última lista). Reabrir um terminal que já está a correr (`TERMINAL_006` — o bot reabriu-o
+  entretanto) não mostra erro: relê a lista e o painel liga-se ao terminal vivo.
 - **Ficheiros**: `frontend/src/types/terminal.ts` (`remoteControl`), `components/terminals/TerminalPane.tsx`,
   `hooks/useTerminals.ts`, `errors/errorMessages.ts` (`TERMINAL_007`).
 - **Estado vazio**: nada novo.
