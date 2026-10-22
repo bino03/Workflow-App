@@ -106,4 +106,31 @@ describe('loadConfig', () => {
       expect(issuesOf(testEnv(env)).join()).toContain('set it explicitly');
     });
   });
+
+  describe('Telegram bot (ADR 0017)', () => {
+    const TOKEN = '7012345678:AAFv1x2y3z4ABCDEFghijklmnopqrstuvwx';
+
+    it('no token → no bot; empty lines count as unset', () => {
+      expect(loadConfig(testEnv()).telegram).toBeUndefined();
+      expect(loadConfig(testEnv({ TELEGRAM_BOT_TOKEN: '', TELEGRAM_ALLOWED_USER_ID: '' })).telegram).toBeUndefined();
+    });
+
+    it('token + user id → the bot config, with the id as a number', () => {
+      expect(loadConfig(testEnv({ TELEGRAM_BOT_TOKEN: TOKEN, TELEGRAM_ALLOWED_USER_ID: '123456789' })).telegram).toEqual({
+        botToken: TOKEN,
+        allowedUserId: 123456789,
+      });
+    });
+
+    it('a token without the allowed user id does not start — the bot would answer anyone', () => {
+      expect(issuesOf(testEnv({ TELEGRAM_BOT_TOKEN: TOKEN }))).toEqual(['TELEGRAM_ALLOWED_USER_ID: required when TELEGRAM_BOT_TOKEN is set']);
+    });
+
+    it('rejects malformed values without echoing them', () => {
+      const issues = issuesOf(testEnv({ TELEGRAM_BOT_TOKEN: 'not-a-token-secret', TELEGRAM_ALLOWED_USER_ID: '-5' }));
+      expect(issues.some((issue) => issue.startsWith('TELEGRAM_BOT_TOKEN:'))).toBe(true);
+      expect(issues.some((issue) => issue.startsWith('TELEGRAM_ALLOWED_USER_ID:'))).toBe(true);
+      expect(issues.join()).not.toContain('not-a-token-secret');
+    });
+  });
 });

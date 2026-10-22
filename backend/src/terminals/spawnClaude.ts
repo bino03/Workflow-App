@@ -12,9 +12,10 @@ const isWindows = process.platform === 'win32';
  * - CLAUDECODE / CLAUDE_* leak from a Claude Code session that started the backend (CLAUDE_CODE_*,
  *   CLAUDE_PID, CLAUDE_EFFORT, CLAUDE_JOB_DIR…) and make the child behave as a nested session (and carry
  *   that session's messaging token). Only CLAUDE_CONFIG_DIR is the user's own choice and goes through;
- * - the backend's own configuration: secrets, and PORT/HOST, which a dev server run by Claude would pick up.
+ * - the backend's own configuration: secrets, and PORT/HOST, which a dev server run by Claude would pick up;
+ * - TELEGRAM_* — the bot token would let anything Claude runs drive the bot (ADR 0017).
  */
-const DENIED_PREFIXES = ['ANTHROPIC_', 'CLAUDE_'];
+const DENIED_PREFIXES = ['ANTHROPIC_', 'CLAUDE_', 'TELEGRAM_'];
 const ALLOWED_NAMES = new Set(['CLAUDE_CONFIG_DIR']);
 const DENIED_NAMES = new Set([
   'CLAUDECODE',

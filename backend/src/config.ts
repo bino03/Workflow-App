@@ -77,6 +77,16 @@ const envSchema = z.object({
   DATA_DIR: optionalString.refine((path) => path === undefined || isAbsolute(path), 'must be an absolute path'),
 
   FRONTEND_DIST: optionalString.refine((path) => path === undefined || isAbsolute(path), 'must be an absolute path'),
+
+  // Telegram bot (ADR 0017). Optional: no token → no bot. The token never reaches `claude` (spawnClaude denylist).
+  TELEGRAM_BOT_TOKEN: optionalString.refine(
+    (token) => token === undefined || /^\d+:[A-Za-z0-9_-]{30,}$/.test(token),
+    'must look like a BotFather token (<digits>:<secret>)',
+  ),
+  TELEGRAM_ALLOWED_USER_ID: optionalString.refine(
+    (id) => id === undefined || /^[1-9]\d{0,15}$/.test(id),
+    'must be a positive Telegram user id',
+  ),
 });
 
 type Env = z.infer<typeof envSchema>;
@@ -113,6 +123,8 @@ export type Config = {
   dataDir: string;
   /** Absolute path of the built SPA; served only if it has an index.html. */
   frontendDist: string;
+  /** The Telegram bot (ADR 0017); undefined = no TELEGRAM_BOT_TOKEN, the bot does not start. */
+  telegram: { botToken: string; allowedUserId: number } | undefined;
 };
 
 export class ConfigError extends Error {
@@ -159,6 +171,10 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): Config {
   const corsAllowedOrigins = e.CORS_ALLOWED_ORIGINS.map((origin) => new URL(origin).origin);
   const passkeyOrigins = webauthnOrigins(e, corsAllowedOrigins);
   if (typeof passkeyOrigins === 'string') throw new ConfigError([passkeyOrigins]);
+  // A bot that answers anyone would let a stranger open terminals: the token alone is never enough.
+  if (e.TELEGRAM_BOT_TOKEN && !e.TELEGRAM_ALLOWED_USER_ID) {
+    throw new ConfigError(['TELEGRAM_ALLOWED_USER_ID: required when TELEGRAM_BOT_TOKEN is set']);
+  }
 
   return {
     host: e.HOST,
@@ -185,5 +201,9 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): Config {
     workflowPath: e.WORKFLOW_PATH,
     dataDir: e.DATA_DIR ?? join(homedir(), '.workflow-app'),
     frontendDist: e.FRONTEND_DIST ?? DEFAULT_FRONTEND_DIST,
+    telegram:
+      e.TELEGRAM_BOT_TOKEN && e.TELEGRAM_ALLOWED_USER_ID
+        ? { botToken: e.TELEGRAM_BOT_TOKEN, allowedUserId: Number(e.TELEGRAM_ALLOWED_USER_ID) }
+        : undefined,
   };
 }

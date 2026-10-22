@@ -26,6 +26,8 @@ describe('childEnv', () => {
       HOST: '127.0.0.1',
       DATA_DIR: 'C:\\Users\\me\\.workflow-app',
       FRONTEND_DIST: 'C:\\dist',
+      TELEGRAM_BOT_TOKEN: '123456:ABCdefGHIjklMNOpqrSTUvwxYZ0123456789',
+      telegram_allowed_user_id: '42',
       CLAUDE_CONFIG_DIR: 'C:\\Users\\me\\.claude',
     });
     expect(env).toEqual({

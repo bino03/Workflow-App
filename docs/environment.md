@@ -33,9 +33,11 @@ Nenhum destes ficheiros está no git. Num clone novo, criá-los a partir dos `.e
 | `SCROLLBACK_BYTES` | — | `1048576` | Buffer de output guardado por terminal para reenviar ao voltar a ligar |
 | `DATA_DIR` | — | `C:\Users\jlalv\.workflow-app` | Onde vive o `state.json` ([[database]], [[adr/0009-estado-em-ficheiro-json]]). **Omissão `~/.workflow-app`** — fora do repo, para nunca ser commitado. Absoluto; criada no arranque se não existir. `state.json` inválido → o backend não arranca (e nunca o sobrescreve) |
 | `FRONTEND_DIST` | — | `C:\…\frontend\dist` | Build do frontend que o backend serve. **Omissão: `frontend/dist` do repo.** Absoluto. Sem `index.html` lá dentro → só a API (aviso no arranque). Quando serve, a própria origem (`localhost`/`127.0.0.1` na `PORT`) passa a ser aceite no WebSocket ([[security]] → CORS) |
+| `TELEGRAM_BOT_TOKEN` | — | `7012345678:AAF…` | Bot de Telegram ([[adr/0017-bot-telegram-e-remote-control]]). **Vazia = sem bot.** Token do `@BotFather`. ⚠️ Nunca na instância de teste: dois backends com o mesmo token disputam o `getUpdates` (409) |
+| `TELEGRAM_ALLOWED_USER_ID` | se houver token | `123456789` | O único utilizador de Telegram a quem o bot responde (o teu ID, do `@userinfobot`). Token sem ID → não arranca |
 
 **O que o processo `claude` recebe**: o ambiente do backend **sem** `ANTHROPIC_*`, `CLAUDE_CODE_*`,
-`CLAUDECODE`, todas as `CLAUDE_*` e sem as variáveis desta tabela (exceto um `CLAUDE_CONFIG_DIR` absoluto) — ver
+`CLAUDECODE`, todas as `CLAUDE_*`, todas as `TELEGRAM_*` e sem as variáveis desta tabela (exceto um `CLAUDE_CONFIG_DIR` absoluto) — ver
 [[backend-conventions]] → regra 8 e Armadilhas. Nenhuma variável desta
 app é uma chave da Anthropic, e nunca deve ser.
 

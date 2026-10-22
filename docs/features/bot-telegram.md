@@ -5,7 +5,7 @@
 | **Estado** | 🚧 Em curso |
 | **Criada** | 2026-10-22 |
 | **Última sessão** | 2026-10-22 |
-| **Passos** | 3 / 8 concluídos |
+| **Passos** | 4 / 8 concluídos |
 
 > Escrita para uma sessão que **não viu a conversa que a originou**. Se algo só faz sentido com contexto
 > externo, falta escrevê-lo.
@@ -226,7 +226,7 @@ Ordem obrigatória. Tiers: `opus` (desenho, não delegar) · `sonnet` (implement
     terminal fica `stopped` na lista; pasta sem trust → `TERMINAL_007`; um `state.json` antigo (sem o campo) lê-se
     com `false`; `TerminalView.remoteControl` sai no `GET /api/terminals`. `npm test` verde.
 
-- [ ] **4. Configuração e ambiente do filho**
+- [x] **4. Configuração e ambiente do filho** — ✅ 2026-10-22
   - Ficheiro: `backend/src/config.ts`, `backend/src/terminals/spawnClaude.ts` (denylist `TELEGRAM_`),
     `backend/.env.example`, `backend/test/config.test.ts`, `docs/environment.md`
   - Skill: — ([[../backend-conventions]])
@@ -288,9 +288,12 @@ em `sessions/claudeTrust.ts` (`isTrustedFolder(cwd, claudeConfigDir)`, injetado 
 — sem ela, nunca é de confiança); `ClaudeSessions.sessionInfo(cwd, id)`; `TERMINAL_007` no backend e no espelho do
 frontend; `docs/api.md` e `docs/database.md` atualizados. 274 testes verdes; confiança verificada contra o
 `~/.claude.json` real.
+Passo 4 feito: `config.telegram = {botToken, allowedUserId} | undefined`; token sem ID → `Invalid environment:` (sem
+mostrar o valor, verificado a arrancar o `server.ts` a sério); `TELEGRAM_` na denylist do filho; `.env.example` e
+`docs/environment.md`. 278 testes verdes (uma corrida teve 1 falha intermitente que não se repetiu — não identificada).
 **Em curso:** —
-**Próxima ação concreta:** passo 4 — `TELEGRAM_BOT_TOKEN`/`TELEGRAM_ALLOWED_USER_ID` em `backend/src/config.ts`
-(`config.telegram`), `TELEGRAM_` na denylist de `spawnClaude.ts`, `.env.example`, `test/config.test.ts`, `docs/environment.md`.
+**Próxima ação concreta:** passo 5 — `backend/src/telegram/telegramApi.ts` (`getUpdates`, `sendMessage`,
+`editMessageText`, `answerCallbackQuery`, `setMyCommands`; `fetch` injetável; erros sem o token) + `backend/test/telegramApi.test.ts`.
 **Desvios ao plano:** o spike mostrou que uma conversa sem mensagens não aparece na lista do app Claude; o dono chega
 lá pela notificação de "pronto" do próprio app, por isso o bot **não** envia o link (decisão do dono, §2 Fora).
 **O que uma sessão nova precisa de saber:**
