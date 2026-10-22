@@ -108,6 +108,13 @@ export function TerminalPane(props: TerminalPaneProps) {
           </Tooltip>
         )}
         {!compactHeader && <span className={meta.tag}>{meta.label}</span>}
+        {terminal.remoteControl && (
+          <Tooltip title="Remote Control — também no app Claude" mouseEnterDelay={0.4}>
+            <span className="tag" data-remote-control>
+              RC
+            </span>
+          </Tooltip>
+        )}
         <div className="flex-1 min-w-0" />
         {compactHeader && <span className={meta.tag}>{meta.label}</span>}
       </header>
@@ -117,7 +124,8 @@ export function TerminalPane(props: TerminalPaneProps) {
           <span className="state-icon is-stop" aria-hidden />
           <p className="m-0 text-text-1 font-semibold">Terminal parado</p>
           <p className="m-0 text-text-2 text-[13px] max-w-[420px]">
-            O backend reiniciou e o processo terminou. A conversa está gravada — reabrir retoma-a onde ficou.
+            O processo terminou (o backend reiniciou, ou foi parado pelo bot). A conversa está gravada — reabrir
+            retoma-a onde ficou.
           </p>
           <Button type="primary" loading={reopening} onClick={props.onReopen}>
             Reabrir

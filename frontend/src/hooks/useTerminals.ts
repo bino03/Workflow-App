@@ -3,6 +3,8 @@ import { ErrorHandler } from '@/errors/errorHandler';
 import * as terminalService from '@/services/terminalService';
 import type { CreateTerminalBody, TerminalSize, TerminalView } from '@/types/terminal';
 
+const REFRESH_ON_RETURN_MS = 5000;
+
 /**
  * Hook local dos Terminais: dono da lista (a ordem é a do backend — por createdAt). As ações devolvem o
  * terminal atualizado e lançam o erro para quem as chamou decidir onde mostrá-lo.
@@ -35,6 +37,23 @@ export function useTerminals() {
 
   /** Relê a lista (um terminal terminou, foi reaberto noutro separador…). */
   const refresh = useCallback(() => setAttempt((n) => n + 1), []);
+
+  // O bot de Telegram abre e para terminais sem esta página saber (ADR 0017): ao voltar à janela, relê a lista
+  // — no máximo uma vez a cada 5 s, porque focus e visibilitychange chegam juntos.
+  useEffect(() => {
+    let last = Date.now();
+    const onReturn = () => {
+      if (document.visibilityState !== 'visible' || Date.now() - last < REFRESH_ON_RETURN_MS) return;
+      last = Date.now();
+      refresh();
+    };
+    window.addEventListener('focus', onReturn);
+    document.addEventListener('visibilitychange', onReturn);
+    return () => {
+      window.removeEventListener('focus', onReturn);
+      document.removeEventListener('visibilitychange', onReturn);
+    };
+  }, [refresh]);
 
   const replace = (view: TerminalView) =>
     setTerminals((list) => (list.some((t) => t.id === view.id) ? list.map((t) => (t.id === view.id ? view : t)) : [...list, view]));

@@ -26,6 +26,6 @@ export function formatSessionDate(iso: string | null): string {
 /** "Terminado · código 1", "Parado" — o detalhe na lateral e no banner. */
 export function statusDetail(terminal: TerminalView): string {
   if (terminal.status === 'exited') return terminal.exitCode === null ? 'terminou' : `código ${terminal.exitCode}`;
-  if (terminal.status === 'stopped') return 'o backend reiniciou';
+  if (terminal.status === 'stopped') return 'sem processo';
   return 'a correr';
 }

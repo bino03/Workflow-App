@@ -5,7 +5,7 @@
 | **Estado** | 🚧 Em curso |
 | **Criada** | 2026-10-22 |
 | **Última sessão** | 2026-10-22 |
-| **Passos** | 6 / 8 concluídos |
+| **Passos** | 7 / 8 concluídos |
 
 > Escrita para uma sessão que **não viu a conversa que a originou**. Se algo só faz sentido com contexto
 > externo, falta escrevê-lo.
@@ -253,7 +253,7 @@ Ordem obrigatória. Tiers: `opus` (desenho, não delegar) · `sonnet` (implement
     nova conversa; `/estado` sem nenhum conteúdo de terminal; `/parar` com confirmação; `TERMINAL_002/003/004/007`
     e `SESSION_001` em português; nenhum log com texto de mensagens nem o token; 409 do Telegram → aviso, sem crash.
 
-- [ ] **7. Frontend: etiqueta RC e lista relida ao ganhar foco**
+- [x] **7. Frontend: etiqueta RC e lista relida ao ganhar foco** — ✅ 2026-10-22 (verificado no browser, 11/11)
   - Ficheiro: `frontend/src/types/terminal.ts`, `frontend/src/components/terminals/TerminalPane.tsx`,
     `frontend/src/hooks/useTerminals.ts`, `frontend/src/errors/errorMessages.ts`
   - Skill: `frontend-design-system` (+ `frontend-error-handling` para `TERMINAL_007`)
@@ -299,10 +299,17 @@ Passo 6 feito: `telegram/{menuStore,botMessages,botActions,telegramBot}.ts`, lig
 `fakeClaude`, Telegram falso) cobre os critérios do passo. Arranque real com um token falso: `bot polling`, 401 →
 recuo 1→2→4→8→16 s, nenhum token nos logs. `docs/code-map.md` com a secção do bot. Suite: 294 verdes, com uma falha
 intermitente por identificar (`notes/bugs.md`).
+Passo 7 feito: `remoteControl` no tipo; etiqueta **RC** (classe `.tag`, `data-remote-control`) no cabeçalho do
+`TerminalPane`; `useTerminals` relê a lista em `focus`/`visibilitychange` (guarda de 5 s); "Parado" passou a dizer
+"sem processo" e o banner menciona o bot. Verificado no browser (Chrome headless por CDP, instância isolada na 7498 com
+`CLAUDE_CONFIG_DIR`/`WORKFLOW_PATH`/`DATA_DIR` próprios), 11/11: RC no parado e depois de Reabrir; o `claude` real
+lançado com `--resume … --remote-control "proj-rc · Conversa RC de teste"`; `TERMINAL_007` mostrado ao reabrir numa
+pasta sem confiança; terminal criado por fora aparece ao voltar à janela, sem recarregar.
 **Em curso:** —
-**Próxima ação concreta:** passo 7 — frontend: `remoteControl` em `frontend/src/types/terminal.ts`, etiqueta **RC** em
-`components/terminals/TerminalPane.tsx` (junto ao `meta.tag`), `refresh()` do `hooks/useTerminals.ts` em `focus`/
-`visibilitychange` (máx. 1×/5 s). Depois verificar no browser.
+**Próxima ação concreta:** passo 8 — o dono cria o bot (`@BotFather` → `/newbot`), tira o ID (`@userinfobot`) e põe
+`TELEGRAM_BOT_TOKEN`/`TELEGRAM_ALLOWED_USER_ID` no `backend/.env`; reiniciar o backend **fora** de um terminal servido
+por ele; percorrer o critério do passo 8 no telemóvel. Por responder aí: §7 "um browser ligado a um terminal que o bot
+para" (sem rota REST de stop, só se vê com o bot real).
 **Desvios ao plano:** o spike mostrou que uma conversa sem mensagens não aparece na lista do app Claude; o dono chega
 lá pela notificação de "pronto" do próprio app, por isso o bot **não** envia o link (decisão do dono, §2 Fora).
 **O que uma sessão nova precisa de saber:**

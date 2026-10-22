@@ -3,7 +3,7 @@
  * (docs/api.md → Terminais e Protocolo do WebSocket).
  */
 
-/** running/exited vêm da memória do backend; stopped = gravado mas sem processo (o backend reiniciou). */
+/** running/exited vêm da memória do backend; stopped = gravado mas sem processo (o backend reiniciou, ou o bot parou-o). */
 export type TerminalStatus = 'running' | 'exited' | 'stopped';
 
 export type TerminalView = {
@@ -16,6 +16,8 @@ export type TerminalView = {
   exitCode: number | null;
   createdAt: string;
   lastOpenedAt: string;
+  /** Lançado com --remote-control (pelo bot de Telegram): também no app Claude. Reabrir mantém-no (ADR 0017). */
+  remoteControl: boolean;
 };
 
 export type TerminalSize = { cols: number; rows: number };
