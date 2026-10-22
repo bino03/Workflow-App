@@ -5,7 +5,7 @@
 | **Estado** | 🚧 Em curso |
 | **Criada** | 2026-10-22 |
 | **Última sessão** | 2026-10-22 |
-| **Passos** | 2 / 8 concluídos |
+| **Passos** | 3 / 8 concluídos |
 
 > Escrita para uma sessão que **não viu a conversa que a originou**. Se algo só faz sentido com contexto
 > externo, falta escrevê-lo.
@@ -214,7 +214,7 @@ Ordem obrigatória. Tiers: `opus` (desenho, não delegar) · `sonnet` (implement
   - Aceite quando: só produz os argumentos de §4.3; nome fora de `REMOTE_NAME` (vazio, a começar por `-`, com
     `$`/`"`/quebra de linha, > 80) → `ClaudeArgsError`; testes cobrem com e sem nome, com e sem `--settings`.
 
-- [ ] **3. `TerminalsService`: `remoteControl`, nome, trust e `stop`**
+- [x] **3. `TerminalsService`: `remoteControl`, nome, trust e `stop`** — ✅ 2026-10-22
   - Ficheiro: `backend/src/state/state.schema.ts`, `backend/src/terminals/terminalsService.ts`,
     `backend/src/terminals/remoteName.ts` (novo), `backend/src/sessions/claudeSessions.ts` (ler a confiança, se o
     spike disser que é no `.claude.json`), `backend/src/common/errors.ts` (`TERMINAL_007`), testes em
@@ -280,11 +280,17 @@ Ordem obrigatória. Tiers: `opus` (desenho, não delegar) · `sonnet` (implement
 **Feito:** spec e [[../adr/0017-bot-telegram-e-remote-control|ADR 0017]] escritos (2026-10-22). Passo 1 (spike) feito
 e confirmado no telemóvel do dono: `npx tsx backend/scripts/remote-control-spike.ts --hold 180` (fases A–D) e
 `--name-test --prompt --hold 300` (E, nome numa conversa nova). Resultados no ADR 0017 §Estado e em §4.3 (trust, nome).
-**Em curso:** —
 Passo 2 feito: `claudeArgs(launch, {settingsPath, remoteControl: {name?}})` põe `--remote-control [<nome>]` em último;
-`REMOTE_NAME` exportado de `claudeArgs.ts` (usar o mesmo regex ao gerar o nome no passo 3). 261 testes verdes.
-**Próxima ação concreta:** passo 3 — `remoteControl` em `savedTerminalSchema` (`state.schema.ts`), depois
-`terminalsService.ts` (`create`/`reopen`/`stop`, nome por `remoteName.ts`, trust → `TERMINAL_007`).
+`REMOTE_NAME` exportado de `claudeArgs.ts`.
+Passo 3 feito: `remoteControl` no `savedTerminalSchema` (`default(false)`); `TerminalsService.create({…, remoteControl})`,
+`reopen(id, size, {remoteControl?})` (omitido mantém o guardado), `stop(id)`; nome em `terminals/remoteName.ts`; confiança
+em `sessions/claudeTrust.ts` (`isTrustedFolder(cwd, claudeConfigDir)`, injetado em `app.ts` como dep `isTrustedFolder`
+— sem ela, nunca é de confiança); `ClaudeSessions.sessionInfo(cwd, id)`; `TERMINAL_007` no backend e no espelho do
+frontend; `docs/api.md` e `docs/database.md` atualizados. 274 testes verdes; confiança verificada contra o
+`~/.claude.json` real.
+**Em curso:** —
+**Próxima ação concreta:** passo 4 — `TELEGRAM_BOT_TOKEN`/`TELEGRAM_ALLOWED_USER_ID` em `backend/src/config.ts`
+(`config.telegram`), `TELEGRAM_` na denylist de `spawnClaude.ts`, `.env.example`, `test/config.test.ts`, `docs/environment.md`.
 **Desvios ao plano:** o spike mostrou que uma conversa sem mensagens não aparece na lista do app Claude; o dono chega
 lá pela notificação de "pronto" do próprio app, por isso o bot **não** envia o link (decisão do dono, §2 Fora).
 **O que uma sessão nova precisa de saber:**

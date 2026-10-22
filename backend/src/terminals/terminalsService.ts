@@ -5,6 +5,7 @@ import type { ClaudeSessions } from '../sessions/claudeSessions.js';
 import type { AppState, SavedTerminal } from '../state/state.schema.js';
 import type { StateStore } from '../state/stateStore.js';
 import { type ClaudeLaunch, claudeArgs } from './claudeArgs.js';
+import { remoteControlName } from './remoteName.js';
 import { ClaudeBinError } from './spawnClaude.js';
 import { TerminalLimitError, type TerminalManager } from './terminalManager.js';
 
@@ -20,6 +21,8 @@ export type TerminalView = {
   exitCode: number | null;
   createdAt: string;
   lastOpenedAt: string;
+  /** Launched with --remote-control: also reachable from the Claude app (ADR 0017). */
+  remoteControl: boolean;
 };
 
 export type CreateTerminal = {
@@ -29,6 +32,8 @@ export type CreateTerminal = {
   label?: string | null;
   cols: number;
   rows: number;
+  /** Only the Telegram bot sets it (ADR 0017); the REST body has no such field. */
+  remoteControl?: boolean;
 };
 
 export type TerminalsServiceDeps = {
@@ -38,6 +43,11 @@ export type TerminalsServiceDeps = {
   allowedRoots: readonly string[];
   /** DATA_DIR/claude-settings.json when the quota status line is on (step 8). */
   settingsPath?: string;
+  /**
+   * Whether Claude Code already trusts a folder (`isTrustedFolder`, sessions/claudeTrust.ts). Only Remote
+   * Control launches ask: nobody is at the PTY to answer the trust dialog. Omitted → never trusted.
+   */
+  isTrustedFolder?: (cwd: string) => Promise<boolean>;
   now?: () => Date;
 };
 
@@ -72,9 +82,11 @@ export class TerminalsService {
 
   async create(request: CreateTerminal): Promise<TerminalView> {
     const cwd = resolveAllowedPath(request.cwd, this.deps.allowedRoots);
+    const remoteControl = request.remoteControl === true;
+    if (remoteControl) await this.assertTrusted(cwd);
     const launch = await this.launchFor(cwd, request);
     const id = randomUUID();
-    this.spawn(id, cwd, launch, request);
+    this.spawn(id, cwd, launch, request, remoteControl ? await this.remoteControlFor(cwd, launch) : undefined);
 
     const at = this.now().toISOString();
     const saved: SavedTerminal = {
@@ -85,6 +97,7 @@ export class TerminalsService {
       createdAt: at,
       updatedAt: at,
       lastOpenedAt: at,
+      remoteControl,
     };
     try {
       this.deps.stateStore.update((draft) => {
@@ -104,26 +117,47 @@ export class TerminalsService {
    * conversation is saved. Claude Code does not save a session that never had a message, so without a
    * .jsonl there is nothing to resume — the same terminal starts a new conversation with the same UUID
    * (`freshSession: true`, the UI says so).
+   *
+   * A terminal saved with Remote Control comes back with it; `remoteControl: true` turns it on (the bot).
    */
-  async reopen(id: string, size: { cols: number; rows: number }): Promise<TerminalView & { freshSession: boolean }> {
+  async reopen(
+    id: string,
+    size: { cols: number; rows: number },
+    options: { remoteControl?: boolean } = {},
+  ): Promise<TerminalView & { freshSession: boolean }> {
     const saved = this.saved(id);
     if (!saved) throw new AppError('TERMINAL_001');
     const inMemory = this.deps.terminalManager.get(id);
     if (inMemory?.status === 'running') throw new AppError('TERMINAL_006');
     // ALLOWED_ROOTS may have changed since the terminal was opened.
     const cwd = resolveAllowedPath(saved.cwd, this.deps.allowedRoots);
+    const remoteControl = options.remoteControl ?? saved.remoteControl;
+    if (remoteControl) await this.assertTrusted(cwd);
     const freshSession = !this.deps.sessions.hasSession(cwd, saved.claudeSessionId);
+    const launch: ClaudeLaunch = { kind: freshSession ? 'new' : 'resume', sessionId: saved.claudeSessionId };
+    const remote = remoteControl ? await this.remoteControlFor(cwd, launch) : undefined;
 
     if (inMemory) await this.deps.terminalManager.kill(id); // exited: forget it so the id can be reused
-    this.spawn(id, cwd, { kind: freshSession ? 'new' : 'resume', sessionId: saved.claudeSessionId }, size);
+    this.spawn(id, cwd, launch, size, remote);
 
     const at = this.now().toISOString();
     this.deps.stateStore.update((draft) => {
       const terminal = draft.terminals.find((t) => t.id === id);
-      if (terminal) Object.assign(terminal, { cwd, lastOpenedAt: at, updatedAt: at });
+      if (terminal) Object.assign(terminal, { cwd, remoteControl, lastOpenedAt: at, updatedAt: at });
       touchFolder(draft, cwd, at);
     });
     return { ...this.view(this.saved(id)!), freshSession };
+  }
+
+  /**
+   * Ends the process but keeps the terminal, which shows as stopped with Reopen — what the bot's /parar does
+   * (unlike close, it does not move to the history).
+   */
+  async stop(id: string): Promise<TerminalView> {
+    const saved = this.saved(id);
+    if (!saved) throw new AppError('TERMINAL_001');
+    await this.deps.terminalManager.kill(id);
+    return this.view(saved);
   }
 
   rename(id: string, label: string | null): TerminalView {
@@ -169,8 +203,27 @@ export class TerminalsService {
     return { kind: 'resume', sessionId };
   }
 
-  private spawn(id: string, cwd: string, launch: ClaudeLaunch, size: { cols: number; rows: number }): void {
-    const args = claudeArgs(launch, { settingsPath: this.deps.settingsPath });
+  private async assertTrusted(cwd: string): Promise<void> {
+    const trusted = (await this.deps.isTrustedFolder?.(cwd)) ?? false;
+    if (!trusted) throw new AppError('TERMINAL_007');
+  }
+
+  /** A new conversation gets Claude Code's automatic name (it follows the first prompt); a resumed one, "project · title". */
+  private async remoteControlFor(cwd: string, launch: ClaudeLaunch): Promise<{ name?: string }> {
+    if (launch.kind === 'new') return {};
+    const info = await this.deps.sessions.sessionInfo(cwd, launch.sessionId);
+    const name = remoteControlName(cwd, info?.preview ?? null);
+    return name === undefined ? {} : { name };
+  }
+
+  private spawn(
+    id: string,
+    cwd: string,
+    launch: ClaudeLaunch,
+    size: { cols: number; rows: number },
+    remoteControl?: { name?: string },
+  ): void {
+    const args = claudeArgs(launch, { settingsPath: this.deps.settingsPath, remoteControl });
     try {
       this.deps.terminalManager.create({ id, cwd, cols: size.cols, rows: size.rows, args });
     } catch (error) {
@@ -195,6 +248,7 @@ export class TerminalsService {
       exitCode: inMemory?.exitCode ?? null,
       createdAt: saved.createdAt,
       lastOpenedAt: saved.lastOpenedAt,
+      remoteControl: saved.remoteControl,
     };
   }
 }

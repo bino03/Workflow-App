@@ -25,6 +25,7 @@ function savedTerminal(overrides: Partial<SavedTerminal> = {}): SavedTerminal {
     createdAt: at(0),
     updatedAt: at(0),
     lastOpenedAt: at(0),
+    remoteControl: false,
     ...overrides,
   };
 }
@@ -95,6 +96,14 @@ describe('StateStore', () => {
     await writeFile(file, content);
     await expect(StateStore.load(dataDir)).rejects.toBeInstanceOf(StateFileError);
     expect(await readFile(file, 'utf8')).toBe(content);
+  });
+
+  it('a terminal saved before Remote Control existed loads with remoteControl: false (ADR 0017, no migration)', async () => {
+    const older: Partial<SavedTerminal> = savedTerminal({ label: 'api' });
+    delete older.remoteControl;
+    await writeFile(file, JSON.stringify({ version: 2, terminals: [older], closedTerminals: [], folders: [], keybindings: {} }));
+    const store = await StateStore.load(dataDir);
+    expect(store.read().terminals).toEqual([{ ...older, remoteControl: false }]);
   });
 
   it('a v1 file loads as v2 with no shortcut changes, and is only rewritten on the next change', async () => {

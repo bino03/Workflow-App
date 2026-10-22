@@ -30,6 +30,7 @@ export const ERROR_MESSAGES: Record<string, string> = {
   TERMINAL_004: 'A sessão gravada já não existe (o Claude Code apaga-as ao fim de 30 dias).',
   TERMINAL_005: 'O claude não foi encontrado no servidor. Confirma o CLAUDE_BIN.',
   TERMINAL_006: 'Este terminal já está a correr.',
+  TERMINAL_007: 'Esta pasta ainda não é de confiança para o Claude Code — abre-a uma vez num terminal da app.',
   // ── FOLDER ─────────────────────────────
   FOLDER_001: 'Esta pasta não existe ou está fora das pastas autorizadas.',
   // ── SESSION ────────────────────────────

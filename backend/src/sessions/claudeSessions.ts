@@ -136,6 +136,11 @@ export class ClaudeSessions {
     return sessions.sort((a, b) => b.updatedAt.localeCompare(a.updatedAt));
   }
 
+  /** One saved session's info (title, counts), or null when there is no readable .jsonl. */
+  async sessionInfo(cwd: string, sessionId: string): Promise<SessionInfo | null> {
+    return isUuid(sessionId) ? this.readInfo(cwd, sessionId) : null;
+  }
+
   /** The most recently updated session of a folder ("Continuar a última"), or null. */
   async latestSessionId(cwd: string): Promise<string | null> {
     let latest: { id: string; mtime: number } | null = null;

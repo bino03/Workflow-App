@@ -57,7 +57,7 @@ describe('TerminalsService', () => {
   let service: TerminalsService;
   const size = { cols: 100, rows: 30 };
 
-  function build(options: { settingsPath?: string } = {}) {
+  function build(options: { settingsPath?: string; isTrustedFolder?: (cwd: string) => Promise<boolean> } = {}) {
     return new TerminalsService({
       stateStore,
       terminalManager: manager,
@@ -92,7 +92,7 @@ describe('TerminalsService', () => {
 
       const state = stateStore.read();
       expect(state.terminals).toEqual([
-        { id: view.id, label: 'api', cwd: project, claudeSessionId: view.claudeSessionId, createdAt: view.createdAt, updatedAt: view.createdAt, lastOpenedAt: view.createdAt },
+        { id: view.id, label: 'api', cwd: project, claudeSessionId: view.claudeSessionId, createdAt: view.createdAt, updatedAt: view.createdAt, lastOpenedAt: view.createdAt, remoteControl: false },
       ]);
       expect(state.folders).toEqual([{ path: project, favorite: false, lastUsedAt: view.createdAt }]);
     });
@@ -195,6 +195,59 @@ describe('TerminalsService', () => {
       await manager.kill(view.id);
       const narrowed = new TerminalsService({ stateStore, terminalManager: manager, sessions, allowedRoots: [emptyProject] });
       await expectAppError(() => narrowed.reopen(view.id, size), 'FOLDER_001');
+    });
+  });
+
+  describe('remote control (ADR 0017)', () => {
+    const trusted = (cwd: string) => Promise.resolve(cwd === project);
+
+    it('resume with RC: --remote-control "<project> · <title>" last, saved and shown', async () => {
+      const rc = build({ isTrustedFolder: trusted });
+      const view = await rc.create({ cwd: project, mode: 'resume', sessionId: OTHER, remoteControl: true, ...size });
+      expect(view.remoteControl).toBe(true);
+      expect(claude.launches.at(-1)!.args).toEqual(['--resume', OTHER, '--remote-control', 'api-faturas · Sessão antiga']);
+      expect(stateStore.read().terminals[0]).toMatchObject({ id: view.id, remoteControl: true });
+    });
+
+    it('a new conversation with RC has no name (Claude Code names it from the first prompt)', async () => {
+      const view = await build({ isTrustedFolder: trusted }).create({ cwd: project, mode: 'new', remoteControl: true, ...size });
+      expect(claude.launches.at(-1)!.args).toEqual(['--session-id', view.claudeSessionId, '--remote-control']);
+    });
+
+    it('a folder Claude Code does not trust → TERMINAL_007, nothing launched; without RC trust is not asked', async () => {
+      const rc = build({ isTrustedFolder: trusted });
+      await expectAppError(() => rc.create({ cwd: emptyProject, mode: 'new', remoteControl: true, ...size }), 'TERMINAL_007');
+      // No isTrustedFolder at all = never trusted.
+      await expectAppError(() => service.create({ cwd: project, mode: 'new', remoteControl: true, ...size }), 'TERMINAL_007');
+      expect(claude.launches).toEqual([]);
+      expect(stateStore.read().terminals).toEqual([]);
+      await rc.create({ cwd: emptyProject, mode: 'new', ...size });
+      expect(claude.launches).toHaveLength(1);
+    });
+
+    it('reopen keeps RC; reopen with remoteControl: true turns it on and saves it', async () => {
+      const rc = build({ isTrustedFolder: trusted });
+      const withRc = await rc.create({ cwd: project, mode: 'resume', sessionId: OTHER, remoteControl: true, ...size });
+      const plain = await rc.create({ cwd: project, mode: 'resume', sessionId: SAVED, ...size });
+      await rc.stop(withRc.id);
+      await rc.stop(plain.id);
+
+      await rc.reopen(withRc.id, size);
+      expect(claude.launches.at(-1)!.args).toEqual(['--resume', OTHER, '--remote-control', 'api-faturas · Sessão antiga']);
+
+      await rc.reopen(plain.id, size, { remoteControl: true });
+      expect(claude.launches.at(-1)!.args).toEqual(['--resume', SAVED, '--remote-control', 'api-faturas · Migração para prisma']);
+      expect(rc.get(plain.id)!.remoteControl).toBe(true);
+    });
+
+    it('stop kills the process but keeps the terminal, stopped, with nothing moved to the history', async () => {
+      const view = await service.create({ cwd: project, mode: 'resume', sessionId: OTHER, ...size });
+      const stopped = await service.stop(view.id);
+      expect(stopped).toMatchObject({ id: view.id, status: 'stopped' });
+      expect(manager.get(view.id)).toBeUndefined();
+      expect(stateStore.read().terminals.map((t) => t.id)).toEqual([view.id]);
+      expect(stateStore.read().closedTerminals).toEqual([]);
+      await expectAppError(() => service.stop('00000000-0000-4000-8000-000000000000'), 'TERMINAL_001');
     });
   });
 

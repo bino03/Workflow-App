@@ -21,6 +21,7 @@ import { FoldersService } from './folders/foldersService.js';
 import { projectsRoutes } from './projects/projects.routes.js';
 import { ProjectsService } from './projects/projectsService.js';
 import { ClaudeSessions } from './sessions/claudeSessions.js';
+import { isTrustedFolder } from './sessions/claudeTrust.js';
 import { sessionsRoutes } from './sessions/sessions.routes.js';
 import type { StateStore } from './state/stateStore.js';
 import { terminalsGateway } from './terminals/terminals.gateway.js';
@@ -100,6 +101,7 @@ export async function buildApp({ config, terminalManager, sessionStore, stateSto
     allowedRoots: config.terminals.allowedRoots,
     // Every claude gets the status line that keeps the quota in DATA_DIR/usage.json (ADR 0012).
     settingsPath: writeUsageFiles(config.dataDir),
+    isTrustedFolder: (cwd) => isTrustedFolder(cwd, config.terminals.claudeConfigDir),
   });
   await app.register(terminalsRoutes, { terminalsService });
   await app.register(terminalsGateway, { terminalManager, sessionStore: sessions });

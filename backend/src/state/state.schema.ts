@@ -18,6 +18,8 @@ export const savedTerminalSchema = z.object({
   createdAt: instant,
   updatedAt: instant,
   lastOpenedAt: instant,
+  // ADR 0017: launched (and reopened) with --remote-control. Older files have no field → false, no migration.
+  remoteControl: z.boolean().default(false),
 });
 
 export const closedTerminalSchema = z.object({

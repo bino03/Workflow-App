@@ -72,6 +72,7 @@ porque o backend reiniciou.
 | `cwd` | texto | ✅ | `realpath`, dentro de `ALLOWED_ROOTS` (revalidado ao reabrir — as raízes podem ter mudado) |
 | `claudeSessionId` | uuid | ✅ | Terminal novo: gerado pelo backend e passado com `claude --session-id <uuid>`. Retoma: o uuid da sessão gravada |
 | `createdAt` · `updatedAt` · `lastOpenedAt` | instante ISO-8601 | ✅ | `lastOpenedAt` muda a cada Reabrir |
+| `remoteControl` | booleano | — (omissão `false`) | Lançado com `--remote-control` e reaberto com ele ([[adr/0017-bot-telegram-e-remote-control]]). Ficheiros antigos sem o campo leem-se com `false` — sem subir o `STATE_VERSION` |
 
 - **Ciclo**: abrir → guardado. Backend reinicia → aparece como **parado**, com **Reabrir** (`claude --resume
   <claudeSessionId>`) e **Reabrir todos**. Nada reabre sozinho (não gasta quota sem pedido).
