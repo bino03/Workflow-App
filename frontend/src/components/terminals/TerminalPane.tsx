@@ -1,7 +1,8 @@
 import { useState } from 'react';
+import { CloseOutlined, LinkOutlined } from '@ant-design/icons';
 import { Button, Input, Tooltip } from 'antd';
 import { z } from 'zod';
-import type { TerminalView as TerminalInfo } from '@/types/terminal';
+import type { TerminalView as TerminalInfo, TerminalPreview } from '@/types/terminal';
 import { STATUS_META, statusDetail } from './terminalDisplay';
 import { TerminalView } from './TerminalView';
 
@@ -53,6 +54,41 @@ function RenameInput({ initialName, onFinish }: { initialName: string; onFinish:
   );
 }
 
+/**
+ * A pré-visualização viva (ADR 0018), ao lado do RC: o link abre noutro separador, o ✕ desliga. É uma etiqueta e não
+ * um botão — o cabeçalho continua sem ações; ligar é pelo atalho (Alt+L por omissão) ou pelo /preview do bot.
+ */
+function PreviewTag({ preview, compact, onStop }: { preview: TerminalPreview; compact: boolean; onStop: () => void }) {
+  const host = new URL(preview.url).host;
+  return (
+    <span className="tag max-w-[320px] min-w-0" data-preview={preview.url}>
+      <Tooltip title={`Porta ${preview.devPort} do PC → só os teus dispositivos Tailscale`} mouseEnterDelay={0.4}>
+        <a
+          href={preview.url}
+          target="_blank"
+          rel="noreferrer"
+          className="inline-flex items-center gap-1.5 min-w-0 text-accent hover:underline"
+          onMouseDown={(event) => event.stopPropagation()}
+        >
+          <LinkOutlined aria-hidden />
+          {!compact && <span className="font-mono truncate">{host}</span>}
+        </a>
+      </Tooltip>
+      {!compact && (
+        <button
+          type="button"
+          aria-label="Desligar a pré-visualização"
+          className="inline-flex items-center text-text-3 hover:text-text-1 cursor-pointer bg-transparent border-0 p-0"
+          onMouseDown={(event) => event.stopPropagation()}
+          onClick={onStop}
+        >
+          <CloseOutlined aria-hidden />
+        </button>
+      )}
+    </span>
+  );
+}
+
 type TerminalPaneProps = {
   terminal: TerminalInfo;
   /** Nome mostrado (o rótulo, ou a pasta numerada — projects.ts). */
@@ -70,6 +106,8 @@ type TerminalPaneProps = {
   onReopen: () => void;
   onExit: (code: number) => void;
   onGone: () => void;
+  /** O ✕ da etiqueta de pré-visualização. */
+  onPreviewStop: () => void;
   /** tile = mosaico da grelha (protótipo 1i): cabeçalho compacto, sem ações até ser ampliado. */
   variant?: 'pane' | 'tile';
   enlarged?: boolean;
@@ -114,6 +152,9 @@ export function TerminalPane(props: TerminalPaneProps) {
               RC
             </span>
           </Tooltip>
+        )}
+        {terminal.preview && (
+          <PreviewTag preview={terminal.preview} compact={compactHeader} onStop={props.onPreviewStop} />
         )}
         <div className="flex-1 min-w-0" />
         {compactHeader && <span className={meta.tag}>{meta.label}</span>}

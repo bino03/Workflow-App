@@ -133,7 +133,8 @@ node scripts/verify/instance.mjs stop --clean             # mata a árvore pelo 
 - **`instance.mjs stop`** — `taskkill /T /F` ao PID que escuta na porta (leva os `claude` filhos) e
   confirma que o `/api/health` deixou de responder. Nunca filtra processos por linha de comando.
 - **`cdp.mjs`** — `openBrowser()` (Chrome headless, perfil descartável; `send`, `evaluate`, `waitFor`,
-  `type`, `key`, `api` com o cookie da página, `navigate`, `errors` da consola), `login()`, `checker()`
+  `type`, `key`, `api` com o cookie da página, `navigate`, `errors` da consola, `on(evento, fn)` para eventos do
+  CDP — ex. `Fetch.requestPaused` para responder a uma chamada à API a partir do cenário), `login()`, `checker()`
   (`PASS`/`FAIL` e código de saída), `readInstance()`. Um cenário novo começa por copiar o `smoke.mjs`.
 - O URL é `localhost` (não `127.0.0.1`): é a única origem sob o `rpID` das passkeys.
 

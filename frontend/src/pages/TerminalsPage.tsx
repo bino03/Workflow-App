@@ -7,9 +7,11 @@ import { GridStylePicker } from '@/components/terminals/GridStylePicker';
 import { displayNames, type Project, joinProjects, projectsWithTerminals } from '@/components/terminals/projects';
 import { QuotaMeter } from '@/components/terminals/QuotaMeter';
 import { TerminalGrid } from '@/components/terminals/TerminalGrid';
+import { PreviewPortsModal } from '@/components/terminals/PreviewPortsModal';
 import { TerminalPane } from '@/components/terminals/TerminalPane';
 import { TerminalSidebar } from '@/components/terminals/TerminalSidebar';
 import { ErrorHandler, getApiErrorResponse } from '@/errors/errorHandler';
+import { getUserFriendlyMessage } from '@/errors/errorMessages';
 import { useConfirm } from '@/hooks/useConfirm';
 import { useLayoutMode } from '@/hooks/useLayoutMode';
 import { useProjects } from '@/hooks/useProjects';
@@ -19,7 +21,7 @@ import { useUsage } from '@/hooks/useUsage';
 import { getFolders, setFavoriteFolder } from '@/services/folderService';
 import { notificationService } from '@/services/general/notificationService';
 import { estimateTerminalSize } from '@/terminal/terminalSize';
-import type { CreateTerminalBody, TerminalSize } from '@/types/terminal';
+import type { CreateTerminalBody, DevPort, TerminalSize } from '@/types/terminal';
 
 const PANE_HEADER_HEIGHT = 44;
 const FONT_DELTA_LIMITS = { min: -4, max: 16 };
@@ -96,7 +98,8 @@ function defaultLayoutFor(path: string): ProjectLayout {
  * (escondidos, sem replay), exatamente como um terminal "fora do ecrã" já ficava antes desta spec.
  */
 export function TerminalsPage() {
-  const { terminals, loading: terminalsLoading, error, refresh, create, reopen, rename, close, markExited } = useTerminals();
+  const { terminals, loading: terminalsLoading, error, refresh, create, reopen, rename, close, markExited, startPreview, stopPreview } =
+    useTerminals();
   const { projects: registry, loading: registryLoading } = useProjects();
   const confirm = useConfirm();
   const mainRef = useRef<HTMLDivElement>(null);
@@ -112,6 +115,9 @@ export function TerminalsPage() {
 
   const [resumePath, setResumePath] = useState<string | null>(null);
   const [renamingId, setRenamingId] = useState<string | null>(null);
+  /** Terminal com várias portas à escuta, à espera de que se escolha uma (PreviewPortsModal). */
+  const [previewChoice, setPreviewChoice] = useState<{ id: string; ports: DevPort[] } | null>(null);
+  const [previewStarting, setPreviewStarting] = useState<number | null>(null);
   const [reopening, setReopening] = useState<Set<string>>(new Set());
   const [reopeningAll, setReopeningAll] = useState(false);
   const [creatingIn, setCreatingIn] = useState<string | null>(null);
@@ -470,6 +476,48 @@ export function TerminalsPage() {
     setActivePath(openProjects[index]!.path);
   };
 
+  /**
+   * Erros da pré-visualização. O PREVIEW_007 (Serve por ativar na tailnet) é o único caso em que se tira algo da
+   * `message` do backend: só o link de ativação do Tailscale, nunca o texto — é a ação que o dono tem de fazer.
+   */
+  const handlePreviewError = (e: unknown) => {
+    const data = ErrorHandler.handle(e, { showNotification: false });
+    const enableUrl = data?.errorCode === 'PREVIEW_007' ? /https:\/\/login\.tailscale\.com\/\S+/.exec(data.message)?.[0] : undefined;
+    if (enableUrl) {
+      notificationService.action('Tailscale Serve por ativar', getUserFriendlyMessage('PREVIEW_007'), {
+        label: 'Ativar o Serve',
+        onClick: () => window.open(enableUrl, '_blank', 'noopener'),
+      });
+    } else {
+      notificationService.error('Erro', ErrorHandler.getMessage(e));
+    }
+  };
+
+  /** Atalho togglePreview: desliga a que está viva, ou liga (uma porta) / pergunta qual (várias). */
+  const togglePreview = async (id: string, devPort?: number) => {
+    const terminal = terminals.find((t) => t.id === id);
+    if (!terminal) return;
+    try {
+      if (terminal.preview && devPort === undefined) {
+        await stopPreview(id);
+        notificationService.info('Pré-visualização desligada', names.get(id));
+        return;
+      }
+      if (devPort !== undefined) setPreviewStarting(devPort);
+      const result = await startPreview(id, devPort);
+      if ('ports' in result) {
+        setPreviewChoice({ id, ports: result.ports });
+        return;
+      }
+      setPreviewChoice(null);
+      notificationService.success('Pré-visualização ligada', `${result.preview.url} — também enviado para o Telegram.`);
+    } catch (e) {
+      handlePreviewError(e);
+    } finally {
+      setPreviewStarting(null);
+    }
+  };
+
   // Ações dos Terminais (ADR 0016). As de navegação entre páginas são do AppLayout.
   useShortcuts((actionId) => {
     const jump = /^jump([1-9])$/.exec(actionId);
@@ -496,6 +544,9 @@ export function TerminalsPage() {
         return true;
       case 'renameTerminal':
         if (keyboardId) setRenamingId(keyboardId);
+        return true;
+      case 'togglePreview':
+        if (keyboardId) void togglePreview(keyboardId);
         return true;
       case 'zoomIn':
       case 'zoomOut':
@@ -581,6 +632,7 @@ export function TerminalsPage() {
       onReopen={() => void handleReopen(terminal.id)}
       onExit={(code) => handleExit(terminal.id, code)}
       onGone={refresh}
+      onPreviewStop={() => void togglePreview(terminal.id)}
     />
   );
 
@@ -680,6 +732,13 @@ export function TerminalsPage() {
         )}
       </div>
       {resumeModal}
+      <PreviewPortsModal
+        name={previewChoice ? (names.get(previewChoice.id) ?? '') : ''}
+        ports={previewChoice?.ports ?? null}
+        starting={previewStarting}
+        onPick={(port) => previewChoice && void togglePreview(previewChoice.id, port)}
+        onClose={() => setPreviewChoice(null)}
+      />
     </div>
   );
 }

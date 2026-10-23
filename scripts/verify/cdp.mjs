@@ -62,6 +62,7 @@ export async function openBrowser({ cdpPort = 9335, width = 1600, height = 1000 
   let nextId = 1;
   const pending = new Map();
   const errors = [];
+  const handlers = new Map();
   ws.addEventListener('message', (e) => {
     const m = JSON.parse(e.data);
     if (m.id && pending.has(m.id)) {
@@ -70,7 +71,11 @@ export async function openBrowser({ cdpPort = 9335, width = 1600, height = 1000 
     }
     if (m.method === 'Runtime.exceptionThrown') errors.push(m.params.exceptionDetails.exception?.description ?? m.params.exceptionDetails.text);
     if (m.method === 'Runtime.consoleAPICalled' && m.params.type === 'error') errors.push(m.params.args.map((a) => a.value ?? a.description).join(' '));
+    for (const handler of handlers.get(m.method) ?? []) handler(m.params);
   });
+
+  /** Subscribes to a CDP event (e.g. `Fetch.requestPaused` to answer an API call from the scenario). */
+  const on = (method, handler) => handlers.set(method, [...(handlers.get(method) ?? []), handler]);
 
   const send = (method, params = {}) =>
     new Promise((ok, ko) => {
@@ -129,6 +134,7 @@ export async function openBrowser({ cdpPort = 9335, width = 1600, height = 1000 
     key,
     api,
     navigate,
+    on,
     errors,
     async close() {
       ws.close();

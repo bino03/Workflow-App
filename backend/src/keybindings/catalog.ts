@@ -22,6 +22,8 @@ export const SHORTCUT_ACTIONS: readonly ShortcutAction[] = [
   { id: 'splitToggle', label: 'Dividir / juntar (na grelha: voltar à grelha)', group: 'terminals', default: alt('Backslash') },
   { id: 'closeTerminal', label: 'Fechar o terminal', group: 'terminals', default: alt('KeyW') },
   { id: 'renameTerminal', label: 'Renomear o terminal', group: 'terminals', default: alt('KeyR') },
+  // Alt+L ("link"): Alt+P, Alt+T and Alt+V are Claude Code's own (model, thinking, paste image).
+  { id: 'togglePreview', label: 'Pré-visualizar a app em dev (link na tailnet) / desligar', group: 'terminals', default: alt('KeyL') },
   { id: 'zoomIn', label: 'Aumentar a letra do terminal', group: 'terminals', default: alt('Equal') },
   { id: 'zoomOut', label: 'Diminuir a letra do terminal', group: 'terminals', default: alt('Minus') },
   { id: 'zoomReset', label: 'Repor o tamanho da letra', group: 'terminals', default: alt('Digit0') },

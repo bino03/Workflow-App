@@ -18,7 +18,16 @@ export type TerminalView = {
   lastOpenedAt: string;
   /** Lançado com --remote-control (pelo bot de Telegram): também no app Claude. Reabrir mantém-no (ADR 0017). */
   remoteControl: boolean;
+  /** Pré-visualização viva na tailnet (ADR 0018), ou null. */
+  preview: TerminalPreview | null;
 };
+
+// ── Pré-visualização (backend/src/preview/{previewService,listeningPorts}.ts) ─────────────
+export type TerminalPreview = { url: string; devPort: number; httpsPort: number; startedAt: string };
+/** Uma porta TCP à escuta num processo abaixo do claude do terminal. */
+export type DevPort = { port: number; pid: number; process: string };
+/** Uma porta → ligada; várias → escolher uma e pedir de novo com devPort. */
+export type StartPreviewResult = { preview: TerminalPreview } | { ports: DevPort[] };
 
 export type TerminalSize = { cols: number; rows: number };
 

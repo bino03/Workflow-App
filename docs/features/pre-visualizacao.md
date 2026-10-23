@@ -5,7 +5,7 @@
 | **Estado** | 🚧 Em curso |
 | **Criada** | 2026-10-23 |
 | **Última sessão** | 2026-10-23 |
-| **Passos** | 6 / 8 concluídos |
+| **Passos** | 7 / 8 concluídos |
 
 > Escrita para uma sessão que **não viu a conversa que a originou**. Se algo só faz sentido com contexto
 > externo, falta escrevê-lo.
@@ -216,7 +216,7 @@ com a mesma conta; ligar MagicDNS e HTTPS Certificates na consola da tailnet.
     desligar automático envia o aviso; tudo revalidado no clique (terminal ainda a correr, porta ainda à
     escuta); só o ID autorizado; nenhum conteúdo do terminal na mensagem.
 
-- [ ] **7. Frontend: ação, etiqueta com link, escolha de porta, erros**
+- [x] **7. Frontend: ação, etiqueta com link, escolha de porta, erros** (2026-10-23; browser 20/20)
   - Ficheiro: `frontend/src/types/terminal.ts`, `frontend/src/services/terminalService.ts`, `frontend/src/hooks/useTerminals.ts` (`startPreview`/`stopPreview`),
     `frontend/src/components/terminals/TerminalPane.tsx`, `frontend/src/components/terminals/PreviewPortsModal.tsx`
     (novo), `frontend/src/pages/TerminalsPage.tsx`, `frontend/src/keyboard/shortcuts.ts`,
@@ -322,11 +322,25 @@ em `app.ts` (`previewNotifier`, preenchido quando o bot existe) e envia ao `allo
 355/355 em duas corridas; uma terceira deu 11 timeouts de PTYs reais sob carga — a falha intermitente está a piorar
 (`notes/bugs.md`, e passou ao ToDo). **Bot real não testado** (o `backend/.env` do dono ainda não tem `TAILSCALE_BIN`):
 fica para o passo 8.
+**Passo 7 (2026-10-23)** — ação `togglePreview` no catálogo (**`Alt+L`** por omissão — `Alt+P`, `Alt+T` e `Alt+V` são
+do Claude Code), tratada em `TerminalsPage.tsx` sobre o terminal com o teclado: desliga a viva, ou liga (uma porta) /
+abre o `PreviewPortsModal` (várias; um clique liga). `PreviewTag` no cabeçalho do `TerminalPane` ao lado do RC: `.tag`
+com 🔗 + host em mono (link, novo separador, `rel=noreferrer`) e ✕ que desliga; num mosaico compacto só o 🔗. Tipos,
+`startPreview`/`stopPreview` no serviço e no `useTerminals`. `PREVIEW_007` → notificação "Tailscale Serve por ativar" com o
+botão "Ativar o Serve" (abre o link de ativação). `scripts/verify/cdp.mjs` ganhou `on(evento, fn)`.
+**Verificado no browser, 20/20** (instância de teste com o Tailscale real e um `claude` real; Chrome headless por CDP;
+cenário no scratchpad): `Alt+L` num `claude` sem servidor de dev → `PREVIEW_001` **real**; com as respostas de
+`…/preview` e do `GET /api/terminals` intercetadas (`Fetch.requestPaused`) — várias portas → modal com as duas → 5173
+manda `{"devPort":5173}` → modal fecha → etiqueta com o host e o link certo, **sobrevive à releitura de 10 s** → ✕ manda
+`DELETE` e a etiqueta sai → `PREVIEW_007` mostra a mensagem pt e o botão, nunca o texto inglês do backend; consola sem
+erros; nada servido no fim. Capturas vistas (etiqueta e notificação dentro dos tokens). `npx tsc -b`/lint limpos; backend
+355/355. **Uma pré-visualização com um servidor de dev verdadeiro no browser** fica para o passo 8.
 **Em curso:** nada.
-**Próxima ação concreta:** passo 7 — frontend. Começar por `frontend/src/types/terminal.ts` (`preview` no `TerminalView`,
-`DevPort`, `StartPreviewResult`) e `frontend/src/services/terminalService.ts`; depois a ação `togglePreview` no catálogo
-(`backend/src/keybindings/catalog.ts` + `frontend/src/keyboard/shortcuts.ts`), a etiqueta no `TerminalPane.tsx` e o
-`PreviewPortsModal.tsx`. Skills `frontend-design-system` + `frontend-error-handling`. Mostrar o link do `PREVIEW_007`.
+**Próxima ação concreta:** passo 8 — com o dono. (1) `TAILSCALE_BIN=C:\Program Files\Tailscale\tailscale.exe` no
+`backend/.env` e reiniciar o backend (num momento sem terminais a meio). (2) Tailscale no PC do dono, mesma conta. (3)
+Num terminal da app, um projeto com Vite: pedir ao Claude `npm run dev` → `Alt+L` → link no cabeçalho e no Telegram →
+abrir no PC fora de casa; medições da §5 passo 8; `/preview` no bot real; fechar o terminal → aviso. (4) Docs da lista
+do passo 8.
 **Desvios ao plano:**
 - Spike (e) parcial — ver acima.
 - `processTree.ts` ficou em `backend/src/common/`, não em `preview/`: o `spawnClaude.ts` (terminais) também o usa, e os
@@ -335,6 +349,11 @@ fica para o passo 8.
 - Um sétimo código, `PREVIEW_007` (Serve por ativar na tailnet), separado do `PREVIEW_005`: é uma ação diferente do
   dono (abrir o link de ativação uma vez), e a mensagem do backend leva o link — o frontend (passo 7) e o bot (passo 6)
   devem mostrá-lo.
+- O frontend tira esse link da `message` do backend — exceção à regra "nunca mostrar `data.message`"
+  (`skill-frontend-error-handling`): só um URL `https://login.tailscale.com/…` por regex, nunca o texto; a mensagem
+  mostrada continua a ser a do espelho pt.
+- O `PreviewPortsModal` liga com um clique numa linha, sem "selecionar e confirmar" como o `ResumeSessionModal`: a
+  escolha é uma só e desfaz-se com o ✕.
 **O que uma sessão nova precisa de saber:**
 - Investigação de 2026-10-23: o PID do PTY é o do próprio `claude` (`terminalManager.ts:79`, sem shell pelo meio);
   `listDescendants` já existe só para Windows (`spawnClaude.ts:151-178`) e devolve `[]` no Linux, onde o kill

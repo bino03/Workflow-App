@@ -1,5 +1,5 @@
 import api from '@/api';
-import type { CreateTerminalBody, ReopenedTerminal, TerminalSize, TerminalView } from '@/types/terminal';
+import type { CreateTerminalBody, ReopenedTerminal, StartPreviewResult, TerminalSize, TerminalView } from '@/types/terminal';
 
 export async function getTerminals(): Promise<TerminalView[]> {
   return (await api.get<TerminalView[]>('/terminals')).data;
@@ -19,4 +19,12 @@ export async function renameTerminal(id: string, label: string | null): Promise<
 
 export async function closeTerminal(id: string): Promise<void> {
   await api.delete(`/terminals/${id}`);
+}
+
+export async function startPreview(id: string, devPort?: number): Promise<StartPreviewResult> {
+  return (await api.post<StartPreviewResult>(`/terminals/${id}/preview`, devPort === undefined ? {} : { devPort })).data;
+}
+
+export async function stopPreview(id: string): Promise<void> {
+  await api.delete(`/terminals/${id}/preview`);
 }

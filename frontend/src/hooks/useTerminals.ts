@@ -91,10 +91,22 @@ export function useTerminals() {
     setTerminals((list) => list.filter((t) => t.id !== id));
   }, []);
 
+  /** Liga a pré-visualização; com várias portas devolve-as para escolher (nada muda até lá). */
+  const startPreview = useCallback(async (id: string, devPort?: number) => {
+    const result = await terminalService.startPreview(id, devPort);
+    if ('preview' in result) setTerminals((list) => list.map((t) => (t.id === id ? { ...t, preview: result.preview } : t)));
+    return result;
+  }, []);
+
+  const stopPreview = useCallback(async (id: string) => {
+    await terminalService.stopPreview(id);
+    setTerminals((list) => list.map((t) => (t.id === id ? { ...t, preview: null } : t)));
+  }, []);
+
   /** O processo terminou (mensagem exit do WebSocket): muda o estado sem esperar pela lista. */
   const markExited = useCallback((id: string, exitCode: number) => {
     setTerminals((list) => list.map((t) => (t.id === id ? { ...t, status: 'exited', exitCode } : t)));
   }, []);
 
-  return { terminals, loading, error, refresh, create, reopen, rename, close, markExited };
+  return { terminals, loading, error, refresh, create, reopen, rename, close, markExited, startPreview, stopPreview };
 }
