@@ -151,6 +151,47 @@ describe('/api/terminals/:id/preview', () => {
   });
 });
 
+describe('with the Telegram bot on', () => {
+  it('a preview started from the app is sent to the owner, with an off button; its end too', async () => {
+    const sent: { chatId: number; text: string; keyboard?: unknown }[] = [];
+    const telegramApi = {
+      getUpdates: (_o: number, _t: number, signal?: AbortSignal) =>
+        new Promise<never>((_r, reject) => signal?.addEventListener('abort', () => reject(new Error('aborted')))),
+      sendMessage: async (chatId: number, text: string, keyboard?: unknown) => {
+        sent.push({ chatId, text, keyboard });
+        return { message_id: 1, chat: { id: chatId, type: 'private' as const } };
+      },
+      editMessageText: async () => true as const,
+      answerCallbackQuery: async () => true as const,
+      setMyCommands: async () => true as const,
+    };
+    const config = testConfig({
+      APP_PASSWORD_HASH: passwordHash,
+      ALLOWED_ROOTS: join(base, 'root'),
+      TAILSCALE_BIN: 'tailscale',
+      PORT: '7402',
+      TELEGRAM_BOT_TOKEN: '7012345678:AAFv1x2y3z4ABCDEFghijklmnopqrstuvwx',
+      TELEGRAM_ALLOWED_USER_ID: '555000111',
+    });
+    const terminalManager = new TerminalManager({ spawn: fakeClaude().spawn, maxTerminals: 2, scrollbackBytes: 64 * 1024 });
+    const app = await buildApp({ stateStore: await testStateStore(), config, terminalManager, logger: false, telegramApi, preview: { tailscale, devPorts: async () => [vite] } });
+    await app.ready();
+    try {
+      const login = await app.inject({ method: 'POST', url: '/api/auth/login', payload: { username: TEST_USERNAME, password: PASSWORD } });
+      const headers = { cookie: `session=${login.cookies.find((c) => c.name === 'session')!.value}` };
+      const id = (await app.inject({ method: 'POST', url: '/api/terminals', headers, payload: { cwd: project, mode: 'new', cols: 80, rows: 24 } })).json().id;
+      await app.inject({ method: 'POST', url: `/api/terminals/${id}/preview`, headers });
+      await expect.poll(() => sent.length).toBe(1);
+      expect(sent[0]).toMatchObject({ chatId: 555000111, text: expect.stringContaining(`https://${HOST}:8443/`) });
+      expect(JSON.stringify(sent[0]!.keyboard)).toContain('Desligar');
+      await app.inject({ method: 'DELETE', url: `/api/terminals/${id}/preview`, headers });
+      await expect.poll(() => sent.at(-1)?.text).toBe('⏹ Link de loja desligado.');
+    } finally {
+      await app.close();
+    }
+  });
+});
+
 describe('without TAILSCALE_BIN', () => {
   it('the routes exist and answer 404 PREVIEW_006; terminals show preview: null', async () => {
     const { app, call } = await startApp();

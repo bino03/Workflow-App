@@ -5,7 +5,7 @@
 | **Estado** | 🚧 Em curso |
 | **Criada** | 2026-10-23 |
 | **Última sessão** | 2026-10-23 |
-| **Passos** | 5 / 8 concluídos |
+| **Passos** | 6 / 8 concluídos |
 
 > Escrita para uma sessão que **não viu a conversa que a originou**. Se algo só faz sentido com contexto
 > externo, falta escrevê-lo.
@@ -205,7 +205,7 @@ com a mesma conta; ligar MagicDNS e HTTPS Certificates na consola da tailnet.
     cookie), UUID validado (`TERMINAL_001`), body com zod (`devPort` inteiro); `GET /api/terminals` traz
     `preview`; `docs/api.md` atualizado; `npm test`, `typecheck` e `lint` verdes.
 
-- [ ] **6. Bot: `/preview`, escolha de porta, desligar, avisos**
+- [x] **6. Bot: `/preview`, escolha de porta, desligar, avisos** (2026-10-23; bot real → passo 8)
   - Ficheiro: `backend/src/telegram/botMessages.ts`, `backend/src/telegram/botActions.ts`,
     `backend/src/telegram/telegramBot.ts`, `backend/src/app.ts` (notifier); testes
     `backend/test/telegramBot.test.ts`
@@ -310,11 +310,23 @@ com os nomes dos testes em `notes/bugs.md`. **Chamado de verdade** (instância d
 um `claude` real num PTY): o arranque desligou uma porta 8446 deixada à mão e só essa; `POST` num `claude` sem servidor
 de dev → `409 PREVIEW_001` em 637 ms (árvore e portas lidas do Windows); 400, 404, 401 e `DELETE` 204 certos; no fim nada
 nosso servido.
+**Passo 6 (2026-10-23)** — `/preview` (em `COMMANDS`, `HELP` e no `switch` de `telegramBot.ts`) → terminais a correr
+(🔗 nos que já têm link) → liga, ou um botão por porta (`5173 · node.exe`) → mensagem com o link, a porta, a nota do
+`/api`/`allowedHosts` e "⏹ Desligar o link". `BotAction` ganhou `preview` e `preview-off`; `PREVIEW_001`–`006` com frase
+em `botMessages.ts`, e o `PREVIEW_007` responde com o link de ativação tirado da mensagem. O `PreviewService.start`/`stop`
+ganharam `{quiet}`: o que o bot pede não volta a ser anunciado pelo notifier (a resposta já é o link). O notifier é montado
+em `app.ts` (`previewNotifier`, preenchido quando o bot existe) e envia ao `allowedUserId` — o link ligado pela app e o
+"desligado — o terminal terminou / o servidor de dev parou". `AppDeps.telegramApi` para testes. 6 testes novos
+(`telegramPreview.test.ts`, bot verdadeiro + `PreviewService` verdadeiro com fakes) e 1 de ponta a ponta em
+`preview.routes.test.ts` (ligar por REST → `sendMessage` ao dono com o link e o botão; desligar → aviso). Suite
+355/355 em duas corridas; uma terceira deu 11 timeouts de PTYs reais sob carga — a falha intermitente está a piorar
+(`notes/bugs.md`, e passou ao ToDo). **Bot real não testado** (o `backend/.env` do dono ainda não tem `TAILSCALE_BIN`):
+fica para o passo 8.
 **Em curso:** nada.
-**Próxima ação concreta:** passo 6 — bot: `/preview` em `backend/src/telegram/botMessages.ts` (`COMMANDS`, `HELP`,
-mensagens/erros), `previewMenu()` e `kind`s novos em `botActions.ts` (padrão do `stopMenu`, `:91-98`), `case '/preview'` em
-`telegramBot.ts:115`, e um `PreviewNotifier` montado em `app.ts` que envia ao `allowedUserId` (a `TelegramApi` está presa
-na montagem do bot, `app.ts:118-135`). Mostrar o link de ativação do `PREVIEW_007`.
+**Próxima ação concreta:** passo 7 — frontend. Começar por `frontend/src/types/terminal.ts` (`preview` no `TerminalView`,
+`DevPort`, `StartPreviewResult`) e `frontend/src/services/terminalService.ts`; depois a ação `togglePreview` no catálogo
+(`backend/src/keybindings/catalog.ts` + `frontend/src/keyboard/shortcuts.ts`), a etiqueta no `TerminalPane.tsx` e o
+`PreviewPortsModal.tsx`. Skills `frontend-design-system` + `frontend-error-handling`. Mostrar o link do `PREVIEW_007`.
 **Desvios ao plano:**
 - Spike (e) parcial — ver acima.
 - `processTree.ts` ficou em `backend/src/common/`, não em `preview/`: o `spawnClaude.ts` (terminais) também o usa, e os

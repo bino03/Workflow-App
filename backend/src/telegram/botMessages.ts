@@ -8,6 +8,7 @@ export const COMMANDS: BotCommand[] = [
   { command: 'projetos', description: 'Retomar ou começar uma conversa num projeto' },
   { command: 'estado', description: 'Terminais a correr e quota' },
   { command: 'parar', description: 'Parar um terminal' },
+  { command: 'preview', description: 'Link para ver a app em dev de um terminal' },
   { command: 'ajuda', description: 'O que este bot faz' },
 ];
 
@@ -17,6 +18,7 @@ export const HELP = [
   '/projetos — escolher um projeto e retomar uma conversa (ou começar uma nova)',
   '/estado — terminais a correr e quota',
   '/parar — parar um terminal (fica na app, pronto a reabrir)',
+  '/preview — link privado (só os teus dispositivos Tailscale) para a app em dev que um terminal está a correr',
 ].join('\n');
 
 export const MENU_EXPIRED = 'Este menu expirou. Usa /projetos.';
@@ -33,6 +35,7 @@ export const BUTTON = {
   newConversation: '➕ Nova conversa',
   restart: '🔄 Reiniciar com Remote Control',
   stopYes: '⏹ Sim, parar',
+  previewOff: '⏹ Desligar o link',
   cancel: 'Cancelar',
   back: '← Projetos',
 } as const;
@@ -55,6 +58,32 @@ export const askStop = (name: string) => `Parar ${name}? O que estiver a meio pe
 
 export const stopped = (name: string) => `⏹ ${name} parado. Reabre-o na app ou volta a abri-lo aqui com /projetos.`;
 
+// ── Pré-visualização (ADR 0018) — só o link e números de porta, nunca o que o terminal mostra ──
+export const CHOOSE_TO_PREVIEW = 'De que terminal queres o link?';
+
+export const choosePort = (name: string) => `${name} tem várias portas à escuta. Qual mostro?`;
+
+export const previewOn = (name: string, preview: { url: string; devPort: number }) =>
+  [
+    `🔗 ${name}`,
+    preview.url,
+    '',
+    `Porta ${preview.devPort} no PC de casa. Só abre nos dispositivos da tua tailnet; desliga-se sozinho quando o terminal ou o servidor de dev param.`,
+    'Se abrir sem dados: a app tem de chamar a API por /api (caminho relativo) e aceitar o host .ts.net (server.allowedHosts no Vite).',
+  ].join('\n');
+
+export const previewOff = (name: string, reason: 'manual' | 'terminal-ended' | 'port-closed', devPort: number) =>
+  ({
+    manual: `⏹ Link de ${name} desligado.`,
+    'terminal-ended': `⏹ Link de ${name} desligado — o terminal terminou.`,
+    'port-closed': `⏹ Link de ${name} desligado — o servidor de dev (porta ${devPort}) parou.`,
+  })[reason];
+
+export const PREVIEW_ALREADY_OFF = 'Esse link já estava desligado.';
+
+export const serveNotEnabled = (url: string | undefined) =>
+  `O Serve do Tailscale ainda não está ativado na tua tailnet. Ativa-o uma vez${url ? ` aqui: ${url}` : ' na consola do Tailscale'} e tenta outra vez.`;
+
 const ERRORS: Partial<Record<ErrorCode, string>> = {
   TERMINAL_001: 'Esse terminal já não existe.',
   TERMINAL_002: 'Já está o máximo de terminais abertos. Para um com /parar.',
@@ -65,6 +94,12 @@ const ERRORS: Partial<Record<ErrorCode, string>> = {
   TERMINAL_007: 'Esta pasta ainda não é de confiança para o Claude Code. Abre-a uma vez num terminal da app, no PC.',
   FOLDER_001: 'Essa pasta já não existe ou está fora de ALLOWED_ROOTS.',
   SESSION_001: 'Não há conversas gravadas neste projeto.',
+  PREVIEW_001: 'Nenhum servidor de dev à escuta nesse terminal. Pede ao Claude para o arrancar (npm run dev) e tenta outra vez.',
+  PREVIEW_002: 'Esse terminal não está a correr.',
+  PREVIEW_003: 'Essa porta já não está à escuta. Usa /preview outra vez.',
+  PREVIEW_004: 'Todas as portas de pré-visualização estão ocupadas. Desliga um link primeiro.',
+  PREVIEW_005: 'O Tailscale não respondeu no PC (está instalado e ligado?).',
+  PREVIEW_006: 'A pré-visualização está desligada no PC (falta TAILSCALE_BIN no backend).',
 };
 
 export const errorText = (code: ErrorCode) => ERRORS[code] ?? UNEXPECTED;

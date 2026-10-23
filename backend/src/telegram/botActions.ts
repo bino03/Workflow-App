@@ -1,5 +1,6 @@
 import { basename } from 'node:path';
 import { AppError } from '../common/errors.js';
+import type { StartPreviewResult, TerminalPreview } from '../preview/previewService.js';
 import type { ProjectEntry } from '../projects/project.schemas.js';
 import type { SessionInfo } from '../sessions/claudeSessions.js';
 import type { TerminalView } from '../terminals/terminalsService.js';
@@ -16,6 +17,8 @@ export type BotAction =
   | { kind: 'restart'; terminalId: string }
   | { kind: 'stop-ask'; terminalId: string }
   | { kind: 'stop'; terminalId: string }
+  | { kind: 'preview'; terminalId: string; devPort?: number }
+  | { kind: 'preview-off'; terminalId: string }
   | { kind: 'cancel' };
 
 export type BotReply = { text: string; keyboard?: InlineKeyboard };
@@ -40,6 +43,11 @@ export type BotActionsDeps = {
     stop(id: string): Promise<TerminalView>;
   };
   readUsage: () => UsageView;
+  /** The previews (ADR 0018); omitted when TAILSCALE_BIN is not set. */
+  previews?: {
+    start(terminalId: string, devPort: number | undefined, options: { quiet: true }): Promise<StartPreviewResult>;
+    stop(terminalId: string, reason: 'manual', options: { quiet: true }): Promise<boolean>;
+  };
   menus: MenuStore<BotAction>;
   timeZone?: string;
 };
@@ -73,13 +81,70 @@ export class BotActions {
           return this.askStop(action.terminalId);
         case 'stop':
           return await this.stop(action.terminalId);
+        case 'preview':
+          return await this.preview(action.terminalId, action.devPort);
+        case 'preview-off':
+          return await this.previewOff(action.terminalId);
         case 'cancel':
           return { text: text.CANCELLED };
       }
     } catch (error) {
+      if (error instanceof AppError && error.code === 'PREVIEW_007') {
+        return { text: text.serveNotEnabled(/https:\/\/\S+/.exec(error.message)?.[0]) };
+      }
       if (error instanceof AppError) return { text: text.errorText(error.code) };
       throw error;
     }
+  }
+
+  /** /preview: the running terminals; one tap starts (or offers the ports). Marked 🔗 when a link is live. */
+  previewMenu(): BotReply {
+    if (!this.deps.previews) return { text: text.errorText('PREVIEW_006') };
+    const running = this.deps.terminals.list().filter((terminal) => terminal.status === 'running');
+    if (running.length === 0) return { text: text.NOTHING_RUNNING };
+    return {
+      text: text.CHOOSE_TO_PREVIEW,
+      keyboard: running.map((terminal) => [
+        this.button(`${terminal.preview ? '🔗 ' : ''}${cut(this.nameOf(terminal), 60)}`, { kind: 'preview', terminalId: terminal.id }),
+      ]),
+    };
+  }
+
+  /** The message that carries a live link, with the button that turns it off — also sent when the app starts one. */
+  previewStarted(terminalId: string, preview: TerminalPreview): BotReply {
+    const terminal = this.deps.terminals.get(terminalId);
+    return {
+      text: text.previewOn(terminal ? this.nameOf(terminal) : 'terminal', preview),
+      keyboard: [[this.button(text.BUTTON.previewOff, { kind: 'preview-off', terminalId })]],
+    };
+  }
+
+  previewStopped(terminalId: string, preview: TerminalPreview, reason: 'manual' | 'terminal-ended' | 'port-closed'): BotReply {
+    const terminal = this.deps.terminals.get(terminalId);
+    return { text: text.previewOff(terminal ? this.nameOf(terminal) : 'terminal', reason, preview.devPort) };
+  }
+
+  private async preview(terminalId: string, devPort: number | undefined): Promise<BotReply> {
+    if (!this.deps.previews) return { text: text.errorText('PREVIEW_006') };
+    const terminal = this.deps.terminals.get(terminalId);
+    if (!terminal) throw new AppError('TERMINAL_001');
+    const result = await this.deps.previews.start(terminalId, devPort, { quiet: true });
+    if ('preview' in result) return this.previewStarted(terminalId, result.preview);
+    return {
+      text: text.choosePort(this.nameOf(terminal)),
+      keyboard: [
+        ...result.ports.map((port) => [this.button(`${port.port} · ${cut(port.process, 30)}`, { kind: 'preview', terminalId, devPort: port.port })]),
+        [this.button(text.BUTTON.cancel, { kind: 'cancel' })],
+      ],
+    };
+  }
+
+  private async previewOff(terminalId: string): Promise<BotReply> {
+    if (!this.deps.previews) return { text: text.errorText('PREVIEW_006') };
+    const terminal = this.deps.terminals.get(terminalId);
+    const live = terminal?.preview;
+    if (!terminal || !live || !(await this.deps.previews.stop(terminalId, 'manual', { quiet: true }))) return { text: text.PREVIEW_ALREADY_OFF };
+    return this.previewStopped(terminalId, live, 'manual');
   }
 
   status(): BotReply {

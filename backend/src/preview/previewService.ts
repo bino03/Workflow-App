@@ -59,17 +59,18 @@ export class PreviewService {
     return entry && publicView(entry);
   }
 
-  start(terminalId: string, devPort?: number): Promise<StartPreviewResult> {
+  /** `quiet`: do not tell the notifier — the caller (the bot) already replies with the link. */
+  start(terminalId: string, devPort?: number, { quiet = false }: { quiet?: boolean } = {}): Promise<StartPreviewResult> {
     const existing = this.get(terminalId);
     if (existing) return Promise.resolve({ preview: existing });
     const inFlight = this.starting.get(terminalId);
     if (inFlight) return inFlight;
-    const started = this.doStart(terminalId, devPort).finally(() => this.starting.delete(terminalId));
+    const started = this.doStart(terminalId, devPort, quiet).finally(() => this.starting.delete(terminalId));
     this.starting.set(terminalId, started);
     return started;
   }
 
-  private async doStart(terminalId: string, requested: number | undefined): Promise<StartPreviewResult> {
+  private async doStart(terminalId: string, requested: number | undefined, quiet: boolean): Promise<StartPreviewResult> {
     const info = this.runningTerminal(terminalId);
     const ports = await this.deps.devPorts(info.pid);
     let devPort: number;
@@ -104,7 +105,7 @@ export class PreviewService {
       this.previews.set(terminalId, { ...preview, pid: info.pid, detach: attached?.detach ?? (() => undefined) });
       this.ensurePolling();
       this.deps.log?.info({ terminalId, devPort, httpsPort }, 'preview started');
-      this.deps.notifier?.started(terminalId, preview);
+      if (!quiet) this.deps.notifier?.started(terminalId, preview);
       return { preview };
     } finally {
       this.reserved.delete(httpsPort);
@@ -115,7 +116,7 @@ export class PreviewService {
    * Turns a preview off. Idempotent. A manual stop that tailscale refuses keeps the entry and throws, so it
    * can be retried; an automatic one is dropped and logged (the next startup's cleanup catches the port).
    */
-  async stop(terminalId: string, reason: PreviewStopReason = 'manual'): Promise<boolean> {
+  async stop(terminalId: string, reason: PreviewStopReason = 'manual', { quiet = false }: { quiet?: boolean } = {}): Promise<boolean> {
     const entry = this.previews.get(terminalId);
     if (!entry || this.stopping.has(terminalId)) return false;
     this.stopping.add(terminalId);
@@ -130,7 +131,7 @@ export class PreviewService {
       entry.detach();
       if (this.previews.size === 0) this.stopPolling();
       this.deps.log?.info({ terminalId, httpsPort: entry.httpsPort, reason }, 'preview stopped');
-      if (reason !== 'shutdown') this.deps.notifier?.stopped(terminalId, publicView(entry), reason);
+      if (reason !== 'shutdown' && !quiet) this.deps.notifier?.stopped(terminalId, publicView(entry), reason);
       return true;
     } finally {
       this.stopping.delete(terminalId);

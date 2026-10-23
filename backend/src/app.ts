@@ -21,7 +21,7 @@ import { FoldersService } from './folders/foldersService.js';
 import { projectsRoutes } from './projects/projects.routes.js';
 import { devPortsOf } from './preview/listeningPorts.js';
 import { previewRoutes } from './preview/preview.routes.js';
-import { PreviewService, type PreviewServiceDeps } from './preview/previewService.js';
+import { type PreviewNotifier, PreviewService, type PreviewServiceDeps } from './preview/previewService.js';
 import { TailscaleCli } from './preview/tailscale.js';
 import { ProjectsService } from './projects/projectsService.js';
 import { ClaudeSessions } from './sessions/claudeSessions.js';
@@ -35,8 +35,8 @@ import { usageRoutes } from './usage/usage.routes.js';
 import { readUsage, writeUsageFiles } from './usage/usageFiles.js';
 import { type BotAction, BotActions } from './telegram/botActions.js';
 import { MenuStore } from './telegram/menuStore.js';
-import { TelegramApi } from './telegram/telegramApi.js';
-import { TelegramBot } from './telegram/telegramBot.js';
+import { type InlineKeyboard, TelegramApi } from './telegram/telegramApi.js';
+import { TelegramBot, type TelegramBotDeps } from './telegram/telegramBot.js';
 import type { TerminalManager } from './terminals/terminalManager.js';
 
 export type AppDeps = {
@@ -51,9 +51,21 @@ export type AppDeps = {
   logStream?: NodeJS.WritableStream;
   /** Previews only (ADR 0018): tests replace the Tailscale CLI and the port discovery. Default: the real ones. */
   preview?: { tailscale?: PreviewServiceDeps['tailscale']; devPorts?: PreviewServiceDeps['devPorts'] };
+  /** Tests only: a fake Telegram API (the bot's long polling and the preview notices go through it). */
+  telegramApi?: TelegramBotDeps['api'];
 };
 
-export async function buildApp({ config, terminalManager, sessionStore, stateStore, passkeyStore, logger = true, logStream, preview }: AppDeps): Promise<FastifyInstance> {
+export async function buildApp({
+  config,
+  terminalManager,
+  sessionStore,
+  stateStore,
+  passkeyStore,
+  logger = true,
+  logStream,
+  preview,
+  telegramApi,
+}: AppDeps): Promise<FastifyInstance> {
   const app = Fastify({
     logger: logger && {
       level: config.logLevel,
@@ -104,13 +116,19 @@ export async function buildApp({ config, terminalManager, sessionStore, stateSto
 
   const sessionsReader = new ClaudeSessions(config.terminals.claudeConfigDir);
 
-  // Dev-server previews over `tailscale serve` (ADR 0018): only with TAILSCALE_BIN.
+  // Dev-server previews over `tailscale serve` (ADR 0018): only with TAILSCALE_BIN. The bot, built further down,
+  // fills in who hears about a link starting or stopping.
+  let previewNotifier: PreviewNotifier | undefined;
   const previewService = config.preview
     ? new PreviewService({
         terminals: terminalManager,
         tailscale: preview?.tailscale ?? new TailscaleCli(config.preview.tailscaleBin),
         devPorts: preview?.devPorts ?? ((pid) => devPortsOf(pid, { exclude: [config.port] })),
         httpsPorts: config.preview.httpsPorts,
+        notifier: {
+          started: (...args) => previewNotifier?.started(...args),
+          stopped: (...args) => previewNotifier?.stopped(...args),
+        },
         log: app.log.child({ module: 'preview' }),
       })
     : undefined;
@@ -143,19 +161,25 @@ export async function buildApp({ config, terminalManager, sessionStore, stateSto
   // The Telegram bot (ADR 0017): only with TELEGRAM_BOT_TOKEN, a client of the same services as the routes.
   if (config.telegram) {
     const menus = new MenuStore<BotAction>();
-    const bot = new TelegramBot({
-      api: new TelegramApi(config.telegram.botToken),
-      allowedUserId: config.telegram.allowedUserId,
+    const api = telegramApi ?? new TelegramApi(config.telegram.botToken);
+    const allowedUserId = config.telegram.allowedUserId;
+    const log = app.log.child({ module: 'telegram' });
+    const actions = new BotActions({
+      projects: projectsService,
+      sessions: sessionsReader,
+      terminals: terminalsService,
+      readUsage: () => readUsage(config.dataDir),
+      previews: previewService,
       menus,
-      actions: new BotActions({
-        projects: projectsService,
-        sessions: sessionsReader,
-        terminals: terminalsService,
-        readUsage: () => readUsage(config.dataDir),
-        menus,
-      }),
-      log: app.log.child({ module: 'telegram' }),
     });
+    // A private chat's id is the user's id: the only place the bot writes without being asked (ADR 0018 point 5).
+    const notify = ({ text, keyboard }: { text: string; keyboard?: InlineKeyboard }) =>
+      void api.sendMessage(allowedUserId, text, keyboard).catch((error: unknown) => log.warn({ err: String(error) }, 'telegram: preview notice failed'));
+    previewNotifier = {
+      started: (terminalId, started) => notify(actions.previewStarted(terminalId, started)),
+      stopped: (terminalId, stopped, reason) => notify(actions.previewStopped(terminalId, stopped, reason)),
+    };
+    const bot = new TelegramBot({ api, allowedUserId, menus, actions, log });
     app.addHook('onReady', async () => bot.start());
     app.addHook('onClose', async () => bot.stop());
   }

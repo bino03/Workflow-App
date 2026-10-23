@@ -124,6 +124,9 @@ export class TelegramBot {
       case '/parar':
         reply = this.deps.actions.stopMenu();
         break;
+      case '/preview':
+        reply = this.deps.actions.previewMenu();
+        break;
       default:
         // /projetos, and any loose text: the project list is the way in.
         reply = command.startsWith('/') && command !== '/projetos' ? { text: text.HELP } : await this.safely(() => this.deps.actions.projects());
