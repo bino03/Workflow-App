@@ -33,6 +33,7 @@ Estados: `proposto` → `aceite` → `substituído`. Template: `Templates/ADR.md
 | [[0015-passkeys-webauthn]] | Passkeys (WebAuthn) como alternativa à password: descobríveis, várias, em `DATA_DIR/passkeys.json`, registo exige a password, rate limit partilhado, revogar mata as sessões dessa passkey; `rpID` por `.env` (complementa o 0003/0011) | `aceite` | 2026-10-09 |
 | [[0016-atalhos-editaveis-no-state]] | Atalhos de teclado editáveis nas Definições, guardados no `state.json` (só as alterações, `STATE_VERSION` 2); restrições `Alt+…`, colisões internas recusadas, Claude Code avisa | `aceite` | 2026-10-20 |
 | [[0017-bot-telegram-e-remote-control]] | Bot de Telegram (long polling, opcional, só o ID autorizado) que abre terminais com `--remote-control [<nome>]` — argumento novo à lista do 0012; nunca conteúdo dos terminais no Telegram (complementa o 0004/0012) | `aceite` (spike por fazer) | 2026-10-22 |
+| [[0018-pre-visualizacao-por-tailscale-serve]] | Pré-visualização de apps em dev por `tailscale serve` (só tailnet, nunca `funnel`), a pedido, ligada a um terminal: `TAILSCALE_BIN` com argumentos fixos (abre a regra 4 do 0004), porta descoberta pelo backend, limpeza só da própria gama; o bot envia o link (complementa o 0004/0017). A Workflow App continua em `127.0.0.1` | `aceite` (spike por fazer) | 2026-10-23 |
 
 ## Decisões que ainda vão precisar de ADR
 

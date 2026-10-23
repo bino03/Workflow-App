@@ -64,9 +64,9 @@ portas expostas, sem cookies cross-site).
 
 ## Ver uma app em desenvolvimento a partir de outro dispositivo
 
-> 🚧 Decidido em conversa (2026-09-28), ainda por montar. **Depende da forma de exposição** (ADR por
-> escrever, [[adr/README]] → "Como expor fora de casa"); os comandos abaixo assumem Tailscale, a opção que
-> tem estado à frente.
+> 🚧 Decidido no [[adr/0018-pre-visualizacao-por-tailscale-serve|ADR 0018]] (2026-10-23): a app passa a fazê-lo a
+> pedido — spec [[features/pre-visualizacao]], por implementar. Não depende de "Como expor fora de casa" (a
+> Workflow App continua em `127.0.0.1`). Os comandos abaixo são o que a app corre, e servem à mão entretanto.
 
 Para testar à mão uma app em que o Claude está a trabalhar no desktop **não se faz push/pull**: a app corre
 no desktop e o dispositivo abre um URL que chega lá.
@@ -100,7 +100,7 @@ não há CORS. Outros sítios onde o URL novo tem de entrar:
 **Posto de parte**: pôr esta app (a Workflow App) a fazer de proxy da app em teste (`/preview/<projeto>`).
 Possível, mas o WebSocket de hot reload do Vite, os caminhos base e os cookies da app em teste complicam
 muito — o `tailscale serve` resolve com uma linha. A app pode, no máximo, **mostrar** o link
-([[../notes/ideas]] → Pré-visualizar).
+([[features/pre-visualizacao]]).
 
 ## Cópia de segurança
 
