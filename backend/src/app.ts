@@ -20,6 +20,7 @@ import { foldersRoutes } from './folders/folders.routes.js';
 import { FoldersService } from './folders/foldersService.js';
 import { projectsRoutes } from './projects/projects.routes.js';
 import { devPortsOf } from './preview/listeningPorts.js';
+import { previewRoutes } from './preview/preview.routes.js';
 import { PreviewService, type PreviewServiceDeps } from './preview/previewService.js';
 import { TailscaleCli } from './preview/tailscale.js';
 import { ProjectsService } from './projects/projectsService.js';
@@ -130,6 +131,7 @@ export async function buildApp({ config, terminalManager, sessionStore, stateSto
     previews: previewService,
   });
   await app.register(terminalsRoutes, { terminalsService });
+  await app.register(previewRoutes, { terminalsService, previewService });
   await app.register(terminalsGateway, { terminalManager, sessionStore: sessions });
   await app.register(usageRoutes, { dataDir: config.dataDir });
   await app.register(sessionsRoutes, { sessions: sessionsReader, stateStore, terminalsService, allowedRoots: config.terminals.allowedRoots });

@@ -5,7 +5,7 @@
 | **Estado** | 🚧 Em curso |
 | **Criada** | 2026-10-23 |
 | **Última sessão** | 2026-10-23 |
-| **Passos** | 4 / 8 concluídos |
+| **Passos** | 5 / 8 concluídos |
 
 > Escrita para uma sessão que **não viu a conversa que a originou**. Se algo só faz sentido com contexto
 > externo, falta escrevê-lo.
@@ -89,7 +89,7 @@ Ambas entram na denylist do ambiente do `claude` (`backend/src/terminals/spawnCl
 ### 4.2 Endpoints
 | Método | Rota | Acesso | Descrição |
 |---|---|---|---|
-| `POST` | `/api/terminals/:id/preview` | sessão | Body `{ devPort?: number }`. Sem `devPort`: uma porta descoberta → liga (`201 { preview }`); várias → `200 { ports }` para escolher; nenhuma → `PREVIEW_001`. Com `devPort`: tem de estar entre as descobertas (`PREVIEW_003`). Já ligada → devolve a existente |
+| `POST` | `/api/terminals/:id/preview` | sessão | Body `{ devPort?: number }`. Sem `devPort`: uma porta descoberta → liga (`200 { preview }` — 200 e não 201, porque também é a resposta de "já estava ligada"); várias → `200 { ports }` para escolher; nenhuma → `PREVIEW_001`. Com `devPort`: tem de estar entre as descobertas (`PREVIEW_003`). Já ligada → devolve a existente |
 | `DELETE` | `/api/terminals/:id/preview` | sessão | Desliga; `204` (idempotente) |
 
 O `GET /api/terminals` passa a trazer `preview` em cada terminal.
@@ -196,7 +196,7 @@ com a mesma conta; ligar MagicDNS e HTTPS Certificates na consola da tailnet.
     `notifier` com o motivo); o arranque desliga só as portas da gama; sem `TAILSCALE_BIN` o serviço não existe
     e as rotas dão `PREVIEW_006`.
 
-- [ ] **5. Rotas REST**
+- [x] **5. Rotas REST** (2026-10-23)
   - Ficheiro: `backend/src/preview/preview.routes.ts`, `backend/src/app.ts`, `docs/api.md`; teste
     `backend/test/preview.routes.test.ts`
   - Skill: — ([[../backend-conventions]])
@@ -301,10 +301,20 @@ Tailscale e a descoberta de portas. `TerminalView.preview` (`terminalsService.ts
 espelho do frontend. `docs/database.md` com a linha do estado em memória. 339 testes verdes (16 novos); uma corrida
 deu "Worker exited unexpectedly" (a falha intermitente já em `notes/bugs.md`, acrescentada lá) e as duas seguintes
 passaram todas. Lint limpo; typecheck só com o erro antigo; `npx tsc -b` do frontend limpo.
+**Passo 5 (2026-10-23)** — `backend/src/preview/preview.routes.ts`, registado sempre em `app.ts` (sem
+`TAILSCALE_BIN` → `404 PREVIEW_006`): `POST` → `200 {preview}` | `200 {ports}` (body `.strict()`, só `devPort`), `DELETE`
+→ `204` idempotente; `TERMINAL_001` para id inválido ou fora do `state.json`. `docs/api.md` atualizado. 10 testes de
+rotas (sessão, validação, escolha, GET com `preview`, fecho do terminal e da app desligam, limpeza no arranque só da
+gama). Suite 349/349 em duas corridas; uma terceira deu 3 timeouts de hooks com PTYs reais — a falha intermitente, agora
+com os nomes dos testes em `notes/bugs.md`. **Chamado de verdade** (instância de `scripts/verify/` com o Tailscale real e
+um `claude` real num PTY): o arranque desligou uma porta 8446 deixada à mão e só essa; `POST` num `claude` sem servidor
+de dev → `409 PREVIEW_001` em 637 ms (árvore e portas lidas do Windows); 400, 404, 401 e `DELETE` 204 certos; no fim nada
+nosso servido.
 **Em curso:** nada.
-**Próxima ação concreta:** passo 5 — `backend/src/preview/preview.routes.ts` (`POST`/`DELETE /api/terminals/:id/preview`,
-`PREVIEW_006` quando não há `previewService`, `TERMINAL_001` para um id que não está no `state.json`), registo em
-`app.ts`, `docs/api.md`, `backend/test/preview.routes.test.ts` (com `AppDeps.preview`).
+**Próxima ação concreta:** passo 6 — bot: `/preview` em `backend/src/telegram/botMessages.ts` (`COMMANDS`, `HELP`,
+mensagens/erros), `previewMenu()` e `kind`s novos em `botActions.ts` (padrão do `stopMenu`, `:91-98`), `case '/preview'` em
+`telegramBot.ts:115`, e um `PreviewNotifier` montado em `app.ts` que envia ao `allowedUserId` (a `TelegramApi` está presa
+na montagem do bot, `app.ts:118-135`). Mostrar o link de ativação do `PREVIEW_007`.
 **Desvios ao plano:**
 - Spike (e) parcial — ver acima.
 - `processTree.ts` ficou em `backend/src/common/`, não em `preview/`: o `spawnClaude.ts` (terminais) também o usa, e os
