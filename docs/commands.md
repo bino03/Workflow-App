@@ -109,6 +109,34 @@ npm run build      # tsc -b + build do Vite
   `@vitejs/plugin-react@5` (o 6 exige o Vite 8); `typescript@6` (o 7 é um binário nativo novo). Os
   binários do Tailwind 4 (`@tailwindcss/oxide`, `lightningcss`) correram sem bloqueio a 2026-09-28.
 
+## Verificação no browser — `scripts/verify/`
+
+> ✅ 2026-10-23. Node 24 puro (`.mjs`, `WebSocket`/`fetch` globais), sem dependências — o `argon2` e o
+> `tsx` vêm do `backend/node_modules`. Só Windows (`netstat`, `taskkill`, caminho do `chrome.exe`).
+
+```bash
+cd frontend && npm run build && cd ..                     # a instância serve o frontend/dist
+node scripts/verify/instance.mjs start --fresh            # instância de teste na 7498 → imprime a pasta de execução
+node scripts/verify/smoke.mjs                             # cenário de exemplo: login pelo formulário, registo, consola
+node scripts/verify/instance.mjs stop --clean             # mata a árvore pelo PID da porta e apaga a pasta
+```
+
+- **`instance.mjs start`** — porta própria (`--port`, omissão 7498; recusa a 7400 e a 7401 do dono),
+  pasta de execução em `%TEMP%\wfa-verify-<porta>` (`--dir` para outra). Lá dentro: `data/` (`DATA_DIR`),
+  `roots/proj-alfa…` (`ALLOWED_ROOTS`, `--projects N`, omissão 3), `claude/` (`CLAUDE_CONFIG_DIR` próprio;
+  `--sessions` semeia duas sessões `.jsonl` falsas no 2.º projeto), `workflow/` falso com `projects/INDEX.md`
+  (ou `--workflow <caminho>` para um Workflow real), `backend.log` e **`instance.json`** (URL, utilizador,
+  password, pastas) que o driver lê. **Gera um login novo a cada arranque** (utilizador `verifier`, password
+  aleatória, hash argon2id). Anula tudo o que o `backend/.env` do dono define — o `loadEnvFile` não
+  sobrepõe variáveis já definidas, por isso o que ficasse de fora entrava (o `TELEGRAM_BOT_TOKEN` sobretudo).
+  `tsx` sem watch: gravar no `backend/` não a reinicia a meio de uma verificação.
+- **`instance.mjs stop`** — `taskkill /T /F` ao PID que escuta na porta (leva os `claude` filhos) e
+  confirma que o `/api/health` deixou de responder. Nunca filtra processos por linha de comando.
+- **`cdp.mjs`** — `openBrowser()` (Chrome headless, perfil descartável; `send`, `evaluate`, `waitFor`,
+  `type`, `key`, `api` com o cookie da página, `navigate`, `errors` da consola), `login()`, `checker()`
+  (`PASS`/`FAIL` e código de saída), `readInstance()`. Um cenário novo começa por copiar o `smoke.mjs`.
+- O URL é `localhost` (não `127.0.0.1`): é a única origem sob o `rpID` das passkeys.
+
 ## Testes — o que liga a quê
 
 | Peça | O quê | Liga a | Estado |
@@ -118,6 +146,7 @@ npm run build      # tsc -b + build do Vite
 | Backend | Spike manual da status line (`scripts/statusline-spike.ts`): `--session-id`, `--settings`, `rate_limits` no JSON, caminho do `.jsonl` | o `claude` real (`--prompt` gasta uma mensagem) | ✅ a 2026-09-28: `rate_limits` só depois da 1.ª resposta |
 | Frontend | `npx tsc -b` + lint | — | ✅ limpos a 2026-09-28 |
 | Frontend | Testes automáticos | — | **nenhum** (omissão da stack) — verificação no browser (DOM + rede); a `/_tokens` (só dev) mostra tokens e componentes comuns montados |
+| App inteira | `scripts/verify/` — cenários por CDP contra uma instância de teste (secção acima) | o backend real numa porta à parte, Chrome headless | ✅ `smoke.mjs` 6/6 a 2026-10-23. Os cenários das specs antigas não foram portados |
 
 **O que não está coberto, sem suavizar**: ninguém testa automaticamente o Claude Code a correr dentro
 do PTY (depende do login real e gasta quota); a renderização do terminal (canvas do xterm.js) só se

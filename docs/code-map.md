@@ -35,6 +35,7 @@ isso há os outros:
 | Política de pastas (`ALLOWED_ROOTS`: `realpath`, junctions, prefixo, maiúsculas) | `backend/src/folders/cwdPolicy.ts` |
 | Binário `claude`, ambiente do filho, kill da árvore | `backend/src/terminals/spawnClaude.ts` |
 | Spike manual do PTY com o `claude` real | `backend/scripts/pty-spike.ts` |
+| Verificação no browser (instância de teste, driver CDP, cenário de exemplo) | `scripts/verify/instance.mjs` · `scripts/verify/cdp.mjs` · `scripts/verify/smoke.mjs` — uso em [[commands]] |
 | Protocolo do WebSocket | `backend/src/terminals/protocol.ts` ↔ `frontend/src/types/terminal.ts` |
 | Rotas e providers | `frontend/src/main.tsx` |
 | Navegação persistente, barra de estado | `frontend/src/layouts/AppLayout.tsx` |

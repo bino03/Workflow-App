@@ -19,6 +19,8 @@ máquina onde o dono trabalha, e os terminais correm nela a sério.
 - [ ] A app testada em Linux: `node-pty` compilado; `cwdPolicy` (caminhos com maiúsculas distintas); leitura
       das sessões em `~/.claude/projects/` (cwd codificado `/home/x/app` → `-home-x-app`)
 - [ ] `claude` com login feito **pelo mesmo utilizador** que corre o backend
+- [ ] `scripts/verify/` portado para Linux: hoje usa `netstat -ano`, `taskkill /T` e o caminho do `chrome.exe`
+      (há `CHROME_BIN`)
 - [ ] Os projetos a abrir lá correm em Linux (um Visual Studio/.NET Framework não corre)
 - [ ] (Opcional, o maior ganho) RAM para 16 GB
 - [ ] O backend arranca sozinho (serviço/tarefa agendada) com o `PATH`/`HOME` certos ([[backend-conventions]] → Armadilhas)
@@ -44,7 +46,7 @@ portas expostas, sem cookies cross-site).
 | Para quê | Como, no desktop de casa |
 |---|---|
 | Verificação exploratória ("vê se isto ficou bem") | Chrome com a extensão Claude in Chrome; o resultado chega como capturas/GIFs. Ao vivo, só por remote desktop |
-| Regressões e fluxos críticos | Playwright headless — não precisa de sessão gráfica, reprodutível, corre num terminal como os outros testes |
+| Regressões e fluxos críticos | Playwright headless — não precisa de sessão gráfica, reprodutível, corre num terminal como os outros testes. **Neste repo**: Chrome headless por CDP direto, sem Playwright — `scripts/verify/` ([[commands]] → "Verificação no browser") |
 
 **Posto de parte**:
 - Controlar o Chrome do dispositivo remoto a partir do `claude` do desktop — precisaria de uma ponte entre
