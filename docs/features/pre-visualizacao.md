@@ -5,7 +5,7 @@
 | **Estado** | 🚧 Em curso |
 | **Criada** | 2026-10-23 |
 | **Última sessão** | 2026-10-23 |
-| **Passos** | 1 / 8 concluídos |
+| **Passos** | 2 / 8 concluídos |
 
 > Escrita para uma sessão que **não viu a conversa que a originou**. Se algo só faz sentido com contexto
 > externo, falta escrevê-lo.
@@ -164,7 +164,7 @@ com a mesma conta; ligar MagicDNS e HTTPS Certificates na consola da tailnet.
     `node` do dev server aparece na árvore de descendentes do PID do PTY; (e) o link abre num dispositivo da
     tailnet e **não** abre fora dela.
 
-- [ ] **2. Árvore de processos e portas em escuta (Windows + Linux)**
+- [x] **2. Árvore de processos e portas em escuta (Windows + Linux)** (2026-10-23; `processTree.ts` em `common/`)
   - Ficheiro: `backend/src/preview/processTree.ts`, `backend/src/preview/listeningPorts.ts`,
     `backend/src/terminals/spawnClaude.ts` (passa a importar `listDescendants`); testes
     `backend/test/processTree.test.ts`, `backend/test/listeningPorts.test.ts`
@@ -270,11 +270,23 @@ com a mesma conta; ligar MagicDNS e HTTPS Certificates na consola da tailnet.
 - (e) **Só em parte**: o link abriu (HTTPS válido) **no próprio desktop**; a tailnet ainda não tem outro
   dispositivo. "Abre noutro dispositivo da tailnet / não abre fora" fica para o **passo 8** (registado em
   `notes/verificacao-browser-pendente.md`) — adiado, não dispensado.
+**Passo 2 (2026-10-23)** — `backend/src/common/processTree.ts` (`listProcesses`, `descendantsOf`,
+`listDescendants`; Windows por `Get-CimInstance`, Linux por `/proc/*/stat`) e `backend/src/preview/listeningPorts.ts`
+(`devPortsOf(rootPid, {exclude})` → `DevPort[]`; Windows por `Get-NetTCPConnection`, Linux por `/proc/net/tcp*` +
+inodes de `/proc/<pid>/fd`; só loopback/*any*, sem `9229`, uma entrada por porta, ordenadas). O `spawnClaude.ts`
+importa o `listDescendants` partilhado e, no Linux, passa a matar com `SIGKILL` os descendentes que sobrevivem ao
+fecho (antes a lista vinha sempre vazia). 310 testes verdes (19 novos, incluindo um `node` real à escuta encontrado
+pelo `devPortsOf`), lint limpo, typecheck só com o erro antigo de `test/auth.test.ts`. **O Linux só está provado com
+fixtures** (`/proc` falso) — a prova real é no desktop Linux (checklist do passo 8).
 **Em curso:** nada.
-**Próxima ação concreta:** passo 2 — `backend/src/preview/processTree.ts` (mover `listDescendants` de
-`spawnClaude.ts:151-178` e acrescentar Linux por `/proc/*/stat`).
+**Próxima ação concreta:** passo 3 — `backend/src/preview/tailscale.ts` (as quatro formas de argumentos do ADR
+0018, tempo limite ~10 s com o texto "Serve is not enabled" → `PREVIEW_005` com o link) e `TAILSCALE_BIN` /
+`PREVIEW_HTTPS_PORTS` em `backend/src/config.ts`.
 **Desvios ao plano:**
 - Spike (e) parcial — ver acima.
+- `processTree.ts` ficou em `backend/src/common/`, não em `preview/`: o `spawnClaude.ts` (terminais) também o usa, e os
+  terminais não devem depender do módulo de pré-visualização ([[../adr/0006-organizacao-por-dominio|ADR 0006]]).
+- Uma melhoria fora do âmbito estrito, mas prevista na §4.3: o kill dos sobreviventes no Linux.
 **O que uma sessão nova precisa de saber:**
 - Investigação de 2026-10-23: o PID do PTY é o do próprio `claude` (`terminalManager.ts:79`, sem shell pelo meio);
   `listDescendants` já existe só para Windows (`spawnClaude.ts:151-178`) e devolve `[]` no Linux, onde o kill

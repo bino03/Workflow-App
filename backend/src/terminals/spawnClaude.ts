@@ -3,6 +3,7 @@ import { existsSync, statSync } from 'node:fs';
 import { delimiter, extname, isAbsolute, join } from 'node:path';
 import { promisify } from 'node:util';
 import * as pty from 'node-pty';
+import { listDescendants } from '../common/processTree.js';
 
 const isWindows = process.platform === 'win32';
 
@@ -148,35 +149,6 @@ export async function killProcessTree(ptyProcess: pty.IPty): Promise<void> {
   }
 }
 
-/** Every process below `rootPid` (Windows; elsewhere the PTY's hang-up takes them). */
-export async function listDescendants(rootPid: number): Promise<number[]> {
-  if (!isWindows) return [];
-  try {
-    const { stdout } = await execFileAsync(
-      'powershell',
-      ['-NoProfile', '-NonInteractive', '-Command', 'Get-CimInstance Win32_Process | ForEach-Object { "$($_.ProcessId) $($_.ParentProcessId)" }'],
-      { windowsHide: true },
-    );
-    const children = new Map<number, number[]>();
-    for (const line of stdout.trim().split(/\r?\n/)) {
-      const [pid, parent] = line.trim().split(' ').map(Number);
-      if (pid === undefined || parent === undefined || Number.isNaN(pid) || pid === parent) continue;
-      children.set(parent, [...(children.get(parent) ?? []), pid]);
-    }
-    const found: number[] = [];
-    const stack = [rootPid];
-    while (stack.length > 0) {
-      for (const child of children.get(stack.pop()!) ?? []) {
-        found.push(child);
-        stack.push(child);
-      }
-    }
-    return found;
-  } catch {
-    return [];
-  }
-}
-
 function isAlive(pid: number): boolean {
   try {
     process.kill(pid, 0);
@@ -217,11 +189,20 @@ export async function closeGracefully(ptyProcess: pty.IPty, { graceMs }: { grace
   await Promise.race([done, new Promise((r) => setTimeout(r, graceMs))]);
   if (!exited) await killProcessTree(ptyProcess);
   const survivors = tree.filter(isAlive);
-  if (isWindows && survivors.length > 0) {
+  if (survivors.length === 0) return;
+  if (isWindows) {
     try {
       await execFileAsync('taskkill', ['/F', ...survivors.flatMap((pid) => ['/PID', String(pid)])], { windowsHide: true });
     } catch {
       // Some had already exited between the check and the kill.
+    }
+    return;
+  }
+  for (const pid of survivors) {
+    try {
+      process.kill(pid, 'SIGKILL');
+    } catch {
+      // Already exited.
     }
   }
 }

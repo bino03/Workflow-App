@@ -34,6 +34,8 @@ isso há os outros:
 | Gestor de terminais (PTYs, scrollback) | `backend/src/terminals/terminalManager.ts` |
 | Política de pastas (`ALLOWED_ROOTS`: `realpath`, junctions, prefixo, maiúsculas) | `backend/src/folders/cwdPolicy.ts` |
 | Binário `claude`, ambiente do filho, kill da árvore | `backend/src/terminals/spawnClaude.ts` |
+| Árvore de processos (Windows + Linux) | `backend/src/common/processTree.ts` |
+| Portas de dev em escuta nos descendentes de um terminal (pré-visualização, 🚧 [[features/pre-visualizacao]]) | `backend/src/preview/listeningPorts.ts` |
 | Spike manual do PTY com o `claude` real | `backend/scripts/pty-spike.ts` |
 | Verificação no browser (instância de teste, driver CDP, cenário de exemplo) | `scripts/verify/instance.mjs` · `scripts/verify/cdp.mjs` · `scripts/verify/smoke.mjs` — uso em [[commands]] |
 | Protocolo do WebSocket | `backend/src/terminals/protocol.ts` ↔ `frontend/src/types/terminal.ts` |
