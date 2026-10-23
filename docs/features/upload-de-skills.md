@@ -2,10 +2,10 @@
 
 | | |
 |---|---|
-| **Estado** | 🚧 Em curso — verificado no browser (39/39) contra uma cópia da biblioteca; falta a passagem contra a real |
+| **Estado** | ✅ Concluída (2026-10-23) |
 | **Criada** | 2026-09-29 |
-| **Última sessão** | 2026-09-30 |
-| **Passos** | 5 / 6 concluídos (falta só a passagem do passo 6 contra a biblioteca REAL) |
+| **Última sessão** | 2026-10-23 |
+| **Passos** | 6 / 6 concluídos |
 
 > Escrita para uma sessão que **não viu a conversa que a originou**. Se algo só faz sentido com contexto
 > externo, falta escrevê-lo.
@@ -278,7 +278,7 @@ Ordem obrigatória. Tiers: `opus` (desenho, não delegar) · `sonnet` (implement
     stack na biblioteca → aviso a dizer para usar `/add-stack` primeiro; só tokens, nenhum hex novo;
     `npx tsc -b` e lint limpos.
 
-- [ ] **6. Verificação ponta a ponta + registo do padrão + fecho**
+- [x] **6. Verificação ponta a ponta + registo do padrão + fecho**
   - Ficheiro: `docs/product/use-cases.md`, `docs/skills/references/design/*` (se emergir um padrão novo
     para a zona de upload), `notes/ToDo.md`, `notes/whatIveDone.md`
   - Skill: `run`
@@ -327,12 +327,16 @@ frontmatter inválido 400, kebab-case, > 256 KB, escolher por clique, reabrir li
 e sem segundo GET, consola limpa) e 3/3 no estado vazio (sem stacks). Detalhe em
 `notes/verificacao-browser-pendente.md`.
 
-**Em curso:** passo 6 — falta **só** a passagem contra a biblioteca **real** (o mesmo código, já provado
-contra a cópia). A sessão foi impedida de escrever no `WORKFLOW_PATH` real por ser uma pasta partilhada
-fora deste repo, e o guarda faz sentido: essa passagem é do dono.
-**Próxima ação concreta:** um upload contra a biblioteca real, na stack `Tauri v2` ou `Rust + Axum`
-(nunca uma `proven`), com `notes/skill-teste-upload.md`, e limpar a seguir — passo a passo em
-`notes/verificacao-browser-pendente.md`.
+**Verificado contra a biblioteca REAL (2026-10-23), 18/18** — com o dono a aprovar a escrita na pasta
+partilhada. Instância de teste de `scripts/verify/` (`instance.mjs start --workflow <WORKFLOW_PATH real>`,
+login gerado, pelo formulário) e Chrome headless: tab Skills → "+ Adicionar skill" → stack `Tauri v2`
+pelo `Select` → `skill-teste-upload.md` pelo input de ficheiro → Enviar → notificação, drawer fecha, linha
+na tabela sem F5; a API passou de 19 para 20 skills, com `teste-upload` na stack `tauri`; no disco o
+ficheiro é igual ao enviado e o `git diff` do `STACK.md` é **uma linha** (`provides-skills: [teste-upload]`);
+consola limpa. **Limpo a seguir**: ficheiro apagado, a pasta `skills/` (que não existia e o `mkdir` criou)
+removida, `git checkout` do `STACK.md` — `git status` do Workflow limpo.
+
+**Feature fechada.** Nada em curso.
 
 **Desvios ao plano:**
 - Os testes da rota foram para `backend/test/library.upload.test.ts`, não `library.routes.test.ts` (esse
@@ -349,6 +353,11 @@ fora deste repo, e o guarda faz sentido: essa passagem é do dono.
   deste projeto recusa `setState` síncrono dentro de um efeito (`react-hooks/set-state-in-effect`).
 - O bloqueio de Application Control do Windows no Rollup nativo, que travou as duas sessões anteriores,
   **já não acontece**: o frontend arrancou à primeira.
+- A passagem real não usou a app do dono (7400) nem o `claude` real que o critério refere: foi numa
+  instância de teste com o `WORKFLOW_PATH` real. O que o passo quer provar — a escrita na biblioteca
+  verdadeira — não depende de qual backend a faz nem de terminais.
+- Um upload numa stack sem `skills/` cria essa pasta; a limpeza tem de a apagar também (o `git status`
+  não mostra pastas vazias).
 
 **O que uma sessão nova precisa de saber:**
 - Esta feature **escreve no disco do Workflow** (`WORKFLOW_PATH/library`), partilhado por todos os
@@ -356,7 +365,7 @@ fora deste repo, e o guarda faz sentido: essa passagem é do dono.
   `provides-skills: []`, nenhuma `proven`) e **limpa o que escreveu** no fim.
 - O âmbito ficou deliberadamente pequeno (só skills, sempre dentro de uma stack existente, sem overwrite)
   — ver §2 "Fora" antes de adicionar stacks/designs completos ou skills soltas: são 2ª fase.
-- Não falta nenhum passo de código. O que falta é abrir o browser.
+- Não falta nenhum passo.
 
 ## 7. Perguntas em aberto
 
