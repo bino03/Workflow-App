@@ -235,7 +235,11 @@ com a mesma conta; ligar MagicDNS e HTTPS Certificates na consola da tailnet.
   - Aceite quando: na app real, com um projeto de teste com Vite num terminal — atalho → link no cabeçalho e no
     Telegram → o dono abre-o **no PC dele fora da rede de casa** e vê a página com HMR; de fora da tailnet não
     abre; Vite + segunda porta → escolha; fechar o terminal → link morto (`curl` falha) e aviso no Telegram;
-    reiniciar o backend → `serve status` sem portas da gama. UI por CDP (`scripts/verify/`, com
+    reiniciar o backend → `serve status` sem portas da gama. **Medição de velocidade, a partir do PC do dono
+    fora de casa** (registada na secção 6): `tailscale ping <desktop>` (direto ou `via DERP`, e a latência);
+    primeiro carregamento a frio (cache desligada nas DevTools → "Load" e nº de pedidos) e um F5 com cache, contra
+    o mesmo projeto em `localhost` no desktop; tempo de um HMR. Se o primeiro carregamento passar de ~5 s ou a
+    ligação for por DERP, abre-se a pergunta da secção 7 "pré-visualizar o build". UI por CDP (`scripts/verify/`, com
     `TAILSCALE_BIN` vazio na instância de teste para os estados de erro; a passagem com o Tailscale real é na
     app do dono). Docs atualizados; spec fechada.
 
@@ -265,6 +269,7 @@ com a mesma conta; ligar MagicDNS e HTTPS Certificates na consola da tailnet.
 | O dev server lançado pelo `claude` em background continua descendente do PTY? | Passo 2 | Responde o spike; se não, procurar por `cwd` do processo dentro da pasta do terminal como fallback (decisão a tomar então) |
 | No Windows o `serve` pede elevação? | Passo 3 | Responde o spike |
 | Atalho por omissão para `togglePreview` | Não — passo 7 | Um `Alt+…` livre no catálogo |
+| Acrescentar "pré-visualizar o build" (`vite build && vite preview`, poucos ficheiros, sem HMR)? | Não — só se a medição do passo 8 for má | Em dev o Vite serve cada módulo à parte (centenas de pedidos): cada um paga a ida e volta a casa. Estimativa sem medição (2026-10-23): +1–3 s no primeiro carregamento, F5 seguintes e HMR quase iguais a local. Seria 2.ª fase, com quem arranca o `vite preview` por decidir (hoje a app não arranca servidores) |
 
 ## Relacionado
 
