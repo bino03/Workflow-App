@@ -12,6 +12,7 @@
 |---|---|---|
 | Terminais abertos (para reabrir), histórico de fechados, pastas recentes/favoritas, atalhos alterados | `state.json` em `DATA_DIR` | ✅ |
 | Terminal a correr (PTY, estado, código de saída) | memória do backend (`TerminalManager`) | ❌ — o processo morre com o backend |
+| Pré-visualização de um terminal (porta de dev, porta HTTPS, link) | memória do backend (`PreviewService`, [[adr/0018-pre-visualizacao-por-tailscale-serve]]) — o `serve` em si fica no daemon do Tailscale | ❌ — e no arranque o backend desliga as portas da gama `PREVIEW_HTTPS_PORTS` que tenham ficado servidas |
 | Scrollback | memória do backend | ❌ — de propósito: é conteúdo sensível, e a conversa já está no `.jsonl` do Claude Code |
 | Sessão de login | memória do backend | ❌ — [[adr/0003-auth-utilizador-unico]] |
 | Passkeys (só a parte pública: id, chave pública, contador, nome, datas) | `DATA_DIR/passkeys.json` — `{version: 1, passkeys: []}`, máx. 20, escrito só pelo `PasskeyStore` (`backend/src/auth/passkeyStore.ts`), escrita atómica, e **só fica em memória depois de estar no disco**. À parte do `state.json` de propósito: credenciais não se misturam com estado de terminais ([[adr/0015-passkeys-webauthn]]). Inválido → o backend não arranca | ✅ |

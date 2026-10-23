@@ -35,6 +35,14 @@ export const ErrorCode = {
   TERMINAL_005: { status: 503, message: 'claude binary not found (CLAUDE_BIN)' },
   TERMINAL_006: { status: 409, message: 'Terminal is already running' },
   TERMINAL_007: { status: 409, message: 'Folder not trusted by Claude Code yet' },
+  // PREVIEW
+  PREVIEW_001: { status: 409, message: 'No dev server listening in this terminal' },
+  PREVIEW_002: { status: 409, message: 'Terminal is not running' },
+  PREVIEW_003: { status: 400, message: 'That port is not listening in this terminal' },
+  PREVIEW_004: { status: 409, message: 'Every preview port is in use (PREVIEW_HTTPS_PORTS)' },
+  PREVIEW_005: { status: 503, message: 'Tailscale did not answer' },
+  PREVIEW_006: { status: 404, message: 'Previews are off (TAILSCALE_BIN)' },
+  PREVIEW_007: { status: 503, message: 'Tailscale Serve is not enabled on the tailnet' },
   // FOLDER
   FOLDER_001: { status: 403, message: 'Folder does not exist or is outside ALLOWED_ROOTS' },
   // SESSION

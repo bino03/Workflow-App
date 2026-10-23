@@ -31,6 +31,14 @@ export const ERROR_MESSAGES: Record<string, string> = {
   TERMINAL_005: 'O claude não foi encontrado no servidor. Confirma o CLAUDE_BIN.',
   TERMINAL_006: 'Este terminal já está a correr.',
   TERMINAL_007: 'Esta pasta ainda não é de confiança para o Claude Code — abre-a uma vez num terminal da app.',
+  // ── PREVIEW ────────────────────────────
+  PREVIEW_001: 'Nenhum servidor de dev à escuta neste terminal.',
+  PREVIEW_002: 'O terminal não está a correr.',
+  PREVIEW_003: 'Essa porta já não está à escuta neste terminal.',
+  PREVIEW_004: 'Todas as portas de pré-visualização estão ocupadas — desliga uma.',
+  PREVIEW_005: 'O Tailscale não respondeu (está instalado, ligado e com permissão?).',
+  PREVIEW_006: 'A pré-visualização está desligada (falta TAILSCALE_BIN no backend).',
+  PREVIEW_007: 'O Serve do Tailscale não está ativado na tailnet — ativa-o uma vez na consola do Tailscale.',
   // ── FOLDER ─────────────────────────────
   FOLDER_001: 'Esta pasta não existe ou está fora das pastas autorizadas.',
   // ── SESSION ────────────────────────────

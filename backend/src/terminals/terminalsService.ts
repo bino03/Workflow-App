@@ -1,5 +1,6 @@
 import { randomUUID } from 'node:crypto';
 import { AppError } from '../common/errors.js';
+import type { TerminalPreview } from '../preview/previewService.js';
 import { resolveAllowedPath } from '../folders/cwdPolicy.js';
 import type { ClaudeSessions } from '../sessions/claudeSessions.js';
 import type { AppState, SavedTerminal } from '../state/state.schema.js';
@@ -23,6 +24,8 @@ export type TerminalView = {
   lastOpenedAt: string;
   /** Launched with --remote-control: also reachable from the Claude app (ADR 0017). */
   remoteControl: boolean;
+  /** A live dev-server preview on the tailnet (ADR 0018), or null. */
+  preview: TerminalPreview | null;
 };
 
 export type CreateTerminal = {
@@ -48,6 +51,8 @@ export type TerminalsServiceDeps = {
    * Control launches ask: nobody is at the PTY to answer the trust dialog. Omitted → never trusted.
    */
   isTrustedFolder?: (cwd: string) => Promise<boolean>;
+  /** The previews (ADR 0018); omitted when TAILSCALE_BIN is not set — every terminal shows `preview: null`. */
+  previews?: { get(terminalId: string): TerminalPreview | undefined };
   now?: () => Date;
 };
 
@@ -249,6 +254,7 @@ export class TerminalsService {
       createdAt: saved.createdAt,
       lastOpenedAt: saved.lastOpenedAt,
       remoteControl: saved.remoteControl,
+      preview: this.deps.previews?.get(saved.id) ?? null,
     };
   }
 }

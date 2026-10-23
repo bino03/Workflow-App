@@ -35,7 +35,7 @@ isso há os outros:
 | Política de pastas (`ALLOWED_ROOTS`: `realpath`, junctions, prefixo, maiúsculas) | `backend/src/folders/cwdPolicy.ts` |
 | Binário `claude`, ambiente do filho, kill da árvore | `backend/src/terminals/spawnClaude.ts` |
 | Árvore de processos (Windows + Linux) | `backend/src/common/processTree.ts` |
-| Portas de dev em escuta nos descendentes de um terminal (pré-visualização, 🚧 [[features/pre-visualizacao]]) | `backend/src/preview/listeningPorts.ts` |
+| Pré-visualização (🚧 [[features/pre-visualizacao]], [[adr/0018-pre-visualizacao-por-tailscale-serve]]) | registo e ciclo de vida em `backend/src/preview/previewService.ts` · portas de dev nos descendentes em `preview/listeningPorts.ts` · o único sítio que lança o `tailscale` em `preview/tailscale.ts` · montagem em `app.ts` (só com `TAILSCALE_BIN`) |
 | Spike manual do PTY com o `claude` real | `backend/scripts/pty-spike.ts` |
 | Verificação no browser (instância de teste, driver CDP, cenário de exemplo) | `scripts/verify/instance.mjs` · `scripts/verify/cdp.mjs` · `scripts/verify/smoke.mjs` — uso em [[commands]] |
 | Protocolo do WebSocket | `backend/src/terminals/protocol.ts` ↔ `frontend/src/types/terminal.ts` |

@@ -5,7 +5,7 @@
 | **Estado** | 🚧 Em curso |
 | **Criada** | 2026-10-23 |
 | **Última sessão** | 2026-10-23 |
-| **Passos** | 3 / 8 concluídos |
+| **Passos** | 4 / 8 concluídos |
 
 > Escrita para uma sessão que **não viu a conversa que a originou**. Se algo só faz sentido com contexto
 > externo, falta escrevê-lo.
@@ -143,6 +143,7 @@ Módulo novo `backend/src/preview/`:
 | `PREVIEW_004` | 409 | Todas as portas de pré-visualização estão ocupadas — desliga uma. |
 | `PREVIEW_005` | 503 | O Tailscale não respondeu (está instalado, ligado e com permissão?). |
 | `PREVIEW_006` | 404 | A pré-visualização está desligada (falta `TAILSCALE_BIN`). |
+| `PREVIEW_007` | 503 | O Serve do Tailscale não está ativado na tailnet — ativa-o uma vez na consola. *(acrescentado no passo 4: o spike mostrou o caso; a mensagem do backend traz o link de ativação)* |
 
 Espelho 1:1 em `frontend/src/errors/errorMessages.ts`, mensagens do bot em `backend/src/telegram/botMessages.ts`.
 
@@ -183,7 +184,7 @@ com a mesma conta; ligar MagicDNS e HTTPS Certificates na consola da tailnet.
     recusa qualquer outra); portas validadas como inteiros 1-65535 antes de entrar no `argv`; erros sem o caminho
     do binário nem output para o cliente; config testada (vazia = desligada, gama inválida = não arranca).
 
-- [ ] **4. `PreviewService`: registo, ciclo de vida, limpeza, erros**
+- [x] **4. `PreviewService`: registo, ciclo de vida, limpeza, erros** (2026-10-23)
   - Ficheiro: `backend/src/preview/previewService.ts`, `backend/src/common/errors.ts` (`PREVIEW_001`–`006`),
     `backend/src/terminals/terminalsService.ts` (`preview` no `view()`), `backend/src/app.ts` (montagem,
     `cleanupOwnPorts` no arranque e no `onClose`); teste `backend/test/previewService.test.ts`
@@ -287,16 +288,31 @@ ativação) e `detail` (só para o log). `config.preview = { tailscaleBin, https
 323 testes verdes (13 novos; o `exec` falso recusa qualquer forma fora das quatro do ADR); corrido também contra o
 **CLI real** (nome, `serve` 8445, `servedPorts`, `off` duas vezes → vazio). `TAILSCALE_BIN` ainda **não** está no
 `backend/.env` do dono — só faz falta quando houver serviço e rotas (passo 4-5).
+**Passo 4 (2026-10-23)** — `backend/src/preview/previewService.ts`: `start(id, devPort?)` → `{preview}` | `{ports}`;
+`stop(id, reason)` idempotente; `get(id)`; `checkPorts()` (um só `setInterval` de 15 s, só com pré-visualizações vivas,
+`unref`); `cleanupOwnPorts()` (só portas da gama e sem pré-visualização viva); `shutdown()`. Um `start` em curso por
+terminal (dois cliques → um `serve`), portas HTTPS reservadas antes do primeiro `await` (dois terminais nunca recebem a
+mesma), terminal revalidado depois do `serve` (se saiu entretanto, `off` + `PREVIEW_002`). Desligar à mão que o
+Tailscale recuse **mantém** a entrada e lança `PREVIEW_005` (dá para tentar outra vez); desligar automático que falhe
+larga-a e fica no log (o arranque seguinte limpa). O nome do host é lido uma vez e guardado. `notifier` opcional
+(`started`/`stopped` com o motivo; o `shutdown` não notifica) — o bot liga-se no passo 6. Montado em `app.ts` só com
+`TAILSCALE_BIN`: `cleanupOwnPorts` no `onReady`, `shutdown` no `onClose`; `AppDeps.preview` deixa os testes trocarem o
+Tailscale e a descoberta de portas. `TerminalView.preview` (`terminalsService.ts`). `PREVIEW_001`–`007` no backend e no
+espelho do frontend. `docs/database.md` com a linha do estado em memória. 339 testes verdes (16 novos); uma corrida
+deu "Worker exited unexpectedly" (a falha intermitente já em `notes/bugs.md`, acrescentada lá) e as duas seguintes
+passaram todas. Lint limpo; typecheck só com o erro antigo; `npx tsc -b` do frontend limpo.
 **Em curso:** nada.
-**Próxima ação concreta:** passo 4 — `backend/src/preview/previewService.ts` (registo em memória, `start/stop`,
-ligação ao `onExit`/`onClose` do terminal, verificação da porta a cada 15 s, `cleanupOwnPorts()` com
-`servedPorts()` filtrado pela gama), `PREVIEW_001`–`006` em `backend/src/common/errors.ts`, campo `preview` no
-`view()` do `terminalsService.ts`. Tier `opus`.
+**Próxima ação concreta:** passo 5 — `backend/src/preview/preview.routes.ts` (`POST`/`DELETE /api/terminals/:id/preview`,
+`PREVIEW_006` quando não há `previewService`, `TERMINAL_001` para um id que não está no `state.json`), registo em
+`app.ts`, `docs/api.md`, `backend/test/preview.routes.test.ts` (com `AppDeps.preview`).
 **Desvios ao plano:**
 - Spike (e) parcial — ver acima.
 - `processTree.ts` ficou em `backend/src/common/`, não em `preview/`: o `spawnClaude.ts` (terminais) também o usa, e os
   terminais não devem depender do módulo de pré-visualização ([[../adr/0006-organizacao-por-dominio|ADR 0006]]).
 - Uma melhoria fora do âmbito estrito, mas prevista na §4.3: o kill dos sobreviventes no Linux.
+- Um sétimo código, `PREVIEW_007` (Serve por ativar na tailnet), separado do `PREVIEW_005`: é uma ação diferente do
+  dono (abrir o link de ativação uma vez), e a mensagem do backend leva o link — o frontend (passo 7) e o bot (passo 6)
+  devem mostrá-lo.
 **O que uma sessão nova precisa de saber:**
 - Investigação de 2026-10-23: o PID do PTY é o do próprio `claude` (`terminalManager.ts:79`, sem shell pelo meio);
   `listDescendants` já existe só para Windows (`spawnClaude.ts:151-178`) e devolve `[]` no Linux, onde o kill

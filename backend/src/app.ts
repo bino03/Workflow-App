@@ -19,6 +19,9 @@ import { MAX_SKILL_UPLOAD_BYTES, LibraryService } from './library/libraryService
 import { foldersRoutes } from './folders/folders.routes.js';
 import { FoldersService } from './folders/foldersService.js';
 import { projectsRoutes } from './projects/projects.routes.js';
+import { devPortsOf } from './preview/listeningPorts.js';
+import { PreviewService, type PreviewServiceDeps } from './preview/previewService.js';
+import { TailscaleCli } from './preview/tailscale.js';
 import { ProjectsService } from './projects/projectsService.js';
 import { ClaudeSessions } from './sessions/claudeSessions.js';
 import { isTrustedFolder } from './sessions/claudeTrust.js';
@@ -45,9 +48,11 @@ export type AppDeps = {
   logger?: boolean;
   /** Where the log goes (tests read it to prove terminal content never reaches it). Default: stdout. */
   logStream?: NodeJS.WritableStream;
+  /** Previews only (ADR 0018): tests replace the Tailscale CLI and the port discovery. Default: the real ones. */
+  preview?: { tailscale?: PreviewServiceDeps['tailscale']; devPorts?: PreviewServiceDeps['devPorts'] };
 };
 
-export async function buildApp({ config, terminalManager, sessionStore, stateStore, passkeyStore, logger = true, logStream }: AppDeps): Promise<FastifyInstance> {
+export async function buildApp({ config, terminalManager, sessionStore, stateStore, passkeyStore, logger = true, logStream, preview }: AppDeps): Promise<FastifyInstance> {
   const app = Fastify({
     logger: logger && {
       level: config.logLevel,
@@ -97,6 +102,23 @@ export async function buildApp({ config, terminalManager, sessionStore, stateSto
   await app.register(projectsRoutes, { projectsService });
 
   const sessionsReader = new ClaudeSessions(config.terminals.claudeConfigDir);
+
+  // Dev-server previews over `tailscale serve` (ADR 0018): only with TAILSCALE_BIN.
+  const previewService = config.preview
+    ? new PreviewService({
+        terminals: terminalManager,
+        tailscale: preview?.tailscale ?? new TailscaleCli(config.preview.tailscaleBin),
+        devPorts: preview?.devPorts ?? ((pid) => devPortsOf(pid, { exclude: [config.port] })),
+        httpsPorts: config.preview.httpsPorts,
+        log: app.log.child({ module: 'preview' }),
+      })
+    : undefined;
+  if (previewService) {
+    // `serve --bg` outlives the backend: a crash leaves ports served — turn them off before anything else.
+    app.addHook('onReady', async () => void (await previewService.cleanupOwnPorts()));
+    app.addHook('onClose', async () => previewService.shutdown());
+  }
+
   const terminalsService = new TerminalsService({
     stateStore,
     terminalManager,
@@ -105,6 +127,7 @@ export async function buildApp({ config, terminalManager, sessionStore, stateSto
     // Every claude gets the status line that keeps the quota in DATA_DIR/usage.json (ADR 0012).
     settingsPath: writeUsageFiles(config.dataDir),
     isTrustedFolder: (cwd) => isTrustedFolder(cwd, config.terminals.claudeConfigDir),
+    previews: previewService,
   });
   await app.register(terminalsRoutes, { terminalsService });
   await app.register(terminalsGateway, { terminalManager, sessionStore: sessions });
