@@ -335,12 +335,25 @@ manda `{"devPort":5173}` → modal fecha → etiqueta com o host e o link certo,
 `DELETE` e a etiqueta sai → `PREVIEW_007` mostra a mensagem pt e o botão, nunca o texto inglês do backend; consola sem
 erros; nada servido no fim. Capturas vistas (etiqueta e notificação dentro dos tokens). `npx tsc -b`/lint limpos; backend
 355/355. **Uma pré-visualização com um servidor de dev verdadeiro no browser** fica para o passo 8.
-**Em curso:** nada.
-**Próxima ação concreta:** passo 8 — com o dono. (1) `TAILSCALE_BIN=C:\Program Files\Tailscale\tailscale.exe` no
-`backend/.env` e reiniciar o backend (num momento sem terminais a meio). (2) Tailscale no PC do dono, mesma conta. (3)
-Num terminal da app, um projeto com Vite: pedir ao Claude `npm run dev` → `Alt+L` → link no cabeçalho e no Telegram →
-abrir no PC fora de casa; medições da §5 passo 8; `/preview` no bot real; fechar o terminal → aviso. (4) Docs da lista
-do passo 8.
+**Passo 8 — começado (2026-10-23), parado à espera do dono:**
+- ✅ `TAILSCALE_BIN=C:/Program Files/Tailscale/tailscale.exe` (barras normais — o `execFile` aceita, e evita a armadilha
+  das barras invertidas no Bash) acrescentado ao `backend/.env` do dono, backend de dev reiniciado sem terminais abertos
+  (health 200, bot a fazer polling). **A pré-visualização está ligada na app do dono.**
+- ✅ Código (passos 1-7) com push em `origin/main` (`9bb76ab`).
+- ⏳ Falta tudo o que precisa do dono — checklist em `notes/verificacao-browser-pendente.md` → "spec `pre-visualizacao`,
+  passo 8".
+- ⏳ Falta a documentação do passo 8 (abaixo), que depende do resultado.
+**Em curso:** passo 8 — verificação real com o dono.
+**Próxima ação concreta:** (1) o dono instala o Tailscale no PC remoto, mesma conta (`tailscale status` no desktop passa a
+listar um *peer*). (2) Num terminal da app (http://localhost:7401), num projeto com Vite, pedir ao Claude
+`npm run dev` em background. (3) `Alt+L` na app **ou** `/preview` no Telegram → link no cabeçalho e no Telegram. (4) No PC
+fora de casa: abrir o link (HMR a funcionar), medições da §5 passo 8 (`tailscale ping bino`, carregamento a frio e com
+cache, HMR), Tailscale desligado → não abre. (5) Fechar o terminal → aviso no Telegram, `serve status` sem portas da gama.
+Depois: registar as medições aqui, decidir a pergunta "pré-visualizar o build" da §7, e a documentação do passo 8:
+`docs/operations.md` (secção "Ver uma app em desenvolvimento" 🚧→✅; pré-requisitos Tailscale no Windows e no Linux —
+*operator*, Serve ativado na tailnet), `docs/architecture.md`, `docs/adr/0018` (Estado: confirmações), `CLAUDE.md`
+regra 3 e `backend/CLAUDE.md`/`code-best-practices.md` ("só `CLAUDE_BIN`" passou a ter a exceção do ADR 0018),
+`notes/whatIveDone.md`; spec ✅, linha do backlog e item do ToDo fora.
 **Desvios ao plano:**
 - Spike (e) parcial — ver acima.
 - `processTree.ts` ficou em `backend/src/common/`, não em `preview/`: o `spawnClaude.ts` (terminais) também o usa, e os
