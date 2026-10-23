@@ -66,3 +66,14 @@ Falta a app fazê-lo a pedido e entregar o link (na app e pelo bot de Telegram).
   ou `__Host-` + origem exata). Este ADR não o resolve porque não expõe a app.
 - `TAILSCALE_*`/`PREVIEW_*` entram na denylist do ambiente do `claude` e em `docs/security.md` (o que o
   backend pode lançar).
+- O nome `<host>.<tailnet>.ts.net` é **público** (DNS público → IP `100.x` da tailnet, e logs de Certificate
+  Transparency do certificado HTTPS). Quem o souber não chega à app — o endereço só se alcança dentro da tailnet.
+
+## Estado
+
+`aceite`. **Spike de 2026-10-23** (`backend/scripts/preview-spike.ts`, Tailscale 1.104.2, Windows): `serve --bg`
+funciona sem elevação em qualquer porta HTTPS e o CLI sai logo (a configuração fica no daemon); `off` numa porta não
+servida sai com 1 ("handler does not exist"); com o Serve por ativar na tailnet o CLI **fica pendurado** com um link
+de ativação (o backend precisa de tempo limite); o primeiro pedido HTTPS de sempre demora ~25 s (certificado). Um
+servidor lançado em background pelo `claude` fica na árvore de descendentes dele. Por confirmar no fim da spec: o
+link noutro dispositivo da tailnet (só testado no próprio desktop) e o Linux (*operator*).

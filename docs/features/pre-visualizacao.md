@@ -2,10 +2,10 @@
 
 | | |
 |---|---|
-| **Estado** | 📋 Planeada |
+| **Estado** | 🚧 Em curso |
 | **Criada** | 2026-10-23 |
 | **Última sessão** | 2026-10-23 |
-| **Passos** | 0 / 8 concluídos |
+| **Passos** | 1 / 8 concluídos |
 
 > Escrita para uma sessão que **não viu a conversa que a originou**. Se algo só faz sentido com contexto
 > externo, falta escrevê-lo.
@@ -82,7 +82,7 @@ Configuração nova (`backend/src/config.ts`, `docs/environment.md`):
 | Variável | Omissão | Nota |
 |---|---|---|
 | `TAILSCALE_BIN` | vazia = **feature desligada** | Caminho ou nome do CLI (`tailscale` / `tailscale.exe`) |
-| `PREVIEW_HTTPS_PORTS` | `8443-8446` (a confirmar no spike) | Gama das portas HTTPS do `serve`; nunca a `PORT` do backend |
+| `PREVIEW_HTTPS_PORTS` | `8443-8446` (o spike mostrou que qualquer porta serve) | Gama das portas HTTPS do `serve`; nunca a `PORT` do backend |
 
 Ambas entram na denylist do ambiente do `claude` (`backend/src/terminals/spawnClaude.ts`, `DENIED_*`).
 
@@ -152,7 +152,7 @@ Ordem obrigatória. Tiers: `opus` (desenho, não delegar) · `sonnet` (implement
 **Pré-requisito do dono, antes do passo 1:** instalar o Tailscale no desktop e no PC onde vai abrir os links,
 com a mesma conta; ligar MagicDNS e HTTPS Certificates na consola da tailnet.
 
-- [ ] **1. Spike: Tailscale CLI + árvore de processos do `claude`**
+- [x] **1. Spike: Tailscale CLI + árvore de processos do `claude`** (2026-10-23; (e) parcial → passo 8)
   - Ficheiro: `backend/scripts/preview-spike.ts` (manual, como `remote-control-spike.ts`)
   - Skill: — ([[../backend-conventions]])
   - Tier: `opus`
@@ -247,10 +247,34 @@ com a mesma conta; ligar MagicDNS e HTTPS Certificates na consola da tailnet.
 
 > ⚠️ **Atualizar SEMPRE no fim de cada sessão.** É a secção que torna esta spec retomável.
 
-**Feito:** spec e [[../adr/0018-pre-visualizacao-por-tailscale-serve|ADR 0018]] (2026-10-23). Nada de código.
+**Feito:** spec e [[../adr/0018-pre-visualizacao-por-tailscale-serve|ADR 0018]] (2026-10-23).
+**Passo 1 (spike, 2026-10-23)** — `backend/scripts/preview-spike.ts`, Tailscale 1.104.2 no Windows, desktop
+`bino.tailb8eca6.ts.net`:
+- (a) `serve --bg --https=<P> http://127.0.0.1:<D>` **sem elevação**, em **qualquer porta** (8443, 8444, 9443,
+  10443), 50–230 ms; o CLI sai logo e a configuração fica no daemon. → omissão de `PREVIEW_HTTPS_PORTS` = `8443-8446`.
+- ⚠️ **Serve não ativado na tailnet** → o CLI **não falha: fica pendurado para sempre** a imprimir
+  "Serve is not enabled on your tailnet. To enable, visit: https://login.tailscale.com/f/serve?node=…". O cliente
+  (passo 3) tem de ter tempo limite (~10 s), reconhecer esse texto e devolver `PREVIEW_005` com o link de ativação.
+- (b) `status --json` → `Self.DNSName` = `"bino.tailb8eca6.ts.net."` (tirar o ponto final). `serve status --json`
+  → `{"TCP": {"8443": {"HTTPS": true}}, "Web": {"<host>:8443": {"Handlers": {"/": {"Proxy": "http://127.0.0.1:5199"}}}}}`;
+  sem nada → `{}`. Dá para saber que porta local cada `<P>` serve (limpeza no arranque).
+- (c) O **primeiro pedido HTTPS de sempre levou 26,6 s** (emissão do certificado); depois 14–70 ms, em qualquer
+  porta (o certificado é do host). `serve --https=<P> off` sai 0; numa porta que não está servida sai **1** com
+  `error: failed to remove web serve: handler does not exist` → tratar como "já desligada".
+- O nome resolve **no DNS público** (8.8.8.8) para `100.82.195.25` (CGNAT, só alcançável dentro da tailnet), e
+  fica nos logs públicos de Certificate Transparency: o nome é público, o conteúdo não.
+- (d) Um servidor lançado em background por um `claude.exe` 2.1.309 fica na árvore dele:
+  `node.exe ← bash.exe ×3 ← claude.exe` (provado com a sessão de Claude Code que fez o spike, não com um terminal
+  da app — o PTY lança o `claude` diretamente, `pty.pid`, por isso a cadeia é a mesma; o passo 8 confirma).
+  `Get-NetTCPConnection -LocalPort <D> -State Listen` dá o `OwningProcess` sem elevação.
+- (e) **Só em parte**: o link abriu (HTTPS válido) **no próprio desktop**; a tailnet ainda não tem outro
+  dispositivo. "Abre noutro dispositivo da tailnet / não abre fora" fica para o **passo 8** (registado em
+  `notes/verificacao-browser-pendente.md`) — adiado, não dispensado.
 **Em curso:** nada.
-**Próxima ação concreta:** o dono instala o Tailscale (pré-requisito acima); depois passo 1, o spike.
-**Desvios ao plano:** —
+**Próxima ação concreta:** passo 2 — `backend/src/preview/processTree.ts` (mover `listDescendants` de
+`spawnClaude.ts:151-178` e acrescentar Linux por `/proc/*/stat`).
+**Desvios ao plano:**
+- Spike (e) parcial — ver acima.
 **O que uma sessão nova precisa de saber:**
 - Investigação de 2026-10-23: o PID do PTY é o do próprio `claude` (`terminalManager.ts:79`, sem shell pelo meio);
   `listDescendants` já existe só para Windows (`spawnClaude.ts:151-178`) e devolve `[]` no Linux, onde o kill
@@ -265,9 +289,9 @@ com a mesma conta; ligar MagicDNS e HTTPS Certificates na consola da tailnet.
 
 | Pergunta | Bloqueia | Notas |
 |---|---|---|
-| Que portas HTTPS o `tailscale serve` aceita nesta versão? | Passo 3 (omissão de `PREVIEW_HTTPS_PORTS`) | Responde o spike (passo 1) |
-| O dev server lançado pelo `claude` em background continua descendente do PTY? | Passo 2 | Responde o spike; se não, procurar por `cwd` do processo dentro da pasta do terminal como fallback (decisão a tomar então) |
-| No Windows o `serve` pede elevação? | Passo 3 | Responde o spike |
+| ~~Que portas HTTPS o `tailscale serve` aceita?~~ | — | ✅ Qualquer uma (spike, 2026-10-23) → `8443-8446` |
+| ~~O dev server lançado pelo `claude` em background continua descendente?~~ | — | ✅ Sim (spike (d)) |
+| ~~No Windows o `serve` pede elevação?~~ | — | ✅ Não (spike (a)) |
 | Atalho por omissão para `togglePreview` | Não — passo 7 | Um `Alt+…` livre no catálogo |
 | Acrescentar "pré-visualizar o build" (`vite build && vite preview`, poucos ficheiros, sem HMR)? | Não — só se a medição do passo 8 for má | Em dev o Vite serve cada módulo à parte (centenas de pedidos): cada um paga a ida e volta a casa. Estimativa sem medição (2026-10-23): +1–3 s no primeiro carregamento, F5 seguintes e HMR quase iguais a local. Seria 2.ª fase, com quem arranca o `vite preview` por decidir (hoje a app não arranca servidores) |
 
