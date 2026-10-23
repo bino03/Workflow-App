@@ -94,6 +94,12 @@ lista):
   entry point nunca precisava, é menos bloat do que um formulário completo com metade desligada
   ([[../../../features/terminais|terminais]] passo 13, "Substituído 2026-09-29").
 
+**Variante: seletor de um clique** (`components/terminals/PreviewPortsModal.tsx`, 2026-10-23, verificado em Chrome
+headless) — quando a escolha é uma só, curta (2-5 linhas) e fácil de desfazer, cada linha é a ação: sem estado
+"selecionado" nem botão de confirmar, só Cancelar no rodapé; a linha clicada mostra "a ligar…" e as outras ficam
+`disabled` até a resposta chegar. Largura `min(520px, 94vw)`. Com consequências (apagar, sobrescrever), não: aí é
+selecionar + confirmar, como no `ResumeSessionModal`.
+
 ## Confirmações
 
 `useConfirm()` — nunca `Popconfirm`. `Modal.confirm` só quando a confirmação precisa de mais
