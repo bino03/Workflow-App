@@ -133,4 +133,31 @@ describe('loadConfig', () => {
       expect(issues.join()).not.toContain('not-a-token-secret');
     });
   });
+
+  describe('previews (ADR 0018)', () => {
+    const BIN = 'C:\\Program Files\\Tailscale\\tailscale.exe';
+
+    it('no TAILSCALE_BIN → previews off; an empty line counts as unset', () => {
+      expect(loadConfig(testEnv()).preview).toBeUndefined();
+      expect(loadConfig(testEnv({ TAILSCALE_BIN: '  ' })).preview).toBeUndefined();
+    });
+
+    it('TAILSCALE_BIN → previews on, with the default HTTPS range 8443-8446', () => {
+      expect(loadConfig(testEnv({ TAILSCALE_BIN: BIN })).preview).toEqual({ tailscaleBin: BIN, httpsPorts: [8443, 8444, 8445, 8446] });
+    });
+
+    it('reads lists and ranges, without duplicates', () => {
+      expect(loadConfig(testEnv({ TAILSCALE_BIN: BIN, PREVIEW_HTTPS_PORTS: '9443, 8443-8444,8443' })).preview?.httpsPorts).toEqual([9443, 8443, 8444]);
+    });
+
+    it('refuses malformed, out-of-range, reversed, empty or too large port lists', () => {
+      for (const bad of ['abc', '0', '70000', '8446-8443', ' , ', '1000-2000', '8443;8444']) {
+        expect(issuesOf(testEnv({ TAILSCALE_BIN: BIN, PREVIEW_HTTPS_PORTS: bad })).some((i) => i.startsWith('PREVIEW_HTTPS_PORTS:'))).toBe(true);
+      }
+    });
+
+    it("refuses a range that includes the backend's own PORT — the app itself would land on the tailnet", () => {
+      expect(issuesOf(testEnv({ TAILSCALE_BIN: BIN, PORT: '8444' }))).toEqual(['PREVIEW_HTTPS_PORTS: must not include PORT (8444)']);
+    });
+  });
 });

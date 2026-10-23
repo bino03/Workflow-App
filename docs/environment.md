@@ -34,10 +34,12 @@ Nenhum destes ficheiros está no git. Num clone novo, criá-los a partir dos `.e
 | `DATA_DIR` | — | `C:\Users\jlalv\.workflow-app` | Onde vive o `state.json` ([[database]], [[adr/0009-estado-em-ficheiro-json]]). **Omissão `~/.workflow-app`** — fora do repo, para nunca ser commitado. Absoluto; criada no arranque se não existir. `state.json` inválido → o backend não arranca (e nunca o sobrescreve) |
 | `FRONTEND_DIST` | — | `C:\…\frontend\dist` | Build do frontend que o backend serve. **Omissão: `frontend/dist` do repo.** Absoluto. Sem `index.html` lá dentro → só a API (aviso no arranque). Quando serve, a própria origem (`localhost`/`127.0.0.1` na `PORT`) passa a ser aceite no WebSocket ([[security]] → CORS) |
 | `TELEGRAM_BOT_TOKEN` | — | `7012345678:AAF…` | Bot de Telegram ([[adr/0017-bot-telegram-e-remote-control]]). **Vazia = sem bot.** Token do `@BotFather`. ⚠️ Nunca na instância de teste: dois backends com o mesmo token disputam o `getUpdates` (409) — o `scripts/verify/instance.mjs` anula-a |
+| `TAILSCALE_BIN` | — | `C:\Program Files\Tailscale\tailscale.exe` · `tailscale` | Pré-visualização de apps em dev por `tailscale serve`, só na tailnet ([[adr/0018-pre-visualizacao-por-tailscale-serve]]). **Vazia = sem pré-visualização.** Só lançado com argumentos fixos (`src/preview/tailscale.ts`). No Linux, o utilizador do backend tem de ser *operator* (`sudo tailscale set --operator=$USER`, uma vez); o Serve tem de estar ativado na tailnet (senão o CLI fica pendurado — o backend corta aos 10 s) |
+| `PREVIEW_HTTPS_PORTS` | — | `8443-8446` | Portas HTTPS que o `serve` pode usar, uma por pré-visualização ao mesmo tempo. Lista e/ou intervalos (`8443-8446,9443`), máx. 32; **nunca a `PORT`** (não arranca). Omissão `8443-8446` |
 | `TELEGRAM_ALLOWED_USER_ID` | se houver token | `123456789` | O único utilizador de Telegram a quem o bot responde (o teu ID, do `@userinfobot`). Token sem ID → não arranca |
 
 **O que o processo `claude` recebe**: o ambiente do backend **sem** `ANTHROPIC_*`, `CLAUDE_CODE_*`,
-`CLAUDECODE`, todas as `CLAUDE_*`, todas as `TELEGRAM_*` e sem as variáveis desta tabela (exceto um `CLAUDE_CONFIG_DIR` absoluto) — ver
+`CLAUDECODE`, todas as `CLAUDE_*`, todas as `TELEGRAM_*`, `TAILSCALE_*`, `PREVIEW_*` e sem as variáveis desta tabela (exceto um `CLAUDE_CONFIG_DIR` absoluto) — ver
 [[backend-conventions]] → regra 8 e Armadilhas. Nenhuma variável desta
 app é uma chave da Anthropic, e nunca deve ser.
 

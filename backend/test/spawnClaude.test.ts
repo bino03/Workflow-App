@@ -28,6 +28,8 @@ describe('childEnv', () => {
       FRONTEND_DIST: 'C:\\dist',
       TELEGRAM_BOT_TOKEN: '123456:ABCdefGHIjklMNOpqrSTUvwxYZ0123456789',
       telegram_allowed_user_id: '42',
+      TAILSCALE_BIN: 'C:\\Program Files\\Tailscale\\tailscale.exe',
+      preview_https_ports: '8443-8446',
       CLAUDE_CONFIG_DIR: 'C:\\Users\\me\\.claude',
     });
     expect(env).toEqual({

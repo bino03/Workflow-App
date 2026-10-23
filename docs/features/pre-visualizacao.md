@@ -5,7 +5,7 @@
 | **Estado** | 🚧 Em curso |
 | **Criada** | 2026-10-23 |
 | **Última sessão** | 2026-10-23 |
-| **Passos** | 2 / 8 concluídos |
+| **Passos** | 3 / 8 concluídos |
 
 > Escrita para uma sessão que **não viu a conversa que a originou**. Se algo só faz sentido com contexto
 > externo, falta escrevê-lo.
@@ -174,7 +174,7 @@ com a mesma conta; ligar MagicDNS e HTTPS Certificates na consola da tailnet.
     (Linux); `listeningPorts` exclui `config.port` e `9229`; comandos fixos com `execFile`, sem shell; testes do
     `spawnClaude` continuam verdes; contra um `node` real a escutar numa porta, devolve-a com o nome do processo.
 
-- [ ] **3. Cliente do Tailscale + configuração**
+- [x] **3. Cliente do Tailscale + configuração** (2026-10-23)
   - Ficheiro: `backend/src/preview/tailscale.ts`, `backend/src/config.ts` (`TAILSCALE_BIN`, `PREVIEW_HTTPS_PORTS`),
     `backend/src/terminals/spawnClaude.ts` (denylist), `backend/.env.example`; teste `backend/test/tailscale.test.ts`
   - Skill: — ([[../backend-conventions]])
@@ -278,10 +278,20 @@ importa o `listDescendants` partilhado e, no Linux, passa a matar com `SIGKILL` 
 fecho (antes a lista vinha sempre vazia). 310 testes verdes (19 novos, incluindo um `node` real à escuta encontrado
 pelo `devPortsOf`), lint limpo, typecheck só com o erro antigo de `test/auth.test.ts`. **O Linux só está provado com
 fixtures** (`/proc` falso) — a prova real é no desktop Linux (checklist do passo 8).
+**Passo 3 (2026-10-23)** — `backend/src/preview/tailscale.ts`: `TailscaleCli(bin, exec?, timeoutMs = 10 000)` com
+`hostName()`, `servedPorts()` (`Map<httpsPort, proxyTarget>`), `serve(P, D)`, `off(P)` (idempotente); portas
+validadas antes do `argv`; `TailscaleError` com `reason: 'not-enabled' | 'unavailable'`, `enableUrl` (link de
+ativação) e `detail` (só para o log). `config.preview = { tailscaleBin, httpsPorts } | undefined`
+(`TAILSCALE_BIN` vazia = desligada; `PREVIEW_HTTPS_PORTS` lista/intervalos, máx. 32, recusa a `PORT`).
+`TAILSCALE_*`/`PREVIEW_*` na denylist do filho. Documentado em `docs/environment.md` e `backend/.env.example`.
+323 testes verdes (13 novos; o `exec` falso recusa qualquer forma fora das quatro do ADR); corrido também contra o
+**CLI real** (nome, `serve` 8445, `servedPorts`, `off` duas vezes → vazio). `TAILSCALE_BIN` ainda **não** está no
+`backend/.env` do dono — só faz falta quando houver serviço e rotas (passo 4-5).
 **Em curso:** nada.
-**Próxima ação concreta:** passo 3 — `backend/src/preview/tailscale.ts` (as quatro formas de argumentos do ADR
-0018, tempo limite ~10 s com o texto "Serve is not enabled" → `PREVIEW_005` com o link) e `TAILSCALE_BIN` /
-`PREVIEW_HTTPS_PORTS` em `backend/src/config.ts`.
+**Próxima ação concreta:** passo 4 — `backend/src/preview/previewService.ts` (registo em memória, `start/stop`,
+ligação ao `onExit`/`onClose` do terminal, verificação da porta a cada 15 s, `cleanupOwnPorts()` com
+`servedPorts()` filtrado pela gama), `PREVIEW_001`–`006` em `backend/src/common/errors.ts`, campo `preview` no
+`view()` do `terminalsService.ts`. Tier `opus`.
 **Desvios ao plano:**
 - Spike (e) parcial — ver acima.
 - `processTree.ts` ficou em `backend/src/common/`, não em `preview/`: o `spawnClaude.ts` (terminais) também o usa, e os

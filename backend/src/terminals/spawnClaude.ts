@@ -14,9 +14,10 @@ const isWindows = process.platform === 'win32';
  *   CLAUDE_PID, CLAUDE_EFFORT, CLAUDE_JOB_DIR…) and make the child behave as a nested session (and carry
  *   that session's messaging token). Only CLAUDE_CONFIG_DIR is the user's own choice and goes through;
  * - the backend's own configuration: secrets, and PORT/HOST, which a dev server run by Claude would pick up;
- * - TELEGRAM_* — the bot token would let anything Claude runs drive the bot (ADR 0017).
+ * - TELEGRAM_* — the bot token would let anything Claude runs drive the bot (ADR 0017);
+ * - TAILSCALE_* / PREVIEW_* — the preview configuration (ADR 0018).
  */
-const DENIED_PREFIXES = ['ANTHROPIC_', 'CLAUDE_', 'TELEGRAM_'];
+const DENIED_PREFIXES = ['ANTHROPIC_', 'CLAUDE_', 'TELEGRAM_', 'TAILSCALE_', 'PREVIEW_'];
 const ALLOWED_NAMES = new Set(['CLAUDE_CONFIG_DIR']);
 const DENIED_NAMES = new Set([
   'CLAUDECODE',

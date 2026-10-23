@@ -87,7 +87,38 @@ const envSchema = z.object({
     (id) => id === undefined || /^[1-9]\d{0,15}$/.test(id),
     'must be a positive Telegram user id',
   ),
+
+  // Dev-server previews over `tailscale serve` (ADR 0018). Optional: no binary → no previews.
+  TAILSCALE_BIN: optionalString,
+  PREVIEW_HTTPS_PORTS: z
+    .string()
+    .default('8443-8446')
+    .transform((value, ctx) => {
+      const ports = parsePortList(value);
+      if (typeof ports === 'string') {
+        ctx.addIssue({ code: 'custom', message: ports });
+        return z.NEVER;
+      }
+      return ports;
+    }),
 });
+
+const MAX_PREVIEW_PORTS = 32;
+
+/** "8443-8446,9443" → [8443, 8444, 8445, 8446, 9443]. A string is the error. */
+function parsePortList(value: string): number[] | string {
+  const ports = new Set<number>();
+  for (const part of splitList(',')(value)) {
+    const match = /^(\d{1,5})(?:-(\d{1,5}))?$/.exec(part);
+    if (!match) return `"${part}" is not a port nor a range`;
+    const from = Number(match[1]);
+    const to = Number(match[2] ?? match[1]);
+    if (from < 1 || to > 65535 || from > to) return `"${part}" is outside 1-65535 or reversed`;
+    for (let port = from; port <= to; port++) ports.add(port);
+    if (ports.size > MAX_PREVIEW_PORTS) return `at most ${MAX_PREVIEW_PORTS} ports`;
+  }
+  return ports.size > 0 ? [...ports] : 'at least one port is required';
+}
 
 type Env = z.infer<typeof envSchema>;
 
@@ -125,6 +156,8 @@ export type Config = {
   frontendDist: string;
   /** The Telegram bot (ADR 0017); undefined = no TELEGRAM_BOT_TOKEN, the bot does not start. */
   telegram: { botToken: string; allowedUserId: number } | undefined;
+  /** Dev-server previews (ADR 0018); undefined = no TAILSCALE_BIN, previews are off. */
+  preview: { tailscaleBin: string; httpsPorts: number[] } | undefined;
 };
 
 export class ConfigError extends Error {
@@ -175,6 +208,10 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): Config {
   if (e.TELEGRAM_BOT_TOKEN && !e.TELEGRAM_ALLOWED_USER_ID) {
     throw new ConfigError(['TELEGRAM_ALLOWED_USER_ID: required when TELEGRAM_BOT_TOKEN is set']);
   }
+  // Serving the backend's own port would put the Workflow App on the tailnet — not what a preview is (ADR 0018).
+  if (e.PREVIEW_HTTPS_PORTS.includes(e.PORT)) {
+    throw new ConfigError([`PREVIEW_HTTPS_PORTS: must not include PORT (${e.PORT})`]);
+  }
 
   return {
     host: e.HOST,
@@ -205,5 +242,6 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): Config {
       e.TELEGRAM_BOT_TOKEN && e.TELEGRAM_ALLOWED_USER_ID
         ? { botToken: e.TELEGRAM_BOT_TOKEN, allowedUserId: Number(e.TELEGRAM_ALLOWED_USER_ID) }
         : undefined,
+    preview: e.TAILSCALE_BIN ? { tailscaleBin: e.TAILSCALE_BIN, httpsPorts: e.PREVIEW_HTTPS_PORTS } : undefined,
   };
 }
