@@ -265,6 +265,40 @@
   .tag-stop { color: var(--wfa-state-stop); background: var(--wfa-state-stop-subtle); border-color: var(--wfa-state-stop-border); }
   .tag-err { color: var(--wfa-state-err); background: var(--wfa-state-err-subtle); border-color: var(--wfa-state-err-border); }
 
+  /*
+   * Faixa de estado (a importação aberta, no topo da Biblioteca): fundo -subtle e borda -border do estado,
+   * texto normal — a forma vem do .state-icon ao lado (design/cards.md → "Faixa de estado").
+   */
+  .status-banner {
+    border: 1px solid var(--wfa-color-border);
+    border-radius: var(--wfa-radius-md);
+    background: var(--wfa-color-surface-2);
+    color: var(--wfa-color-text-1);
+  }
+  .status-banner.is-work { background: var(--wfa-state-work-subtle); border-color: var(--wfa-state-work-border); }
+  .status-banner.is-wait { background: var(--wfa-state-wait-subtle); border-color: var(--wfa-state-wait-border); }
+  .status-banner.is-stop { background: var(--wfa-state-stop-subtle); border-color: var(--wfa-state-stop-border); }
+  .status-banner.is-err { background: var(--wfa-state-err-subtle); border-color: var(--wfa-state-err-border); }
+  .status-banner.is-run { background: var(--wfa-color-accent-subtle); border-color: var(--wfa-color-accent-border); }
+
+  /* Diff de um ficheiro (revisão de uma importação): mono, linhas + e − com a cor de sucesso/erro */
+  .diff-block {
+    font-family: var(--wfa-font-mono);
+    font-size: 12px;
+    line-height: 18px;
+    background: var(--wfa-color-surface-1);
+    border: 1px solid var(--wfa-color-border);
+    border-radius: var(--wfa-radius-sm);
+    max-height: 420px;
+    overflow: auto;
+    white-space: pre;
+    padding: 8px 0;
+  }
+  .diff-block .diff-line { padding: 0 12px; color: var(--wfa-color-text-2); }
+  .diff-block .diff-add { color: var(--wfa-color-success); background: var(--wfa-state-work-subtle); }
+  .diff-block .diff-del { color: var(--wfa-color-error); background: var(--wfa-state-err-subtle); }
+  .diff-block .diff-hunk { color: var(--wfa-color-info); }
+
   /* Maturidade da biblioteca: forma dada pelo ::before */
   .tag-ok,
   .tag-mid,

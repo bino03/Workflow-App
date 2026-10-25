@@ -1,11 +1,13 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
-import { Alert, Button, Input, Select, Table, Tabs, type InputRef } from 'antd';
+import { Alert, Button, Input, Select, Table, Tabs, Tooltip, type InputRef } from 'antd';
 import type { ColumnsType } from 'antd/es/table';
 import { PlusOutlined, SearchOutlined } from '@ant-design/icons';
 import { LibraryEntryDrawer } from '@/components/library/LibraryEntryDrawer';
 import { MaturityTag } from '@/components/library/MaturityTag';
-import { UploadSkillDrawer } from '@/components/library/UploadSkillDrawer';
+import { ImportDrawer } from '@/components/library/ImportDrawer';
+import { ImportPanel } from '@/components/library/ImportPanel';
 import { KIND_LABEL, MATURITY_CLASS, MATURITY_LABEL, formatShortDate } from '@/components/library/libraryFormat';
+import { useCurrentImport } from '@/hooks/useCurrentImport';
 import { useLibrary } from '@/hooks/useLibrary';
 import type {
   InvalidEntry,
@@ -57,7 +59,8 @@ export function LibraryPage() {
   const [maturity, setMaturity] = useState<MaturityFilter>('all');
   const [group, setGroup] = useState<string | null>(null);
   const [selected, setSelected] = useState<LibraryEntry | null>(null);
-  const [uploading, setUploading] = useState(false);
+  const [importing, setImporting] = useState(false);
+  const imports = useCurrentImport();
   const searchRef = useRef<InputRef>(null);
 
   // "/" leva à pesquisa, como no protótipo — nunca enquanto se escreve noutro campo.
@@ -268,14 +271,14 @@ export function LibraryPage() {
           <span className="kicker">Biblioteca</span>
           <h1 className="text-display m-0">Workflow</h1>
           <span className="text-[13.5px] text-text-2">
-            Stacks, designs e skills do teu registo. Só as skills se acrescentam aqui.
+            Stacks, designs e skills do teu registo. Importar corre a skill do próprio Workflow.
           </span>
         </div>
-        {kind === 'skills' && (
-          <Button type="primary" icon={<PlusOutlined />} onClick={() => setUploading(true)}>
-            Adicionar skill
+        <Tooltip title={imports.current ? 'Já há uma importação aberta — acaba-a primeiro' : undefined}>
+          <Button type="primary" icon={<PlusOutlined />} disabled={imports.current !== null} onClick={() => setImporting(true)}>
+            Importar
           </Button>
-        )}
+        </Tooltip>
         {groupPlaceholder && (
           <Select
             className="w-[200px]"
@@ -299,6 +302,12 @@ export function LibraryPage() {
           aria-label="Pesquisar"
         />
       </div>
+
+      {imports.current && (
+        <div className="mt-5">
+          <ImportPanel current={imports.current} onChanged={imports.replace} onLibraryChanged={library.reload} />
+        </div>
+      )}
 
       <Tabs
         className="mt-[22px]"
@@ -356,11 +365,11 @@ export function LibraryPage() {
       )}
 
       <LibraryEntryDrawer selected={selected} onClose={() => setSelected(null)} />
-      <UploadSkillDrawer
-        open={uploading}
-        onClose={() => setUploading(false)}
+      <ImportDrawer
+        open={importing}
+        onClose={() => setImporting(false)}
         stacks={library.stacks.entries}
-        onUploaded={library.addSkill}
+        onCreated={imports.replace}
       />
     </div>
   );

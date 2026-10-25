@@ -5,7 +5,7 @@
 | **Estado** | 🚧 Em curso |
 | **Criada** | 2026-10-23 |
 | **Última sessão** | 2026-10-25 |
-| **Passos** | 8 / 11 concluídos |
+| **Passos** | 9 / 11 concluídos |
 
 > Escrita para uma sessão que **não viu a conversa que a originou**. Se algo só faz sentido com contexto
 > externo, falta escrevê-lo.
@@ -502,7 +502,7 @@ desta app.
     ficheiro (`webkitRelativePath` ou o nome) e cobre todas as rotas da §4.2; mensagens pela ordem do
     backend; `npx tsc -b` e lint limpos.
 
-- [ ] **9. Frontend — Importar, faixa, revisão, ver terminal**
+- [x] **9. Frontend — Importar, faixa, revisão, ver terminal**
   - Ficheiro: `frontend/src/components/library/{ImportDrawer,ImportBanner,ImportReviewDrawer}.tsx`,
     `frontend/src/hooks/useCurrentImport.ts`, `frontend/src/hooks/useLibrary.ts`,
     `frontend/src/pages/LibraryPage.tsx`, `frontend/src/pages/TerminalsPage.tsx`,
@@ -598,9 +598,25 @@ desta app.
   `createImport` monta o multipart com `source.paths` pela ordem das partes; `relativePathOf` usa o
   `webkitRelativePath`), `errorMessages.ts` com `IMPORT_001`–`006` e sem `LIBRARY_002`–`005`. `npx tsc -b` e
   lint limpos.
+- **Passo 9 — UI** (2026-10-25): `ImportDrawer` (RHF + Zod em `importFormSchema.ts`; O quê/De onde em
+  `Segmented`; perguntas de cada tipo por tabela; zona de arrastar com vários ficheiros + "Escolher uma pasta"
+  com `webkitdirectory`; "Projeto" num `AutoComplete` com as pastas recentes/favoritas), `ImportBanner` (cor +
+  forma por estado: arco/losango/ponto/quadrado/✕, classes `.status-banner.is-*` no `index.css`),
+  `ImportReviewDrawer` (Large: resumo, triagem ✓/✕, diff por ficheiro em `Collapse` com `.diff-block`),
+  `ImportPanel` (as ações: revelar, aceitar, descartar/cancelar com `useConfirm`), `useCurrentImport` (polling
+  3 s só em `running`/`needs-you`), botão **Importar** em todas as tabs (desativado com uma aberta).
+  `TerminalsPage` foca o terminal vindo do "Ver terminal" (`location.state.focusTerminalId`). Saíram o
+  `UploadSkillDrawer`, o `uploadSkill` e o `addSkill`. **Verificado no browser 32/32** (Chrome headless, instância
+  `--git-workflow`, `claude` sem login; o que a skill escreveria escrito à mão): campos por tipo e por origem, URL
+  `ftp://` recusado, `IMPORT_003` dentro do drawer, faixa `running` → `needs-you` → `review`, Ver terminal →
+  `/terminals` com o terminal visível e o estado de navegação limpo, revisão com triagem e diff colorido, Aceitar →
+  notificação com o sha + commit no Workflow + repo limpo, Descartar com confirmação → HEAD igual e repo limpo,
+  consola limpa. Capturas vistas (drawer, faixas, revisão, confirmação).
 **Em curso:** nada.
-**Próxima ação concreta:** passo 9 — `frontend/src/components/library/ImportDrawer.tsx` (ler antes a skill
-`frontend-design-system` e `design/forms-and-validation.md`, `drawers-and-modals.md`).
+**Próxima ação concreta:** passo 10 — docs: `docs/skills/references/design/` (faixa de estado em `cards.md`, bloco
+de diff, `forms-and-validation.md` §4.1 sem o `UploadSkillDrawer`), `docs/product/use-cases.md`,
+`docs/architecture.md`, `docs/security.md`, `docs/code-map.md` (frontend da Biblioteca),
+`docs/skills/references/project-vocabulary.md`, `docs/features/upload-de-skills.md` (nota no topo).
 **Desvios ao plano:**
 - A allowlist do Workflow tem mais do que o passo 3 listava: `WebSearch`, `node tools/dry-run.mjs` (o teste a
   seco das stacks) e o `cp -r` dos dois moldes `_TEMPLATE` (o `/add-stack` e o `/add-new-design` copiam-nos).
@@ -622,8 +638,16 @@ desta app.
 - Passo 6: **Descartar e Cancelar são a mesma operação** (o `POST …/discard` e o `DELETE`), em qualquer estado —
   fechar o terminal primeiro, depois repor. Um commit recusado deixa a importação em `review` (o dono corrige e
   tenta de novo, ou descarta). O `--git-workflow` do `instance.mjs` não estava na spec; vai servir aos passos 9 e 11.
-- Passo 8: o `uploadSkill` do `libraryService.ts` **ainda está lá** — sai no passo 9 com o `UploadSkillDrawer`,
-  que é quem o usa (tirá-lo antes partia o `tsc -b`).
+- Passo 8: o `uploadSkill` do `libraryService.ts` saiu no passo 9, com o `UploadSkillDrawer`, que era quem o usava
+  (tirá-lo antes partia o `tsc -b`).
+- Passo 9: entrou um `ImportPanel` (a spec só tinha banner + review) para as ações não viverem na página. O
+  **resumo da skill aparece como texto** (`whitespace-pre-wrap`), não Markdown renderizado — a app ainda não tem
+  renderizador; o `react-markdown` chega com a spec [[novo-projeto-guiado]] e pode servir aqui depois. O diff
+  começa no primeiro `@@` (o cabeçalho do `git diff` é ruído) e um ficheiro que o git marca sem diferenças de
+  conteúdo (fins de linha CRLF/LF com `core.autocrlf`, visto nas capturas) diz isso em vez de mostrar uma caixa
+  vazia. O foco do "Ver terminal" ficou **dentro do efeito de seeding** da `TerminalsPage` (a página monta de novo
+  ao navegar): um efeito próprio caía na regra `react-hooks/set-state-in-effect`; a lógica de layout saiu para
+  `focusedLayout()`, partilhada com o `focusTerminal`.
 **O que uma sessão nova precisa de saber:**
 - A lógica da importação vive **no Workflow** (skill `/import`), por pedido explícito do dono. Se uma
   sessão se apanhar a escrever validação de `STACK.md`/`THEME.md` no backend da app, está a sair da spec.

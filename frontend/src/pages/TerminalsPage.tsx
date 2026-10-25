@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useLocation, useNavigate } from 'react-router';
 import { Alert, Button, Spin } from 'antd';
 import { ResumeSessionModal } from '@/components/terminals/new/ResumeSessionModal';
 import { ProjectTabs } from '@/components/terminals/ProjectTabs';
@@ -90,6 +91,12 @@ function defaultLayoutFor(path: string): ProjectLayout {
   return { ...EMPTY_LAYOUT, ...readGridPreference(path) };
 }
 
+/** `id` passa a ter o foco no seu projeto: na grelha amplia-o; no foco dividido seleciona-o (sai do split). */
+function focusedLayout(current: ProjectLayout, id: string, grid: boolean): ProjectLayout {
+  if (grid) return { ...current, enlargedId: id, activeId: id };
+  return { ...current, selectedId: id, splitId: null, activeId: id, previousId: current.selectedId };
+}
+
 /**
  * Terminais navegados **por projeto** (spec docs/features/separadores-de-projetos.md, 2026-09-28): a
  * lateral lista os projetos (registo do Workflow + terminais existentes), cada projeto aberto ganha um
@@ -138,14 +145,27 @@ export function TerminalsPage() {
   const names = useMemo(() => displayNames(projects), [projects]);
   const grid = layout === 'grid';
 
-  // Ao carregar: um separador por cada projeto que já tem terminais (spec §3) — só uma vez.
+  // "Ver terminal" de uma importação (ADR 0019) chega com o id no estado da navegação — a página monta de novo.
+  const location = useLocation();
+  const navigate = useNavigate();
+  const focusFromNavigation = (location.state as { focusTerminalId?: string } | null)?.focusTerminalId;
+
+  // Ao carregar: um separador por cada projeto que já tem terminais (spec §3) — só uma vez. Um terminal pedido
+  // pela navegação abre o seu separador com o foco, e o estado limpa-se para um "voltar" não o repetir.
   useEffect(() => {
     if (seeded.current || terminalsLoading || registryLoading) return;
     seeded.current = true;
     const withTerminals = projectsWithTerminals(projects).map((p) => p.path);
-    setOpenPaths(withTerminals);
-    setActivePath(withTerminals[0] ?? null);
-  }, [terminalsLoading, registryLoading, projects]);
+    const target = focusFromNavigation ? terminals.find((t) => t.id === focusFromNavigation) : undefined;
+    const paths = target && !withTerminals.includes(target.cwd) ? [...withTerminals, target.cwd] : withTerminals;
+    const nextLayouts = target
+      ? { ...layouts, [target.cwd]: focusedLayout(layouts[target.cwd] ?? defaultLayoutFor(target.cwd), target.id, grid) }
+      : layouts;
+    setOpenPaths(paths);
+    setActivePath(target?.cwd ?? paths[0] ?? null);
+    setLayouts(nextLayouts);
+    if (focusFromNavigation) void navigate(location.pathname, { replace: true, state: null });
+  }, [terminalsLoading, registryLoading, projects, terminals, focusFromNavigation, grid, navigate, location.pathname, layouts]);
 
   const openProjects = useMemo(
     () => openPaths.map((path) => projects.find((p) => p.path === path)).filter((p): p is Project => !!p),
@@ -209,11 +229,7 @@ export function TerminalsPage() {
     (path: string, id: string) => {
       setOpenPaths((prev) => (prev.includes(path) ? prev : [...prev, path]));
       setActivePath(path);
-      setLayouts((prev) => {
-        const current = prev[path] ?? defaultLayoutFor(path);
-        if (grid) return { ...prev, [path]: { ...current, enlargedId: id, activeId: id } };
-        return { ...prev, [path]: { ...current, selectedId: id, splitId: null, activeId: id, previousId: current.selectedId } };
-      });
+      setLayouts((prev) => ({ ...prev, [path]: focusedLayout(prev[path] ?? defaultLayoutFor(path), id, grid) }));
     },
     [grid],
   );
