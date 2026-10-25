@@ -16,7 +16,10 @@ import {
   importResultSchema,
 } from './imports.schemas.js';
 import { type StagedFile, stagingDir, writeStagedFiles } from './stagingFiles.js';
-import type { WorkflowChange } from './workflowGit.js';
+import { type FileDiff, GitPathError, type WorkflowChange, type WorkflowGit } from './workflowGit.js';
+
+/** What the Workflow's own commits look like; anything else from result.json gets the backend's message. */
+const COMMIT_MESSAGE = /^(feat|docs|fix|chore): [^\n\r]{1,100}$/;
 
 /** Nobody sees this terminal until it is revealed; the grid resizes it then. */
 const HIDDEN_SIZE = { cols: 120, rows: 40 };
@@ -27,7 +30,7 @@ export type ImportServiceDeps = {
   workflowPath: string;
   allowedRoots: readonly string[];
   terminals: Pick<TerminalsService, 'createImport' | 'get' | 'reveal' | 'close'>;
-  git: { changes(): Promise<WorkflowChange[]> };
+  git: Pick<WorkflowGit, 'changes' | 'diff' | 'commit' | 'discard'>;
   now?: () => Date;
 };
 
@@ -137,17 +140,65 @@ export class ImportService {
     return this.deps.terminals.reveal(this.meta(id).terminalId);
   }
 
-  /** Ends the import: closes its terminal (to the history) and deletes its folder and hook event. */
-  async cancel(id: string): Promise<void> {
+  /** The review of an import that is ready: every file it changed in the Workflow. */
+  async diff(id: string): Promise<{ files: FileDiff[] }> {
     const meta = this.meta(id);
+    const view = await this.view(meta);
+    if (view.status !== 'review') throw new AppError('IMPORT_005');
+    return { files: await this.gitCall(async () => this.deps.git.diff(await this.deps.git.changes())) };
+  }
+
+  /**
+   * "Aceitar": commits exactly what the import changed, with the skill's message when it is a proper one-line
+   * Workflow commit, then ends the import. A refused commit (the Workflow's pre-commit) is IMPORT_006, nothing staged.
+   */
+  async accept(id: string): Promise<{ commit: string }> {
+    const meta = this.meta(id);
+    const view = await this.view(meta);
+    if (view.status !== 'review') throw new AppError('IMPORT_005');
+    const message = COMMIT_MESSAGE.test(view.result!.commitMessage)
+      ? view.result!.commitMessage
+      : `feat: importa ${view.result!.kind} ${view.result!.libraryId ?? meta.id.slice(0, 8)} para a biblioteca`;
+    const commit = await this.gitCall(async () => this.deps.git.commit(await this.deps.git.changes(), message));
+    await this.closeTerminal(meta);
+    this.forget(meta);
+    return { commit };
+  }
+
+  /**
+   * "Descartar" and "Cancelar": stops the terminal first (so nothing writes while the Workflow is restored),
+   * puts back what HEAD has, deletes what the import created, and ends the import. Any status.
+   */
+  async discard(id: string): Promise<void> {
+    const meta = this.meta(id);
+    await this.closeTerminal(meta);
+    await this.gitCall(async () => this.deps.git.discard(await this.deps.git.changes()));
+    this.forget(meta);
+  }
+
+  /** The import ends: its folder and hook event are deleted (its terminal is already in the history). */
+  private forget(meta: ImportMeta): void {
+    rmSync(this.dirOf(meta.id), { recursive: true, force: true });
+    rmSync(join(this.deps.dataDir, IMPORT_FILES.events, `${meta.claudeSessionId}.json`), { force: true });
+  }
+
+  private async closeTerminal(meta: ImportMeta): Promise<void> {
     try {
       await this.deps.terminals.close(meta.terminalId);
     } catch (error) {
-      // Closed by hand already (it was revealed): the import still has to go.
+      // Closed already (by hand once revealed, or by an earlier step): the import still has to go.
       if (!(error instanceof AppError && error.code === 'TERMINAL_001')) throw error;
     }
-    rmSync(this.dirOf(meta.id), { recursive: true, force: true });
-    rmSync(join(this.deps.dataDir, IMPORT_FILES.events, `${meta.claudeSessionId}.json`), { force: true });
+  }
+
+  private async gitCall<T>(call: () => Promise<T>): Promise<T> {
+    try {
+      return await call();
+    } catch (error) {
+      if (error instanceof AppError) throw error;
+      if (error instanceof GitPathError) throw new AppError('IMPORT_006', error.message);
+      throw new AppError('IMPORT_006', `git failed in the Workflow: ${gitMessage(error)}`);
+    }
   }
 
   private meta(id: string): ImportMeta {
@@ -167,11 +218,7 @@ export class ImportService {
   }
 
   private async changes(): Promise<WorkflowChange[]> {
-    try {
-      return await this.deps.git.changes();
-    } catch (error) {
-      throw new AppError('IMPORT_006', `git status failed in the Workflow: ${gitMessage(error)}`);
-    }
+    return this.gitCall(() => this.deps.git.changes());
   }
 
   /** The status, in this order: a result decides; else a terminal that is gone failed; else the last hook event. */

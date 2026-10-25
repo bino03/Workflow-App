@@ -184,4 +184,64 @@ describe('/api/library/imports', () => {
       expect(response.json()).toMatchObject({ errorCode: 'IMPORT_001' });
     }
   });
+
+  /** What /import leaves: a theme folder and a registry line in the Workflow, and result.json next to the request. */
+  function skillFinished(id: string) {
+    mkdirSync(join(workflow, 'library', 'frontend', 'themes', 'teste'), { recursive: true });
+    writeFileSync(join(workflow, 'library', 'frontend', 'themes', 'teste', 'THEME.md'), '---\nid: teste\n---\n');
+    writeFileSync(join(workflow, 'README.md'), '# Workflow\n\n| teste |\n');
+    writeFileSync(
+      join(dataDir, IMPORT_FILES.imports, id, 'result.json'),
+      JSON.stringify({
+        version: 1,
+        id,
+        status: 'done',
+        kind: 'design',
+        libraryId: 'teste',
+        summary: 'Entrou o design teste.',
+        triage: [{ criterion: 'Distinto', ok: true, note: '' }],
+        commitMessage: 'feat: acrescenta o design teste à biblioteca (draft)',
+      }),
+    );
+  }
+  const gitOut = (...args: string[]) => execFileSync('git', args, { cwd: workflow, windowsHide: true }).toString().trim();
+
+  it('review → diff → accept: one commit in the Workflow with exactly the import files, and the import is gone', async () => {
+    const created = (await post([requestPart({ kind: 'design', source: { type: 'text', text: 'x' } })])).json() as { id: string };
+    const early = await app.inject({ method: 'POST', url: `/api/library/imports/${created.id}/accept`, headers: { cookie } });
+    expect(early.json()).toMatchObject({ errorCode: 'IMPORT_005' });
+
+    skillFinished(created.id);
+    const current = (await app.inject({ method: 'GET', url: '/api/library/imports/current', headers: { cookie } })).json();
+    expect(current).toMatchObject({ status: 'review', changedFiles: 2, result: { libraryId: 'teste' } });
+
+    const diff = (await app.inject({ method: 'GET', url: `/api/library/imports/${created.id}/diff`, headers: { cookie } })).json() as {
+      files: { path: string; change: string; diff: string }[];
+    };
+    expect(diff.files.map((f) => `${f.change} ${f.path}`).sort()).toEqual(['added library/frontend/themes/teste/THEME.md', 'modified README.md']);
+    expect(diff.files.find((f) => f.path === 'README.md')!.diff).toContain('+| teste |');
+
+    const accepted = await app.inject({ method: 'POST', url: `/api/library/imports/${created.id}/accept`, headers: { cookie } });
+    expect(accepted.statusCode).toBe(200);
+    const { commit } = accepted.json() as { commit: string };
+    expect(gitOut('rev-parse', 'HEAD')).toBe(commit);
+    expect(gitOut('log', '-1', '--format=%s')).toBe('feat: acrescenta o design teste à biblioteca (draft)');
+    expect(gitOut('show', '--name-only', '--format=', 'HEAD').split(/\r?\n/).sort()).toEqual(['README.md', 'library/frontend/themes/teste/THEME.md']);
+    expect(gitOut('status', '--porcelain')).toBe('');
+    expect((await app.inject({ method: 'GET', url: '/api/library/imports/current', headers: { cookie } })).json()).toBeNull();
+    // Back to the base for the next test.
+    execFileSync('git', ['reset', '-q', '--hard', 'HEAD~1'], { cwd: workflow, windowsHide: true });
+  });
+
+  it('discard after the skill wrote: the Workflow is exactly as before, new folders included', async () => {
+    const head = gitOut('rev-parse', 'HEAD');
+    const created = (await post([requestPart({ kind: 'design', source: { type: 'text', text: 'x' } })])).json() as { id: string };
+    skillFinished(created.id);
+    const response = await app.inject({ method: 'POST', url: `/api/library/imports/${created.id}/discard`, headers: { cookie } });
+    expect(response.statusCode).toBe(204);
+    expect(gitOut('status', '--porcelain', '--untracked-files=all')).toBe('');
+    expect(gitOut('rev-parse', 'HEAD')).toBe(head);
+    expect(existsSync(join(workflow, 'library'))).toBe(false);
+    expect((await app.inject({ method: 'GET', url: '/api/library/imports/current', headers: { cookie } })).json()).toBeNull();
+  });
 });

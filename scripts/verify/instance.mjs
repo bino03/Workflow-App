@@ -3,7 +3,7 @@
 // owner's state.json, sessions or bot. Serves frontend/dist (build it first).
 //
 //   node scripts/verify/instance.mjs start [--port 7498] [--dir <run dir>] [--fresh] [--projects 3]
-//                                          [--sessions] [--workflow <real Workflow path>]
+//                                          [--sessions] [--workflow <real Workflow path>] [--git-workflow]
 //   node scripts/verify/instance.mjs stop  [--port 7498] [--dir <run dir>] [--clean]
 //
 // start prints the run dir; <run dir>/instance.json has the URL, username and password for the driver.
@@ -29,6 +29,7 @@ const { positionals, values: opts } = parseArgs({
     projects: { type: 'string', default: '3' },
     sessions: { type: 'boolean', default: false },
     workflow: { type: 'string' },
+    'git-workflow': { type: 'boolean', default: false },
     clean: { type: 'boolean', default: false },
   },
 });
@@ -82,6 +83,24 @@ function seedSessions(claudeDir, cwd) {
   }
 }
 
+/**
+ * The fake Workflow as a clean git repository that this instance's Claude Code already trusts — what an import
+ * needs (ADR 0019). The instance's CLAUDE_CONFIG_DIR has no login, so its claude never runs /import: a check
+ * writes what the skill would (files in the repo, result.json) by hand.
+ */
+function gitWorkflow(workflowPath, claudeDir) {
+  const git = (...args) => execFileSync('git', args, { cwd: workflowPath, windowsHide: true, stdio: 'ignore' });
+  git('init', '-q');
+  git('config', 'user.email', 'verifier@example.com');
+  git('config', 'user.name', 'verifier');
+  writeFileSync(join(workflowPath, 'README.md'), '# Workflow (verificação)\n');
+  git('add', '.');
+  git('commit', '-q', '-m', 'base');
+  mkdirSync(claudeDir, { recursive: true });
+  const key = resolve(workflowPath).replace(/\\/g, '/');
+  writeFileSync(join(claudeDir, '.claude.json'), JSON.stringify({ projects: { [key]: { hasTrustDialogAccepted: true } } }));
+}
+
 async function start() {
   if (listeners().length > 0) fail(`port ${port} is already in use — stop it first (instance.mjs stop --port ${port})`);
   const dist = join(REPO, 'frontend', 'dist');
@@ -102,7 +121,8 @@ async function start() {
     workflowPath = resolve(opts.workflow);
     if (!existsSync(workflowPath)) fail(`--workflow ${workflowPath}: does not exist`);
   } else {
-    workflowPath = join(runDir, 'workflow');
+    // --git-workflow: inside ALLOWED_ROOTS, so the imports (ADR 0019) can run their terminal there.
+    workflowPath = opts['git-workflow'] ? join(rootsDir, 'workflow') : join(runDir, 'workflow');
     mkdirSync(join(workflowPath, 'projects'), { recursive: true });
     mkdirSync(join(workflowPath, 'library', 'stacks'), { recursive: true });
     const rows = names.map((name) => `|${name} | proj-${name.toLowerCase()} | app | — | ativo |`);
@@ -111,6 +131,7 @@ async function start() {
       `# Projetos\n\nPasta base: \`${rootsDir}\\\`\n\n| Projeto | Caminho | Tipo | Stack | Estado |\n|---|---|---|---|---|\n${rows.join('\n')}\n`,
     );
   }
+  if (opts['git-workflow'] && !opts.workflow) gitWorkflow(workflowPath, claudeDir);
   if (opts.sessions && projectDirs.length > 1) seedSessions(claudeDir, projectDirs[1]);
 
   // A fresh login on every start: nothing reusable outlives the run dir.

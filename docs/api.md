@@ -215,15 +215,18 @@ A única porta de escrita da app no `WORKFLOW_PATH` ([[adr/0014-escrita-controla
 ## Importações (`imports/`, `/api/library/imports`) — 🚧
 
 [[adr/0019-importar-pelas-skills-do-workflow]] · spec [[features/importar-para-a-biblioteca]]. A app não escreve
-na biblioteca: lança o `/import` do Workflow num terminal escondido e segue-o. Uma importação de cada vez; a
-revisão (diff, aceitar, descartar) é o passo 6 da spec.
+na biblioteca: lança o `/import` do Workflow num terminal escondido e segue-o; no fim o dono revê o diff e aceita
+(commit no Workflow) ou descarta. Uma importação de cada vez.
 
 | Método | Rota | Corpo | Resposta | Erros |
 |---|---|---|---|---|
 | POST | `/api/library/imports` | `multipart/form-data`: um campo `request` (JSON, abaixo) e, com `source.type: 'files'`, uma parte `files` por entrada de `source.paths`, **pela mesma ordem** (o nome do ficheiro enviado é ignorado) | `201 ImportView` | `COMMON_001` · `AUTH_002` · `FOLDER_001` · `IMPORT_002` · `IMPORT_003` · `IMPORT_004` · `IMPORT_006` · `TERMINAL_002` · `TERMINAL_005` · `TERMINAL_007` |
 | GET | `/api/library/imports/current` | — | `200 ImportView \| null` | `AUTH_002` · `IMPORT_006` |
 | POST | `/api/library/imports/:id/reveal` | — | `200 TerminalView` (agora `hidden: false`) | `AUTH_002` · `IMPORT_001` |
-| DELETE | `/api/library/imports/:id` | — | `204` — fecha o terminal (vai para o histórico) e apaga a pasta da importação | `AUTH_002` · `IMPORT_001` |
+| GET | `/api/library/imports/:id/diff` | — | `200 {files: [{path, change: 'added'\|'modified'\|'deleted', diff, truncated}]}` — `git diff` para o que o HEAD tem, o ficheiro inteiro (linhas `+`) para o que é novo; binário → `(ficheiro binário, N bytes)`; acima de 200 KB por ficheiro, cortado | `AUTH_002` · `IMPORT_001` · `IMPORT_005` (não está em `review`) · `IMPORT_006` |
+| POST | `/api/library/imports/:id/accept` | — | `200 {commit}` (sha) — `git add -- <os caminhos do git status>` + `git commit`, com o `commitMessage` do `result.json` se for uma linha `feat\|docs\|fix\|chore: …` (≤ 100), senão `feat: importa <kind> <id> para a biblioteca`; os hooks do Workflow correm; depois fecha o terminal e apaga a importação | `AUTH_002` · `IMPORT_001` · `IMPORT_005` · `IMPORT_006` (commit recusado — nada fica staged, a importação continua em `review`) |
+| POST | `/api/library/imports/:id/discard` | — | `204` — fecha o terminal **primeiro**, `git checkout --` dos modificados/apagados, apaga os novos (e as pastas que ficam vazias), apaga a importação. Qualquer estado | `AUTH_002` · `IMPORT_001` · `IMPORT_006` |
+| DELETE | `/api/library/imports/:id` | — | `204` — o mesmo que `discard` ("Cancelar" enquanto corre) | `AUTH_002` · `IMPORT_001` · `IMPORT_006` |
 
 - **`request`** = `{kind: 'skill'|'design'|'stack'|'auto', source, answers}`. `source`: `{type: 'files', paths}` (1–200
   caminhos relativos com `/`) · `{type: 'url', url}` (só `http`/`https`) · `{type: 'project', path}` (dentro de
@@ -241,6 +244,10 @@ revisão (diff, aceitar, descartar) é o passo 6 da spec.
   pasta do projeto está dentro de `ALLOWED_ROOTS`; o `git status` do Workflow vazio (`IMPORT_003`); o Workflow é de
   confiança para o Claude Code (`TERMINAL_007` — o diálogo de confiança tem "No, exit" por omissão e ninguém o vê).
 - Nada fica a meio: um erro depois de criar a pasta apaga-a.
+- **O git** (`imports/workflowGit.ts`, `GIT_BIN`, `cwd` = `WORKFLOW_PATH`, sem shell) só recebe caminhos tirados do
+  próprio `git status`, e cada um é resolvido (com symlinks e junctions) e confirmado dentro do repo antes de ser lido,
+  reposto ou apagado. Como a importação só começa com o repo limpo, "o que mudou" é "o que a importação fez" — mas
+  se o dono mexer no Workflow à mão enquanto uma importação está aberta, isso entra no diff (e no commit).
 
 ## Projetos (`projects/`, `/api/projects`) — ✅
 

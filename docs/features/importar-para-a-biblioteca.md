@@ -5,7 +5,7 @@
 | **Estado** | 🚧 Em curso |
 | **Criada** | 2026-10-23 |
 | **Última sessão** | 2026-10-25 |
-| **Passos** | 5 / 11 concluídos |
+| **Passos** | 6 / 11 concluídos |
 
 > Escrita para uma sessão que **não viu a conversa que a originou**. Se algo só faz sentido com contexto
 > externo, falta escrevê-lo.
@@ -470,7 +470,7 @@ desta app.
     processo terminado); `DELETE` mata o terminal e apaga a pasta; `docs/api.md` atualizado;
     `npm run typecheck`/`test`/`lint` limpos.
 
-- [ ] **6. Backend — revisão: diff, aceitar, descartar**
+- [x] **6. Backend — revisão: diff, aceitar, descartar**
   - Ficheiro: `backend/src/imports/workflowGit.ts`, `backend/src/imports/{importService,imports.routes}.ts`,
     `backend/test/workflowGit.test.ts` (repo git temporário criado no teste), `docs/api.md`, `docs/environment.md` (`GIT_BIN`)
   - Skill: —
@@ -581,9 +581,16 @@ desta app.
   `null`, caminho `../` → 400, sem `request` → 400, ficheiros a menos → 400 `IMPORT_004`, válido → 500
   `IMPORT_006` (o `git status` falha, como deve), sem sessão → 401. Docs: `api.md`, `environment.md`,
   `code-map.md`, `backend/.env.example`.
+- **Passo 6 — revisão** (2026-10-25): `WorkflowGit.diff`/`commit`/`discard` + `insideRepo` (caminhos do `git
+  status` resolvidos com junctions e confirmados no repo); `GET …/diff`, `POST …/accept`, `POST …/discard`, e o
+  `DELETE` é o mesmo que o `discard`. 407 testes (+11): repo git real (diff dos 3 tipos, binário, corte > 200 KB,
+  commit com exatamente os caminhos, pre-commit que recusa → nada staged, descarte → `git status` limpo e pastas
+  novas apagadas, junction para fora recusada) e o fluxo completo pelas rotas. **HTTP real** numa instância com
+  `--git-workflow` (opção nova do `scripts/verify/instance.mjs`): aceitar → um commit com os 2 ficheiros e a
+  mensagem da skill; descartar → HEAD igual e repo limpo; cancelar a correr → 204.
 **Em curso:** nada.
-**Próxima ação concreta:** passo 6 — `backend/src/imports/workflowGit.ts` (`diff`, `commit`, `discard`) e as rotas
-`…/diff`, `…/accept`, `…/discard`; o `DELETE` passa a descartar as alterações também.
+**Próxima ação concreta:** passo 7 — tirar o upload direto (`library.routes.ts`, `libraryService.uploadSkill`,
+`frontmatterEditor.ts`, `skillUploadManifestSchema`, `LIBRARY_002`–`005`, e os testes deles).
 **Desvios ao plano:**
 - A allowlist do Workflow tem mais do que o passo 3 listava: `WebSearch`, `node tools/dry-run.mjs` (o teste a
   seco das stacks) e o `cp -r` dos dois moldes `_TEMPLATE` (o `/add-stack` e o `/add-new-design` copiam-nos).
@@ -601,7 +608,10 @@ desta app.
   disse que escreveu, mas o Workflow não tem alterações"); `rejected` com alterações (o descarte no
   `provenance.md`) → `review`. A rota `reveal` e o `workflowGit.ts` (só `changes()`) entraram já no passo 5. As
   validações do pedido correm antes do `git status` (achado na chamada HTTP real: ficheiros a menos davam
-  `IMPORT_006` em vez de `IMPORT_004`). O `DELETE` ainda **não** descarta as alterações no Workflow — é o passo 6.
+  `IMPORT_006` em vez de `IMPORT_004`).
+- Passo 6: **Descartar e Cancelar são a mesma operação** (o `POST …/discard` e o `DELETE`), em qualquer estado —
+  fechar o terminal primeiro, depois repor. Um commit recusado deixa a importação em `review` (o dono corrige e
+  tenta de novo, ou descarta). O `--git-workflow` do `instance.mjs` não estava na spec; vai servir aos passos 9 e 11.
 **O que uma sessão nova precisa de saber:**
 - A lógica da importação vive **no Workflow** (skill `/import`), por pedido explícito do dono. Se uma
   sessão se apanhar a escrever validação de `STACK.md`/`THEME.md` no backend da app, está a sair da spec.

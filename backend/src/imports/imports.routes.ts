@@ -16,7 +16,7 @@ const LIMIT_CODES = new Set(['FST_FILES_LIMIT', 'FST_FIELDS_LIMIT', 'FST_PARTS_L
 
 /**
  * Imports into the Workflow library through its own /import skill (ADR 0019). Session required, like every
- * /api route. Review (diff, accept, discard) comes in step 6 of the spec.
+ * /api route. Review: diff, accept (commit in the Workflow), discard.
  */
 export async function importsRoutes(app: FastifyInstance, { importService }: ImportsRoutesOptions): Promise<void> {
   /**
@@ -66,9 +66,25 @@ export async function importsRoutes(app: FastifyInstance, { importService }: Imp
     return view;
   });
 
+  app.get<IdParams>('/api/library/imports/:id/diff', async (request) => importService.diff(request.params.id));
+
+  app.post<IdParams>('/api/library/imports/:id/accept', async (request) => {
+    const accepted = await importService.accept(request.params.id);
+    request.log.info({ importId: request.params.id, commit: accepted.commit }, 'import accepted: committed in the Workflow');
+    return accepted;
+  });
+
+  // "Descartar" (a finished import) and "Cancelar" (DELETE, while it runs) do the same: stop, restore, forget.
+  const discard = async (request: { params: { id: string }; log: { info: (o: object, m: string) => void } }) => {
+    await importService.discard(request.params.id);
+    request.log.info({ importId: request.params.id }, 'import discarded: Workflow restored');
+  };
+  app.post<IdParams>('/api/library/imports/:id/discard', async (request, reply) => {
+    await discard(request);
+    return reply.status(204).send();
+  });
   app.delete<IdParams>('/api/library/imports/:id', async (request, reply) => {
-    await importService.cancel(request.params.id);
-    request.log.info({ importId: request.params.id }, 'import cancelled');
+    await discard(request);
     return reply.status(204).send();
   });
 }

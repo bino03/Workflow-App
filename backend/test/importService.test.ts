@@ -22,6 +22,9 @@ let closed: string[];
 let revealed: string[];
 let changes: WorkflowChange[];
 let gitFails: boolean;
+let commitFails: boolean;
+let commits: { paths: string[]; message: string }[];
+let discarded: string[][];
 let createFails: AppError | undefined;
 
 function service() {
@@ -49,6 +52,15 @@ function service() {
       changes: async () => {
         if (gitFails) throw Object.assign(new Error('git failed'), { stderr: 'fatal: not a git repository' });
         return changes;
+      },
+      diff: async (list) => list.map((change) => ({ ...change, diff: `diff of ${change.path}`, truncated: false })),
+      commit: async (list, message) => {
+        if (commitFails) throw Object.assign(new Error('commit failed'), { stderr: '✗ A biblioteca tem erros (acima).' });
+        commits.push({ paths: list.map((c) => c.path), message });
+        return 'abc1234';
+      },
+      discard: async (list) => {
+        discarded.push(list.map((c) => c.path));
       },
     },
   });
@@ -109,6 +121,9 @@ beforeEach(() => {
   revealed = [];
   changes = [];
   gitFails = false;
+  commitFails = false;
+  commits = [];
+  discarded = [];
   createFails = undefined;
 });
 afterEach(() => rmSync(base, { recursive: true, force: true }));
@@ -147,7 +162,7 @@ describe('ImportService.create', () => {
   it('project: resolved inside ALLOWED_ROOTS and added as a second --add-dir; outside → FOLDER_001, nothing left', async () => {
     const view = await service().create(body({ kind: 'stack', source: { type: 'project', path: project } }), []);
     expect(launched[0]!.addDirs).toEqual([join(dataDir, IMPORT_FILES.imports, view.id), project]);
-    await service().cancel(view.id);
+    await service().discard(view.id);
 
     await expectAppError(() => service().create(body({ kind: 'stack', source: { type: 'project', path: outside } }), []), 'FOLDER_001');
     expect(importDirs()).toEqual([]);
@@ -241,25 +256,83 @@ describe('ImportService status (§4.1)', () => {
   });
 });
 
-describe('ImportService reveal / cancel', () => {
-  it('reveal shows its terminal; cancel closes it and deletes the folder and the hook event', async () => {
+describe('ImportService reveal / review / discard', () => {
+  it('reveal shows its terminal; discard (also a running one) closes it, restores the Workflow and forgets the import', async () => {
     const imports = service();
     const { id } = await imports.create(textImport(), []);
     writeEvent('Stop');
     imports.reveal(id);
     expect(revealed).toEqual([TERMINAL]);
 
-    await imports.cancel(id);
+    changes = [{ path: 'library/frontend/themes/teste/THEME.md', change: 'added' }];
+    await imports.discard(id);
     expect(closed).toEqual([TERMINAL]);
+    expect(discarded).toEqual([['library/frontend/themes/teste/THEME.md']]);
     expect(importDirs()).toEqual([]);
     expect(existsSync(join(dataDir, IMPORT_FILES.events, `${SESSION}.json`))).toBe(false);
     expect(await imports.current()).toBeNull();
   });
 
+  it('diff and accept only in review → IMPORT_005 otherwise', async () => {
+    const imports = service();
+    const { id } = await imports.create(textImport(), []);
+    await expectAppError(() => imports.diff(id), 'IMPORT_005');
+    await expectAppError(() => imports.accept(id), 'IMPORT_005');
+    writeResult(id, { status: 'rejected', libraryId: null });
+    await expectAppError(() => imports.accept(id), 'IMPORT_005'); // rejected, nothing changed
+    expect(commits).toEqual([]);
+  });
+
+  it('accept commits exactly the changed paths with the skill message, then forgets the import', async () => {
+    const imports = service();
+    const { id } = await imports.create(textImport(), []);
+    writeResult(id);
+    changes = [
+      { path: 'library/frontend/themes/teste/THEME.md', change: 'added' },
+      { path: 'docs/provenance.md', change: 'modified' },
+    ];
+    expect((await imports.diff(id)).files.map((f) => f.diff)).toEqual(['diff of library/frontend/themes/teste/THEME.md', 'diff of docs/provenance.md']);
+    expect(await imports.accept(id)).toEqual({ commit: 'abc1234' });
+    expect(commits).toEqual([
+      { paths: ['library/frontend/themes/teste/THEME.md', 'docs/provenance.md'], message: 'feat: acrescenta o design teste à biblioteca' },
+    ]);
+    expect(closed).toEqual([TERMINAL]);
+    expect(importDirs()).toEqual([]);
+  });
+
+  it('a commit message that is not one proper line is replaced by the backend one', async () => {
+    for (const commitMessage of ['feat: two\nlines', 'acrescenta sem prefixo', `feat: ${'x'.repeat(101)}`, 'feat: x; $(rm)\r']) {
+      const imports = service();
+      const { id } = await imports.create(textImport(), []);
+      writeResult(id, { commitMessage });
+      changes = [{ path: 'docs/provenance.md', change: 'modified' }];
+      await imports.accept(id);
+      expect(commits.at(-1)!.message).toBe('feat: importa design teste para a biblioteca');
+      changes = [];
+    }
+  });
+
+  it('a refused commit (the Workflow pre-commit) → IMPORT_006 with the end of stderr; the import stays open', async () => {
+    const imports = service();
+    const { id } = await imports.create(textImport(), []);
+    writeResult(id);
+    changes = [{ path: 'docs/provenance.md', change: 'modified' }];
+    commitFails = true;
+    let caught: unknown;
+    try {
+      await imports.accept(id);
+    } catch (error) {
+      caught = error;
+    }
+    expect(caught).toMatchObject({ code: 'IMPORT_006', message: expect.stringContaining('A biblioteca tem erros') });
+    expect((await imports.get(id)).status).toBe('review');
+    expect(closed).toEqual([]);
+  });
+
   it('an unknown id, or one that is not a UUID, → IMPORT_001', async () => {
     const imports = service();
     await expectAppError(() => imports.get(randomUUID()), 'IMPORT_001');
-    await expectAppError(() => imports.cancel('../../state'), 'IMPORT_001');
+    await expectAppError(() => imports.discard('../../state'), 'IMPORT_001');
     expect(() => imports.reveal('nope')).toThrow(AppError);
   });
 });

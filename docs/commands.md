@@ -130,7 +130,10 @@ node scripts/verify/instance.mjs stop --clean             # mata a árvore pelo 
   pasta de execução em `%TEMP%\wfa-verify-<porta>` (`--dir` para outra). Lá dentro: `data/` (`DATA_DIR`),
   `roots/proj-alfa…` (`ALLOWED_ROOTS`, `--projects N`, omissão 3), `claude/` (`CLAUDE_CONFIG_DIR` próprio;
   `--sessions` semeia duas sessões `.jsonl` falsas no 2.º projeto), `workflow/` falso com `projects/INDEX.md`
-  (ou `--workflow <caminho>` para um Workflow real), `backend.log` e **`instance.json`** (URL, utilizador,
+  (ou `--workflow <caminho>` para um Workflow real; `--git-workflow` põe-no **dentro** das roots, como repo git
+  limpo e pasta de confiança do `claude/` da instância — o que uma importação precisa. O `claude` dessa
+  instância não tem login, por isso nunca corre o `/import`: o cenário escreve à mão o que a skill escreveria),
+  `backend.log` e **`instance.json`** (URL, utilizador,
   password, pastas) que o driver lê. **Gera um login novo a cada arranque** (utilizador `verifier`, password
   aleatória, hash argon2id). Anula tudo o que o `backend/.env` do dono define — o `loadEnvFile` não
   sobrepõe variáveis já definidas, por isso o que ficasse de fora entrava (o `TELEGRAM_BOT_TOKEN` sobretudo).
