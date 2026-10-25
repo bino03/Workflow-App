@@ -5,7 +5,7 @@
 | **Estado** | 🚧 Em curso |
 | **Criada** | 2026-10-23 |
 | **Última sessão** | 2026-10-25 |
-| **Passos** | 1 / 11 concluídos |
+| **Passos** | 2 / 11 concluídos |
 
 > Escrita para uma sessão que **não viu a conversa que a originou**. Se algo só faz sentido com contexto
 > externo, falta escrevê-lo.
@@ -409,7 +409,7 @@ desta app.
     imprime nada não atrasa o fim do turno. Se (a) falhar: plano B (escrever `/import …\r` no PTY quando
     aparece o primeiro `Notification`/idle) descrito na §6 e o passo 4 ajustado **antes** de avançar.
 
-- [ ] **2. ADR 0019 da app**
+- [x] **2. ADR 0019 da app**
   - Ficheiro: `docs/adr/0019-importar-pelas-skills-do-workflow.md`, `docs/adr/README.md` (linha nova; o
     0014 passa a `substituído por 0019` **só** na coluna Estado do README e no campo Estado do próprio 0014
     — a decisão original não se reescreve)
@@ -558,8 +558,9 @@ desta app.
     `Stop` e teve o seu próprio `Stop`.
   - Achado: no diálogo de confiança de uma pasta nova, a opção por omissão é **"No, exit"** — Enter sai. A
     regra da spec (o `WORKFLOW_PATH` tem de já ser de confiança, senão `TERMINAL_007`) fica justificada.
+- **Passo 2 — [[../adr/0019-importar-pelas-skills-do-workflow|ADR 0019]]** (2026-10-25): substitui o 0014 (só o campo Estado do 0014 e a linha do README mudaram); a tabela de argumentos inclui a ordem (`--add-dir` primeiro, prompt em último).
 **Em curso:** nada.
-**Próxima ação concreta:** passo 2 — `docs/adr/0019-importar-pelas-skills-do-workflow.md`.
+**Próxima ação concreta:** passo 3 — no repo do Workflow, ler o `CLAUDE.md` dele e escrever `docs/adr/0010-importacoes-pela-workflow-app.md`.
 **Desvios ao plano:** —
 **O que uma sessão nova precisa de saber:**
 - A lógica da importação vive **no Workflow** (skill `/import`), por pedido explícito do dono. Se uma

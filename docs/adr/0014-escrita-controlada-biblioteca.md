@@ -1,12 +1,12 @@
 ---
 tags: [adr]
-status: aceite
+status: substituído
 data: 2026-09-30
 ---
 
 # ADR 0014 — Escrita controlada da app na biblioteca do Workflow
 
-**Data**: 2026-09-30 · **Estado**: `aceite` · **Decidido com**: `/implement-todo` (passo 1 da spec
+**Data**: 2026-09-30 · **Estado**: `substituído` por [[0019-importar-pelas-skills-do-workflow]] (2026-10-25) · **Decidido com**: `/implement-todo` (passo 1 da spec
 [[../features/upload-de-skills]])
 
 Reverte **parcialmente** [[0005-biblioteca-lida-do-disco]]: a regra "nunca escreve" deixa de ser absoluta.
@@ -81,4 +81,4 @@ Com estas condições, todas obrigatórias:
 
 ## Estado
 
-`aceite`
+`substituído` por [[0019-importar-pelas-skills-do-workflow]] (2026-10-25)
