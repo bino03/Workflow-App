@@ -20,6 +20,9 @@ export type TerminalView = {
   remoteControl: boolean;
   /** Pré-visualização viva na tailnet (ADR 0018), ou null. */
   preview: TerminalPreview | null;
+  /** Lançado por uma importação (ADR 0019). Os escondidos não vêm no GET /terminals até serem revelados. */
+  importId: string | null;
+  hidden: boolean;
 };
 
 // ── Pré-visualização (backend/src/preview/{previewService,listeningPorts}.ts) ─────────────

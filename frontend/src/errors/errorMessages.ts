@@ -19,10 +19,6 @@ export const ERROR_MESSAGES: Record<string, string> = {
   AUTH_009: 'Esta passkey já não existe.',
   // ── LIBRARY ────────────────────────────
   LIBRARY_001: 'A biblioteca do Workflow não foi encontrada. Confirma o WORKFLOW_PATH do backend.',
-  LIBRARY_002: 'O ficheiro não é uma skill válida. Confirma o frontmatter no topo (kind, name, category, status).',
-  LIBRARY_003: 'Já existe uma skill com este nome nesta stack. Apaga ou renomeia a antiga primeiro.',
-  LIBRARY_004: 'Esta stack não existe na biblioteca.',
-  LIBRARY_005: 'O ficheiro está em falta, vazio, ou é maior do que 256 KB.',
   // ── TERMINAL ───────────────────────────
   TERMINAL_001: 'Este terminal já não existe.',
   TERMINAL_002: 'Já tens o máximo de terminais abertos. Fecha um para abrir outro.',
@@ -47,6 +43,13 @@ export const ERROR_MESSAGES: Record<string, string> = {
   KEYBIND_001: 'Esta combinação não é permitida. Usa Alt com uma letra, um número ou pontuação (AltGr só com o ponto).',
   KEYBIND_002: 'Esta combinação já é usada por outra ação. Muda ou remove essa primeiro.',
   KEYBIND_003: 'Esta ação de atalho já não existe. Recarrega a página.',
+  // ── IMPORT ─────────────────────────────
+  IMPORT_001: 'Esta importação já não existe.',
+  IMPORT_002: 'Já há uma importação a decorrer ou por rever. Acaba-a ou cancela-a primeiro.',
+  IMPORT_003: 'O Workflow tem alterações por gravar. Faz commit ou descarta-as antes de importar.',
+  IMPORT_004: 'Ficheiros a mais (máx. 200), grandes demais (máx. 10 MB no total), ou com um nome que não é permitido.',
+  IMPORT_005: 'A importação ainda não está pronta para isto.',
+  IMPORT_006: 'O git do Workflow recusou a operação. Vê o terminal da importação ou o repositório do Workflow.',
 
   DEFAULT: 'Ocorreu um erro. Tenta outra vez.',
 };

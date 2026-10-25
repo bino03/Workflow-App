@@ -5,7 +5,7 @@
 | **Estado** | 🚧 Em curso |
 | **Criada** | 2026-10-23 |
 | **Última sessão** | 2026-10-25 |
-| **Passos** | 7 / 11 concluídos |
+| **Passos** | 8 / 11 concluídos |
 
 > Escrita para uma sessão que **não viu a conversa que a originou**. Se algo só faz sentido com contexto
 > externo, falta escrevê-lo.
@@ -492,7 +492,7 @@ desta app.
   - Aceite quando: `POST /api/library/stacks/:id/skills` → 404; nenhuma referência a `uploadSkill`,
     `frontmatterEditor` ou `LIBRARY_00[2-5]` no `backend/` (grep); `npm run typecheck`/`test`/`lint` limpos.
 
-- [ ] **8. Frontend — tipos, serviço, erros**
+- [x] **8. Frontend — tipos, serviço, erros**
   - Ficheiro: `frontend/src/types/imports.ts`, `frontend/src/services/importService.ts`,
     `frontend/src/services/libraryService.ts` (sai `uploadSkill`), `frontend/src/errors/errorMessages.ts`
     (entra `IMPORT_001`–`006`, sai `LIBRARY_002`–`005`)
@@ -593,9 +593,14 @@ desta app.
   seus 45 testes; teste novo: `POST /api/library/stacks/:id/skills` → 404. Nenhuma referência no `backend/`
   (grep). 363 testes. `api.md` e `code-map.md` sem o upload. **O frontend ainda chama a rota que saiu**
   (o `UploadSkillDrawer` dá 404 até ao passo 9).
+- **Passo 8 — frontend: tipos, serviço, erros** (2026-10-25): `types/imports.ts` (espelho do
+  `imports.schemas.ts`), `TerminalView` com `importId`/`hidden`, `services/importService.ts` (todas as rotas;
+  `createImport` monta o multipart com `source.paths` pela ordem das partes; `relativePathOf` usa o
+  `webkitRelativePath`), `errorMessages.ts` com `IMPORT_001`–`006` e sem `LIBRARY_002`–`005`. `npx tsc -b` e
+  lint limpos.
 **Em curso:** nada.
-**Próxima ação concreta:** passo 8 — `frontend/src/types/imports.ts`, `frontend/src/services/importService.ts`,
-`errorMessages.ts` (entram `IMPORT_001`–`006`, saem `LIBRARY_002`–`005`).
+**Próxima ação concreta:** passo 9 — `frontend/src/components/library/ImportDrawer.tsx` (ler antes a skill
+`frontend-design-system` e `design/forms-and-validation.md`, `drawers-and-modals.md`).
 **Desvios ao plano:**
 - A allowlist do Workflow tem mais do que o passo 3 listava: `WebSearch`, `node tools/dry-run.mjs` (o teste a
   seco das stacks) e o `cp -r` dos dois moldes `_TEMPLATE` (o `/add-stack` e o `/add-new-design` copiam-nos).
@@ -617,6 +622,8 @@ desta app.
 - Passo 6: **Descartar e Cancelar são a mesma operação** (o `POST …/discard` e o `DELETE`), em qualquer estado —
   fechar o terminal primeiro, depois repor. Um commit recusado deixa a importação em `review` (o dono corrige e
   tenta de novo, ou descarta). O `--git-workflow` do `instance.mjs` não estava na spec; vai servir aos passos 9 e 11.
+- Passo 8: o `uploadSkill` do `libraryService.ts` **ainda está lá** — sai no passo 9 com o `UploadSkillDrawer`,
+  que é quem o usa (tirá-lo antes partia o `tsc -b`).
 **O que uma sessão nova precisa de saber:**
 - A lógica da importação vive **no Workflow** (skill `/import`), por pedido explícito do dono. Se uma
   sessão se apanhar a escrever validação de `STACK.md`/`THEME.md` no backend da app, está a sair da spec.
