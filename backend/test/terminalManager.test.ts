@@ -1,5 +1,6 @@
 import { tmpdir } from 'node:os';
-import { afterEach, describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
+import { killProcessTree } from '../src/terminals/spawnClaude.js';
 import { TerminalLimitError, TerminalManager } from '../src/terminals/terminalManager.js';
 import { fakeClaude, fakeSpawn, isAlive, waitFor } from './fakeClaude.js';
 
@@ -74,10 +75,12 @@ describe('TerminalManager (fake process)', () => {
     await waitFor(() => !isAlive(info.pid) && !isAlive(grandchild));
   });
 
-  it('enforces MAX_TERMINALS', () => {
-    open();
-    open();
+  it('enforces MAX_TERMINALS', async () => {
+    const first = open();
+    const second = open();
     expect(() => open()).toThrow(TerminalLimitError);
+    // Closed before `ready`, the teardown lists the tree before the grandchild exists and could orphan it.
+    await waitFor(() => first.output().includes('ready') && second.output().includes('ready'));
   });
 
   it('counts only running terminals for MAX_TERMINALS', async () => {
@@ -95,5 +98,25 @@ describe('TerminalManager (fake process)', () => {
     expect(() => manager.create({ id, cwd: tmpdir(), cols: 80, rows: 24 })).toThrow(/already in memory/);
     await manager.kill(id);
     expect(manager.create({ id, cwd: tmpdir(), cols: 80, rows: 24 }).id).toBe(id);
+  });
+});
+
+describe('killProcessTree', () => {
+  // node-pty reports a ConPTY exit ~1 s after the process is gone. A close that lands in that window found
+  // taskkill failing and fell back to node-pty's kill(), whose helper attaches to the console of the dead
+  // PID — once Windows reuses that PID, it kills every process on someone else's console (it took down
+  // Vitest workers: "Worker exited unexpectedly").
+  it.runIf(process.platform === 'win32')('does not fall back to node-pty kill() for a process that already exited', async () => {
+    const ptyProcess = fakeSpawn({ cwd: tmpdir(), cols: 80, rows: 24, args: [] });
+    let output = '';
+    ptyProcess.onData((d) => (output += d));
+    await waitFor(() => output.includes('ready'));
+    const kill = vi.spyOn(ptyProcess, 'kill');
+    ptyProcess.write('q');
+    await waitFor(() => !isAlive(ptyProcess.pid));
+
+    await killProcessTree(ptyProcess);
+
+    expect(kill).not.toHaveBeenCalled();
   });
 });

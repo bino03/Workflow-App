@@ -125,6 +125,12 @@ Ver [[security]] → "Fluxo de autenticação" e [[adr/0003-auth-utilizador-unic
   processos ligados à pseudo-consola; e o helper que os lista (`conpty_console_list_agent`) crasha com
   `AttachConsole failed` se o processo já tiver morrido. Por isso: `taskkill /T /F` primeiro, e o
   `pty.kill()` só se o `taskkill` falhar. Sem fuga de `OpenConsole.exe` (contados antes/depois dos testes).
+- ✅ **O node-pty reporta a saída de um PTY ~1 s depois de o processo morrer** (`FLUSH_DATA_INTERVAL` no
+  `windowsPtyAgent`). Um fecho nessa janela vê o `taskkill` falhar num PID morto — e o fallback `pty.kill()`
+  apontava o helper à consola desse PID, que o Windows pode já ter reutilizado (mataria os processos de outra
+  consola). Por isso `killProcessTree` só cai no `kill()` se o processo **ainda está vivo** (teste em
+  `terminalManager.test.ts` → `killProcessTree`; visto a 2026-10-25). O mesmo atraso faz cada fecho custar
+  ~1,6 s mesmo quando o `claude` sai logo: encurtar a graça não acelera os testes.
 - ✅ **Sair do `claude` pelo teclado**: dois `\x03` (Ctrl+C) seguidos → sai com código 0.
 - **Pasta ainda não *trusted*** — na primeira vez numa pasta o `claude` mostra o diálogo de confiança
   antes do prompt; o spike deteta-o e falha com essa razão. No produto, o diálogo aparece no terminal e

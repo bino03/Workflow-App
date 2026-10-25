@@ -133,6 +133,11 @@ const execFileAsync = promisify(execFile);
  * Kills a PTY and every process below it. On Windows node-pty's kill() only takes processes attached to
  * the pseudo-console, and its helper crashes ("AttachConsole failed") once the shell is gone — so
  * `taskkill /T` does the whole tree, and kill() is only the fallback if taskkill fails.
+ *
+ * Never that fallback for a process that is already gone: node-pty reports a ConPTY exit ~1 s late, so a
+ * close in that window sees taskkill fail on a dead PID. kill() would then point its helper at that PID's
+ * console — and once Windows reuses the PID, kill every process on an unrelated console. node-pty cleans up
+ * by itself when it reports the exit.
  */
 export async function killProcessTree(ptyProcess: pty.IPty): Promise<void> {
   if (isWindows) {
@@ -140,7 +145,8 @@ export async function killProcessTree(ptyProcess: pty.IPty): Promise<void> {
       await execFileAsync('taskkill', ['/PID', String(ptyProcess.pid), '/T', '/F'], { windowsHide: true });
       return;
     } catch {
-      // Fall through to node-pty's own kill.
+      if (!isAlive(ptyProcess.pid)) return;
+      // Still alive (taskkill refused it): fall through to node-pty's own kill.
     }
   }
   try {
