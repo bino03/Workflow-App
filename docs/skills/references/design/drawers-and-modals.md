@@ -116,6 +116,9 @@ Chrome headless, com capturas). **Large** (900): os diffs precisam de largura.
   sobre `state-err-subtle`), `.diff-hunk` (`info`). Começa no primeiro `@@` — o cabeçalho do `git diff` é ruído.
   Diff vazio (o git marca o ficheiro só por fins de linha ou permissões) → uma frase em `text-3`, nunca uma caixa
   vazia. Cortado → "Cortado a 200 KB" por baixo.
+- O que o contrato não permite (um ficheiro fora de `library/` e `docs/provenance.md`) ganha uma segunda tag
+  `.tag-err` "Fora da biblioteca" no cabeçalho do ficheiro e um `Alert type="warning"` por cima da lista — o dono
+  vê-o antes de Aceitar, não depois.
 - Rodapé: à esquerda, o que a ação principal vai fazer (a mensagem do commit, mono `text-3`); à direita Fechar ·
   Descartar (`danger`, contornado, com confirmação) · **Aceitar** (`primary`).
 
