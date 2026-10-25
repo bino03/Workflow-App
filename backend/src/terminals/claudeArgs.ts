@@ -1,4 +1,4 @@
-import { isAbsolute } from 'node:path';
+import { basename, dirname, isAbsolute } from 'node:path';
 import { isUuid } from '../sessions/claudeSessions.js';
 
 /**
@@ -10,13 +10,20 @@ export type ClaudeLaunch =
   /** A new conversation, with the UUID the backend chose — so it is known before the process starts. */
   | { kind: 'new'; sessionId: string }
   /** An existing conversation: resume, "continue the last one" and reopen all end here. */
-  | { kind: 'resume'; sessionId: string };
+  | { kind: 'resume'; sessionId: string }
+  /**
+   * A new conversation whose first message is `/import <requestPath>` (ADR 0019) — interactive, not `-p`.
+   * The path is the backend's own `DATA_DIR/imports/<uuid>/request.json`; the user's answers are inside it.
+   */
+  | { kind: 'import'; sessionId: string; requestPath: string };
 
 export type ClaudeArgsOptions = {
-  /** DATA_DIR/claude-settings.json, written by the backend (quota status line). Omitted → no --settings. */
+  /** DATA_DIR/claude-settings.json (or the imports' one), written by the backend. Omitted → no --settings. */
   settingsPath?: string;
   /** Remote Control (ADR 0017). `name` omitted → Claude Code's automatic name. */
   remoteControl?: { name?: string };
+  /** Extra folders claude may read without asking (ADR 0019): absolute paths the backend resolved. */
+  addDirs?: string[];
 };
 
 /**
@@ -25,16 +32,46 @@ export type ClaudeArgsOptions = {
  */
 export const REMOTE_NAME = /^[\p{L}\p{N}][\p{L}\p{N} ._\-()·]{0,79}$/u;
 
+/** No control characters, quotes or shell-ish punctuation: the path also becomes text claude reads. */
+const SAFE_PATH = /^[^\p{Cc}"'`$<>|&;*?]+$/u;
+
 export class ClaudeArgsError extends Error {
   override name = 'ClaudeArgsError';
 }
 
-export function claudeArgs(launch: ClaudeLaunch, { settingsPath, remoteControl }: ClaudeArgsOptions = {}): string[] {
+function assertSafeAbsolute(path: string, what: string): void {
+  if (!isAbsolute(path) || !SAFE_PATH.test(path) || path.startsWith('-')) {
+    throw new ClaudeArgsError(`${what} must be an absolute path without control characters or quotes`);
+  }
+}
+
+/** `<anything>/<uuid>/request.json`, nothing else. */
+function assertRequestPath(path: string): void {
+  assertSafeAbsolute(path, 'request path');
+  if (basename(path) !== 'request.json' || !isUuid(basename(dirname(path)))) {
+    throw new ClaudeArgsError('request path must be <imports>/<uuid>/request.json');
+  }
+}
+
+export function claudeArgs(launch: ClaudeLaunch, { settingsPath, remoteControl, addDirs = [] }: ClaudeArgsOptions = {}): string[] {
   if (!isUuid(launch.sessionId)) throw new ClaudeArgsError('session id must be a UUID');
-  const args = launch.kind === 'new' ? ['--session-id', launch.sessionId] : ['--resume', launch.sessionId];
+  // --add-dir takes several values: first, so the next flag ends it (confirmed in the import spike).
+  const args: string[] = [];
+  if (addDirs.length > 0) {
+    for (const dir of addDirs) assertSafeAbsolute(dir, 'add-dir');
+    args.push('--add-dir', ...addDirs);
+  }
+  args.push(...(launch.kind === 'resume' ? ['--resume', launch.sessionId] : ['--session-id', launch.sessionId]));
   if (settingsPath !== undefined) {
     if (!isAbsolute(settingsPath)) throw new ClaudeArgsError('settings path must be absolute');
     args.push('--settings', settingsPath);
+  }
+  if (launch.kind === 'import') {
+    if (remoteControl) throw new ClaudeArgsError('an import never runs with remote control');
+    assertRequestPath(launch.requestPath);
+    // The prompt is positional: always last.
+    args.push(`/import ${launch.requestPath}`);
+    return args;
   }
   if (remoteControl) {
     // Last, so an omitted name cannot swallow the next argument as the name.

@@ -20,6 +20,11 @@ export const savedTerminalSchema = z.object({
   lastOpenedAt: instant,
   // ADR 0017: launched (and reopened) with --remote-control. Older files have no field → false, no migration.
   remoteControl: z.boolean().default(false),
+  // ADR 0019: a terminal started by an import — hidden from the grid and the bot until revealed, reopened with
+  // the imports' --settings and the same --add-dir folders. Older files → null / false / [], no migration.
+  importId: z.uuid().nullable().default(null),
+  hidden: z.boolean().default(false),
+  addDirs: z.array(z.string().min(1)).max(4).default([]),
 });
 
 export const closedTerminalSchema = z.object({

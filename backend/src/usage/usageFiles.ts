@@ -52,17 +52,18 @@ process.stdin.on('end', () => {
 `;
 }
 
+/** The `statusLine` entry of every settings file the backend hands to claude (also the imports' one). */
+export function statusLineSetting(dataDir: string) {
+  return { type: 'command', command: `"${process.execPath}" "${join(dataDir, USAGE_FILES.script)}"` };
+}
+
 /** Writes the settings and the script into DATA_DIR (every start: they are ours). Returns the --settings path. */
 export function writeUsageFiles(dataDir: string): string {
   mkdirSync(dataDir, { recursive: true });
   const usageFile = join(dataDir, USAGE_FILES.usage);
-  const script = join(dataDir, USAGE_FILES.script);
   const settings = join(dataDir, USAGE_FILES.settings);
-  writeFileSync(script, statusLineScript(usageFile));
-  writeFileSync(
-    settings,
-    `${JSON.stringify({ statusLine: { type: 'command', command: `"${process.execPath}" "${script}"` } }, null, 2)}\n`,
-  );
+  writeFileSync(join(dataDir, USAGE_FILES.script), statusLineScript(usageFile));
+  writeFileSync(settings, `${JSON.stringify({ statusLine: statusLineSetting(dataDir) }, null, 2)}\n`);
   return settings;
 }
 

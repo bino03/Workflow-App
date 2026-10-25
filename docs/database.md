@@ -74,6 +74,9 @@ porque o backend reiniciou.
 | `claudeSessionId` | uuid | ✅ | Terminal novo: gerado pelo backend e passado com `claude --session-id <uuid>`. Retoma: o uuid da sessão gravada |
 | `createdAt` · `updatedAt` · `lastOpenedAt` | instante ISO-8601 | ✅ | `lastOpenedAt` muda a cada Reabrir |
 | `remoteControl` | booleano | — (omissão `false`) | Lançado com `--remote-control` e reaberto com ele ([[adr/0017-bot-telegram-e-remote-control]]). Ficheiros antigos sem o campo leem-se com `false` — sem subir o `STATE_VERSION` |
+| `importId` | UUID \| null | — (omissão `null`) | Terminal lançado por uma importação ([[adr/0019-importar-pelas-skills-do-workflow]]); liga-o à pasta `DATA_DIR/imports/<id>/` |
+| `hidden` | booleano | — (omissão `false`) | Fora da grelha e do bot (`GET /api/terminals`) até ser revelado ("Ver terminal") |
+| `addDirs` | texto[] (≤ 4) | — (omissão `[]`) | Pastas passadas com `--add-dir`, para o reabrir igual (a da importação e, se a origem é um projeto, a do projeto). Os três campos novos leem-se com a omissão em ficheiros antigos — sem subir o `STATE_VERSION` |
 
 - **Ciclo**: abrir → guardado. Backend reinicia → aparece como **parado**, com **Reabrir** (`claude --resume
   <claudeSessionId>`) e **Reabrir todos**. Nada reabre sozinho (não gasta quota sem pedido).

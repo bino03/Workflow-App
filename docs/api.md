@@ -66,7 +66,7 @@ UUID dá o mesmo `TERMINAL_001` que um id desconhecido.
 
 | Método | Rota | Corpo | Resposta | Erros |
 |---|---|---|---|---|
-| GET | `/api/terminals` | — | `TerminalView[]` (os gravados, por `createdAt`) | — |
+| GET | `/api/terminals` | — | `TerminalView[]` (os gravados, por `createdAt`, sem os `hidden`) | — |
 | POST | `/api/terminals` | `{cwd, mode: 'new'\|'resume'\|'continue', sessionId?, label?, cols, rows}` — `sessionId` (UUID) obrigatório em `resume` | `201 TerminalView` | `COMMON_001` · `FOLDER_001` · `TERMINAL_002` · `TERMINAL_003` · `TERMINAL_004` · `TERMINAL_005` · `SESSION_001` |
 | POST | `/api/terminals/:id/reopen` | `{cols, rows}` | `200 TerminalView & {freshSession}` — `--resume` da sessão; sem `.jsonl` (o `claude` não grava sessões sem mensagens) começa uma conversa nova no mesmo terminal e `freshSession: true`. Um terminal com `remoteControl` volta com `--remote-control` | `TERMINAL_001` · `TERMINAL_002` · `TERMINAL_005` · `TERMINAL_006` · `TERMINAL_007` · `FOLDER_001` |
 | PATCH | `/api/terminals/:id` | `{label: string \| null}` | `200 TerminalView` | `COMMON_001` · `TERMINAL_001` |
@@ -74,7 +74,9 @@ UUID dá o mesmo `TERMINAL_001` que um id desconhecido.
 | POST | `/api/terminals/:id/preview` | `{devPort?}` (inteiro 1-65535; nenhum outro campo) | `200 {preview}` — a porta de dev foi servida (ou já estava); `200 {ports: DevPort[]}` — há várias, escolher uma e repetir com `devPort` | `TERMINAL_001` · `COMMON_001` · `PREVIEW_001`–`007` |
 | DELETE | `/api/terminals/:id/preview` | — | `204` (idempotente) | `TERMINAL_001` · `PREVIEW_005` · `PREVIEW_006` |
 
-- `TerminalView = {id, label, cwd, claudeSessionId, status: 'running'|'exited'|'stopped', exitCode, createdAt, lastOpenedAt, remoteControl, preview}`.
+- `TerminalView = {id, label, cwd, claudeSessionId, status: 'running'|'exited'|'stopped', exitCode, createdAt, lastOpenedAt, remoteControl, preview, importId, hidden}`.
+  `importId`/`hidden` — o terminal escondido de uma importação ([[adr/0019-importar-pelas-skills-do-workflow]]): não
+  aparece no `GET` (nem no bot) até ser revelado; reaberto, mantém o `--settings` das importações e as `--add-dir`.
   `preview: {url, devPort, httpsPort, startedAt} | null` — pré-visualização viva na tailnet
   ([[adr/0018-pre-visualizacao-por-tailscale-serve]], `preview/preview.routes.ts`). `DevPort = {port, pid, process}`.
   As portas vêm do sistema operativo (descendentes do `claude` do terminal, só loopback/*any*, sem a `PORT` do backend

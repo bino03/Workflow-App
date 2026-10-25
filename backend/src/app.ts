@@ -18,6 +18,7 @@ import { libraryRoutes } from './library/library.routes.js';
 import { MAX_SKILL_UPLOAD_BYTES, LibraryService } from './library/libraryService.js';
 import { foldersRoutes } from './folders/folders.routes.js';
 import { FoldersService } from './folders/foldersService.js';
+import { writeImportFiles } from './imports/importFiles.js';
 import { projectsRoutes } from './projects/projects.routes.js';
 import { devPortsOf } from './preview/listeningPorts.js';
 import { previewRoutes } from './preview/preview.routes.js';
@@ -145,6 +146,8 @@ export async function buildApp({
     allowedRoots: config.terminals.allowedRoots,
     // Every claude gets the status line that keeps the quota in DATA_DIR/usage.json (ADR 0012).
     settingsPath: writeUsageFiles(config.dataDir),
+    // An import's hidden terminal: the same status line plus the hooks it is followed by (ADR 0019).
+    importSettingsPath: writeImportFiles(config.dataDir),
     isTrustedFolder: (cwd) => isTrustedFolder(cwd, config.terminals.claudeConfigDir),
     previews: previewService,
   });

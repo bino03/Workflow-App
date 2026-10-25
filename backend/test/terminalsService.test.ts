@@ -7,7 +7,7 @@ import { ClaudeSessions } from '../src/sessions/claudeSessions.js';
 import { StateStore } from '../src/state/stateStore.js';
 import { ClaudeBinError } from '../src/terminals/spawnClaude.js';
 import { TerminalManager } from '../src/terminals/terminalManager.js';
-import { TerminalsService } from '../src/terminals/terminalsService.js';
+import { type CreateImportTerminal, TerminalsService } from '../src/terminals/terminalsService.js';
 import { fakeClaude, waitFor } from './fakeClaude.js';
 import { removeDir } from './helpers.js';
 
@@ -58,7 +58,7 @@ describe('TerminalsService', () => {
   let service: TerminalsService;
   const size = { cols: 100, rows: 30 };
 
-  function build(options: { settingsPath?: string; isTrustedFolder?: (cwd: string) => Promise<boolean> } = {}) {
+  function build(options: { settingsPath?: string; importSettingsPath?: string; isTrustedFolder?: (cwd: string) => Promise<boolean> } = {}) {
     return new TerminalsService({
       stateStore,
       terminalManager: manager,
@@ -93,7 +93,7 @@ describe('TerminalsService', () => {
 
       const state = stateStore.read();
       expect(state.terminals).toEqual([
-        { id: view.id, label: 'api', cwd: project, claudeSessionId: view.claudeSessionId, createdAt: view.createdAt, updatedAt: view.createdAt, lastOpenedAt: view.createdAt, remoteControl: false },
+        { id: view.id, label: 'api', cwd: project, claudeSessionId: view.claudeSessionId, createdAt: view.createdAt, updatedAt: view.createdAt, lastOpenedAt: view.createdAt, remoteControl: false, importId: null, hidden: false, addDirs: [] },
       ]);
       expect(state.folders).toEqual([{ path: project, favorite: false, lastUsedAt: view.createdAt }]);
     });
@@ -285,6 +285,71 @@ describe('TerminalsService', () => {
       await service.close(view.id);
       expect(stateStore.read().closedTerminals[0]).toMatchObject({ id: view.id, summary: null, summarySource: null });
       await expectAppError(() => service.close(view.id), 'TERMINAL_001');
+    });
+  });
+
+  describe('imports (ADR 0019)', () => {
+    const IMPORT_ID = '0f5c4a9e-7b1d-4c2a-9e3f-1a2b3c4d5e6f';
+    const importDir = join(base, 'data', 'imports', IMPORT_ID);
+    const requestPath = join(importDir, 'request.json');
+    const importSettings = join(base, 'data', 'claude-import-settings.json');
+    const trusted = (cwd: string) => Promise.resolve(cwd === project);
+    const importOf = (overrides: Partial<CreateImportTerminal> = {}): CreateImportTerminal => ({
+      importId: IMPORT_ID,
+      cwd: project,
+      requestPath,
+      addDirs: [importDir],
+      ...size,
+      ...overrides,
+    });
+
+    it('a hidden terminal with the imports settings, --add-dir first and /import last; not a recent folder', async () => {
+      const imports = build({ settingsPath: 'C:\\data\\claude-settings.json', importSettingsPath: importSettings, isTrustedFolder: trusted });
+      const view = await imports.createImport(importOf());
+      expect(view).toMatchObject({ importId: IMPORT_ID, hidden: true, status: 'running', label: 'Importação' });
+      expect(claude.launches.at(-1)!.args).toEqual([
+        '--add-dir',
+        importDir,
+        '--session-id',
+        view.claudeSessionId,
+        '--settings',
+        importSettings,
+        `/import ${requestPath}`,
+      ]);
+      expect(stateStore.read().terminals[0]).toMatchObject({ importId: IMPORT_ID, hidden: true, addDirs: [importDir] });
+      expect(stateStore.read().folders).toEqual([]);
+    });
+
+    it('hidden terminals are left out of list() — the grid and the bot — until revealed; get() still finds them', async () => {
+      const imports = build({ importSettingsPath: importSettings, isTrustedFolder: trusted });
+      const normal = await imports.create({ cwd: project, mode: 'new', ...size });
+      const hidden = await imports.createImport(importOf());
+      expect(imports.list().map((t) => t.id)).toEqual([normal.id]);
+      expect(imports.get(hidden.id)).toMatchObject({ hidden: true });
+
+      expect(imports.reveal(hidden.id)).toMatchObject({ id: hidden.id, hidden: false });
+      expect(imports.list().map((t) => t.id)).toEqual([normal.id, hidden.id]);
+      expect(() => imports.reveal(OTHER)).toThrow(AppError);
+    });
+
+    it('reopening an import keeps its settings and folders and never sends /import again', async () => {
+      const imports = build({ settingsPath: 'C:\\data\\claude-settings.json', importSettingsPath: importSettings, isTrustedFolder: trusted });
+      const view = await imports.createImport(importOf());
+      await manager.kill(view.id);
+      await imports.reopen(view.id, size);
+      const args = claude.launches.at(-1)!.args!;
+      expect(args.slice(0, 2)).toEqual(['--add-dir', importDir]);
+      expect(args).toContain(importSettings);
+      expect(args.some((arg) => arg.startsWith('/import'))).toBe(false);
+      expect(stateStore.read().folders).toEqual([]);
+    });
+
+    it('an untrusted folder → TERMINAL_007, and a folder outside ALLOWED_ROOTS is refused — nothing launched', async () => {
+      const imports = build({ importSettingsPath: importSettings, isTrustedFolder: trusted });
+      await expectAppError(() => imports.createImport(importOf({ cwd: emptyProject })), 'TERMINAL_007');
+      await expect(imports.createImport(importOf({ cwd: outside }))).rejects.toBeInstanceOf(AppError);
+      expect(claude.launches).toEqual([]);
+      expect(stateStore.read().terminals).toEqual([]);
     });
   });
 });

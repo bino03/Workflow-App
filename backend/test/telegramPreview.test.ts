@@ -56,6 +56,8 @@ function setup({
     lastOpenedAt: '',
     remoteControl: false,
     preview: previews.get(ID) ?? null,
+    importId: null,
+    hidden: false,
   });
   const menus = new MenuStore<BotAction>();
   const actions = new BotActions({

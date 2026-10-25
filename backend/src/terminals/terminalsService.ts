@@ -5,7 +5,7 @@ import { resolveAllowedPath } from '../folders/cwdPolicy.js';
 import type { ClaudeSessions } from '../sessions/claudeSessions.js';
 import type { AppState, SavedTerminal } from '../state/state.schema.js';
 import type { StateStore } from '../state/stateStore.js';
-import { type ClaudeLaunch, claudeArgs } from './claudeArgs.js';
+import { type ClaudeArgsOptions, type ClaudeLaunch, claudeArgs } from './claudeArgs.js';
 import { remoteControlName } from './remoteName.js';
 import { ClaudeBinError } from './spawnClaude.js';
 import { TerminalLimitError, type TerminalManager } from './terminalManager.js';
@@ -26,6 +26,21 @@ export type TerminalView = {
   remoteControl: boolean;
   /** A live dev-server preview on the tailnet (ADR 0018), or null. */
   preview: TerminalPreview | null;
+  /** Started by an import (ADR 0019); hidden ones are left out of `list()` until revealed. */
+  importId: string | null;
+  hidden: boolean;
+};
+
+/** A hidden terminal that runs `/import <requestPath>` in the Workflow (ADR 0019). Only the imports module calls it. */
+export type CreateImportTerminal = {
+  importId: string;
+  /** WORKFLOW_PATH: must be inside ALLOWED_ROOTS and already trusted by Claude Code. */
+  cwd: string;
+  requestPath: string;
+  /** The import's own folder, plus the project folder when the source is one — already resolved. */
+  addDirs: string[];
+  cols: number;
+  rows: number;
 };
 
 export type CreateTerminal = {
@@ -46,6 +61,8 @@ export type TerminalsServiceDeps = {
   allowedRoots: readonly string[];
   /** DATA_DIR/claude-settings.json when the quota status line is on (step 8). */
   settingsPath?: string;
+  /** DATA_DIR/claude-import-settings.json (status line + hooks, ADR 0019). Omitted → imports are refused. */
+  importSettingsPath?: string;
   /**
    * Whether Claude Code already trusts a folder (`isTrustedFolder`, sessions/claudeTrust.ts). Only Remote
    * Control launches ask: nobody is at the PTY to answer the trust dialog. Omitted → never trusted.
@@ -69,8 +86,10 @@ export class TerminalsService {
     this.now = deps.now ?? (() => new Date());
   }
 
+  /** The terminals the grid and the bot show — hidden ones (a running import) are left out. */
   list(): TerminalView[] {
     return [...this.deps.stateStore.read().terminals]
+      .filter((saved) => !saved.hidden)
       .sort((a, b) => a.createdAt.localeCompare(b.createdAt))
       .map((saved) => this.view(saved));
   }
@@ -91,7 +110,7 @@ export class TerminalsService {
     if (remoteControl) await this.assertTrusted(cwd);
     const launch = await this.launchFor(cwd, request);
     const id = randomUUID();
-    this.spawn(id, cwd, launch, request, remoteControl ? await this.remoteControlFor(cwd, launch) : undefined);
+    this.spawn(id, cwd, launch, request, { remoteControl: remoteControl ? await this.remoteControlFor(cwd, launch) : undefined });
 
     const at = this.now().toISOString();
     const saved: SavedTerminal = {
@@ -103,18 +122,69 @@ export class TerminalsService {
       updatedAt: at,
       lastOpenedAt: at,
       remoteControl,
+      importId: null,
+      hidden: false,
+      addDirs: [],
     };
+    await this.save(saved, { touch: true });
+    return this.view(saved);
+  }
+
+  /**
+   * Starts an import's hidden terminal: a new conversation whose first message is `/import <requestPath>`,
+   * with the imports' --settings and --add-dir folders (ADR 0019). The folder must already be trusted —
+   * nobody is at the PTY to answer the trust dialog, whose default is "No, exit".
+   */
+  async createImport(request: CreateImportTerminal): Promise<TerminalView> {
+    const settingsPath = this.deps.importSettingsPath;
+    if (settingsPath === undefined) throw new Error('imports need importSettingsPath');
+    const cwd = resolveAllowedPath(request.cwd, this.deps.allowedRoots);
+    await this.assertTrusted(cwd);
+    const launch: ClaudeLaunch = { kind: 'import', sessionId: randomUUID(), requestPath: request.requestPath };
+    const id = randomUUID();
+    this.spawn(id, cwd, launch, request, { settingsPath, addDirs: request.addDirs });
+
+    const at = this.now().toISOString();
+    const saved: SavedTerminal = {
+      id,
+      label: 'Importação',
+      cwd,
+      claudeSessionId: launch.sessionId,
+      createdAt: at,
+      updatedAt: at,
+      lastOpenedAt: at,
+      remoteControl: false,
+      importId: request.importId,
+      hidden: true,
+      addDirs: request.addDirs,
+    };
+    // Not a recent folder: the user never picked the Workflow for this terminal.
+    await this.save(saved, { touch: false });
+    return this.view(saved);
+  }
+
+  /** Makes a hidden terminal a normal one in the grid ("Ver terminal"). */
+  reveal(id: string): TerminalView {
+    if (!this.saved(id)) throw new AppError('TERMINAL_001');
+    const at = this.now().toISOString();
+    this.deps.stateStore.update((draft) => {
+      const terminal = draft.terminals.find((t) => t.id === id);
+      if (terminal) Object.assign(terminal, { hidden: false, updatedAt: at });
+    });
+    return this.view(this.saved(id)!);
+  }
+
+  private async save(saved: SavedTerminal, { touch }: { touch: boolean }): Promise<void> {
     try {
       this.deps.stateStore.update((draft) => {
         draft.terminals.push(saved);
-        touchFolder(draft, cwd, at);
+        if (touch) touchFolder(draft, saved.cwd, saved.createdAt);
       });
     } catch (error) {
       // A terminal that is not saved could never be listed or closed: do not leave its process behind.
-      await this.deps.terminalManager.kill(id);
+      await this.deps.terminalManager.kill(saved.id);
       throw error;
     }
-    return this.view(saved);
   }
 
   /**
@@ -143,13 +213,15 @@ export class TerminalsService {
     const remote = remoteControl ? await this.remoteControlFor(cwd, launch) : undefined;
 
     if (inMemory) await this.deps.terminalManager.kill(id); // exited: forget it so the id can be reused
-    this.spawn(id, cwd, launch, size, remote);
+    // An import's terminal keeps its hooks and folders; it never gets the /import prompt again.
+    const importLaunch = saved.importId === null ? {} : { settingsPath: this.deps.importSettingsPath, addDirs: saved.addDirs };
+    this.spawn(id, cwd, launch, size, { remoteControl: remote, ...importLaunch });
 
     const at = this.now().toISOString();
     this.deps.stateStore.update((draft) => {
       const terminal = draft.terminals.find((t) => t.id === id);
       if (terminal) Object.assign(terminal, { cwd, remoteControl, lastOpenedAt: at, updatedAt: at });
-      touchFolder(draft, cwd, at);
+      if (saved.importId === null) touchFolder(draft, cwd, at);
     });
     return { ...this.view(this.saved(id)!), freshSession };
   }
@@ -226,9 +298,9 @@ export class TerminalsService {
     cwd: string,
     launch: ClaudeLaunch,
     size: { cols: number; rows: number },
-    remoteControl?: { name?: string },
+    { remoteControl, settingsPath = this.deps.settingsPath, addDirs }: { remoteControl?: { name?: string } } & ClaudeArgsOptions = {},
   ): void {
-    const args = claudeArgs(launch, { settingsPath: this.deps.settingsPath, remoteControl });
+    const args = claudeArgs(launch, { settingsPath, remoteControl, addDirs });
     try {
       this.deps.terminalManager.create({ id, cwd, cols: size.cols, rows: size.rows, args });
     } catch (error) {
@@ -255,6 +327,8 @@ export class TerminalsService {
       lastOpenedAt: saved.lastOpenedAt,
       remoteControl: saved.remoteControl,
       preview: this.deps.previews?.get(saved.id) ?? null,
+      importId: saved.importId,
+      hidden: saved.hidden,
     };
   }
 }

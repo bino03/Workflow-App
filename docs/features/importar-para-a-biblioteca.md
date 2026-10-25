@@ -5,7 +5,7 @@
 | **Estado** | 🚧 Em curso |
 | **Criada** | 2026-10-23 |
 | **Última sessão** | 2026-10-25 |
-| **Passos** | 3 / 11 concluídos |
+| **Passos** | 4 / 11 concluídos |
 
 > Escrita para uma sessão que **não viu a conversa que a originou**. Se algo só faz sentido com contexto
 > externo, falta escrevê-lo.
@@ -440,7 +440,7 @@ desta app.
     `result.json` válido sem pedir permissões, e o `git checkout`/limpeza deixa o `git status` limpo;
     commit no Workflow `feat: /import — a Workflow App importa pelas skills do vault`.
 
-- [ ] **4. Backend — terminais escondidos e a linha de comando da importação**
+- [x] **4. Backend — terminais escondidos e a linha de comando da importação**
   - Ficheiro: `backend/src/terminals/claudeArgs.ts` (`ClaudeLaunch` + `{ kind: 'import'; sessionId;
     requestPath; addDirs }`), `backend/src/imports/importFiles.ts` (escreve `claude-import-settings.json` e
     `import-hook.cjs`, como `usageFiles.ts`), `backend/src/state/state.schema.ts` (`importId`, `hidden`),
@@ -568,8 +568,14 @@ desta app.
   hooks), com um design fictício por descrição → `result.json` `done` em **159 s**, triagem completa, contraste
   calculado, **zero pedidos de permissão**, sem commit; escreveu `themes/teste-ambar/{THEME,tokens}.md` + linha
   no registo + `provenance.md`. Descartado à mão (checkout dos 2 + apagar os 2 novos) → `git status` limpo.
+- **Passo 4 — terminais escondidos** (2026-10-25): `claudeArgs` com `kind: 'import'` e `addDirs` (pasta
+  absoluta, sem controlos/aspas, nunca começada por `-`; `request.json` só em `<…>/<uuid>/request.json`; import
+  + Remote Control recusado); `imports/importFiles.ts` (`claude-import-settings.json` + `import-hook.cjs` +
+  `readImportEvent`); `state.json` com `importId`/`hidden`/`addDirs`; `TerminalsService.createImport`/`reveal`,
+  `list()` sem escondidos, `reopen` de uma importação com as mesmas pastas e sem `/import`. 370 testes (+15),
+  `typecheck` só com o erro antigo de `auth.test.ts`, lint limpo. `docs/database.md` e `docs/api.md` atualizados.
 **Em curso:** nada.
-**Próxima ação concreta:** passo 4 — `backend/src/terminals/claudeArgs.ts` (`kind: 'import'`).
+**Próxima ação concreta:** passo 5 — `backend/src/imports/{imports.schemas,stagingFiles,importService,imports.routes}.ts`.
 **Desvios ao plano:**
 - A allowlist do Workflow tem mais do que o passo 3 listava: `WebSearch`, `node tools/dry-run.mjs` (o teste a
   seco das stacks) e o `cp -r` dos dois moldes `_TEMPLATE` (o `/add-stack` e o `/add-new-design` copiam-nos).
@@ -577,6 +583,10 @@ desta app.
 - O `.claude/settings.local.json` do Workflow **nesta máquina** permite `git commit`/`git push` (é do dono, não
   versionado). O `/import` diz para nunca fazer commit, e o teste a seco não fez — mas a proteção é a skill,
   não as permissões.
+- Passo 4: o terminal guardado ganhou também **`addDirs`** (a spec só tinha `importId`/`hidden`) — sem ele, um
+  terminal de importação reaberto perdia as pastas. `botActions.ts` **não** mudou: usa `list()`, que já filtra.
+  O `ClaudeLaunch` de importação chama-se `kind: 'import'` (a spec do novo projeto prevê generalizá-lo).
+  O comando da status line saiu para `statusLineSetting()` em `usageFiles.ts`, partilhado pelos dois `--settings`.
 **O que uma sessão nova precisa de saber:**
 - A lógica da importação vive **no Workflow** (skill `/import`), por pedido explícito do dono. Se uma
   sessão se apanhar a escrever validação de `STACK.md`/`THEME.md` no backend da app, está a sair da spec.

@@ -26,6 +26,9 @@ function savedTerminal(overrides: Partial<SavedTerminal> = {}): SavedTerminal {
     updatedAt: at(0),
     lastOpenedAt: at(0),
     remoteControl: false,
+    importId: null,
+    hidden: false,
+    addDirs: [],
     ...overrides,
   };
 }
@@ -104,6 +107,16 @@ describe('StateStore', () => {
     await writeFile(file, JSON.stringify({ version: 2, terminals: [older], closedTerminals: [], folders: [], keybindings: {} }));
     const store = await StateStore.load(dataDir);
     expect(store.read().terminals).toEqual([{ ...older, remoteControl: false }]);
+  });
+
+  it('a terminal saved before imports existed loads as a normal one (ADR 0019, no migration)', async () => {
+    const older: Partial<SavedTerminal> = savedTerminal({ label: 'api' });
+    delete older.importId;
+    delete older.hidden;
+    delete older.addDirs;
+    await writeFile(file, JSON.stringify({ version: 2, terminals: [older], closedTerminals: [], folders: [], keybindings: {} }));
+    const store = await StateStore.load(dataDir);
+    expect(store.read().terminals).toEqual([{ ...older, importId: null, hidden: false, addDirs: [] }]);
   });
 
   it('a v1 file loads as v2 with no shortcut changes, and is only rewritten on the next change', async () => {
