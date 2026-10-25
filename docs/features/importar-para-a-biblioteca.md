@@ -2,10 +2,10 @@
 
 | | |
 |---|---|
-| **Estado** | 📋 Planeada |
+| **Estado** | 🚧 Em curso |
 | **Criada** | 2026-10-23 |
-| **Última sessão** | 2026-10-23 |
-| **Passos** | 0 / 11 concluídos |
+| **Última sessão** | 2026-10-25 |
+| **Passos** | 1 / 11 concluídos |
 
 > Escrita para uma sessão que **não viu a conversa que a originou**. Se algo só faz sentido com contexto
 > externo, falta escrevê-lo.
@@ -397,7 +397,7 @@ Ordem obrigatória. Tiers: `opus` (desenho, não delegar) · `sonnet` (implement
 **Os passos 2 e 3 mexem no repo do Workflow** — ler o `CLAUDE.md` dele antes; commits lá são separados dos
 desta app.
 
-- [ ] **1. Spike — prompt inicial, hooks e `--add-dir`**
+- [x] **1. Spike — prompt inicial, hooks e `--add-dir`**
   - Ficheiro: `backend/scripts/import-spike.ts` (como o `statusline-spike.ts`/`preview-spike.ts`)
   - Skill: —
   - Tier: `opus` (decide o mecanismo de arranque; o plano B muda o passo 4)
@@ -542,10 +542,24 @@ desta app.
 
 > ⚠️ **Atualizar SEMPRE no fim de cada sessão.** É a secção que torna esta spec retomável.
 
-**Feito:** spec escrita (2026-10-23). Nenhum código, nenhum ADR, nada no Workflow.
+**Feito:**
+- Spec escrita (2026-10-23).
+- **Passo 1 — spike (2026-10-25, `claude` 2.1.310)**, `backend/scripts/import-spike.ts`, numa pasta
+  temporária com uma skill de teste. **Tudo confirmado à primeira, sem plano B:**
+  - (a) `claude --add-dir <d> --session-id <uuid> --settings <f> "/spike-import <caminho>"` corre o slash
+    command como primeira mensagem, em modo interativo (`UserPromptSubmit` com esse `prompt` a +2,3 s; resposta
+    no `.jsonl` a +7,3 s). **O `--add-dir` é variádico**: vai antes de outra opção, e o prompt fica em último —
+    senão era engolido como mais uma pasta.
+  - (b) Os hooks de um `--settings` correm com `session_id` (o nosso) e `hook_event_name` no stdin. O `Stop`
+    traz também `transcript_path` e **`last_assistant_message`** (útil para a spec [[novo-projeto-guiado]]);
+    o `UserPromptSubmit` traz o `prompt`.
+  - (c) Com `--add-dir`, o `Read` de um ficheiro dessa pasta não pediu permissão (nenhum `Notification`).
+  - (d) Um hook que não imprime nada não atrasa o fim do turno: a mensagem seguinte entrou 600 ms depois do
+    `Stop` e teve o seu próprio `Stop`.
+  - Achado: no diálogo de confiança de uma pasta nova, a opção por omissão é **"No, exit"** — Enter sai. A
+    regra da spec (o `WORKFLOW_PATH` tem de já ser de confiança, senão `TERMINAL_007`) fica justificada.
 **Em curso:** nada.
-**Próxima ação concreta:** passo 1 — criar `backend/scripts/import-spike.ts` a partir de
-`backend/scripts/preview-spike.ts`/`statusline-spike.ts` e provar (a)–(d).
+**Próxima ação concreta:** passo 2 — `docs/adr/0019-importar-pelas-skills-do-workflow.md`.
 **Desvios ao plano:** —
 **O que uma sessão nova precisa de saber:**
 - A lógica da importação vive **no Workflow** (skill `/import`), por pedido explícito do dono. Se uma
