@@ -5,7 +5,7 @@
 | **Estado** | 🚧 Em curso |
 | **Criada** | 2026-10-23 |
 | **Última sessão** | 2026-10-25 |
-| **Passos** | 2 / 11 concluídos |
+| **Passos** | 3 / 11 concluídos |
 
 > Escrita para uma sessão que **não viu a conversa que a originou**. Se algo só faz sentido com contexto
 > externo, falta escrevê-lo.
@@ -421,7 +421,7 @@ desta app.
     `--settings` com hooks, e `GIT_BIN`), consequências (o que sai, o que fica de fora — §2); README do ADR
     atualizado.
 
-- [ ] **3. Workflow — `/import`, modo importação, contrato, allowlist, ADR 0010**
+- [x] **3. Workflow — `/import`, modo importação, contrato, allowlist, ADR 0010**
   - Ficheiro (repo do Workflow): `docs/adr/0010-importacoes-pela-workflow-app.md`, `docs/adr/README.md`,
     `docs/import-contract.md`, `docs/skills/skill-import.md`, `.claude/skills/import/SKILL.md`,
     `docs/skills/{skill-add-stack,skill-add-new-design,skill-create-new-skill}.md`, `docs/skills/SKILLS-INDEX.md`,
@@ -559,9 +559,24 @@ desta app.
   - Achado: no diálogo de confiança de uma pasta nova, a opção por omissão é **"No, exit"** — Enter sai. A
     regra da spec (o `WORKFLOW_PATH` tem de já ser de confiança, senão `TERMINAL_007`) fica justificada.
 - **Passo 2 — [[../adr/0019-importar-pelas-skills-do-workflow|ADR 0019]]** (2026-10-25): substitui o 0014 (só o campo Estado do 0014 e a linha do README mudaram); a tabela de argumentos inclui a ordem (`--add-dir` primeiro, prompt em último).
+- **Passo 3 — no Workflow** (2026-10-25, commits `2ab86d6` + `1cb3b7b` lá, **sem push**): ADR 0010,
+  `docs/import-contract.md` (a cópia única do contrato — a §4.1 desta spec é só a forma inicial; **vale a de
+  lá**), `docs/skills/skill-import.md` + ponteiro, "Modo importação" em `skill-add-stack`/`skill-add-new-design`/
+  `skill-create-new-skill`, SKILLS-INDEX, catálogo de skills externas aceite, pergunta 2 do `vision.md`
+  respondida, linha no `CLAUDE.md`, `.claude/settings.json`. Auditoria do pre-commit: 0 erros.
+  **Teste a seco**: o `/import` real, lançado como a app o vai lançar (PTY, `cwd` = Workflow, `--add-dir`,
+  hooks), com um design fictício por descrição → `result.json` `done` em **159 s**, triagem completa, contraste
+  calculado, **zero pedidos de permissão**, sem commit; escreveu `themes/teste-ambar/{THEME,tokens}.md` + linha
+  no registo + `provenance.md`. Descartado à mão (checkout dos 2 + apagar os 2 novos) → `git status` limpo.
 **Em curso:** nada.
-**Próxima ação concreta:** passo 3 — no repo do Workflow, ler o `CLAUDE.md` dele e escrever `docs/adr/0010-importacoes-pela-workflow-app.md`.
-**Desvios ao plano:** —
+**Próxima ação concreta:** passo 4 — `backend/src/terminals/claudeArgs.ts` (`kind: 'import'`).
+**Desvios ao plano:**
+- A allowlist do Workflow tem mais do que o passo 3 listava: `WebSearch`, `node tools/dry-run.mjs` (o teste a
+  seco das stacks) e o `cp -r` dos dois moldes `_TEMPLATE` (o `/add-stack` e o `/add-new-design` copiam-nos).
+  Ficou no ADR 0010 do Workflow.
+- O `.claude/settings.local.json` do Workflow **nesta máquina** permite `git commit`/`git push` (é do dono, não
+  versionado). O `/import` diz para nunca fazer commit, e o teste a seco não fez — mas a proteção é a skill,
+  não as permissões.
 **O que uma sessão nova precisa de saber:**
 - A lógica da importação vive **no Workflow** (skill `/import`), por pedido explícito do dono. Se uma
   sessão se apanhar a escrever validação de `STACK.md`/`THEME.md` no backend da app, está a sair da spec.
