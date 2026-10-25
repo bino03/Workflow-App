@@ -12,7 +12,7 @@ npm install          # dependências (node-pty usa o binário pré-compilado par
 npm run dev          # tsx watch src/server.ts — porta 7400, só em 127.0.0.1
 npm run typecheck    # tsc --noEmit — tsconfig sem referências (inclui src, scripts, test), verifica mesmo
 npm run lint         # ESLint
-npm test             # vitest run (test/**/*.test.ts)
+npm test             # vitest run — projeto `unit` em paralelo, depois `processes` (PTYs/powershell reais, 3 de cada vez)
 npm run build        # tsc -p tsconfig.build.json → dist/ (só src/, sem testes nem scripts)
 npm start            # node dist/server.js — serve também o frontend/dist, se existir (build do frontend primeiro)
 npm run hash-password  # gera o APP_PASSWORD_HASH (argon2id): pede a password duas vezes, sem eco (mín. 12
@@ -34,6 +34,11 @@ npx tsx scripts/statusline-spike.ts [cwd] [--prompt]  # spike manual: JSON da st
   reputação. Aconteceu com o `rolldown` do Vite 8 (puxado pelo Vitest 5); a mensagem do npm sobre
   dependências opcionais é enganadora — o binário está lá. Por isso o Vitest fica no 4 com `vite@7`
   fixado. Para diagnosticar: `node -e "require('<pacote-do-binding>')"` mostra o erro real.
+- **Um ficheiro de teste novo que lança processos reais** (o `fakeClaude` num PTY, `powershell`, um servidor)
+  **entra em `PROCESS_TESTS`** no `backend/vitest.config.ts`. Todos em paralelo, numa máquina carregada
+  (browser, java), davam timeouts de testes e hooks (2026-10-23: 11 numa corrida). Cada fecho de um terminal
+  custa ~1,6 s no Windows. Para reproduzir uma flake, carregar a CPU (vários `node` em ciclo ocupado) em vez
+  de esperar que aconteça.
 - **`npm run dev` com `tsx watch` reinicia o servidor a cada gravação — e cada reinício mata todos os
   terminais abertos.** Ver a secção seguinte.
 - **O `tsx watch` não vigia o `backend/.env`.** Mudar só o `.env` não tem efeito até reiniciar. E ao contrário:

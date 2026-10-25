@@ -1,4 +1,4 @@
-import { mkdirSync, mkdtempSync, realpathSync, rmSync, writeFileSync } from 'node:fs';
+import { mkdirSync, mkdtempSync, realpathSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import argon2 from 'argon2';
@@ -9,7 +9,7 @@ import { ClaudeSessions } from '../src/sessions/claudeSessions.js';
 import { ClaudeBinError, type SpawnPty } from '../src/terminals/spawnClaude.js';
 import { TerminalManager } from '../src/terminals/terminalManager.js';
 import { fakeClaude } from './fakeClaude.js';
-import { TEST_USERNAME, testConfig, testStateStore } from './helpers.js';
+import { TEST_USERNAME, testConfig, testStateStore, removeDir } from './helpers.js';
 
 const PASSWORD = 'terminals routes password';
 const SAVED = '9089b683-e79e-4bd7-9d4b-69f6fd40cc0a';
@@ -30,7 +30,7 @@ let passwordHash: string;
 beforeAll(async () => {
   passwordHash = await argon2.hash(PASSWORD, { type: argon2.argon2id });
 });
-afterAll(() => rmSync(base, { recursive: true, force: true }));
+afterAll(() => removeDir(base));
 
 async function startApp(spawn: SpawnPty) {
   const config = testConfig({ APP_PASSWORD_HASH: passwordHash, ALLOWED_ROOTS: root, CLAUDE_CONFIG_DIR: claudeConfig });

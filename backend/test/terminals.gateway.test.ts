@@ -1,4 +1,4 @@
-import { mkdirSync, mkdtempSync, realpathSync, rmSync } from 'node:fs';
+import { mkdirSync, mkdtempSync, realpathSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { PassThrough } from 'node:stream';
@@ -10,7 +10,7 @@ import { buildApp } from '../src/app.js';
 import { WS_CLOSE } from '../src/terminals/terminals.gateway.js';
 import { TerminalManager } from '../src/terminals/terminalManager.js';
 import { fakeClaude, waitFor } from './fakeClaude.js';
-import { TEST_ORIGIN, TEST_USERNAME, testConfig, testStateStore } from './helpers.js';
+import { TEST_ORIGIN, TEST_USERNAME, testConfig, testStateStore, removeDir } from './helpers.js';
 
 const PASSWORD = 'terminals gateway password';
 const SECRET = 'segredo-escrito-no-terminal-42';
@@ -57,7 +57,7 @@ describe('/api/terminals/:id/ws', () => {
 
   afterAll(async () => {
     await app.close();
-    rmSync(base, { recursive: true, force: true });
+    removeDir(base);
   });
 
   async function openTerminal(): Promise<string> {

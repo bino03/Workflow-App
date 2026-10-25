@@ -1,4 +1,4 @@
-import { mkdirSync, mkdtempSync, realpathSync, rmSync, utimesSync, writeFileSync } from 'node:fs';
+import { mkdirSync, mkdtempSync, realpathSync, utimesSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { afterAll, afterEach, beforeEach, describe, expect, it } from 'vitest';
@@ -12,6 +12,7 @@ import { TelegramBot } from '../src/telegram/telegramBot.js';
 import { TerminalManager } from '../src/terminals/terminalManager.js';
 import { TerminalsService } from '../src/terminals/terminalsService.js';
 import { fakeClaude, waitFor } from './fakeClaude.js';
+import { removeDir } from './helpers.js';
 
 const OWNER = 555_000_111;
 const STRANGER = 999_000_222;
@@ -36,7 +37,7 @@ function writeSession(cwd: string, id: string, title: string, mtime: Date) {
 writeSession(project, OLD, 'Sessão antiga', new Date('2026-09-20T10:00:00Z'));
 writeSession(project, LATEST, 'Migração para prisma', new Date('2026-10-20T18:42:00Z'));
 
-afterAll(() => rmSync(base, { recursive: true, force: true }));
+afterAll(() => removeDir(base));
 
 const PROJECTS: ProjectEntry[] = [
   { name: 'API Faturas', path: project, type: null, stack: null, status: null },
@@ -144,7 +145,7 @@ describe('TelegramBot', () => {
     await bot.stop();
     await manager.killAll();
     await stateStore.flush();
-    rmSync(dataDir, { recursive: true, force: true });
+    removeDir(dataDir);
   });
 
   const last = () => telegram.sent.filter((s) => s.method !== 'answerCallbackQuery').at(-1)!;

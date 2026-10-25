@@ -1,4 +1,4 @@
-import { mkdtempSync } from 'node:fs';
+import { mkdtempSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { type Config, loadConfig } from '../src/config.js';
@@ -28,6 +28,14 @@ export function testEnv(overrides: Record<string, string | undefined> = {}): Nod
 
 export function testConfig(overrides: Record<string, string | undefined> = {}): Config {
   return loadConfig(testEnv(overrides));
+}
+
+/**
+ * Deletes a temporary folder that a fake terminal used as its cwd. On Windows a process that is still exiting
+ * keeps its cwd locked for a moment (EPERM/EBUSY), so retry instead of failing the hook.
+ */
+export function removeDir(dir: string): void {
+  rmSync(dir, { recursive: true, force: true, maxRetries: 10, retryDelay: 100 });
 }
 
 /** An empty StateStore in its own temporary DATA_DIR — never the real ~/.workflow-app. */

@@ -1,4 +1,4 @@
-import { mkdirSync, mkdtempSync, realpathSync, rmSync } from 'node:fs';
+import { mkdirSync, mkdtempSync, realpathSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import argon2 from 'argon2';
@@ -8,7 +8,7 @@ import { buildApp } from '../src/app.js';
 import type { DevPort } from '../src/preview/listeningPorts.js';
 import { TerminalManager } from '../src/terminals/terminalManager.js';
 import { fakeClaude } from './fakeClaude.js';
-import { TEST_USERNAME, testConfig, testStateStore } from './helpers.js';
+import { TEST_USERNAME, testConfig, testStateStore, removeDir } from './helpers.js';
 
 const PASSWORD = 'preview routes password';
 const UNKNOWN = '00000000-0000-4000-8000-000000000000';
@@ -22,7 +22,7 @@ let passwordHash: string;
 beforeAll(async () => {
   passwordHash = await argon2.hash(PASSWORD, { type: argon2.argon2id });
 });
-afterAll(() => rmSync(base, { recursive: true, force: true }));
+afterAll(() => removeDir(base));
 
 /** What the fake Tailscale daemon is serving, and the dev ports every terminal "has". */
 const served = new Map<number, string>();

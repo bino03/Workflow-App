@@ -8,7 +8,7 @@ import { buildApp } from '../src/app.js';
 import { ClaudeSessions } from '../src/sessions/claudeSessions.js';
 import { TerminalManager } from '../src/terminals/terminalManager.js';
 import { fakeClaude } from './fakeClaude.js';
-import { TEST_USERNAME, testConfig, testStateStore } from './helpers.js';
+import { TEST_USERNAME, testConfig, testStateStore, removeDir } from './helpers.js';
 
 const PASSWORD = 'folders and sessions password';
 const OLD = '11111111-1111-4111-8111-111111111111';
@@ -52,7 +52,7 @@ beforeAll(async () => {
 
 afterAll(async () => {
   await app.close();
-  rmSync(base, { recursive: true, force: true });
+  removeDir(base);
 });
 
 const get = (url: string) => app.inject({ method: 'GET', url, headers: { cookie } });

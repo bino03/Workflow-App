@@ -1,4 +1,4 @@
-import { mkdirSync, mkdtempSync, realpathSync, rmSync, utimesSync, writeFileSync } from 'node:fs';
+import { mkdirSync, mkdtempSync, realpathSync, utimesSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { afterAll, afterEach, beforeEach, describe, expect, it } from 'vitest';
@@ -9,6 +9,7 @@ import { ClaudeBinError } from '../src/terminals/spawnClaude.js';
 import { TerminalManager } from '../src/terminals/terminalManager.js';
 import { TerminalsService } from '../src/terminals/terminalsService.js';
 import { fakeClaude, waitFor } from './fakeClaude.js';
+import { removeDir } from './helpers.js';
 
 const SAVED = '9089b683-e79e-4bd7-9d4b-69f6fd40cc0a';
 const OTHER = '4c11a40a-9c91-4a62-9d86-00197ae5a535';
@@ -35,7 +36,7 @@ function writeSession(cwd: string, id: string, title: string, mtime: Date) {
 writeSession(project, OTHER, 'Sessão antiga', new Date('2026-09-20T10:00:00Z'));
 writeSession(project, SAVED, 'Migração para prisma', new Date('2026-09-26T18:42:00Z')); // the latest
 
-afterAll(() => rmSync(base, { recursive: true, force: true }));
+afterAll(() => removeDir(base));
 
 async function expectAppError(action: () => unknown, code: ErrorCode) {
   let caught: unknown;
@@ -80,7 +81,7 @@ describe('TerminalsService', () => {
   afterEach(async () => {
     await manager.killAll();
     await stateStore.flush();
-    rmSync(dataDir, { recursive: true, force: true });
+    removeDir(dataDir);
   });
 
   describe('create', () => {
