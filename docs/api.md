@@ -42,12 +42,18 @@ próprio Fastify (JSON mal formado, content-type errado → `COMMON_001`) e as r
 | `TERMINAL_004` | 404 | A sessão gravada (`.jsonl`) já não existe |
 | `TERMINAL_005` | 503 | O binário `claude` (`CLAUDE_BIN`) não foi encontrado |
 | `TERMINAL_006` | 409 | Reabrir um terminal que já está a correr |
-| `TERMINAL_007` | 409 | Lançar com Remote Control numa pasta que o Claude Code ainda não aceitou como de confiança (nem ela nem uma pasta-mãe, em `.claude.json`) — [[adr/0017-bot-telegram-e-remote-control]] |
+| `TERMINAL_007` | 409 | Lançar com Remote Control (ou uma importação, no Workflow) numa pasta que o Claude Code ainda não aceitou como de confiança (nem ela nem uma pasta-mãe, em `.claude.json`) — [[adr/0017-bot-telegram-e-remote-control]], [[adr/0019-importar-pelas-skills-do-workflow]] |
 | `FOLDER_001` | 403 | Pasta inexistente, não é pasta, relativa, ou fora de `ALLOWED_ROOTS` (depois de resolver `..`, symlinks e junctions) — nunca diz qual |
 | `SESSION_001` | 404 | "Continuar a última" numa pasta sem sessões gravadas |
 | `KEYBIND_001` | 400 | Tecla não permitida para esse modificador (Esc, setas, F-keys, AltGr sem ser com `.`, código não canónico) |
 | `KEYBIND_002` | 409 | A combinação já é a bind em vigor de outra ação (o frontend mostra qual antes de enviar) |
 | `KEYBIND_003` | 404 | Id de ação que o catálogo não tem |
+| `IMPORT_001` | 404 | A importação não existe (ou o id nem é um UUID) |
+| `IMPORT_002` | 409 | Já há uma importação aberta (a correr ou por rever) |
+| `IMPORT_003` | 409 | O repositório do Workflow tem alterações por gravar |
+| `IMPORT_004` | 400 | Ficheiros a mais (> 200), grandes demais (> 10 MiB no total), que não batem com `source.paths`, ou com um caminho que o Windows não guarda tal como vem |
+| `IMPORT_005` | 409 | A importação não está no estado que a ação pede (ex. aceitar enquanto corre) |
+| `IMPORT_006` | 500 | O git do Workflow falhou ou recusou — o `message` traz o fim do stderr |
 
 O frontend espelha esta tabela em `frontend/src/errors/errorMessages.ts`, pela mesma ordem — os dois
 mudam no mesmo commit.
@@ -205,6 +211,36 @@ A única porta de escrita da app no `WORKFLOW_PATH` ([[adr/0014-escrita-controla
   é `201` na mesma (a listagem lê a pasta, não o manifesto). Só esse array é alterado; o resto do
   `STACK.md` fica byte-a-byte igual.
 - `library/stacks/README.md` **não** é atualizado — limitação conhecida do ADR 0014.
+
+## Importações (`imports/`, `/api/library/imports`) — 🚧
+
+[[adr/0019-importar-pelas-skills-do-workflow]] · spec [[features/importar-para-a-biblioteca]]. A app não escreve
+na biblioteca: lança o `/import` do Workflow num terminal escondido e segue-o. Uma importação de cada vez; a
+revisão (diff, aceitar, descartar) é o passo 6 da spec.
+
+| Método | Rota | Corpo | Resposta | Erros |
+|---|---|---|---|---|
+| POST | `/api/library/imports` | `multipart/form-data`: um campo `request` (JSON, abaixo) e, com `source.type: 'files'`, uma parte `files` por entrada de `source.paths`, **pela mesma ordem** (o nome do ficheiro enviado é ignorado) | `201 ImportView` | `COMMON_001` · `AUTH_002` · `FOLDER_001` · `IMPORT_002` · `IMPORT_003` · `IMPORT_004` · `IMPORT_006` · `TERMINAL_002` · `TERMINAL_005` · `TERMINAL_007` |
+| GET | `/api/library/imports/current` | — | `200 ImportView \| null` | `AUTH_002` · `IMPORT_006` |
+| POST | `/api/library/imports/:id/reveal` | — | `200 TerminalView` (agora `hidden: false`) | `AUTH_002` · `IMPORT_001` |
+| DELETE | `/api/library/imports/:id` | — | `204` — fecha o terminal (vai para o histórico) e apaga a pasta da importação | `AUTH_002` · `IMPORT_001` |
+
+- **`request`** = `{kind: 'skill'|'design'|'stack'|'auto', source, answers}`. `source`: `{type: 'files', paths}` (1–200
+  caminhos relativos com `/`) · `{type: 'url', url}` (só `http`/`https`) · `{type: 'project', path}` (dentro de
+  `ALLOWED_ROOTS`) · `{type: 'text', text}` (até 8000). `answers` por `kind` — `stack`: `technology`, `layer`,
+  `pairsWith[]`, `conflictsWith[]`, `whenToChoose`, `whenNot`, `versions` · `design`: `name`, `character`, `suits`,
+  `notSuits` · `skill`: `target` (`'process'` ou o id de uma stack), `whenToUse` · `auto`: `notes`. Texto até 2000;
+  um campo a mais é `COMMON_001`. Tudo isto vai **só** para o `request.json` — nada do cliente entra na linha de comando.
+- **`ImportView`** = `{id, kind, sourceLabel, status, terminalId, createdAt, result, changedFiles, error}`. `status`:
+  `running` · `needs-you` (o último hook foi `Stop`/`Notification` sem `result.json` — a skill parou à espera) ·
+  `review` (há `result.json` e alterações no Workflow) · `rejected` (a triagem recusou, sem alterações) · `failed`
+  (`result.json` inválido ou `status: failed`, ou o terminal acabou sem resultado — `error` diz qual). `result` é o
+  `result.json` validado (contrato v1, `WORKFLOW_PATH/docs/import-contract.md`). `changedFiles` vem do `git status`
+  e só se conta quando há resultado.
+- Pré-condições, pela ordem: nenhuma importação aberta (`IMPORT_002`); os ficheiros batem com `source.paths` e a
+  pasta do projeto está dentro de `ALLOWED_ROOTS`; o `git status` do Workflow vazio (`IMPORT_003`); o Workflow é de
+  confiança para o Claude Code (`TERMINAL_007` — o diálogo de confiança tem "No, exit" por omissão e ninguém o vê).
+- Nada fica a meio: um erro depois de criar a pasta apaga-a.
 
 ## Projetos (`projects/`, `/api/projects`) — ✅
 

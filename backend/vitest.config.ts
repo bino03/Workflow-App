@@ -8,6 +8,7 @@ import { defineConfig } from 'vitest/config';
  */
 const PROCESS_TESTS = [
   'test/folders.sessions.routes.test.ts',
+  'test/imports.routes.test.ts',
   'test/keybindings.test.ts',
   'test/listeningPorts.test.ts',
   'test/preview.routes.test.ts',
@@ -16,6 +17,7 @@ const PROCESS_TESTS = [
   'test/terminals.gateway.test.ts',
   'test/terminals.routes.test.ts',
   'test/terminalsService.test.ts',
+  'test/workflowGit.test.ts',
 ];
 
 const shared = {

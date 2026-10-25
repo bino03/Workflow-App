@@ -51,6 +51,13 @@ export const ErrorCode = {
   KEYBIND_001: { status: 400, message: 'Key combination not allowed' },
   KEYBIND_002: { status: 409, message: 'Key combination already used by another action' },
   KEYBIND_003: { status: 404, message: 'Unknown shortcut action' },
+  // IMPORT (ADR 0019)
+  IMPORT_001: { status: 404, message: 'Import not found' },
+  IMPORT_002: { status: 409, message: 'Another import is still open' },
+  IMPORT_003: { status: 409, message: 'The Workflow repository has uncommitted changes' },
+  IMPORT_004: { status: 400, message: 'Too many files, too large, or a file path is not allowed' },
+  IMPORT_005: { status: 409, message: 'The import is not in a state that allows this' },
+  IMPORT_006: { status: 500, message: 'git refused the operation in the Workflow repository' },
 } as const satisfies Record<string, { status: number; message: string }>;
 
 export type ErrorCode = keyof typeof ErrorCode;

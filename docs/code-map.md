@@ -73,6 +73,7 @@ isso há os outros:
 | **Backend** | `backend/src/library/` — `library.routes.ts` · `libraryService.ts` (lê o disco; `uploadSkill` é a única escrita) · `library.schemas.ts` (zod dos manifestos + `maturityOf`) · `frontmatterEditor.ts` (edita só o `provides-skills` de um `STACK.md`) |
 | **Dados** | `WORKFLOW_PATH/library` — leitura ([[adr/0005-biblioteca-lida-do-disco]]) + duas escritas estreitas no upload de skills ([[adr/0014-escrita-controlada-biblioteca]]) |
 | **Detalhe** | [[api]] → "Biblioteca" |
+| **Importações** (🚧 [[features/importar-para-a-biblioteca]], [[adr/0019-importar-pelas-skills-do-workflow]]) | `backend/src/imports/` — `imports.routes.ts` (multipart) · `importService.ts` (criar, estado derivado, revelar, cancelar) · `imports.schemas.ts` (o pedido e o contrato `request.json`/`result.json` v1) · `stagingFiles.ts` (ficheiros enviados → `DATA_DIR/imports/<id>/files/`) · `workflowGit.ts` (o `git` do Workflow) · `importFiles.ts` (o `--settings` das importações e o `import-hook.cjs`) · o terminal escondido em `terminals/terminalsService.ts` (`createImport`/`reveal`) e a linha de comando em `terminals/claudeArgs.ts` · a skill do outro lado: `WORKFLOW_PATH/docs/skills/skill-import.md` |
 
 ## Projetos — 🚧 (spec [[features/separadores-de-projetos]] em curso)
 

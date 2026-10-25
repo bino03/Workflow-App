@@ -90,6 +90,8 @@ const envSchema = z.object({
 
   // Dev-server previews over `tailscale serve` (ADR 0018). Optional: no binary → no previews.
   TAILSCALE_BIN: optionalString,
+  // The git that reviews an import in the Workflow repo (ADR 0019): only fixed arguments, cwd = WORKFLOW_PATH.
+  GIT_BIN: z.string().trim().min(1).default('git'),
   PREVIEW_HTTPS_PORTS: z
     .string()
     .default('8443-8446')
@@ -150,6 +152,8 @@ export type Config = {
     scrollbackBytes: number;
   };
   workflowPath: string;
+  /** git for the imports' review (ADR 0019): status/diff/add/commit/checkout in WORKFLOW_PATH, nothing else. */
+  gitBin: string;
   /** Where state.json lives (ADR 0009); created at startup if missing. */
   dataDir: string;
   /** Absolute path of the built SPA; served only if it has an index.html. */
@@ -236,6 +240,7 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): Config {
       scrollbackBytes: e.SCROLLBACK_BYTES,
     },
     workflowPath: e.WORKFLOW_PATH,
+    gitBin: e.GIT_BIN,
     dataDir: e.DATA_DIR ?? join(homedir(), '.workflow-app'),
     frontendDist: e.FRONTEND_DIST ?? DEFAULT_FRONTEND_DIST,
     telegram:

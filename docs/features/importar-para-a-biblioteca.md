@@ -5,7 +5,7 @@
 | **Estado** | 🚧 Em curso |
 | **Criada** | 2026-10-23 |
 | **Última sessão** | 2026-10-25 |
-| **Passos** | 4 / 11 concluídos |
+| **Passos** | 5 / 11 concluídos |
 
 > Escrita para uma sessão que **não viu a conversa que a originou**. Se algo só faz sentido com contexto
 > externo, falta escrevê-lo.
@@ -454,7 +454,7 @@ desta app.
     (testado com stdin falso) grava o evento, ignora `session_id` que não é UUID e sai 0 sem imprimir;
     `npm run typecheck`/`test`/`lint` limpos.
 
-- [ ] **5. Backend — `ImportService`: criar, estado, cancelar**
+- [x] **5. Backend — `ImportService`: criar, estado, cancelar**
   - Ficheiro: `backend/src/imports/{imports.schemas,importService,stagingFiles,imports.routes}.ts`,
     `backend/src/{app,config}.ts`, `backend/src/common/errors.ts` (`IMPORT_001`–`IMPORT_006`),
     `backend/test/{imports.routes,importService,stagingFiles}.test.ts`, `docs/api.md`
@@ -574,8 +574,16 @@ desta app.
   `readImportEvent`); `state.json` com `importId`/`hidden`/`addDirs`; `TerminalsService.createImport`/`reveal`,
   `list()` sem escondidos, `reopen` de uma importação com as mesmas pastas e sem `/import`. 370 testes (+15),
   `typecheck` só com o erro antigo de `auth.test.ts`, lint limpo. `docs/database.md` e `docs/api.md` atualizados.
+- **Passo 5 — `ImportService` e rotas** (2026-10-25): `POST /api/library/imports` (multipart), `GET …/current`,
+  `POST …/:id/reveal`, `DELETE …/:id`; `IMPORT_001`–`006`; `GIT_BIN` no config. 396 testes (+26: `stagingFiles`,
+  `workflowGit` com um repo real, `importService` com dependências falsas, rotas com a app inteira e o `claude`
+  falso). **Chamado por HTTP real** numa instância de `scripts/verify/` (Workflow falso, sem git): `current` →
+  `null`, caminho `../` → 400, sem `request` → 400, ficheiros a menos → 400 `IMPORT_004`, válido → 500
+  `IMPORT_006` (o `git status` falha, como deve), sem sessão → 401. Docs: `api.md`, `environment.md`,
+  `code-map.md`, `backend/.env.example`.
 **Em curso:** nada.
-**Próxima ação concreta:** passo 5 — `backend/src/imports/{imports.schemas,stagingFiles,importService,imports.routes}.ts`.
+**Próxima ação concreta:** passo 6 — `backend/src/imports/workflowGit.ts` (`diff`, `commit`, `discard`) e as rotas
+`…/diff`, `…/accept`, `…/discard`; o `DELETE` passa a descartar as alterações também.
 **Desvios ao plano:**
 - A allowlist do Workflow tem mais do que o passo 3 listava: `WebSearch`, `node tools/dry-run.mjs` (o teste a
   seco das stacks) e o `cp -r` dos dois moldes `_TEMPLATE` (o `/add-stack` e o `/add-new-design` copiam-nos).
@@ -587,6 +595,13 @@ desta app.
   terminal de importação reaberto perdia as pastas. `botActions.ts` **não** mudou: usa `list()`, que já filtra.
   O `ClaudeLaunch` de importação chama-se `kind: 'import'` (a spec do novo projeto prevê generalizá-lo).
   O comando da status line saiu para `statusLineSetting()` em `usageFiles.ts`, partilhado pelos dois `--settings`.
+- Passo 5: os caminhos relativos dos ficheiros vão **dentro do JSON** (`source.paths`, pela ordem das partes
+  `files`) — não no `filename` das partes, que o busboy reduz ao nome base por omissão. A `ImportView` ganhou
+  **`error`** (porque falhou, também sem `result.json`). `done` sem alterações no Workflow → `failed` ("a skill
+  disse que escreveu, mas o Workflow não tem alterações"); `rejected` com alterações (o descarte no
+  `provenance.md`) → `review`. A rota `reveal` e o `workflowGit.ts` (só `changes()`) entraram já no passo 5. As
+  validações do pedido correm antes do `git status` (achado na chamada HTTP real: ficheiros a menos davam
+  `IMPORT_006` em vez de `IMPORT_004`). O `DELETE` ainda **não** descarta as alterações no Workflow — é o passo 6.
 **O que uma sessão nova precisa de saber:**
 - A lógica da importação vive **no Workflow** (skill `/import`), por pedido explícito do dono. Se uma
   sessão se apanhar a escrever validação de `STACK.md`/`THEME.md` no backend da app, está a sair da spec.

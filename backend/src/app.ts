@@ -15,10 +15,15 @@ import { hasSpaBuild, registerSpa, selfOrigins } from './common/spa.js';
 import { keybindingsRoutes } from './keybindings/keybindings.routes.js';
 import { KeybindingsService } from './keybindings/keybindingsService.js';
 import { libraryRoutes } from './library/library.routes.js';
-import { MAX_SKILL_UPLOAD_BYTES, LibraryService } from './library/libraryService.js';
+import { LibraryService } from './library/libraryService.js';
 import { foldersRoutes } from './folders/folders.routes.js';
 import { FoldersService } from './folders/foldersService.js';
 import { writeImportFiles } from './imports/importFiles.js';
+import { importsRoutes } from './imports/imports.routes.js';
+import { MAX_IMPORT_FILES } from './imports/imports.schemas.js';
+import { ImportService } from './imports/importService.js';
+import { MAX_IMPORT_BYTES } from './imports/stagingFiles.js';
+import { WorkflowGit } from './imports/workflowGit.js';
 import { projectsRoutes } from './projects/projects.routes.js';
 import { devPortsOf } from './preview/listeningPorts.js';
 import { previewRoutes } from './preview/preview.routes.js';
@@ -95,8 +100,10 @@ export async function buildApp({
   });
   // A paste bigger than this is not typing; the default (100 MiB) would let one frame fill the PTY.
   await app.register(websocket, { options: { maxPayload: 1024 * 1024 } });
-  // Only the skill upload takes multipart (ADR 0014); the route sets its own limits on top of these.
-  await app.register(multipart, { limits: { fileSize: MAX_SKILL_UPLOAD_BYTES, files: 1, fields: 0 } });
+  // Only the imports take multipart (ADR 0019); each route sets its own limits on top of these.
+  await app.register(multipart, {
+    limits: { fileSize: MAX_IMPORT_BYTES, files: MAX_IMPORT_FILES, fields: 1, fieldSize: 64 * 1024 },
+  });
 
   // A page served by this backend opens its WebSocket with the backend's own origin. Only the
   // WebSocket needs it: same-origin REST calls never depend on CORS.
@@ -152,6 +159,15 @@ export async function buildApp({
     previews: previewService,
   });
   await app.register(terminalsRoutes, { terminalsService });
+  await app.register(importsRoutes, {
+    importService: new ImportService({
+      dataDir: config.dataDir,
+      workflowPath: config.workflowPath,
+      allowedRoots: config.terminals.allowedRoots,
+      terminals: terminalsService,
+      git: new WorkflowGit({ gitBin: config.gitBin, repo: config.workflowPath }),
+    }),
+  });
   await app.register(previewRoutes, { terminalsService, previewService });
   await app.register(terminalsGateway, { terminalManager, sessionStore: sessions });
   await app.register(usageRoutes, { dataDir: config.dataDir });
