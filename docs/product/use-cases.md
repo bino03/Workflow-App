@@ -43,11 +43,12 @@ Desenhados no `/choose-design` (2026-09-27) — protótipos em
   lateral** (`AltGr+.`) para ganhar espaço, sem perder nenhum terminal.
 - O dono **ajusta o zoom de um terminal** sem afetar o resto da página — nunca precisa do zoom do browser.
 - O dono **consulta a biblioteca** do Workflow (que stacks e designs existem, quão maduros são, que skills há) sem abrir o Obsidian.
-- O dono **acrescenta uma skill já escrita** à biblioteca: na tab Skills, escolhe a stack, arrasta o
-  `skill-*.md` e ele passa a viver em `WORKFLOW_PATH/library/stacks/<id>/skills/` — sem abrir o Obsidian
-  nem um terminal no Workflow ([[../features/upload-de-skills]],
-  [[../adr/0014-escrita-controlada-biblioteca]]). Stacks e designs completos continuam a fazer-se pelos
-  terminais.
+- O dono **importa para a biblioteca** uma skill, um design ou uma stack (de qualquer camada) a partir de
+  ficheiros, uma pasta, um URL, um projeto local ou uma descrição: **Importar** na Biblioteca, escolhe o quê e de
+  onde, responde (ou não) às perguntas desse tipo. A skill `/import` do Workflow faz a triagem e escreve, num
+  terminal que não se vê; uma faixa no topo diz em que pé está, **Ver terminal** mostra-o quando a skill precisa
+  de uma resposta, e no fim o dono revê a triagem e o diff e **aceita** (commit no Workflow) ou **descarta**
+  ([[../features/importar-para-a-biblioteca]], [[../adr/0019-importar-pelas-skills-do-workflow]]).
 - (Futuro) O dono **lança o `/create`** a partir de um formulário.
 
 ## Relacionado

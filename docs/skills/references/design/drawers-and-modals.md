@@ -49,9 +49,11 @@ export function OrderViewDrawer({ id, onClose }: Props) {
 
 ## Modals — só utilitários curtos
 
-- **Drawer**: criar/editar/ver uma entidade (padrão dominante). Um drawer que recebe um **ficheiro**
+- **Drawer**: criar/editar/ver uma entidade (padrão dominante). Um drawer que recebe **ficheiros**
   (zona de arrastar, erro do backend mostrado lá dentro) segue [[forms-and-validation]] §4.1 —
-  `UploadSkillDrawer.tsx` é o exemplo.
+  `components/library/ImportDrawer.tsx` é o exemplo. Pedir uma importação é um formulário (campos que mudam
+  com o tipo e a origem), por isso é Drawer, apesar de "importar" aparecer na lista dos Modals abaixo — esse
+  é o importar em passos de um ficheiro de dados.
 - **Modal**: seletor de pesquisa, visualizador de documento, histórico, reordenar, importar,
   exportar em passos (`Steps size="small"` no topo, rodapé troca Cancelar/Continuar por
   Voltar/Descarregar). Largura típica `min(640px, 94vw)`, `max-height: 88vh`, cabeçalho e rodapé fixos
@@ -99,6 +101,23 @@ headless) — quando a escolha é uma só, curta (2-5 linhas) e fácil de desfaz
 "selecionado" nem botão de confirmar, só Cancelar no rodapé; a linha clicada mostra "a ligar…" e as outras ficam
 `disabled` até a resposta chegar. Largura `min(520px, 94vw)`. Com consequências (apagar, sobrescrever), não: aí é
 selecionar + confirmar, como no `ResumeSessionModal`.
+
+## Drawer de revisão com diff (2026-10-25)
+
+`components/library/ImportReviewDrawer.tsx` — rever o que uma importação mudou antes de aceitar (verificado em
+Chrome headless, com capturas). **Large** (900): os diffs precisam de largura.
+
+- Secções em coluna, `gap-6`, cada uma com rótulo `text-3` 12.5: resumo (texto do backend com quebras de linha
+  preservadas), triagem (lista ✓ `success` / ✕ `error` + critério + nota — forma e cor), ficheiros.
+- Ficheiros num `Collapse size="small"`, abertos por omissão até 3; o cabeçalho de cada um é uma tag de mudança
+  (`.tag-work` "Novo", `.tag-wait` "Alterado", `.tag-err` "Apagado") + o caminho em mono, `truncate`.
+- O diff em `.diff-block` (`index.css`): mono 12/18, `surface-1`, borda `border`, raio `sm`, `max-height: 420px`
+  com scroll, `white-space: pre`. Linhas `.diff-add` (`success` sobre `state-work-subtle`), `.diff-del` (`error`
+  sobre `state-err-subtle`), `.diff-hunk` (`info`). Começa no primeiro `@@` — o cabeçalho do `git diff` é ruído.
+  Diff vazio (o git marca o ficheiro só por fins de linha ou permissões) → uma frase em `text-3`, nunca uma caixa
+  vazia. Cortado → "Cortado a 200 KB" por baixo.
+- Rodapé: à esquerda, o que a ação principal vai fazer (a mensagem do commit, mono `text-3`); à direita Fechar ·
+  Descartar (`danger`, contornado, com confirmação) · **Aceitar** (`primary`).
 
 ## Confirmações
 

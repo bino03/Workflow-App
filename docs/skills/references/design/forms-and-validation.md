@@ -1,8 +1,8 @@
 # Formulários e validação
 
 > 🚧 Parcialmente validada: `FieldError` e o login (`pages/login/`) existem e foram verificados a
-> 2026-09-28; submit/criar/editar em drawers ainda sem código. §4.1 (zona de arrastar ficheiro) baseia-se
-> em `components/library/UploadSkillDrawer.tsx` (2026-09-30) — **ainda não verificado no browser**.
+> 2026-09-28. §4.1 (zona de arrastar ficheiros) e um drawer com RHF + Zod e campos que mudam com uma escolha
+> baseiam-se em `components/library/ImportDrawer.tsx` — **verificado em Chrome headless a 2026-10-25**.
 
 > Parte de [[../frontend-visual-consistency]]. Regras de base em [[skill-frontend-design-system]] → "Forms".
 
@@ -72,8 +72,13 @@ para cada um, além do `ErrorHandler.handle(e)`.
 
 ## 4.1 Zona de arrastar ficheiro (2026-09-30)
 
-Nasceu do upload de skills (`components/library/UploadSkillDrawer.tsx`,
-[[../../../features/upload-de-skills|upload-de-skills]] passo 5). **Não usar o `Upload` do antd** — traz
+Nasceu do upload de skills (2026-09-30, entretanto substituído) e vive hoje em
+`components/library/ImportDrawer.tsx` ([[../../../features/importar-para-a-biblioteca|importar-para-a-biblioteca]]
+passo 9), com **vários** ficheiros (`multiple`) e uma **pasta** por um segundo `<input>` com `webkitdirectory`
+(aberto por um `Button type="link"` por baixo da zona — arrastar uma pasta não traz os ficheiros de dentro).
+O caminho relativo de cada ficheiro (`webkitRelativePath`, senão o nome) vai no corpo JSON, não no nome da parte.
+Os limites (quantos, quanto pesam no total) mostram-se num `FieldError` por baixo e desativam o envio.
+**Não usar o `Upload` do antd** — traz
 lista de ficheiros e pedido próprios, e aqui o envio é um `POST` do serviço do domínio.
 
 - Um `<button type="button">` a ocupar a largura toda, com `border border-dashed border-border`,
@@ -85,7 +90,7 @@ lista de ficheiros e pedido próprios, e aqui o envio é um `POST` do serviço d
   No fim do `onChange`, `event.target.value = ''` — sem isso, escolher **o mesmo** ficheiro outra vez
   não dispara o evento.
 - Escolhido: mostra só **nome** (mono) e **tamanho**, nunca uma pré-visualização do conteúdo, mais um
-  "Escolher outro" em `text-accent`. O limite de tamanho aparece no texto de repouso ("até 256 KB").
+  "Escolher outros" em `text-accent`. Os limites aparecem no texto de repouso ("até 200 ficheiros, 10 MB").
 - **Erro do backend dentro do drawer**, não em toast: `Alert` `type="error"` com a mensagem mapeada em
   `title` e os `fieldErrors` numa `<ul>` no `description` — o ficheiro escolhido não se perde e o
   utilizador vê o erro ao lado do que o causou. O serviço marca `skipErrorNotification: true` para o

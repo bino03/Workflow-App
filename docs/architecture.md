@@ -21,7 +21,7 @@ backend, com a subscrição Pro/Max já paga — nunca a API nem a Agent SDK ([[
 | Backend (API REST + WebSocket + gestor de PTYs) | `backend/` | `node-fastify` 📋 | 7400 |
 | Frontend (SPA) | `frontend/` | `react-vite-antd` ✅ + xterm.js | 7401 (dev, Vite com proxy de `/api`) — em produção o **backend serve o `frontend/dist`** na 7400, mesma origem (✅ 2026-09-28, `common/spa.ts`) |
 | Claude Code (`claude`) | — (binário instalado na máquina) | processo filho, um por terminal | — |
-| Biblioteca do Workflow | `WORKFLOW_PATH/library` | ficheiros Markdown; leitura, e a escrita estreita do upload de skills ([[adr/0014-escrita-controlada-biblioteca]]) | — |
+| Biblioteca do Workflow | `WORKFLOW_PATH/library` | ficheiros Markdown; só leitura. O que entra vem da skill `/import` do Workflow num terminal escondido, e a app só faz o commit (ou repõe) a pedido do dono ([[adr/0019-importar-pelas-skills-do-workflow]]) | — |
 | Sessões gravadas do Claude Code | `~/.claude/projects/` | ficheiros `.jsonl`, só leitura | — |
 | Bot de Telegram (opcional) | `backend/src/telegram/` | dentro do backend; long polling à Bot API (só saída) | — |
 | App Claude (Remote Control) | — | os terminais lançados com `--remote-control` ligam-se à Anthropic (só saída) e continuam-se no telemóvel ([[adr/0017-bot-telegram-e-remote-control]]) | — |

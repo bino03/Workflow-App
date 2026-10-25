@@ -69,7 +69,7 @@ isso há os outros:
 | Camada | Ficheiros |
 |---|---|
 | **Entrada** | rota `/library` → `frontend/src/pages/LibraryPage.tsx` (tabs, pesquisa com `/`, chips de maturidade, filtro por camada/categoria) |
-| **Frontend** | `components/library/` (`LibraryEntryDrawer`, `UploadSkillDrawer`, `MaturityTag`, `libraryFormat.ts`) · `hooks/useLibrary.ts` (`addSkill` insere a skill enviada sem refazer o GET) · `services/libraryService.ts` · `types/library.ts` |
+| **Frontend** | `components/library/` (`LibraryEntryDrawer`, `MaturityTag`, `libraryFormat.ts`; importações: `ImportDrawer` + `importFormSchema.ts`, `ImportPanel`, `ImportBanner`, `ImportReviewDrawer`) · `hooks/useLibrary.ts` · `hooks/useCurrentImport.ts` (polling só enquanto corre) · `services/libraryService.ts` · `services/importService.ts` · `types/library.ts` · `types/imports.ts` · o "Ver terminal" chega à `pages/TerminalsPage.tsx` por `location.state.focusTerminalId` |
 | **Backend** | `backend/src/library/` — `library.routes.ts` (só `GET`) · `libraryService.ts` (lê o disco, nunca escreve) · `library.schemas.ts` (zod dos manifestos + `maturityOf`) |
 | **Dados** | `WORKFLOW_PATH/library` — só leitura ([[adr/0005-biblioteca-lida-do-disco]]); o que entra vem do `/import` do Workflow ([[adr/0019-importar-pelas-skills-do-workflow]], linha "Importações") |
 | **Detalhe** | [[api]] → "Biblioteca" |

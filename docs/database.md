@@ -19,7 +19,8 @@
 | Challenges WebAuthn por usar | memória do backend (uso único, 5 min, máx. 100) | ❌ — um reinício só obriga a recomeçar a cerimónia |
 | Modo de layout (foco dividido / grelha) | `localStorage` do browser | ✅ por dispositivo |
 | Sessões gravadas (`ClaudeSession`) | `~/.claude/projects/` — do Claude Code, **só leitura** | apagadas pelo Claude Code ao fim de 30 dias (`cleanupPeriodDays`) |
-| Biblioteca (`LibraryEntry`) | `WORKFLOW_PATH/library` — leitura, mais duas escritas estreitas ([[adr/0014-escrita-controlada-biblioteca]]) | — |
+| Biblioteca (`LibraryEntry`) | `WORKFLOW_PATH/library` — só leitura ([[adr/0019-importar-pelas-skills-do-workflow]]) | — |
+| Importação | `DATA_DIR/imports/<id>/` — `meta.json` (o terminal e a sessão), `request.json` (o pedido, contrato v1 do Workflow), `files/` (os ficheiros enviados), `result.json` (escrito pela skill). Existe da criação até aceitar/descartar; o estado deriva-se, nunca se guarda. O último hook de cada sessão em `DATA_DIR/import-events/<session_id>.json` ([[adr/0019-importar-pelas-skills-do-workflow]]) | — |
 | Quota (`UsageSnapshot`) | `DATA_DIR/usage.json` — só o último `rate_limits` visto pela status line de qualquer terminal, com `fetchedAt` ([[adr/0012-argumentos-do-claude-e-status-line]]). Escrito pelo `statusline.cjs`, não pelo `StateStore` | ✅ — mas pode estar velho (sem atividade não se atualiza) |
 
 ## O ficheiro

@@ -5,7 +5,7 @@
 | **Estado** | 🚧 Em curso |
 | **Criada** | 2026-10-23 |
 | **Última sessão** | 2026-10-25 |
-| **Passos** | 9 / 11 concluídos |
+| **Passos** | 10 / 11 concluídos |
 
 > Escrita para uma sessão que **não viu a conversa que a originou**. Se algo só faz sentido com contexto
 > externo, falta escrevê-lo.
@@ -516,7 +516,7 @@ desta app.
     Cancelar pedem confirmação; erro `IMPORT_003` mostrado dentro do drawer; só tokens, nenhum hex novo;
     `npx tsc -b` e lint limpos.
 
-- [ ] **10. Docs da app**
+- [x] **10. Docs da app**
   - Ficheiro: `docs/product/use-cases.md`, `docs/architecture.md`, `docs/security.md`, `docs/database.md`
     (`importId`/`hidden` e a pasta `DATA_DIR/imports/`), `docs/code-map.md`, `docs/environment.md`,
     `docs/skills/references/project-vocabulary.md`, `docs/skills/references/design/*` (faixa de estado e
@@ -612,11 +612,16 @@ desta app.
   `/terminals` com o terminal visível e o estado de navegação limpo, revisão com triagem e diff colorido, Aceitar →
   notificação com o sha + commit no Workflow + repo limpo, Descartar com confirmação → HEAD igual e repo limpo,
   consola limpa. Capturas vistas (drawer, faixas, revisão, confirmação).
+- **Passo 10 — docs** (2026-10-25): `use-cases.md` (o fluxo de importar), `architecture.md`, `database.md`
+  (`DATA_DIR/imports/` e `import-events/`), `security.md` (o que o browser pode pedir; os argumentos novos do
+  `claude` e o `GIT_BIN`), `code-map.md` (frontend da Biblioteca), `project-vocabulary.md` ("Importação"),
+  `design/cards.md` ("Faixa de estado"), `design/drawers-and-modals.md` ("Drawer de revisão com diff" e o exemplo
+  de drawer com ficheiros), `design/forms-and-validation.md` (§4.1 a partir do `ImportDrawer`, vários ficheiros e
+  pasta), `design/tokens-and-colors.md` (classes `.status-banner`, `.diff-block`), nota de substituída no topo de
+  [[upload-de-skills]]. Nenhum doc fora das specs/ADRs fala do upload direto (grep).
 **Em curso:** nada.
-**Próxima ação concreta:** passo 10 — docs: `docs/skills/references/design/` (faixa de estado em `cards.md`, bloco
-de diff, `forms-and-validation.md` §4.1 sem o `UploadSkillDrawer`), `docs/product/use-cases.md`,
-`docs/architecture.md`, `docs/security.md`, `docs/code-map.md` (frontend da Biblioteca),
-`docs/skills/references/project-vocabulary.md`, `docs/features/upload-de-skills.md` (nota no topo).
+**Próxima ação concreta:** passo 11 — **precisa do dono** (ver §7): a verificação ponta a ponta com o `claude` real
+e o Workflow real.
 **Desvios ao plano:**
 - A allowlist do Workflow tem mais do que o passo 3 listava: `WebSearch`, `node tools/dry-run.mjs` (o teste a
   seco das stacks) e o `cp -r` dos dois moldes `_TEMPLATE` (o `/add-stack` e o `/add-new-design` copiam-nos).

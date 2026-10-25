@@ -2,7 +2,7 @@
 
 | | |
 |---|---|
-| **Estado** | ✅ Concluída (2026-10-23) |
+| **Estado** | ✅ Concluída (2026-10-23) · **substituída** a 2026-10-25 por [[importar-para-a-biblioteca]] ([[../adr/0019-importar-pelas-skills-do-workflow|ADR 0019]]): o upload direto saiu do código |
 | **Criada** | 2026-09-29 |
 | **Última sessão** | 2026-10-23 |
 | **Passos** | 6 / 6 concluídos |
