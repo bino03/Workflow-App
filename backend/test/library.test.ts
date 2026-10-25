@@ -133,4 +133,12 @@ describe('GET /api/library/*', () => {
     expect(body.entries).toHaveLength(2);
     expect(body.invalid).toHaveLength(2);
   });
+
+  it('the direct skill upload is gone (ADR 0019 replaced ADR 0014) → 404', async () => {
+    const login = await app.inject({ method: 'POST', url: '/api/auth/login', payload: { username: USERNAME, password: PASSWORD } });
+    const cookie = login.cookies.find((c) => c.name === 'session')!;
+    const res = await app.inject({ method: 'POST', url: '/api/library/stacks/react-vite-antd/skills', headers: { cookie: `session=${cookie.value}` } });
+    expect(res.statusCode).toBe(404);
+    expect(res.json().errorCode).toBe('COMMON_003');
+  });
 });

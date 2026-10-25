@@ -5,7 +5,7 @@
 | **Estado** | 🚧 Em curso |
 | **Criada** | 2026-10-23 |
 | **Última sessão** | 2026-10-25 |
-| **Passos** | 6 / 11 concluídos |
+| **Passos** | 7 / 11 concluídos |
 
 > Escrita para uma sessão que **não viu a conversa que a originou**. Se algo só faz sentido com contexto
 > externo, falta escrevê-lo.
@@ -483,7 +483,7 @@ desta app.
     `IMPORT_005`; depois de aceitar/descartar, a pasta da importação e o evento desaparecem e o terminal
     vai para o histórico; `npm run typecheck`/`test`/`lint` limpos.
 
-- [ ] **7. Backend — sai o upload direto (v1)**
+- [x] **7. Backend — sai o upload direto (v1)**
   - Ficheiro: `backend/src/library/{library.routes,libraryService,library.schemas}.ts`,
     `backend/src/library/frontmatterEditor.ts` (apagado), `backend/test/{frontmatterEditor,library.upload}.test.ts`
     (apagados), `backend/src/common/errors.ts` (sai `LIBRARY_002`–`005`), `docs/api.md`
@@ -588,9 +588,14 @@ desta app.
   novas apagadas, junction para fora recusada) e o fluxo completo pelas rotas. **HTTP real** numa instância com
   `--git-workflow` (opção nova do `scripts/verify/instance.mjs`): aceitar → um commit com os 2 ficheiros e a
   mensagem da skill; descartar → HEAD igual e repo limpo; cancelar a correr → 204.
+- **Passo 7 — sai o upload direto** (2026-10-25): rota, `uploadSkill`, `frontmatterEditor.ts`,
+  `skillUploadManifestSchema`, `LIBRARY_002`–`005` (fica um comentário "retirados, não se reutilizam") e os
+  seus 45 testes; teste novo: `POST /api/library/stacks/:id/skills` → 404. Nenhuma referência no `backend/`
+  (grep). 363 testes. `api.md` e `code-map.md` sem o upload. **O frontend ainda chama a rota que saiu**
+  (o `UploadSkillDrawer` dá 404 até ao passo 9).
 **Em curso:** nada.
-**Próxima ação concreta:** passo 7 — tirar o upload direto (`library.routes.ts`, `libraryService.uploadSkill`,
-`frontmatterEditor.ts`, `skillUploadManifestSchema`, `LIBRARY_002`–`005`, e os testes deles).
+**Próxima ação concreta:** passo 8 — `frontend/src/types/imports.ts`, `frontend/src/services/importService.ts`,
+`errorMessages.ts` (entram `IMPORT_001`–`006`, saem `LIBRARY_002`–`005`).
 **Desvios ao plano:**
 - A allowlist do Workflow tem mais do que o passo 3 listava: `WebSearch`, `node tools/dry-run.mjs` (o teste a
   seco das stacks) e o `cp -r` dos dois moldes `_TEMPLATE` (o `/add-stack` e o `/add-new-design` copiam-nos).
