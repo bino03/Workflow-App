@@ -4,6 +4,7 @@
 //
 //   node scripts/verify/instance.mjs start [--port 7498] [--dir <run dir>] [--fresh] [--projects 3]
 //                                          [--sessions] [--workflow <real Workflow path>] [--git-workflow]
+//                                          [--real-claude]   (with --workflow: the owner's ~/.claude — spends quota)
 //   node scripts/verify/instance.mjs stop  [--port 7498] [--dir <run dir>] [--clean]
 //
 // start prints the run dir; <run dir>/instance.json has the URL, username and password for the driver.
@@ -30,6 +31,7 @@ const { positionals, values: opts } = parseArgs({
     sessions: { type: 'boolean', default: false },
     workflow: { type: 'string' },
     'git-workflow': { type: 'boolean', default: false },
+    'real-claude': { type: 'boolean', default: false },
     clean: { type: 'boolean', default: false },
   },
 });
@@ -135,6 +137,8 @@ async function start() {
   if (opts.sessions && projectDirs.length > 1) seedSessions(claudeDir, projectDirs[1]);
 
   // A fresh login on every start: nothing reusable outlives the run dir.
+  const realClaude = opts['real-claude'];
+  if (realClaude && !opts.workflow) fail('--real-claude needs --workflow <the real Workflow path>');
   const argon2 = createRequire(join(BACKEND, 'package.json'))('argon2');
   const username = 'verifier';
   const password = randomBytes(18).toString('base64url');
@@ -155,9 +159,11 @@ async function start() {
     CORS_ALLOWED_ORIGINS: `${base},http://127.0.0.1:${port}`,
     WEBAUTHN_RP_ID: 'localhost',
     WEBAUTHN_ORIGINS: '',
-    ALLOWED_ROOTS: rootsDir,
+    // --real-claude: the owner's Claude Code (login, trusted folders) can run an import in the real Workflow,
+    // which must then be a root too. Only with --workflow; it spends quota and writes in that repo.
+    ALLOWED_ROOTS: realClaude ? `${rootsDir};${workflowPath}` : rootsDir,
     DEFAULT_CWD: '',
-    CLAUDE_CONFIG_DIR: claudeDir,
+    CLAUDE_CONFIG_DIR: realClaude ? '' : claudeDir,
     MAX_TERMINALS: '12',
     WORKFLOW_PATH: workflowPath,
     DATA_DIR: dataDir,

@@ -15,6 +15,12 @@ type ImportReviewDrawerProps = {
   onDiscard: () => void;
 };
 
+/**
+ * Onde uma importação pode escrever — o contrato do Workflow (`docs/import-contract.md` lá → "Onde uma importação
+ * escreve"). O diff mostra o repositório todo; o que fica fora disto assinala-se antes de aceitar.
+ */
+const insideImportScope = (path: string) => path.startsWith('library/') || path === 'docs/provenance.md';
+
 const CHANGE_LABEL: Record<FileChange, { text: string; className: string }> = {
   added: { text: 'Novo', className: 'tag tag-work' },
   modified: { text: 'Alterado', className: 'tag tag-wait' },
@@ -152,6 +158,20 @@ export function ImportReviewDrawer({ view, busy, onClose, onAccept, onDiscard }:
               <span className="text-[12.5px] text-text-3">
                 {view.changedFiles} {view.changedFiles === 1 ? 'ficheiro' : 'ficheiros'} no Workflow
               </span>
+              {files && files.some((file) => !insideImportScope(file.path)) && (
+                <Alert
+                  type="warning"
+                  showIcon
+                  title="Esta importação mexeu fora da biblioteca"
+                  description={
+                    <>
+                      Uma importação só devia escrever em <span className="font-mono">library/</span> e em{' '}
+                      <span className="font-mono">docs/provenance.md</span>. Revê os ficheiros assinalados antes de aceitar — se
+                      não forem para ficar, descarta e corrige-os à parte.
+                    </>
+                  }
+                />
+              )}
               {loadError ? (
                 <Alert type="error" showIcon title={loadError} />
               ) : files === null ? (
@@ -165,6 +185,7 @@ export function ImportReviewDrawer({ view, busy, onClose, onAccept, onDiscard }:
                     label: (
                       <span className="flex items-center gap-2 min-w-0">
                         <span className={CHANGE_LABEL[file.change].className}>{CHANGE_LABEL[file.change].text}</span>
+                        {!insideImportScope(file.path) && <span className="tag tag-err">Fora da biblioteca</span>}
                         <span className="font-mono text-[12.5px] text-text-1 truncate">{file.path}</span>
                       </span>
                     ),

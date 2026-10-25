@@ -226,7 +226,7 @@ export class ImportService {
     const base = { id: meta.id, kind: meta.kind, sourceLabel: meta.sourceLabel, terminalId: meta.terminalId, createdAt: meta.createdAt };
     const read = readResult(join(this.dirOf(meta.id), 'result.json'));
     if (read !== undefined) {
-      if (read === null) return { ...base, status: 'failed', result: null, changedFiles: 0, error: 'result.json inválido' };
+      if ('invalid' in read) return { ...base, status: 'failed', result: null, changedFiles: 0, error: `result.json inválido: ${read.invalid}` };
       const changedFiles = (await this.changes()).length;
       if (read.status === 'failed') return { ...base, status: 'failed', result: read, changedFiles, error: read.error ?? null };
       if (changedFiles > 0) return { ...base, status: 'review', result: read, changedFiles, error: null };
@@ -252,15 +252,25 @@ function readMeta(dir: string): ImportMeta | null {
   }
 }
 
-/** undefined = no result yet; null = there is one, but it does not follow the contract. */
-function readResult(file: string): ImportResult | null | undefined {
+/**
+ * undefined = no result yet; `{ invalid }` = there is one, but it breaks the contract — with what breaks it
+ * (field and reason), so the owner can tell the skill's mistake from the app's.
+ */
+function readResult(file: string): ImportResult | { invalid: string } | undefined {
   if (!existsSync(file)) return undefined;
+  let data: unknown;
   try {
-    const parsed = importResultSchema.safeParse(JSON.parse(readFileSync(file, 'utf8')));
-    return parsed.success && parsed.data.id === basename(dirname(file)) ? parsed.data : null;
+    data = JSON.parse(readFileSync(file, 'utf8'));
   } catch {
-    return null;
+    return { invalid: 'não é JSON' };
   }
+  const parsed = importResultSchema.safeParse(data);
+  if (!parsed.success) {
+    const issue = parsed.error.issues[0]!;
+    return { invalid: `${issue.path.join('.') || '(raiz)'} — ${issue.message}` };
+  }
+  if (parsed.data.id !== basename(dirname(file))) return { invalid: 'id de outra importação' };
+  return parsed.data;
 }
 
 function sourceLabel(body: CreateImport): string {

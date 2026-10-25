@@ -2,10 +2,10 @@
 
 | | |
 |---|---|
-| **Estado** | 🚧 Em curso |
+| **Estado** | ✅ Concluída (2026-10-25) |
 | **Criada** | 2026-10-23 |
 | **Última sessão** | 2026-10-25 |
-| **Passos** | 10 / 11 concluídos |
+| **Passos** | 11 / 11 concluídos |
 
 > Escrita para uma sessão que **não viu a conversa que a originou**. Se algo só faz sentido com contexto
 > externo, falta escrevê-lo.
@@ -526,7 +526,7 @@ desta app.
   - Aceite quando: nenhum doc diz que a app escreve ficheiros na biblioteca nem fala no "+ Adicionar skill";
     o fluxo de importação está nos casos de uso; os padrões visuais novos estão registados.
 
-- [ ] **11. Verificação ponta a ponta com o Workflow real + fecho**
+- [x] **11. Verificação ponta a ponta com o Workflow real + fecho**
   - Ficheiro: `notes/verificacao-browser-pendente.md`, `notes/ToDo.md`, `notes/whatIveDone.md`, esta spec §6
   - Skill: `run`
   - Tier: `sonnet`
@@ -619,9 +619,27 @@ desta app.
   de drawer com ficheiros), `design/forms-and-validation.md` (§4.1 a partir do `ImportDrawer`, vários ficheiros e
   pasta), `design/tokens-and-colors.md` (classes `.status-banner`, `.diff-block`), nota de substituída no topo de
   [[upload-de-skills]]. Nenhum doc fora das specs/ADRs fala do upload direto (grep).
-**Em curso:** nada.
-**Próxima ação concreta:** passo 11 — **precisa do dono** (ver §7): a verificação ponta a ponta com o `claude` real
-e o Workflow real.
+- **Passo 11 — ponta a ponta com o `claude` real e o Workflow real** (2026-10-25, com o dono a aprovar): instância de
+  `scripts/verify/` com `--workflow <Workflow real> --real-claude` (opção nova: o `~/.claude` do dono e o Workflow nas
+  roots), tudo **pela UI** em Chrome headless, cada importação descartada no fim. **Passagem final 23/23**:
+  (1) design por descrição → `review` em ~2 min com 4 ficheiros (`themes/teste-grafite/{THEME,tokens}.md`, registo,
+  provenance), triagem completa e contraste calculado (corrigiu dois pares), sem commit da skill → Descartar → limpo;
+  (2) a skill `skill-creator` da Anthropic por URL → catalogada em `library/external/` com `verdict: reject` (é a
+  recusa) → descartada; (3) uma stack pedida de forma vaga → `needs-you` em ~20 s → **Ver terminal** → resposta
+  escrita no xterm → a skill continuou → descartada; em nenhum caso algo escrito fora de `library/**` e
+  `docs/provenance.md`; HEAD do Workflow igual e `git status` limpo no fim; consola limpa.
+  **Achados pelo caminho** (as passagens anteriores, 19/20 e 20/23):
+  - Uma importação **corrigiu sozinha o `tools/audit-library.mjs`** do Workflow — fora do âmbito, aprovado pelo
+    **auto mode** do dono (que aprova edições fora da allowlist). Corrigido em três sítios: o `/import` e o
+    contrato do Workflow passam a dizer que só se escreve em `library/**` e `docs/provenance.md` e que um problema de
+    uma ferramenta vai para o `summary` ("Fora do âmbito") — commit `bf2b5cd` lá; a revisão da app assinala cada
+    ficheiro fora disso ("Fora da biblioteca") e mostra um aviso antes de Aceitar.
+  - O bug que a skill tinha visto era real: a auditoria tratava `library/external/<x>/skill-*.md` como skill da
+    biblioteca. Corrigido no Workflow (commit `a3bb5a3`) — sem isso, uma skill externa chamada `skill-*` acabava em
+    `failed` (que era o comportamento certo da skill depois da regra nova).
+  - Uma vez o `result.json` saiu **inválido** e a app só dizia "result.json inválido". Agora diz o campo e o motivo
+    (`result.json inválido: <campo> — <razão>`); não se repetiu nas 3 passagens seguintes.
+**Feature fechada.** Nada em curso.
 **Desvios ao plano:**
 - A allowlist do Workflow tem mais do que o passo 3 listava: `WebSearch`, `node tools/dry-run.mjs` (o teste a
   seco das stacks) e o `cp -r` dos dois moldes `_TEMPLATE` (o `/add-stack` e o `/add-new-design` copiam-nos).

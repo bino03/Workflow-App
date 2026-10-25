@@ -235,9 +235,9 @@ describe('ImportService status (§4.1)', () => {
     const imports = service();
     const { id } = await imports.create(textImport(), []);
     writeFileSync(join(dataDir, IMPORT_FILES.imports, id, 'result.json'), '{"version":2}');
-    expect(await imports.get(id)).toMatchObject({ status: 'failed', error: 'result.json inválido', result: null });
+    expect(await imports.get(id)).toMatchObject({ status: 'failed', error: expect.stringMatching(/^result.json inválido: version/), result: null });
     writeResult(id, { id: randomUUID() });
-    expect((await imports.get(id)).error).toBe('result.json inválido');
+    expect((await imports.get(id)).error).toBe('result.json inválido: id de outra importação');
 
     rmSync(join(dataDir, IMPORT_FILES.imports, id, 'result.json'));
     terminalStatus = 'exited';
