@@ -160,8 +160,9 @@ export async function buildApp({
     settingsPath: writeUsageFiles(config.dataDir),
     // An import's hidden terminal: the same status line plus the hooks it is followed by (ADR 0019).
     importSettingsPath: writeImportFiles(config.dataDir),
-    // A guided session's hidden terminal: the status line, blocking hooks and two narrow permissions (ADR 0020).
-    guidedSettingsPath: writeGuidedFiles(config.dataDir, config.terminals.allowedRoots),
+    // A guided session's hidden terminal: the status line, blocking hooks and two narrow permissions (ADR 0020);
+    // the hook also allows alone in auto mode or inside a new declared destination, never in the Workflow (ADR 0021).
+    guidedSettingsPath: writeGuidedFiles(config.dataDir, config.terminals.allowedRoots, config.workflowPath),
     isTrustedFolder: (cwd) => isTrustedFolder(cwd, config.terminals.claudeConfigDir),
     previews: previewService,
   });

@@ -95,6 +95,7 @@ describe('GuidedService', () => {
     await expect(started()).rejects.toMatchObject({ code: 'TERMINAL_007' });
     expect(readdirSync(join(dataDir, GUIDED_FILES.dir)).filter((n) => n !== GUIDED_FILES.bySession)).toEqual([]);
     expect(readdirSync(join(dataDir, GUIDED_FILES.dir, GUIDED_FILES.bySession))).toEqual([]);
+    expect(readdirSync(join(dataDir, GUIDED_FILES.control))).toEqual([]);
   });
 
   it('derived status: working → question → permission → waiting-text → needs-you', async () => {
@@ -204,6 +205,41 @@ describe('GuidedService', () => {
     fake.status.delete(other.terminalId);
     await service.remove(other.id);
     expect(existsSync(dirOf(other.id))).toBe(false);
+  });
+
+  it('mode (ADR 0021): ask by default, kept outside the session folder; auto allows the permissions already waiting', async () => {
+    const { id, mode } = await started();
+    const controlFile = join(dataDir, GUIDED_FILES.control, `${id}.json`);
+    expect(mode).toBe('ask');
+    const { startedAt } = JSON.parse(readFileSync(controlFile, 'utf8'));
+    expect(startedAt).toEqual(expect.any(String));
+
+    const permissionId = randomUUID();
+    const deadPermissionId = randomUUID();
+    const questionId = randomUUID();
+    writePending(id, { type: 'permission', requestId: permissionId, tool: 'Bash', summary: 'git init' });
+    writePending(id, { type: 'permission', requestId: deadPermissionId, tool: 'Bash', summary: 'ls', pid: DEAD });
+    writePending(id, question(questionId));
+    const view = await service.setMode(id, 'auto');
+    expect(view.mode).toBe('auto');
+    expect(JSON.parse(readFileSync(controlFile, 'utf8'))).toEqual({ version: 1, mode: 'auto', startedAt });
+    expect(JSON.parse(readFileSync(join(dirOf(id), `answer-${permissionId}.json`), 'utf8'))).toEqual({ requestId: permissionId, decision: 'allow' });
+    // A hook that died has nobody to answer; a question is never decided by the mode.
+    expect(existsSync(join(dirOf(id), `answer-${deadPermissionId}.json`))).toBe(false);
+    expect(existsSync(join(dirOf(id), `answer-${questionId}.json`))).toBe(false);
+
+    expect((await service.setMode(id, 'ask')).mode).toBe('ask');
+    await service.remove(id);
+    expect(existsSync(controlFile)).toBe(false);
+  });
+
+  it('mode: a session without a control file (before ADR 0021) asks; setMode creates it from the meta', async () => {
+    const { id, createdAt } = await started();
+    const controlFile = join(dataDir, GUIDED_FILES.control, `${id}.json`);
+    rmSync(controlFile);
+    expect(service.get(id).mode).toBe('ask');
+    await service.setMode(id, 'auto');
+    expect(JSON.parse(readFileSync(controlFile, 'utf8'))).toEqual({ version: 1, mode: 'auto', startedAt: createdAt });
   });
 
   it('an id that is not a UUID, or unknown → GUIDED_001', () => {

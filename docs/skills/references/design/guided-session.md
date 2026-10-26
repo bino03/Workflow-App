@@ -20,6 +20,10 @@ tags de estado).
   [[tokens-and-colors]] §3: a trabalhar `tag-work` · à tua espera `tag-wait` · parada `tag-stop` · criado `tag-run` ·
   falhou `tag-err`), **Ver terminal** (`size="small"`, ícone `CodeOutlined`) e **Cancelar** (`type="text" danger`,
   com confirmação). Ver terminal está sempre lá: é o escape para o que a vista não sabe mostrar.
+- Antes de Ver terminal, enquanto a sessão não terminou: **Permissões** (rótulo `text-3` 12.5 px) + `Select`
+  `size="small"` de 120 px com **Perguntar** · **Automático** ([[../../../adr/0021-permissoes-das-sessoes-guiadas]]).
+  Troca na hora, sem confirmação (volta-se no mesmo sítio); o `title` de cada opção explica-a. As perguntas
+  continuam a ser cartões em Automático.
 
 ## A conversa (`GuidedFeed`)
 

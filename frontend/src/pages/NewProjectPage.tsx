@@ -1,6 +1,6 @@
 import { CodeOutlined } from '@ant-design/icons';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { Button, Input, Spin } from 'antd';
+import { Button, Input, Select, Spin } from 'antd';
 import { isAxiosError } from 'axios';
 import { type ReactNode, useCallback, useEffect, useRef, useState } from 'react';
 import { Controller, useForm } from 'react-hook-form';
@@ -16,8 +16,8 @@ import { ErrorHandler } from '@/errors/errorHandler';
 import { useConfirm } from '@/hooks/useConfirm';
 import { useGuidedSession } from '@/hooks/useGuidedSession';
 import { getCurrentCreation, openCreatedProject, startCreation } from '@/services/creationService';
-import { answerQuestion, decidePermission, removeGuided, resumeGuided, revealGuided, sendGuidedMessage } from '@/services/guidedService';
-import type { Answers, GuidedStatus, GuidedView } from '@/types/guided';
+import { answerQuestion, decidePermission, removeGuided, resumeGuided, revealGuided, sendGuidedMessage, setGuidedMode } from '@/services/guidedService';
+import type { Answers, GuidedMode, GuidedStatus, GuidedView } from '@/types/guided';
 
 /**
  * A descrição é texto livre para o Claude (vai para o brief que o `/create` lê): sem lista branca de caracteres,
@@ -116,6 +116,11 @@ function lastActivity(view: ReturnType<typeof useGuidedSession>['entries']): str
   const entry = view.at(-1);
   return entry?.type === 'activity' ? entry.summary : null;
 }
+
+const MODE_OPTIONS: { value: GuidedMode; label: string; title: string }[] = [
+  { value: 'ask', label: 'Perguntar', title: 'Cada permissão pede-te Permitir ou Recusar' },
+  { value: 'auto', label: 'Automático', title: 'A app aprova as permissões sem perguntar; as escolhas continuam a ser cartões' },
+];
 
 /** Estados 2 e 3 (spec §4.4): a conversa e, no fundo, o que o estado pede; ou o fim. */
 function CreationSession({ id, onGone }: { id: string; onGone: () => void }) {
@@ -315,6 +320,20 @@ function CreationSession({ id, onGone }: { id: string; onGone: () => void }) {
               <span className={`state-icon ${tag.icon}`} aria-hidden />
               {tag.label}
             </span>
+            {!finished && (
+              <label className="flex items-center gap-1.5 text-[12.5px] text-text-3">
+                Permissões
+                <Select<GuidedMode>
+                  size="small"
+                  aria-label="Permissões"
+                  className="w-[120px]"
+                  value={view.mode}
+                  options={MODE_OPTIONS}
+                  disabled={busy}
+                  onChange={(mode) => void act(() => setGuidedMode(id, mode))}
+                />
+              </label>
+            )}
             <Button size="small" icon={<CodeOutlined />} disabled={busy} onClick={reveal}>
               Ver terminal
             </Button>

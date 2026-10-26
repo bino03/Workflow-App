@@ -26,8 +26,8 @@ function session() {
 }
 
 /** Runs the hook with `input` on stdin; resolves with what it printed once it exits. */
-function runHook(input: object): { child: ChildProcess; done: Promise<{ stdout: string; code: number | null }> } {
-  const child = spawn(process.execPath, [hookPath], { stdio: ['pipe', 'pipe', 'pipe'] });
+function runHook(input: object, hook = hookPath): { child: ChildProcess; done: Promise<{ stdout: string; code: number | null }> } {
+  const child = spawn(process.execPath, [hook], { stdio: ['pipe', 'pipe', 'pipe'] });
   let stdout = '';
   child.stdout!.on('data', (chunk: Buffer) => (stdout += chunk.toString()));
   const done = new Promise<{ stdout: string; code: number | null }>((resolve) => child.on('exit', (code) => resolve({ stdout, code })));
@@ -132,5 +132,117 @@ describe('guided-hook.cjs', () => {
     rmSync(dir, { recursive: true, force: true });
     expect(await done).toEqual({ stdout: '', code: 0 });
     expect(existsSync(dir)).toBe(false);
+  });
+});
+
+describe('guided-hook.cjs — permissions without a card (ADR 0021)', () => {
+  const controlDir = join(dataDir, GUIDED_FILES.control);
+
+  function control(id: string, mode: 'ask' | 'auto', startedAt = new Date(Date.now() - 1000).toISOString()) {
+    writeFileSync(join(controlDir, `${id}.json`), JSON.stringify({ version: 1, mode, startedAt }));
+  }
+
+  function declare(dir: string, projectPath: string) {
+    writeFileSync(join(dir, GUIDED_FILES.destination), JSON.stringify({ version: 1, projectPath }));
+  }
+
+  /** The hook decides alone: allow, and no pending file. */
+  async function allowsAlone(sessionId: string, dir: string, tool: string, toolInput: object) {
+    const { stdout } = await runHook({ session_id: sessionId, hook_event_name: 'PermissionRequest', tool_name: tool, tool_input: toolInput }).done;
+    expect(JSON.parse(stdout).hookSpecificOutput.decision).toEqual({ behavior: 'allow' });
+    expect(pendingFiles(dir)).toEqual([]);
+  }
+
+  /** The hook asks the owner: a pending file appears (answered here with deny, to end it). */
+  async function asks(sessionId: string, dir: string, tool: string, toolInput: object) {
+    const { done } = runHook({ session_id: sessionId, hook_event_name: 'PermissionRequest', tool_name: tool, tool_input: toolInput });
+    await waitFor(() => pendingFiles(dir).length === 1);
+    const { requestId } = JSON.parse(readFileSync(join(dir, pendingFiles(dir)[0]!), 'utf8'));
+    writeFileSync(join(dir, `answer-${requestId}.json`), JSON.stringify({ requestId, decision: 'deny' }));
+    expect(JSON.parse((await done).stdout).hookSpecificOutput.decision.behavior).toBe('deny');
+  }
+
+  it('auto: any permission is allowed without a card; ask (or no control file) still asks', async () => {
+    const { id, sessionId, dir } = session();
+    await asks(sessionId, dir, 'Bash', { command: 'git init' });
+    control(id, 'ask');
+    await asks(sessionId, dir, 'Bash', { command: 'git init' });
+    control(id, 'auto');
+    await allowsAlone(sessionId, dir, 'Bash', { command: 'git init' });
+    await allowsAlone(sessionId, dir, 'Write', { file_path: join(tmpdir(), 'anywhere.md'), content: 'x' });
+  });
+
+  it('a new destination inside a root: file tools inside it are allowed; Bash and paths outside still ask', async () => {
+    const { id, sessionId, dir } = session();
+    const dest = join(root, `novo-${randomUUID()}`);
+    control(id, 'ask');
+    declare(dir, dest);
+    await allowsAlone(sessionId, dir, 'Write', { file_path: join(dest, 'docs', 'a.md'), content: 'x' });
+    await allowsAlone(sessionId, dir, 'Edit', { file_path: join(dest, 'README.md'), old_string: 'a', new_string: 'b' });
+    await allowsAlone(sessionId, dir, 'Glob', { pattern: '**/*', path: dest });
+    await allowsAlone(sessionId, dir, 'Read', { file_path: join(dest.toUpperCase(), 'x.md') });
+    await asks(sessionId, dir, 'Bash', { command: `git -C "${dest}" init` });
+    await asks(sessionId, dir, 'Write', { file_path: join(root, 'outro', 'a.md'), content: 'x' });
+    await asks(sessionId, dir, 'Write', { file_path: join(dest, '..', 'fora.md'), content: 'x' });
+    await asks(sessionId, dir, 'Grep', { pattern: 'x' });
+  });
+
+  it('a destination the app does not accept keeps asking: a root, outside the roots, relative, an older folder, no start', async () => {
+    const older = join(root, `antigo-${randomUUID()}`);
+    mkdirSync(older, { recursive: true });
+    const cases: { projectPath: string; startedAt?: string; noControl?: boolean }[] = [
+      { projectPath: root },
+      { projectPath: join(tmpdir(), `fora-${randomUUID()}`) },
+      { projectPath: 'relativo/x' },
+      // Born before the session started: a project that already existed.
+      { projectPath: older, startedAt: new Date(Date.now() + 60_000).toISOString() },
+      { projectPath: join(root, `novo-${randomUUID()}`), noControl: true },
+    ];
+    try {
+      for (const c of cases) {
+        const { id, sessionId, dir } = session();
+        if (!c.noControl) control(id, 'ask', c.startedAt);
+        declare(dir, c.projectPath);
+        await asks(sessionId, dir, 'Write', { file_path: join(c.projectPath, 'a.md'), content: 'x' });
+      }
+    } finally {
+      removeDir(older);
+    }
+  });
+});
+
+describe('guided-hook.cjs — the Workflow and DATA_DIR are never a destination (ADR 0021)', () => {
+  // DATA_DIR and the Workflow inside the root: the only way a declared destination could reach them.
+  const root2 = mkdtempSync(join(tmpdir(), 'wfa-root2-'));
+  const dataDir2 = join(root2, 'data');
+  const workflow = join(root2, 'Workflow');
+  writeGuidedFiles(dataDir2, [root2], workflow);
+  const hook2 = join(dataDir2, GUIDED_FILES.hook);
+  afterAll(() => removeDir(root2));
+
+  it('a destination that is, contains or sits inside the Workflow or DATA_DIR asks', async () => {
+    for (const projectPath of [workflow, join(workflow, 'projects'), dataDir2, join(dataDir2, 'guided', 'x'), root2]) {
+      const id = randomUUID();
+      const sessionId = randomUUID();
+      const dir = join(dataDir2, GUIDED_FILES.dir, id);
+      mkdirSync(dir, { recursive: true });
+      writeFileSync(join(dataDir2, GUIDED_FILES.dir, GUIDED_FILES.bySession, sessionId), id);
+      writeFileSync(join(dataDir2, GUIDED_FILES.control, `${id}.json`), JSON.stringify({ version: 1, mode: 'ask', startedAt: new Date(Date.now() - 1000).toISOString() }));
+      writeFileSync(join(dir, GUIDED_FILES.destination), JSON.stringify({ version: 1, projectPath }));
+      const { done } = runHook({ session_id: sessionId, hook_event_name: 'PermissionRequest', tool_name: 'Write', tool_input: { file_path: join(projectPath, 'a.md'), content: 'x' } }, hook2);
+      await waitFor(() => pendingFiles(dir).length === 1);
+      rmSync(dir, { recursive: true, force: true });
+      expect((await done).stdout).toBe('');
+    }
+    // The control: the same setup with a fresh folder next to them is allowed.
+    const id = randomUUID();
+    const sessionId = randomUUID();
+    const dir = join(dataDir2, GUIDED_FILES.dir, id);
+    mkdirSync(dir, { recursive: true });
+    writeFileSync(join(dataDir2, GUIDED_FILES.dir, GUIDED_FILES.bySession, sessionId), id);
+    writeFileSync(join(dataDir2, GUIDED_FILES.control, `${id}.json`), JSON.stringify({ version: 1, mode: 'ask', startedAt: new Date(Date.now() - 1000).toISOString() }));
+    writeFileSync(join(dir, GUIDED_FILES.destination), JSON.stringify({ version: 1, projectPath: join(root2, 'Novo') }));
+    const { stdout } = await runHook({ session_id: sessionId, hook_event_name: 'PermissionRequest', tool_name: 'Write', tool_input: { file_path: join(root2, 'Novo', 'a.md'), content: 'x' } }, hook2).done;
+    expect(JSON.parse(stdout).hookSpecificOutput.decision).toEqual({ behavior: 'allow' });
   });
 });

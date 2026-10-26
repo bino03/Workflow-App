@@ -48,6 +48,16 @@ export const guidedMetaSchema = z.object({
   createdAt: instant,
 });
 
+/** Perguntar (a card per permission) or Automático (the hook allows them) — ADR 0021. Questions always ask. */
+export const guidedModeSchema = z.enum(['ask', 'auto']);
+
+/** `DATA_DIR/guided-control/<id>.json`, backend-only: the hook reads the mode, and the start for the destination rule. */
+export const guidedControlSchema = z.object({
+  version: z.literal(1),
+  mode: guidedModeSchema,
+  startedAt: instant,
+});
+
 /**
  * The `/create` result (Workflow: docs/skills/skill-create.md → "Modo app", the source of truth). Unknown
  * fields are dropped; a `version` other than 1 is a contract the app does not know.
@@ -79,6 +89,8 @@ export const permissionBodySchema = z.object({
 
 export const messageBodySchema = z.object({ text: z.string().trim().min(1).max(8000) });
 
+export const modeBodySchema = z.object({ mode: guidedModeSchema });
+
 export const resumeBodySchema = z.object({ cols: colsSchema, rows: rowsSchema });
 
 /** `after` = how many feed entries the client already has (0 or absent = all). */
@@ -88,6 +100,8 @@ export type GuidedPurpose = z.infer<typeof guidedPurposeSchema>;
 export type Question = z.infer<typeof questionSchema>;
 export type PendingFile = z.infer<typeof pendingFileSchema>;
 export type GuidedMeta = z.infer<typeof guidedMetaSchema>;
+export type GuidedMode = z.infer<typeof guidedModeSchema>;
+export type GuidedControl = z.infer<typeof guidedControlSchema>;
 export type CreateResult = z.infer<typeof createResultSchema>;
 
 export type GuidedStatus = 'working' | 'question' | 'permission' | 'waiting-text' | 'needs-you' | 'stopped' | 'done' | 'failed';
@@ -103,6 +117,8 @@ export type GuidedView = {
   status: GuidedStatus;
   terminalId: string;
   createdAt: string;
+  /** How permissions are decided (ADR 0021). */
+  mode: GuidedMode;
   pending: GuidedPending;
   result: CreateResult | null;
   /** Why it failed when there is no usable result (an invalid result.json). */

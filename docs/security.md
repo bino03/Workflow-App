@@ -117,6 +117,14 @@ nunca o conteúdo de um terminal nem o token (o URL da Bot API contém-no: os er
   ficheiros de trabalho do `/create`) e **ler** dentro de cada `ALLOWED_ROOTS` (ver se o destino existe) sem
   perguntar. Escrever fora disso, correr comandos fora da allowlist do Workflow, `git init` — tudo continua a pedir,
   e é o dono que decide no cartão. `--permission-mode default` garante isso mesmo que a conta use `auto`.
+- **O hook também aprova sozinho** ([[adr/0021-permissoes-das-sessoes-guiadas]]), em dois casos: (1) a sessão está em
+  **Automático** — escolha explícita do dono, por sessão, reversível no mesmo seletor; (2) uma ferramenta de
+  ficheiros (`Read`/`Glob`/`Grep`/`Edit`/`Write`/`MultiEdit`/`NotebookEdit`) com caminho absoluto **dentro do
+  destino** que o `/create` declarou em `destination.json` — e só se esse destino estiver dentro de uma
+  `ALLOWED_ROOTS` sem ser uma, não tocar no Workflow nem no `DATA_DIR`, e **for novo** (não existe, ou nasceu depois
+  do início da sessão). Um `destination.json` a apontar para um projeto que já existia continua a pedir. Bash nunca
+  entra no caso (2). O modo e o início vivem em `DATA_DIR/guided-control/`, que só o backend escreve — fora de
+  `DATA_DIR/guided/**`, onde o Claude escreve sem perguntar; senão o próprio Claude ligava o Automático.
 
 Consequência a não esquecer: **um terminal desta app é um shell na máquina** — o Claude Code executa
 comandos. Quem entra na app entra na máquina. Por isso a exposição à rede é uma decisão própria

@@ -1,6 +1,6 @@
 import type { FastifyInstance } from 'fastify';
 import { parseWith } from '../common/validation.js';
-import { answerBodySchema, feedQuerySchema, messageBodySchema, permissionBodySchema, resumeBodySchema } from './guided.schemas.js';
+import { answerBodySchema, feedQuerySchema, messageBodySchema, modeBodySchema, permissionBodySchema, resumeBodySchema } from './guided.schemas.js';
 import type { GuidedService } from './guidedService.js';
 
 export type GuidedRoutesOptions = {
@@ -33,6 +33,14 @@ export async function guidedRoutes(app: FastifyInstance, { guidedService }: Guid
     await guidedService.permission(request.params.id, body);
     request.log.info({ guidedId: request.params.id, decision: body.decision }, 'guided permission decided');
     return reply.status(204).send();
+  });
+
+  /** Perguntar / Automático (ADR 0021): only how permissions are decided; questions always ask. */
+  app.put<IdParams>('/api/guided/:id/mode', async (request) => {
+    const { mode } = parseWith(modeBodySchema, request.body);
+    const view = await guidedService.setMode(request.params.id, mode);
+    request.log.info({ guidedId: request.params.id, mode }, 'guided permission mode set');
+    return view;
   });
 
   app.post<IdParams>('/api/guided/:id/message', async (request, reply) => {

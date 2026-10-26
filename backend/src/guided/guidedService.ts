@@ -10,11 +10,14 @@ import { GUIDED_EVENTS, GUIDED_FILES, type GuidedEvent } from './guidedFiles.js'
 import { type FeedEntry, TranscriptFeed, feedPage } from './transcriptFeed.js';
 import {
   type CreateResult,
+  type GuidedControl,
   type GuidedMeta,
+  type GuidedMode,
   type GuidedPurpose,
   type GuidedView,
   type PendingFile,
   createResultSchema,
+  guidedControlSchema,
   guidedMetaSchema,
   pendingFileSchema,
 } from './guided.schemas.js';
@@ -67,6 +70,11 @@ export class GuidedService {
     return join(this.guidedDir, id);
   }
 
+  /** Backend-only (ADR 0021 point 3): outside guided/**, where Claude may write. */
+  private controlOf(id: string): string {
+    return join(this.deps.dataDir, GUIDED_FILES.control, `${id}.json`);
+  }
+
   private indexOf(sessionId: string): string {
     return join(this.guidedDir, GUIDED_FILES.bySession, sessionId.toLowerCase());
   }
@@ -79,7 +87,10 @@ export class GuidedService {
     const inputPath = join(dir, GUIDED_COMMANDS[purpose].inputFile);
     mkdirSync(dir, { recursive: true });
     mkdirSync(join(this.guidedDir, GUIDED_FILES.bySession), { recursive: true });
+    mkdirSync(join(this.deps.dataDir, GUIDED_FILES.control), { recursive: true });
     try {
+      // Before the process: a destination born after this instant is the session's own (ADR 0021 point 1).
+      writeFileSync(this.controlOf(id), JSON.stringify({ version: 1, mode: 'ask', startedAt: this.now().toISOString() } satisfies GuidedControl));
       writeFileSync(inputPath, input.endsWith('\n') ? input : `${input}\n`);
       // Before the process starts: the hook ignores a session it cannot find.
       writeFileSync(this.indexOf(sessionId), id);
@@ -98,6 +109,7 @@ export class GuidedService {
     } catch (error) {
       rmSync(dir, { recursive: true, force: true });
       rmSync(this.indexOf(sessionId), { force: true });
+      rmSync(this.controlOf(id), { force: true });
       throw error;
     }
   }
@@ -153,6 +165,22 @@ export class GuidedService {
   }
 
   /**
+   * Perguntar or Automático (ADR 0021). Switching to auto also allows the permissions already waiting — the hook
+   * only reads the mode for the requests that come after.
+   */
+  async setMode(id: string, mode: GuidedMode): Promise<GuidedView> {
+    const meta = this.meta(id);
+    const startedAt = this.control(meta).startedAt ?? meta.createdAt;
+    await atomicWrite(this.controlOf(meta.id), JSON.stringify({ version: 1, mode, startedAt } satisfies GuidedControl));
+    if (mode === 'auto') {
+      for (const { pending } of this.pendings(meta).filter((p) => p.alive && p.pending.type === 'permission')) {
+        await atomicWrite(join(this.dirOf(meta.id), `answer-${pending.requestId}.json`), JSON.stringify({ requestId: pending.requestId, decision: 'allow' }));
+      }
+    }
+    return this.view(meta);
+  }
+
+  /**
    * Free text from the owner, typed into the PTY as a bracketed paste. Only while claude waits for it:
    * writing in the middle of a turn scrambles the TUI.
    */
@@ -195,6 +223,18 @@ export class GuidedService {
     // Deleting the folder also ends any hook still waiting in it.
     rmSync(this.dirOf(meta.id), { recursive: true, force: true });
     rmSync(this.indexOf(meta.claudeSessionId), { force: true });
+    rmSync(this.controlOf(meta.id), { force: true });
+  }
+
+  /** A session from before ADR 0021 has no control file: it asks, and has no start for the destination rule. */
+  private control(meta: GuidedMeta): { mode: GuidedMode; startedAt: string | null } {
+    try {
+      const parsed = guidedControlSchema.safeParse(JSON.parse(readFileSync(this.controlOf(meta.id), 'utf8')));
+      if (parsed.success) return parsed.data;
+    } catch {
+      // Absent or unreadable: the defaults below.
+    }
+    return { mode: 'ask', startedAt: null };
   }
 
   private meta(id: string): GuidedMeta {
@@ -247,7 +287,7 @@ export class GuidedService {
 
   /** The status, in this order (spec §4.1): a result; a terminal that is not running; a pending request; the last event. */
   private view(meta: GuidedMeta): GuidedView {
-    const base = { id: meta.id, purpose: meta.purpose, terminalId: meta.terminalId, createdAt: meta.createdAt };
+    const base = { id: meta.id, purpose: meta.purpose, terminalId: meta.terminalId, createdAt: meta.createdAt, mode: this.control(meta).mode };
     const result = readResult(join(this.dirOf(meta.id), 'result.json'));
     if (result !== undefined) {
       if ('invalid' in result) return { ...base, status: 'failed', pending: null, result: null, error: `result.json inválido: ${result.invalid}` };

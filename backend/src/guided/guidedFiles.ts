@@ -10,13 +10,29 @@ import { statusLineSetting } from '../usage/usageFiles.js';
  * (the hook, while a question or a permission waits), `answer-<rid>.json` (ours, the owner's answer),
  * `event.json` (the hook, the last non-blocking event) and `result.json` (the skill, at the end).
  * `DATA_DIR/guided/by-session/<session id>` holds the guided id: how the hook finds the folder.
+ *
+ * `DATA_DIR/guided-control/<id>.json` (ADR 0021) is the session's mode and start, written only by the backend —
+ * outside `guided/**`, where the --settings lets Claude write without asking. The skill's
+ * `destination.json` (in the session folder) names the project it is generating.
  */
 export const GUIDED_FILES = {
   settings: 'claude-guided-settings.json',
   hook: 'guided-hook.cjs',
   dir: 'guided',
   bySession: 'by-session',
+  control: 'guided-control',
+  destination: 'destination.json',
 } as const;
+
+/** Tools whose target is one path: inside the declared destination, the hook allows them (ADR 0021 point 1). */
+export const FILE_TOOLS = ['Read', 'Glob', 'Grep', 'Edit', 'Write', 'MultiEdit', 'NotebookEdit'] as const;
+
+export type GuidedHookPaths = {
+  /** ALLOWED_ROOTS: a destination lives inside one of them (and is not one). */
+  roots: readonly string[];
+  /** Never a destination, nor inside one: the Workflow and DATA_DIR itself. */
+  protectedPaths: readonly string[];
+};
 
 /** Blocking hooks wait for the owner: an answer may take hours. Proved for 10 min in the spike (ADR 0020 point 5). */
 export const BLOCKING_HOOK_TIMEOUT_S = 86_400;
@@ -44,15 +60,68 @@ export function permissionRulePath(path: string): string {
  *   The folder disappearing (a cancel) ends the wait without a decision.
  * - Stop, UserPromptSubmit, Notification record the last event. A Notification right after a Stop is Claude Code
  *   saying it is idle — the session is already waiting for text, so it is not recorded.
+ * - A PermissionRequest is allowed without a card (ADR 0021) when the session's mode is `auto`, or when it is a
+ *   file tool aimed inside the declared destination — a new folder inside ALLOWED_ROOTS (see `destination`).
  */
-function hookScript(guidedDir: string): string {
+function hookScript(guidedDir: string, controlDir: string, { roots, protectedPaths }: GuidedHookPaths): string {
   return `// Written by the Workflow App backend at startup (backend/src/guided/guidedFiles.ts). Do not edit.
 const fs = require('node:fs');
 const path = require('node:path');
 const crypto = require('node:crypto');
 const GUIDED_DIR = ${JSON.stringify(guidedDir)};
+const CONTROL_DIR = ${JSON.stringify(controlDir)};
+const ROOTS = ${JSON.stringify(roots)};
+const PROTECTED = ${JSON.stringify(protectedPaths)};
+const FILE_TOOLS = new Set(${JSON.stringify(FILE_TOOLS)});
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+const WIN = process.platform === 'win32';
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+
+function readJson(file) {
+  try { return JSON.parse(fs.readFileSync(file, 'utf8')); } catch { return null; }
+}
+function norm(p) {
+  const r = path.resolve(p);
+  return WIN ? r.toLowerCase() : r;
+}
+/** child is parent, or inside it. */
+function within(parent, child) {
+  const rel = path.relative(norm(parent), norm(child));
+  return rel === '' || (rel !== '..' && !rel.startsWith('..' + path.sep) && !path.isAbsolute(rel));
+}
+/**
+ * The project the skill declared, if the app accepts it: absolute, inside a root and not a root, clear of the
+ * Workflow and DATA_DIR, and new — absent, or born after the session started (an older project keeps asking).
+ */
+function destination(dir, control) {
+  const declared = readJson(path.join(dir, ${JSON.stringify(GUIDED_FILES.destination)}));
+  const p = declared && typeof declared.projectPath === 'string' ? declared.projectPath : null;
+  if (!p || !path.isAbsolute(p)) return null;
+  if (!ROOTS.some((root) => within(root, p) && norm(root) !== norm(p))) return null;
+  if (PROTECTED.some((x) => within(x, p) || within(p, x))) return null;
+  const started = control ? Date.parse(control.startedAt) : NaN;
+  if (!Number.isFinite(started)) return null;
+  try {
+    const born = fs.statSync(p).birthtimeMs;
+    if (!(born > 0) || born < started) return null;
+  } catch (error) {
+    if (!error || error.code !== 'ENOENT') return null;
+  }
+  return p;
+}
+function targetOf(input) {
+  const i = input && typeof input === 'object' ? input : {};
+  const t = i.file_path || i.notebook_path || i.path;
+  return typeof t === 'string' && path.isAbsolute(t) ? t : null;
+}
+function allowsWithoutAsking(guidedId, dir, data) {
+  const control = readJson(path.join(CONTROL_DIR, guidedId + '.json'));
+  if (control && control.mode === 'auto') return true;
+  if (!FILE_TOOLS.has(data.tool_name)) return false;
+  const target = targetOf(data.tool_input);
+  const dest = target && destination(dir, control);
+  return Boolean(dest && within(dest, target));
+}
 
 function writeJson(file, data) {
   const tmp = file + '.' + process.pid + '.tmp';
@@ -87,6 +156,9 @@ async function main(data) {
   if (event === 'PreToolUse' && data.tool_name === 'AskUserQuestion') {
     pending = { type: 'question', questions: data.tool_input && data.tool_input.questions };
   } else if (event === 'PermissionRequest') {
+    if (allowsWithoutAsking(guidedId.toLowerCase(), dir, data)) {
+      return process.stdout.write(JSON.stringify({ hookSpecificOutput: { hookEventName: 'PermissionRequest', decision: { behavior: 'allow' } } }));
+    }
     pending = { type: 'permission', tool: String(data.tool_name).slice(0, 200), summary: summarize(data.tool_name, data.tool_input) };
   } else return;
   const requestId = crypto.randomUUID();
@@ -121,14 +193,18 @@ process.stdin.on('end', () => {
  * Writes the guided sessions' settings and hook into DATA_DIR (every start). Returns the --settings path.
  * Two permissions keep reads and the session's own files from asking (step 3 dry run): writing in
  * `DATA_DIR/guided/**` (result.json, the renderer's config), and reading inside each ALLOWED_ROOTS (does the
- * destination exist?). Writing anywhere else still asks — that is the owner's Allow/Refuse card.
+ * destination exist?). Writing anywhere else asks — unless the hook allows it (ADR 0021): the session in `auto`, or a
+ * file tool inside the declared new destination. `workflowPath` is never a destination.
  */
-export function writeGuidedFiles(dataDir: string, readRoots: readonly string[]): string {
+export function writeGuidedFiles(dataDir: string, readRoots: readonly string[], workflowPath?: string): string {
   const guidedDir = join(dataDir, GUIDED_FILES.dir);
+  const controlDir = join(dataDir, GUIDED_FILES.control);
   mkdirSync(join(guidedDir, GUIDED_FILES.bySession), { recursive: true });
+  mkdirSync(controlDir, { recursive: true });
   const hook = join(dataDir, GUIDED_FILES.hook);
   const settings = join(dataDir, GUIDED_FILES.settings);
-  writeFileSync(hook, hookScript(guidedDir));
+  const protectedPaths = workflowPath ? [workflowPath, dataDir] : [dataDir];
+  writeFileSync(hook, hookScript(guidedDir, controlDir, { roots: readRoots, protectedPaths }));
   const command = { type: 'command', command: `"${process.execPath}" "${hook}"` };
   const blocking = { ...command, timeout: BLOCKING_HOOK_TIMEOUT_S };
   const content = {

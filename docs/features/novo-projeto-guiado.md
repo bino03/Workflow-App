@@ -2,7 +2,7 @@
 
 | | |
 |---|---|
-| **Estado** | ✅ Feito (2026-10-26) — seguimento: permissões dentro do destino e modo Automático (ToDo) |
+| **Estado** | ✅ Feito (2026-10-26) — com o seguimento do [[../adr/0021-permissoes-das-sessoes-guiadas|ADR 0021]] |
 | **Criada** | 2026-10-23 |
 | **Última sessão** | 2026-10-26 |
 | **Passos** | 10 / 10 concluídos |
@@ -595,7 +595,10 @@ Workflow** — commits lá, separados.
   pelo mesmo caminho chegou intacto 2/2, por isso a causa provável é a cópia do terminal, não a app. Limpo: pasta
   apagada, Workflow sem alterações (a linha do `projects/INDEX.md` não chegou a ser escrita), instância parada.
 **Em curso:** nada.
-**Próxima ação concreta:** nenhuma nesta spec. Seguimento no ToDo: permissões dentro do destino + modo Automático.
+- **Seguimento (2026-10-26, [[../adr/0021-permissoes-das-sessoes-guiadas|ADR 0021]])**: o hook aprova as ferramentas de
+  ficheiros dentro do destino novo declarado em `destination.json`, e o seletor **Permissões: Perguntar / Automático**
+  no cabeçalho da sessão. Falta contar as permissões numa criação real ([[../../notes/verificacao-browser-pendente]]).
+**Próxima ação concreta:** nenhuma nesta spec.
 **Desvios ao plano:**
 - Passo 1: o lançamento da §4.2 ganha `--permission-mode default` (sem ele, no modo `auto` desta conta, o
   `PermissionRequest` nunca chega e não há cartões Permitir/Recusar). Escrever no ADR 0020 e no `claudeArgs` (passo 4).

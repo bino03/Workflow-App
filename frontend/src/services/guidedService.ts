@@ -1,5 +1,5 @@
 import api from '@/api';
-import type { Answers, FeedPage, GuidedView } from '@/types/guided';
+import type { Answers, FeedPage, GuidedMode, GuidedView } from '@/types/guided';
 import type { TerminalView } from '@/types/terminal';
 
 /**
@@ -22,6 +22,11 @@ export async function answerQuestion(id: string, requestId: string, answers: Ans
 
 export async function decidePermission(id: string, requestId: string, decision: 'allow' | 'deny'): Promise<void> {
   await api.post(`/guided/${id}/permission`, { requestId, decision });
+}
+
+/** Perguntar / Automático (ADR 0021). Passar a Automático aprova também as permissões que já estão à espera. */
+export async function setGuidedMode(id: string, mode: GuidedMode): Promise<GuidedView> {
+  return (await api.put<GuidedView>(`/guided/${id}/mode`, { mode })).data;
 }
 
 /** Texto livre, quando o Claude parou à espera dele. */

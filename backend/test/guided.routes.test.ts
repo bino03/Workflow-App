@@ -35,11 +35,12 @@ it('every /api/guided route needs a session (the whole app)', async () => {
     ['POST', `/api/guided/${id}/answer`],
     ['POST', `/api/guided/${id}/permission`],
     ['POST', `/api/guided/${id}/message`],
+    ['PUT', `/api/guided/${id}/mode`],
     ['POST', `/api/guided/${id}/resume`],
     ['POST', `/api/guided/${id}/reveal`],
     ['DELETE', `/api/guided/${id}`],
   ] as const) {
-    expect((await app.inject({ method, url, payload: method === 'POST' ? {} : undefined })).statusCode).toBe(401);
+    expect((await app.inject({ method, url, payload: method === 'POST' || method === 'PUT' ? {} : undefined })).statusCode).toBe(401);
   }
   await app.close();
 });
@@ -131,6 +132,18 @@ describe('/api/guided', () => {
     const permission = await app.inject({ method: 'POST', url: `/api/guided/${view.id}/permission`, payload: { requestId: randomUUID(), decision: 'allow' } });
     expect(permission.json()).toMatchObject({ errorCode: 'GUIDED_002' });
     expect((await app.inject({ method: 'POST', url: `/api/guided/${view.id}/permission`, payload: { requestId: 'x', decision: 'maybe' } })).statusCode).toBe(400);
+    await app.inject({ method: 'DELETE', url: `/api/guided/${view.id}` });
+  });
+
+  it('mode: PUT switches Perguntar / Automático and returns the view; anything else → 400', async () => {
+    const view = await start();
+    expect(view.mode).toBe('ask');
+    const auto = await app.inject({ method: 'PUT', url: `/api/guided/${view.id}/mode`, payload: { mode: 'auto' } });
+    expect(auto.statusCode).toBe(200);
+    expect(auto.json()).toMatchObject({ id: view.id, mode: 'auto' });
+    expect((await app.inject({ method: 'GET', url: `/api/guided/${view.id}` })).json().mode).toBe('auto');
+    expect((await app.inject({ method: 'PUT', url: `/api/guided/${view.id}/mode`, payload: { mode: 'bypass' } })).statusCode).toBe(400);
+    expect((await app.inject({ method: 'PUT', url: `/api/guided/${randomUUID()}/mode`, payload: { mode: 'ask' } })).statusCode).toBe(404);
     await app.inject({ method: 'DELETE', url: `/api/guided/${view.id}` });
   });
 
