@@ -18,6 +18,8 @@ import { libraryRoutes } from './library/library.routes.js';
 import { LibraryService } from './library/libraryService.js';
 import { foldersRoutes } from './folders/folders.routes.js';
 import { FoldersService } from './folders/foldersService.js';
+import { creationRoutes } from './creation/creation.routes.js';
+import { CreationService } from './creation/creationService.js';
 import { guidedRoutes } from './guided/guided.routes.js';
 import { writeGuidedFiles } from './guided/guidedFiles.js';
 import { GuidedService } from './guided/guidedService.js';
@@ -175,6 +177,9 @@ export async function buildApp({
   });
   const guidedService = new GuidedService({ dataDir: config.dataDir, terminals: terminalsService, sessions: sessionsReader });
   await app.register(guidedRoutes, { guidedService });
+  await app.register(creationRoutes, {
+    creationService: new CreationService({ guided: guidedService, terminals: terminalsService, workflowPath: config.workflowPath }),
+  });
   await app.register(previewRoutes, { terminalsService, previewService });
   await app.register(terminalsGateway, { terminalManager, sessionStore: sessions });
   await app.register(usageRoutes, { dataDir: config.dataDir });

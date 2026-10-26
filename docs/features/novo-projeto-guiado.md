@@ -5,7 +5,7 @@
 | **Estado** | 🚧 Em curso — a dependência ([[importar-para-a-biblioteca]], passos 1 e 4) está feita |
 | **Criada** | 2026-10-23 |
 | **Última sessão** | 2026-10-26 |
-| **Passos** | 5 / 10 concluídos |
+| **Passos** | 6 / 10 concluídos |
 
 > Escrita para uma sessão que **não viu a conversa que a originou**. Se algo só faz sentido com contexto
 > externo, falta escrevê-lo.
@@ -425,7 +425,7 @@ Workflow** — commits lá, separados.
     linhas inválidas e tipos desconhecidos são ignorados; o conteúdo das skills lidas e os `tool_result`
     não aparecem; `npm run typecheck`/`test`/`lint` limpos.
 
-- [ ] **6. Backend — criação**
+- [x] **6. Backend — criação**
   - Ficheiro: `backend/src/creation/{creation.schemas,creationService,creation.routes}.ts`,
     `backend/src/app.ts`, `backend/src/common/errors.ts`, `backend/test/creation.routes.test.ts`, `docs/api.md`
   - Skill: —
@@ -541,9 +541,19 @@ Workflow** — commits lá, separados.
   pergunta/permissão por decidir, linhas inválidas e sub-agentes ignorados, o cursor, a rota). Com o `claude` real
   (`guided-engine-check.ts`): brief → "Leu 1 ficheiro" → pergunta → 2 permissões → pergunta aberta → resposta de 2
   linhas → "Escreveu 1 ficheiro" (o `result.json`, sem cartão). `docs/api.md`.
+- **Passo 6 — criação** (2026-10-26): `creation/{creation.schemas,creationService,creation.routes}.ts`, `CREATE_001`/`002`
+  (backend e `errorMessages.ts`). 413 testes (+7: o brief só no ficheiro e nunca nos argumentos, `/create --app` em
+  último, escondido, segunda criação → `CREATE_001`, descrição vazia/longa → 400, `result.json` `done` → `open` cria um
+  terminal visível na pasta, fora das roots → `FOLDER_001`, sem pasta/`failed` → `CREATE_002`, fechar liberta).
+  **HTTP real** numa instância de `scripts/verify/` com `--workflow <real> --real-claude`: `POST /api/creations` → o
+  `/create` real respondido só pela API (`answer`, `permission`, `message`) até à proposta em ~2 min, Cancelar →
+  `failed`, feed com as 5 espécies de entrada, `DELETE` → `current` `null`, Workflow limpo. Achado e corrigido: no
+  Windows o Claude correu o `render-blueprint` pela ferramenta **PowerShell**, fora da allowlist `Bash(…)` → o modo app
+  manda usar a `Bash` (commit `70fc43c` no Workflow); na 2.ª corrida o único pedido de permissão foi o legítimo (o
+  destino por omissão fora das roots da instância). Os resumos de `Glob`/`Grep` passam a levar o caminho.
 **Em curso:** nada.
-**Próxima ação concreta:** passo 6 — `backend/src/creation/` (`POST /api/creations`, `current`, `open`), sobre o
-`GuidedService.start` e `list("create")`; `CREATE_001`/`002`.
+**Próxima ação concreta:** passo 7 — frontend, componentes da sessão guiada (`frontend/src/components/guided/`), numa
+página de desenvolvimento com dados falsos. Começar por perguntar ao dono se quer um protótipo no Claude Design (§7).
 **Desvios ao plano:**
 - Passo 1: o lançamento da §4.2 ganha `--permission-mode default` (sem ele, no modo `auto` desta conta, o
   `PermissionRequest` nunca chega e não há cartões Permitir/Recusar). Escrever no ADR 0020 e no `claudeArgs` (passo 4).

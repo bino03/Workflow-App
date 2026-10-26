@@ -26,7 +26,9 @@ const text = (value: unknown) => (typeof value === 'string' ? value : '');
 /** What a tool call is about, in one line: the command, or the path — never a file's content. */
 export function toolTarget(tool: string, input: unknown): string {
   const i = isObject(input) ? input : {};
-  const pick = tool === 'Bash' ? i.command : (i.file_path ?? i.notebook_path ?? i.url ?? i.pattern ?? i.path ?? i.skill ?? i.description);
+  // The same as the hook's summarize (guidedFiles.ts): the card and the feed name a call the same way.
+  if (typeof i.pattern === 'string') return (typeof i.path === 'string' ? `${i.pattern} em ${i.path}` : i.pattern).slice(0, 300);
+  const pick = tool === 'Bash' || tool === 'PowerShell' ? i.command : (i.file_path ?? i.notebook_path ?? i.url ?? i.path ?? i.skill ?? i.description);
   return String(typeof pick === 'string' ? pick : JSON.stringify(i)).slice(0, 300);
 }
 

@@ -67,7 +67,8 @@ function writeEvent(dir, event) {
 }
 function summarize(tool, input) {
   const i = input && typeof input === 'object' ? input : {};
-  const pick = tool === 'Bash' ? i.command : i.file_path || i.notebook_path || i.url || i.pattern || i.path;
+  if (typeof i.pattern === 'string') return (i.path ? i.pattern + ' em ' + i.path : i.pattern).slice(0, 2000);
+  const pick = tool === 'Bash' || tool === 'PowerShell' ? i.command : i.file_path || i.notebook_path || i.url || i.path;
   return String(typeof pick === 'string' ? pick : JSON.stringify(i)).slice(0, 2000);
 }
 

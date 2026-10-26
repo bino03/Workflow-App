@@ -54,6 +54,8 @@ próprio Fastify (JSON mal formado, content-type errado → `COMMON_001`) e as r
 | `GUIDED_002` | 409 | O `requestId` não é o da pergunta/permissão que está à espera (já respondida, de outro tipo, ou o hook morreu) — a UI recarrega |
 | `GUIDED_003` | 409 | Escrever numa sessão guiada parada ou terminada — retomar primeiro |
 | `GUIDED_004` | 409 | Escrever enquanto o Claude trabalha ou espera um cartão (só em `waiting-text`/`needs-you`) |
+| `CREATE_001` | 409 | Já há uma criação aberta (a correr, ou terminada e ainda não fechada) |
+| `CREATE_002` | 409 | "Abrir projeto" sem `result.json` `done`, sem `projectPath`, ou com uma pasta que não existe |
 
 O frontend espelha esta tabela em `frontend/src/errors/errorMessages.ts`, pela mesma ordem — os dois
 mudam no mesmo commit.
@@ -231,6 +233,19 @@ na biblioteca: lança o `/import` do Workflow num terminal escondido e segue-o; 
   próprio `git status`, e cada um é resolvido (com symlinks e junctions) e confirmado dentro do repo antes de ser lido,
   reposto ou apagado. Como a importação só começa com o repo limpo, "o que mudou" é "o que a importação fez" — mas
   se o dono mexer no Workflow à mão enquanto uma importação está aberta, isso entra no diff (e no commit).
+
+## Novo projeto (`creation/`, `/api/creations`) — 🚧
+
+Spec [[features/novo-projeto-guiado]]. Lança o `/create` do Workflow em modo app como uma sessão guiada (abaixo);
+tudo o que vem depois do arranque passa por `/api/guided`. Uma criação de cada vez.
+
+| Método | Rota | Corpo | Resposta | Erros |
+|---|---|---|---|---|
+| POST | `/api/creations` | `{description}` (1–8000, sem espaços nas pontas) — vai **só** para `DATA_DIR/guided/<id>/brief.md` | `201 GuidedView` | `AUTH_002` · `COMMON_001` · `CREATE_001` · `LIBRARY_001` · `FOLDER_001` · `TERMINAL_002` · `TERMINAL_005` · `TERMINAL_007` (o Workflow ainda não é de confiança) |
+| GET | `/api/creations/current` | — | `200 GuidedView \| null` — a mais recente aberta | `AUTH_002` |
+| POST | `/api/creations/:id/open` | — | `201 TerminalView` — um terminal **visível**, novo, em `result.projectPath` | `AUTH_002` · `GUIDED_001` · `CREATE_002` · `FOLDER_001` (fora de `ALLOWED_ROOTS`) · `TERMINAL_*` |
+
+Fechar uma criação terminada, ou cancelar uma a correr, é o `DELETE /api/guided/:id`.
 
 ## Sessões guiadas (`guided/`, `/api/guided`) — 🚧
 
