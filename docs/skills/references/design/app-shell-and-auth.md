@@ -31,8 +31,8 @@ Segmentos novos sempre em inglês.
 
 - **Header de 48 px** (protótipo [[../../../design/handoff-2026-09-27/README|handoff 2026-09-27]]):
   wordmark "WORKFLOW" à esquerda (losango contornado em `accent` + display 13/600, maiúsculas,
-  `letter-spacing: .18em`, link para `/terminals`), `<nav>` logo a seguir (Terminais · Biblioteca · Novo projeto;
-  ativo com sublinhado interior de 2 px em `accent`), espaço, e à direita a **quota** (quando a
+  `letter-spacing: .18em`, link para `/terminals`), `<nav>` logo a seguir (Terminais · Biblioteca;
+  ativo com sublinhado interior de 2 px em `accent`), espaço, e à direita **Novo projeto** (mesmo estilo de item, é uma ação e não um sítio), a **quota** (quando a
   lateral não a mostra) e o menu de utilizador. Borda de baixo `border`.
 - Se um terminal escondido está à espera, o item "Terminais" da nav ganha um losango `state-wait`.
 - **Barra de estado de 26 px** em baixo, em todos os ecrãs autenticados: "Teclado em `<terminal>`" à

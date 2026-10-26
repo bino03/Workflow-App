@@ -14,8 +14,15 @@ import { useShortcuts } from '@/hooks/useShortcuts';
 const NAV_ITEMS = [
   { to: '/terminals', label: 'Terminais' },
   { to: '/library', label: 'Biblioteca' },
-  { to: '/new-project', label: 'Novo projeto' },
 ];
+
+// À direita, antes do menu de utilizador: é uma ação (criar), não um sítio para onde se navega.
+const NEW_PROJECT_ITEM = { to: '/new-project', label: 'Novo projeto' };
+
+const navLinkClass = ({ isActive }: { isActive: boolean }) =>
+  `flex items-center px-3 text-[13.5px] font-medium no-underline transition-colors ${
+    isActive ? 'text-text-1 shadow-[inset_0_-2px_0_var(--wfa-color-accent)]' : 'text-text-2 hover:text-text-1'
+  }`;
 
 const HEALTH_LABEL: Record<BackendHealth, string> = {
   checking: 'A ligar ao backend…',
@@ -82,22 +89,19 @@ function AppShell() {
         <Link to="/terminals" aria-label="Workflow — Terminais" className="flex">
           <Wordmark />
         </Link>
-        <nav className="flex self-stretch gap-1">
+        <nav aria-label="Navegação principal" className="flex self-stretch gap-1">
           {NAV_ITEMS.map((item) => (
-            <NavLink
-              key={item.to}
-              to={item.to}
-              className={({ isActive }) =>
-                `flex items-center px-3 text-[13.5px] font-medium no-underline transition-colors ${
-                  isActive ? 'text-text-1 shadow-[inset_0_-2px_0_var(--wfa-color-accent)]' : 'text-text-2 hover:text-text-1'
-                }`
-              }
-            >
+            <NavLink key={item.to} to={item.to} className={navLinkClass}>
               {item.label}
             </NavLink>
           ))}
         </nav>
         <div className="flex-1" />
+        <nav aria-label="Criar" className="flex self-stretch">
+          <NavLink to={NEW_PROJECT_ITEM.to} className={navLinkClass}>
+            {NEW_PROJECT_ITEM.label}
+          </NavLink>
+        </nav>
         <Dropdown menu={{ items: userMenu }} trigger={['click']} placement="bottomRight">
           <button
             type="button"
