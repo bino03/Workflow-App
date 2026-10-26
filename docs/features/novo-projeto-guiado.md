@@ -2,10 +2,10 @@
 
 | | |
 |---|---|
-| **Estado** | 🚧 Em curso — a dependência ([[importar-para-a-biblioteca]], passos 1 e 4) está feita |
+| **Estado** | ✅ Feito (2026-10-26) — seguimento: permissões dentro do destino e modo Automático (ToDo) |
 | **Criada** | 2026-10-23 |
 | **Última sessão** | 2026-10-26 |
-| **Passos** | 9 / 10 concluídos |
+| **Passos** | 10 / 10 concluídos |
 
 > Escrita para uma sessão que **não viu a conversa que a originou**. Se algo só faz sentido com contexto
 > externo, falta escrevê-lo.
@@ -582,10 +582,20 @@ Workflow** — commits lá, separados.
   `design/app-shell-and-auth.md` (rotas `/new-project`, `/_guided`, item no menu); `overview.md` e `domain-brief.md`
   deixam de pôr "o `/create` por formulário" e "bolhas de chat" fora de âmbito (contradiziam o ADR 0020).
   `database.md` e `api.md` já vinham dos passos 4-6.
+- **Passo 10 — com o dono (2026-10-26)**: o `/create` real gerou a **Estante** (Spring Boot + React, 118 ficheiros,
+  `git init`) de ponta a ponta pela UI. 46 min do Começar ao fim (com ~10 min de espera do dono a meio); a geração,
+  do Gerar ao `result.json`, 18 min. **Todas** as escolhas chegaram como cartões (vocabulário, B, C, D, E1-E5 — o E5
+  foi perguntado —, Notion, confirmação, commit); texto livre só no bloco A. Achados: (1) `"error": null` num
+  resultado `done` dava "result.json inválido" → corrigido (`f2e2acf`, também na importação); (2) **53 permissões**:
+  quase todas Read/Glob/Grep/Edit no destino (fora das leituras do `--settings`, fixadas antes de o destino existir)
+  e `node` a correr scripts que o `/create` escreve na pasta do brief → seguimento no ToDo, com um modo
+  Automático pedido pelo dono; (3) o destino escolhido ficou fora das roots da instância de teste, por isso o
+  **Abrir projeto** respondeu "fora das pastas autorizadas" — esperado ali, e na instância do dono `projetos/` está
+  nas `ALLOWED_ROOTS`; (4) no texto colado do bloco A faltavam dois bocados — o mesmo texto colado no `claude` real
+  pelo mesmo caminho chegou intacto 2/2, por isso a causa provável é a cópia do terminal, não a app. Limpo: pasta
+  apagada, Workflow sem alterações (a linha do `projects/INDEX.md` não chegou a ser escrita), instância parada.
 **Em curso:** nada.
-**Próxima ação concreta:** passo 10 — **com o dono**: uma instância de `scripts/verify/` com `--workflow <real>
---real-claude`, criar `_teste-create` de ponta a ponta só pela UI, medir o tempo e as idas a **Ver terminal**, e limpar
-(apagar a pasta, `git checkout` da linha em `projects/INDEX.md` do Workflow).
+**Próxima ação concreta:** nenhuma nesta spec. Seguimento no ToDo: permissões dentro do destino + modo Automático.
 **Desvios ao plano:**
 - Passo 1: o lançamento da §4.2 ganha `--permission-mode default` (sem ele, no modo `auto` desta conta, o
   `PermissionRequest` nunca chega e não há cartões Permitir/Recusar). Escrever no ADR 0020 e no `claudeArgs` (passo 4).
@@ -642,7 +652,7 @@ Workflow** — commits lá, separados.
 | O `updatedInput` com `answers` responde ao `AskUserQuestion` sem mostrar o seletor? | — | ✅ Sim (spike, 2026-10-26) — §6 (a) |
 | O hook `PermissionRequest` existe e decide nesta versão do CLI? | — | ✅ Sim, mas só com `--permission-mode default` (spike, 2026-10-26) — §6 (b) |
 | Qual o `timeout` máximo de um hook? | Não — há o escape "Ver terminal" | ✅ Em parte: `86400` aceite e 10 min provados (spike, 2026-10-26); um teto acima disso não medido |
-| Polling a 1,5 s chega para parecer fluido? | Não | Medir no passo 8; se não, SSE numa 2.ª iteração |
+| Polling a 1,5 s chega para parecer fluido? | Não | Sem queixa do dono no passo 10 (2026-10-26); SSE só se vier a incomodar |
 | Vale um protótipo no Claude Design antes do passo 7? | Não | Perguntar ao dono no início do passo 7 |
 
 ## Relacionado
