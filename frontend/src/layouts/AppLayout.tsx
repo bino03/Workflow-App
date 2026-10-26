@@ -16,8 +16,12 @@ const NAV_ITEMS = [
   { to: '/library', label: 'Biblioteca' },
 ];
 
-// À direita, antes do menu de utilizador: é uma ação (criar), não um sítio para onde se navega.
-const NEW_PROJECT_ITEM = { to: '/new-project', label: 'Novo projeto' };
+// À direita, antes do menu de utilizador: ações (candidatar-me, criar), não sítios para onde se navega.
+// A Upwork fica à esquerda do Novo projeto — uma candidatura ganha acaba lá (spec upwork).
+const ACTION_ITEMS = [
+  { to: '/upwork', label: 'Upwork' },
+  { to: '/new-project', label: 'Novo projeto' },
+];
 
 const navLinkClass = ({ isActive }: { isActive: boolean }) =>
   `flex items-center px-3 text-[13.5px] font-medium no-underline transition-colors ${
@@ -97,10 +101,12 @@ function AppShell() {
           ))}
         </nav>
         <div className="flex-1" />
-        <nav aria-label="Criar" className="flex self-stretch">
-          <NavLink to={NEW_PROJECT_ITEM.to} className={navLinkClass}>
-            {NEW_PROJECT_ITEM.label}
-          </NavLink>
+        <nav aria-label="Criar" className="flex self-stretch gap-1">
+          {ACTION_ITEMS.map((item) => (
+            <NavLink key={item.to} to={item.to} className={navLinkClass}>
+              {item.label}
+            </NavLink>
+          ))}
         </nav>
         <Dropdown menu={{ items: userMenu }} trigger={['click']} placement="bottomRight">
           <button

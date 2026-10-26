@@ -5,7 +5,7 @@
 | **Estado** | 🚧 Em curso |
 | **Criada** | 2026-10-26 |
 | **Última sessão** | 2026-10-26 |
-| **Passos** | 6 / 11 concluídos |
+| **Passos** | 7 / 11 concluídos |
 
 > Escrita para uma sessão que **não viu a conversa que a originou**. Se algo só faz sentido com contexto
 > externo, falta escrevê-lo.
@@ -340,7 +340,7 @@ Ordem obrigatória. Tiers: `opus` (desenho, não delegar) · `sonnet` (implement
   - Tier: `sonnet`
   - Aceite quando: sem `won` → `UPWORK_003`; com `won` grava `agreement`, compõe o brief (as 4 partes, por esta ordem) e começa uma criação (`CREATE_001` se já há uma); quando o `result.json` da criação tem `projectPath`, a candidatura passa a tê-lo.
 
-- [ ] **7. Frontend: tipos, serviço, hook, página e navegação**
+- [x] **7. Frontend: tipos, serviço, hook, página e navegação**
   - Ficheiros: `frontend/src/types/upwork.ts`, `frontend/src/services/upworkService.ts`, `frontend/src/hooks/useUpworkApplications.ts`, `frontend/src/pages/UpworkPage.tsx`, `frontend/src/components/upwork/ApplicationList.tsx`, `frontend/src/main.tsx`, `frontend/src/layouts/AppLayout.tsx`, `frontend/src/errors/errorMessages.ts`
   - Skill: `frontend-design-system` + `frontend-error-handling`
   - Tier: `sonnet`
@@ -406,11 +406,19 @@ dentro (`MAX_BRIEF_CHARS` = 60 000 no serviço; os 8000 continuam só no corpo H
 sessão (apagada ao arquivar) — o backend guarda agora uma cópia `applications/<id>/job.md`. Testes: +4 rotas,
 `upworkFiles.test.ts` (corte do brief); HTTP numa instância de verificação (`UPWORK_003` → 201 → brief pela ordem →
 `CREATE_001`). Backend da spec completo.
+Passo 7 (2026-10-26) — `types/upwork.ts`, `services/upworkService.ts` (todas as rotas, já para os passos 8-9),
+`hooks/useUpworkApplications.ts` (lista + perfil; `updatedAt: null` = sem perfil), `pages/UpworkPage.tsx` (mestre-detalhe:
+lista de 380 px à esquerda, painel vazio à direita até ao passo 9), `components/upwork/{ApplicationList,upworkFormat}`,
+rota `/upwork`, **Upwork** à esquerda de Novo projeto (`ACTION_ITEMS`). Filtro por estado (`Select`) + chip
+**Arquivadas** (trocar limpa o filtro). Os `UPWORK_*` do `errorMessages.ts` já vinham do passo 4. `tsc -b` + lint
+limpos; Chrome headless numa instância `--git-workflow` 16/16 (ordem do header, link ativo, os dois estados vazios,
+Nova candidatura desativada sem perfil, cards, seleção, filtro, arquivadas, consola limpa). Os botões **Perfil** e
+**Nova candidatura** só mudam estado da página por agora — os drawers chegam no passo 8.
 **Em curso:** —
-**Próxima ação concreta:** passo 7 — frontend: `types/upwork.ts`, `services/upworkService.ts`,
-`hooks/useUpworkApplications.ts`, `pages/UpworkPage.tsx`, `components/upwork/ApplicationList.tsx`, rota em `main.tsx`,
-entrada **Upwork** à esquerda de "Novo projeto" no header (`AppLayout.tsx`, `NEW_PROJECT_ITEM`). Invocar
-`/frontend-design-system` e `/frontend-error-handling` antes; type-check com `npx tsc -b`.
+**Próxima ação concreta:** passo 8 — `components/upwork/{ProfileDrawer,NewApplicationDrawer}.tsx` (+ schemas zod),
+ligados aos estados `setProfileOpen`/`setCreating` que já existem em `UpworkPage.tsx`; ao gravar o perfil,
+`upwork.setProfile`; ao criar, `upwork.replace` e selecionar a nova. Invocar `/frontend-design-system` antes
+(padrão Drawer em `design/drawers-and-modals.md`). Cenário do passo 7 em scratchpad serve de base para o browser.
 **Atenção:** uma sessão sem `.jsonl` (o `claude` nunca gravou nada) não se retoma: o `reopen` arranca uma conversa
 nova com o mesmo UUID e **sem** o prompt da skill. Na prática a skill grava sempre o 1.º turno; fica anotado.
 **Desvios ao plano:** (1) o URL do job **não vai para o `job.md`** — a skill não precisa dele; (2) nas sessões

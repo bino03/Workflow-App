@@ -104,6 +104,12 @@ Coluna de cards clicáveis à esquerda + painel de detalhe à direita, quando o 
 e o volume é baixo. Card selecionado com `border: 1px solid var(--wfa-color-accent)`.
 Markdown com `react-markdown` + `remark-gfm`, **sem `rehype-raw`**.
 
+Primeiro em código: `components/upwork/ApplicationList.tsx` (2026-10-26, Chrome headless) — `<ul>` de `<button>`
+com `aria-current` no selecionado, `rounded-md`, `bg-surface-1`, borda `border` → `border-strong` no hover →
+`accent` selecionado; título 13.5/600 em 2 linhas no máximo, por baixo as tags (estado, veredicto) e, à direita,
+cliente e data em `text-3`. Coluna de 380 px; filtro `Select allowClear` + chip **Arquivadas** por cima (trocar de
+lista limpa o filtro, como o agrupamento da Biblioteca ao mudar de separador).
+
 ## Drift encontrado — não copiar
 
 _Nenhum ainda._ Vigiar: ações horizontais só-ícone; estilos de botão repetidos por ficheiro; `padding` a duplicar o do layout.
