@@ -5,7 +5,7 @@
 | **Estado** | 🚧 Em curso — a dependência ([[importar-para-a-biblioteca]], passos 1 e 4) está feita |
 | **Criada** | 2026-10-23 |
 | **Última sessão** | 2026-10-26 |
-| **Passos** | 2 / 10 concluídos |
+| **Passos** | 3 / 10 concluídos |
 
 > Escrita para uma sessão que **não viu a conversa que a originou**. Se algo só faz sentido com contexto
 > externo, falta escrevê-lo.
@@ -389,7 +389,7 @@ Workflow** — commits lá, separados.
     consequências (dependência do formato do `.jsonl` e dos hooks do CLI; o que fica de fora), com o
     resultado do spike; linha no README.
 
-- [ ] **3. Workflow — `/create` em modo app + ADR 0011**
+- [x] **3. Workflow — `/create` em modo app + ADR 0011**
   - Ficheiro (repo do Workflow): `docs/skills/skill-create.md`, `docs/adr/0011-create-em-modo-app.md`,
     `docs/adr/README.md`, `.claude/settings.json`, `docs/vision.md`
   - Skill: — (é uma alteração a uma skill do Workflow; seguir o `CLAUDE.md` dele)
@@ -517,13 +517,35 @@ linha dois
   `--permission-mode default` fixo, `timeout: 86400` nos hooks bloqueantes, e o filtro de caracteres de controlo
   (todos exceto `
 ` e `	`) no texto escrito no PTY — sem ele um `ESC[201~` no texto fechava o paste.
+- **Passo 3 — no Workflow** (2026-10-26, commit `b8097ad` lá, **sem push**): secção "Modo app" do
+  `skill-create.md` (a fonte de verdade do contrato do `result.json` — a §4.1 desta spec é só a forma inicial;
+  **vale a de lá**), ponteiro `.claude/skills/create/SKILL.md`, ADR 0011, README dos ADRs, `vision.md`, allowlist
+  (+ `render-blueprint`, `verify-project`, `git rev-parse`). Auditoria do pre-commit: 0 erros. **Teste a seco**
+  duas vezes com `backend/scripts/create-app-dry-run.ts` (o `/create` real lançado como a app o vai lançar, com
+  um brief de ginásio e respostas automáticas): o brief cobriu o bloco A todo (nenhuma pergunta de texto); 15-18
+  perguntas, todas por `AskUserQuestion` (vocabulário, B, C, D, E1 com o caminho proposto, E2-E4, confirmação);
+  até à proposta em ~2,5 min; Cancelar → `result.json` `failed` / "Cancelado pelo utilizador"; destino não
+  criado; `git status` do Workflow só com as edições do passo. O `result.json` foi escrito **sem pedido de
+  permissão** graças a uma regra `Edit(//c/…/guided/<uuid>/**)` no `--settings`.
 **Em curso:** nada.
-**Próxima ação concreta:** passo 3 — no repo do Workflow: secção "Modo app" do `skill-create.md`, ADR 0011 de lá, allowlist; teste a seco à mão até à Fase 2 e Cancelar. Ler o `CLAUDE.md` do Workflow antes.
+**Próxima ação concreta:** passo 4 — backend, motor da sessão guiada (`backend/src/guided/`, `claudeArgs` com
+`kind: 'prompted'`, o `guided-hook.cjs` do spike como base). Ler os desvios dos passos 1-3 abaixo antes.
 **Desvios ao plano:**
 - Passo 1: o lançamento da §4.2 ganha `--permission-mode default` (sem ele, no modo `auto` desta conta, o
   `PermissionRequest` nunca chega e não há cartões Permitir/Recusar). Escrever no ADR 0020 e no `claudeArgs` (passo 4).
 - Passo 1: a permissão com decisão no feed vem do attachment `hook_permission_decision` (por `toolUseID`), não de
   um registo da app — confirma a decisão "a conversa vem do `.jsonl`" da §3.
+- Passo 3: o `claude-guided-settings.json` tem de levar, além dos hooks, `permissions.allow` com
+  `Edit(//<DATA_DIR>/guided/**)` (para o `result.json` e o `blueprint-config.json` não pedirem permissão — formato
+  provado: `//c/Users/…`, letra da drive em minúscula, barras normais) e **`Read(//<root>/**)` por cada
+  `ALLOWED_ROOTS`**: no teste a seco, ver se o destino existe (`Glob` fora do Workflow) pediu permissão — 3 cartões
+  de permissão por leituras. Só leitura; a escrita no destino continua a pedir.
+- Passo 3: o modo app manda ler com `Read`/`Grep`/`Glob` e não com a shell (na 1.ª corrida um `ls` e um `for … grep`
+  pediram permissão), e não ler outros projetos (uma `Glob` foi à `docs/adr` desta app).
+- Passo 3: numa das corridas o E5 (git) não foi perguntado. Não é bloqueante (o `git init` pede permissão na
+  mesma); ver no passo 10 se se repete.
+- Passo 3: entrou `backend/scripts/create-app-dry-run.ts` (não estava na spec) — serve para repetir o teste a
+  seco quando o `/create` mudar.
 **O que uma sessão nova precisa de saber:**
 - A entrevista **não** se escreve na app. Se uma sessão se apanhar a codificar perguntas do `/create` no
   frontend, está a fazer a alternativa rejeitada.
