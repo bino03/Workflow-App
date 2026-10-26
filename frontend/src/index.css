@@ -299,6 +299,114 @@
   .diff-block .diff-del { color: var(--wfa-color-error); background: var(--wfa-state-err-subtle); }
   .diff-block .diff-hunk { color: var(--wfa-color-info); }
 
+  /*
+   * Sessão guiada (design/guided-session.md): o Markdown das mensagens do Claude, a bolha do dono, os cartões
+   * de opção de uma pergunta e as linhas compactas do feed.
+   */
+  .md { color: var(--wfa-color-text-1); font-size: 14px; line-height: 21px; overflow-wrap: anywhere; }
+  .md > :first-child { margin-top: 0; }
+  .md > :last-child { margin-bottom: 0; }
+  .md p, .md ul, .md ol, .md table, .md pre, .md blockquote { margin: 0 0 10px; }
+  .md h1, .md h2, .md h3, .md h4 { color: var(--wfa-color-text-1); font-weight: 600; margin: 16px 0 8px; }
+  .md h1 { font-size: 20px; line-height: 26px; }
+  .md h2 { font-size: 16px; line-height: 24px; }
+  .md h3, .md h4 { font-size: 14px; line-height: 21px; }
+  .md ul, .md ol { padding-left: 22px; }
+  .md ul { list-style: disc; }
+  .md ol { list-style: decimal; }
+  .md li { margin: 2px 0; }
+  .md li::marker { color: var(--wfa-color-text-3); }
+  .md a { color: var(--wfa-color-accent); text-decoration: underline; text-underline-offset: 2px; }
+  .md strong { font-weight: 600; }
+  .md code {
+    font-family: var(--wfa-font-mono);
+    font-size: 12.5px;
+    background: var(--wfa-color-surface-2);
+    border: 1px solid var(--wfa-color-border);
+    border-radius: var(--wfa-radius-sm);
+    padding: 0 4px;
+  }
+  .md pre {
+    background: var(--wfa-color-surface-1);
+    border: 1px solid var(--wfa-color-border);
+    border-radius: var(--wfa-radius-md);
+    padding: 10px 12px;
+    overflow-x: auto;
+  }
+  .md pre code { background: none; border: 0; padding: 0; font-size: 12.5px; line-height: 19px; white-space: pre; }
+  .md blockquote { border-left: 2px solid var(--wfa-color-accent-border); padding-left: 12px; color: var(--wfa-color-text-2); }
+  .md hr { border: 0; border-top: 1px solid var(--wfa-color-border); margin: 14px 0; }
+  .md table { border-collapse: collapse; display: block; overflow-x: auto; max-width: 100%; font-size: 13px; line-height: 18px; }
+  .md th, .md td { border: 1px solid var(--wfa-color-border); padding: 6px 10px; text-align: left; vertical-align: top; }
+  .md th { background: var(--wfa-color-surface-1); color: var(--wfa-color-text-2); font-weight: 500; }
+
+  .chat-user {
+    background: var(--wfa-color-accent-subtle);
+    border: 1px solid var(--wfa-color-accent-border);
+    border-radius: var(--wfa-radius-lg);
+    color: var(--wfa-color-text-1);
+    padding: 10px 14px;
+    white-space: pre-wrap;
+    overflow-wrap: anywhere;
+  }
+
+  .option-card {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    width: 100%;
+    text-align: left;
+    padding: 10px 12px;
+    background: var(--wfa-color-surface-1);
+    border: 1px solid var(--wfa-color-border);
+    border-radius: var(--wfa-radius-md);
+    color: var(--wfa-color-text-1);
+    cursor: pointer;
+    transition: background var(--wfa-dur-fast) var(--wfa-ease-standard),
+      border-color var(--wfa-dur-fast) var(--wfa-ease-standard);
+  }
+  .option-card:hover { background: var(--wfa-color-surface-2); border-color: var(--wfa-color-border-strong); }
+  .option-card:focus-visible { outline: 2px solid var(--wfa-color-accent); outline-offset: 2px; }
+  .option-card.is-selected { background: var(--wfa-color-accent-subtle); border-color: var(--wfa-color-accent); }
+  .option-card:disabled { cursor: default; opacity: .6; }
+  /* A marca de escolha: círculo (uma) ou quadrado (várias) — forma e cor, nunca só cor. */
+  .option-mark {
+    flex: none;
+    width: 16px;
+    height: 16px;
+    margin-top: 2px;
+    border: 1.5px solid var(--wfa-color-border-strong);
+    border-radius: 50%;
+    display: grid;
+    place-items: center;
+  }
+  .option-mark.is-multi { border-radius: var(--wfa-radius-sm); }
+  .is-selected > .option-mark { border-color: var(--wfa-color-accent); background: var(--wfa-color-accent); }
+  .is-selected > .option-mark::after { content: ''; width: 6px; height: 6px; border-radius: inherit; background: var(--wfa-color-on-accent); }
+
+  .feed-line {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 12.5px;
+    line-height: 18px;
+    color: var(--wfa-color-text-3);
+  }
+  .feed-line .feed-target { font-family: var(--wfa-font-mono); font-size: 11.5px; color: var(--wfa-color-text-2); overflow-wrap: anywhere; }
+
+  .code-line {
+    font-family: var(--wfa-font-mono);
+    font-size: 12.5px;
+    line-height: 19px;
+    background: var(--wfa-color-bg);
+    border: 1px solid var(--wfa-color-border);
+    border-radius: var(--wfa-radius-sm);
+    padding: 8px 10px;
+    color: var(--wfa-color-text-1);
+    white-space: pre-wrap;
+    overflow-wrap: anywhere;
+  }
+
   /* Maturidade da biblioteca: forma dada pelo ::before */
   .tag-ok,
   .tag-mid,

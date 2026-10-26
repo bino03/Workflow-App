@@ -5,7 +5,7 @@
 | **Estado** | 🚧 Em curso — a dependência ([[importar-para-a-biblioteca]], passos 1 e 4) está feita |
 | **Criada** | 2026-10-23 |
 | **Última sessão** | 2026-10-26 |
-| **Passos** | 6 / 10 concluídos |
+| **Passos** | 7 / 10 concluídos |
 
 > Escrita para uma sessão que **não viu a conversa que a originou**. Se algo só faz sentido com contexto
 > externo, falta escrevê-lo.
@@ -436,7 +436,7 @@ Workflow** — commits lá, separados.
     `projectPath` (fora de `ALLOWED_ROOTS` → erro do `cwdPolicy`; sem `result` → `CREATE_002`); descrição
     vazia ou > 8000 → `COMMON_001`; `npm run typecheck`/`test`/`lint` limpos.
 
-- [ ] **7. Frontend — componentes da sessão guiada**
+- [x] **7. Frontend — componentes da sessão guiada**
   - Ficheiro: `frontend/src/components/guided/*.tsx`, `frontend/src/types/guided.ts`,
     `frontend/src/services/guidedService.ts`, `frontend/src/hooks/useGuidedSession.ts`,
     `frontend/src/errors/errorMessages.ts`, `frontend/package.json` (`react-markdown`)
@@ -551,9 +551,21 @@ Workflow** — commits lá, separados.
   Windows o Claude correu o `render-blueprint` pela ferramenta **PowerShell**, fora da allowlist `Bash(…)` → o modo app
   manda usar a `Bash` (commit `70fc43c` no Workflow); na 2.ª corrida o único pedido de permissão foi o legítimo (o
   destino por omissão fora das roots da instância). Os resumos de `Glob`/`Grep` passam a levar o caminho.
+- **Passo 7 — componentes** (2026-10-26; o dono preferiu sem protótipo no Claude Design): `types/guided.ts`,
+  `services/guidedService.ts`, `hooks/useGuidedSession.ts` (polling 1,5 s da vista e do feed, para com o separador
+  escondido e nos estados finais, `mergeFeed` pelo cursor), `components/common/Markdown.tsx`, `components/guided/`
+  (`GuidedFeed` com `AssistantMessage`/`UserMessage`/`AnsweredQuestion`/`ActivityLine`/`PermissionLine`,
+  `QuestionCard` + `questionLabels.ts`, `PermissionCard`, `ReplyBox`), classes `.md`/`.chat-user`/`.option-card`/
+  `.option-mark`/`.feed-line`/`.code-line` no `index.css`, página `/_guided` (só em dev). `npx tsc -b` e lint limpos.
+  **Verificado no browser 30/30** (Chrome headless sobre um Vite na 7497, por DOM): tabela/listas/código/citação,
+  HTML cru e imagens não interpretados (nenhum `<b>`/`<img>`/`<script>`, nenhum alerta), links `_blank` + `noopener`,
+  cores dos tokens (computadas), escolha única (círculo) e múltipla (quadrado), "Recomendado" como etiqueta e o label
+  enviado intacto, "Outro" em cada uma, duas perguntas num só Responder, Permitir/Recusar, `Ctrl+Enter` com erro de
+  campo e a enviar, `busy`, consola limpa. Captura vista.
 **Em curso:** nada.
-**Próxima ação concreta:** passo 7 — frontend, componentes da sessão guiada (`frontend/src/components/guided/`), numa
-página de desenvolvimento com dados falsos. Começar por perguntar ao dono se quer um protótipo no Claude Design (§7).
+**Próxima ação concreta:** passo 8 — `pages/NewProjectPage.tsx` (`/new-project`), `services/creationService.ts`,
+entrada no `AppLayout`, botão **+ Novo projeto** nas `ProjectTabs`; verificar no browser com o backend e o `claude`
+falso a simular cada estado.
 **Desvios ao plano:**
 - Passo 1: o lançamento da §4.2 ganha `--permission-mode default` (sem ele, no modo `auto` desta conta, o
   `PermissionRequest` nunca chega e não há cartões Permitir/Recusar). Escrever no ADR 0020 e no `claudeArgs` (passo 4).
@@ -583,6 +595,12 @@ página de desenvolvimento com dados falsos. Começar por perguntar ao dono se q
   segunda mensagem não entrar antes do hook. `resume` grava `Stop` (a conversa retomada fica no prompt).
 - Passo 4: a `GuidedView` ganhou `error` (porquê, quando o `result.json` é inválido), como a `ImportView`.
 - Passo 4: o `guided-engine-check.ts` não estava na spec — prova o motor com o `claude` real sem o Workflow.
+- Passo 7: entraram `remark-gfm` (sem ele não há tabelas — a proposta do `/create` é feita delas), `Markdown` em
+  `components/common/` (o resumo do fim e, mais tarde, a revisão da importação usam-no) e `PermissionLine` (uma
+  permissão já decidida no feed). O texto livre ("Outro", `ReplyBox`) **não** tem lista branca de caracteres, ao
+  contrário da regra 6 da skill de design: é uma mensagem ao Claude, como escrever no terminal — caminhos com `\` e
+  `:`, código e Markdown são respostas normais; o backend tira os caracteres de controlo e corta nos 8000.
+  `useGuidedSession` serve uma sessão por montagem (`key={id}`), por causa da regra `react-hooks/set-state-in-effect`.
 - Passo 5: o cursor não é "depois do id X": é quantas entradas o cliente tem, e a última volta sempre — só ela pode
   mudar (uma atividade que cresce, uma pergunta que recebe resposta, uma chamada que passa de atividade a permissão
   quando a decisão chega). A permissão por decidir não tem entrada própria no feed: o cartão vem da `GuidedView.pending`.

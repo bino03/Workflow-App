@@ -17,6 +17,7 @@ import './index.css';
 
 // Fora do bundle de produção: o import só existe quando DEV é true.
 const TokenPreviewPage = import.meta.env.DEV ? lazy(() => import('@/pages/dev/TokenPreviewPage')) : null;
+const GuidedPreviewPage = import.meta.env.DEV ? lazy(() => import('@/pages/dev/GuidedPreviewPage')) : null;
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
@@ -31,6 +32,9 @@ createRoot(document.getElementById('root')!).render(
                   <Route path="/login" element={<LoginPage />} />
                   {TokenPreviewPage && (
                     <Route path="/_tokens" element={<Suspense><TokenPreviewPage /></Suspense>} />
+                  )}
+                  {GuidedPreviewPage && (
+                    <Route path="/_guided" element={<Suspense><GuidedPreviewPage /></Suspense>} />
                   )}
                   <Route
                     element={
