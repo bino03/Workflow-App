@@ -42,6 +42,8 @@ import type { StateStore } from './state/stateStore.js';
 import { terminalsGateway } from './terminals/terminals.gateway.js';
 import { terminalsRoutes } from './terminals/terminals.routes.js';
 import { TerminalsService } from './terminals/terminalsService.js';
+import { upworkRoutes } from './upwork/upwork.routes.js';
+import { UpworkService } from './upwork/upworkService.js';
 import { usageRoutes } from './usage/usage.routes.js';
 import { readUsage, writeUsageFiles } from './usage/usageFiles.js';
 import { type BotAction, BotActions } from './telegram/botActions.js';
@@ -180,6 +182,9 @@ export async function buildApp({
   await app.register(guidedRoutes, { guidedService });
   await app.register(creationRoutes, {
     creationService: new CreationService({ guided: guidedService, terminals: terminalsService, workflowPath: config.workflowPath }),
+  });
+  await app.register(upworkRoutes, {
+    upworkService: new UpworkService({ dataDir: config.dataDir, workflowPath: config.workflowPath, guided: guidedService }),
   });
   await app.register(previewRoutes, { terminalsService, previewService });
   await app.register(terminalsGateway, { terminalManager, sessionStore: sessions });

@@ -5,7 +5,7 @@
 | **Estado** | 🚧 Em curso |
 | **Criada** | 2026-10-26 |
 | **Última sessão** | 2026-10-26 |
-| **Passos** | 3 / 11 concluídos |
+| **Passos** | 4 / 11 concluídos |
 
 > Escrita para uma sessão que **não viu a conversa que a originou**. Se algo só faz sentido com contexto
 > externo, falta escrevê-lo.
@@ -322,7 +322,7 @@ Ordem obrigatória. Tiers: `opus` (desenho, não delegar) · `sonnet` (implement
   - Tier: `sonnet`
   - Aceite quando: testes novos — os argumentos de `upwork` com o caminho validado; uma sessão `upwork` com `result.json` na pasta continua `waiting-text`; `suspend` deixa `stopped` e o `resume` volta a `waiting-text`; os testes de `create` passam sem mudanças.
 
-- [ ] **4. Módulo `upwork` no backend: perfil e registo**
+- [x] **4. Módulo `upwork` no backend: perfil e registo**
   - Ficheiros: `backend/src/upwork/{upwork.schemas,upworkFiles,upworkService,upwork.routes}.ts`, `backend/src/app.ts`, `backend/src/common/errors.ts` (`UPWORK_001`–`005`), `backend/test/upwork.routes.test.ts`
   - Skill: nenhuma de backend no projeto — seguir [[../backend-conventions]]
   - Tier: `sonnet`
@@ -386,10 +386,18 @@ rótulo do terminal escondido por propósito), `start({files})` escreve o `profi
 simples), `result.json` ignorado em `upwork` (`OPEN_ENDED`), `suspend(id)` = `terminals.stop` (o `resume` já
 existia), o propósito no `guided-control` e o hook a recusar `WebFetch` a `upwork.com` (`PreToolUse` não
 bloqueante). +9 testes; os do `create` passam sem mudanças além do `purpose` no controlo.
+Passo 4 (2026-10-26) — `backend/src/upwork/` (`upwork.schemas`, `upworkFiles`, `upworkService`, `upwork.routes`),
+`UPWORK_001`–`005` (backend, `errorMessages.ts` do frontend e `docs/api.md`), GET/PUT do perfil (modelo inicial
+com as secções do §7), POST/GET/lista/PATCH das candidaturas. `upwork.routes.test.ts` (8, `GuidedService` real +
+`claude` falso) e as rotas chamadas **por HTTP** numa instância de verificação (`--git-workflow`): 401 sem sessão,
+modelo, `UPWORK_002`, URL fora da Upwork → 400, 201 com `job.md` **sem** o URL, histórico `draft → sent`, 404.
+Docs: `api` (secção Upwork), `database`, `code-map`. `ApplicationView` já traz `package`/`packageError` (`null`).
 **Em curso:** —
-**Próxima ação concreta:** passo 4 — módulo `backend/src/upwork/` (perfil + registo), a partir de §4.1/§4.2.
-O `/message` numa sessão `upwork` parada **continua a dar `GUIDED_003` no `GuidedService`**: retomar e esperar pelo
-`waiting-text` é da rota da candidatura (passo 5), que chama `resume` e depois `message`.
+**Próxima ação concreta:** passo 5 — `packageReader.ts` (ler `package.json` com zod, recusar nomes com pastas),
+`PATCH status: 'sent'` → `guided.suspend`, `/pause`, `/message` (sessão `stopped` → `guided.resume`, esperar pelo
+`waiting-text`, depois `guided.message` — o `GuidedService.message` continua a dar `GUIDED_003` a sessões paradas),
+`/archive` (copiar o pacote para `applications/<id>/package/`, `guided.remove`, `guidedId: null`) e `DELETE`.
+O título passa a vir do `package.json` quando ele chega (§4.1).
 **Desvios ao plano:** (1) o URL do job **não vai para o `job.md`** — a skill não precisa dele; (2) nas sessões
 `upwork` o hook guiado **recusa `WebFetch` a hosts `upwork.com`** (a allowlist do Workflow aprova `WebFetch`) —
 os dois no ADR 0022, o (2) acrescentado ao passo 3; (3) a entrada **Upwork** no header fica **à esquerda de

@@ -56,6 +56,11 @@ próprio Fastify (JSON mal formado, content-type errado → `COMMON_001`) e as r
 | `GUIDED_004` | 409 | Escrever enquanto o Claude trabalha ou espera um cartão (só em `waiting-text`/`needs-you`) |
 | `CREATE_001` | 409 | Já há uma criação aberta (a correr, ou terminada e ainda não fechada) |
 | `CREATE_002` | 409 | "Abrir projeto" sem `result.json` `done`, sem `projectPath`, ou com uma pasta que não existe |
+| `UPWORK_001` | 404 | A candidatura não existe (ou o id nem é um UUID) |
+| `UPWORK_002` | 409 | Nova candidatura sem perfil de freelancer guardado |
+| `UPWORK_003` | 409 | Criar projeto a partir de uma candidatura que não está `won` |
+| `UPWORK_004` | 409 | Alterar uma candidatura arquivada |
+| `UPWORK_005` | 409 | Escrever na conversa de uma candidatura sem sessão (arquivada) |
 
 O frontend espelha esta tabela em `frontend/src/errors/errorMessages.ts`, pela mesma ordem — os dois
 mudam no mesmo commit.
@@ -246,6 +251,29 @@ tudo o que vem depois do arranque passa por `/api/guided`. Uma criação de cada
 | POST | `/api/creations/:id/open` | — | `201 TerminalView` — um terminal **visível**, novo, em `result.projectPath` | `AUTH_002` · `GUIDED_001` · `CREATE_002` · `FOLDER_001` (fora de `ALLOWED_ROOTS`) · `TERMINAL_*` |
 
 Fechar uma criação terminada, ou cancelar uma a correr, é o `DELETE /api/guided/:id`.
+
+## Upwork (`upwork/`, `/api/upwork`) — 🚧
+
+[[adr/0022-seccao-upwork]] · spec [[features/upwork]]. O perfil de freelancer e as candidaturas; cada candidatura é um
+registo em `DATA_DIR/upwork/applications/<id>/` mais uma sessão guiada `upwork` (o `/upwork-proposal` do Workflow).
+A conversa (perguntas, permissões, feed, modo) passa por `/api/guided`. **Nenhuma rota fala com a Upwork.**
+
+| Método | Rota | Corpo | Resposta | Erros |
+|---|---|---|---|---|
+| GET | `/api/upwork/profile` | — | `200 {markdown, updatedAt \| null}` — o modelo inicial (`updatedAt: null`) enquanto não há perfil | `AUTH_002` |
+| PUT | `/api/upwork/profile` | `{markdown}` (1–20 000, sem espaços nas pontas) | `200 {markdown, updatedAt}` | `AUTH_002` · `COMMON_001` |
+| GET | `/api/upwork/applications?archived=true\|false` | — | `200 ApplicationView[]`, mais recente primeiro (omissão `false`) | `AUTH_002` · `COMMON_001` |
+| POST | `/api/upwork/applications` | `{job (1–20 000), screeningQuestions?: string[] (≤ 15, cada 1–1000), url?}` — `url` só `https://www.upwork.com/…`, guardado como link e **fora** do `job.md` | `201 ApplicationView` — o registo e a sessão guiada (`job.md` + cópia do `profile.md`) | `AUTH_002` · `COMMON_001` · `UPWORK_002` · `LIBRARY_001` · `TERMINAL_002` · `TERMINAL_005` · `TERMINAL_007` |
+| GET | `/api/upwork/applications/:id` | — | `200 ApplicationView` | `AUTH_002` · `UPWORK_001` |
+| PATCH | `/api/upwork/applications/:id` | `{status?, clientName?, connectsSpent? (0–500), notes? (≤ 8000), url?}` — pelo menos um | `200 ApplicationView` — um `status` diferente junta-se ao `history` | `AUTH_002` · `COMMON_001` · `UPWORK_001` · `UPWORK_004` |
+
+- **`ApplicationView`** = o registo (`{id, title, url, clientName, status, history: {status, at}[], connectsSpent,
+  notes, guidedId, agreement, creationGuidedId, projectPath, archived, createdAt, updatedAt}`) + `guided: GuidedView
+  | null` (`null` depois de arquivada, ou se a sessão foi fechada à mão) + `package` + `packageError` (por agora
+  sempre `null` — spec passo 5). `status`: `draft` · `sent` · `interview` · `offer` · `won` · `lost` · `withdrawn`,
+  livre (qualquer para qualquer).
+- Por fazer (spec passos 5-6): pausar ao marcar `sent`, `/pause`, `/message` (retoma sozinha), `/archive`, `DELETE`,
+  `/project`.
 
 ## Sessões guiadas (`guided/`, `/api/guided`) — 🚧
 

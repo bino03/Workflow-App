@@ -86,6 +86,15 @@ isso há os outros:
 | **Scripts** | `backend/scripts/guided-spike.ts` (o mecanismo, com o `claude` real) · `guided-engine-check.ts` (o motor de produção, com o `claude` real) · `create-app-dry-run.ts` (o `/create` real até à proposta) |
 | **Detalhe** | [[api]] → "Novo projeto", "Sessões guiadas" |
 
+## Upwork — 🚧 (spec [[features/upwork]], [[adr/0022-seccao-upwork]])
+
+| Camada | Ficheiros |
+|---|---|
+| **Backend** | `backend/src/upwork/` — `upwork.routes.ts` · `upworkService.ts` (perfil, registo, a sessão guiada `upwork`) · `upwork.schemas.ts` (o registo, os corpos, `ApplicationView`) · `upworkFiles.ts` (caminhos, modelo do perfil, `job.md`) · o propósito em `terminals/claudeArgs.ts` (`GUIDED_COMMANDS.upwork`) e a regra `WebFetch` no hook de `guided/guidedFiles.ts` |
+| **Dados** | `DATA_DIR/upwork/` ([[database]]) · do outro lado, `WORKFLOW_PATH/docs/skills/skill-upwork-proposal.md` |
+| **Frontend** | por fazer (spec passos 7-9) — só `errors/errorMessages.ts` (`UPWORK_*`) e `types/guided.ts` (`purpose`) |
+| **Detalhe** | [[api]] → "Upwork" |
+
 ## Projetos — 🚧 (spec [[features/separadores-de-projetos]] em curso)
 
 | Camada | Ficheiros |

@@ -58,6 +58,11 @@ export const ERROR_MESSAGES: Record<string, string> = {
   // CREATE
   CREATE_001: 'Já há um projeto a ser criado — acaba-o ou cancela-o primeiro.',
   CREATE_002: 'O projeto ainda não foi criado, ou a pasta dele não existe.',
+  UPWORK_001: 'A candidatura não existe.',
+  UPWORK_002: 'Preenche o teu perfil antes da primeira candidatura.',
+  UPWORK_003: 'Só se cria projeto a partir de uma candidatura ganha.',
+  UPWORK_004: 'A candidatura está arquivada.',
+  UPWORK_005: 'A sessão desta candidatura já não existe (arquivada) — não dá para continuar a conversa.',
 
   DEFAULT: 'Ocorreu um erro. Tenta outra vez.',
 };

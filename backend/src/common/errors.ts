@@ -63,6 +63,12 @@ export const ErrorCode = {
   // CREATE (spec novo-projeto-guiado)
   CREATE_001: { status: 409, message: 'Another project is being created' },
   CREATE_002: { status: 409, message: 'The project was not created, or its folder does not exist' },
+  // UPWORK (ADR 0022)
+  UPWORK_001: { status: 404, message: 'Application not found' },
+  UPWORK_002: { status: 409, message: 'Fill in the freelancer profile before the first application' },
+  UPWORK_003: { status: 409, message: 'A project can only be created from a won application' },
+  UPWORK_004: { status: 409, message: 'The application is archived' },
+  UPWORK_005: { status: 409, message: 'The application has no session any more (archived)' },
 } as const satisfies Record<string, { status: number; message: string }>;
 
 export type ErrorCode = keyof typeof ErrorCode;
