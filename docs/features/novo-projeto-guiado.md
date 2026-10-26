@@ -2,10 +2,10 @@
 
 | | |
 |---|---|
-| **Estado** | 📋 Planeada — **depende** da spec [[importar-para-a-biblioteca]] (passos 1 e 4) |
+| **Estado** | 🚧 Em curso — a dependência ([[importar-para-a-biblioteca]], passos 1 e 4) está feita |
 | **Criada** | 2026-10-23 |
-| **Última sessão** | 2026-10-23 |
-| **Passos** | 0 / 10 concluídos |
+| **Última sessão** | 2026-10-26 |
+| **Passos** | 2 / 10 concluídos |
 
 > Escrita para uma sessão que **não viu a conversa que a originou**. Se algo só faz sentido com contexto
 > externo, falta escrevê-lo.
@@ -365,7 +365,7 @@ Ordem obrigatória. Tiers: `opus` (desenho, não delegar) · `sonnet` (implement
 **Pré-requisito**: passos 1 e 4 da [[importar-para-a-biblioteca]] feitos. **O passo 3 mexe no repo do
 Workflow** — commits lá, separados.
 
-- [ ] **1. Spike — a sessão guiada**
+- [x] **1. Spike — a sessão guiada**
   - Ficheiro: `backend/scripts/guided-spike.ts`, `backend/test/fixtures/guided-transcript.jsonl`
   - Skill: —
   - Tier: `opus` (decide o mecanismo das escolhas e das permissões; os planos B mudam o passo 4)
@@ -379,7 +379,7 @@ Workflow** — commits lá, separados.
     `.jsonl` real com texto, `AskUserQuestion` respondida, permissão e ferramentas fica gravado como fixture
     (sem dados pessoais).
 
-- [ ] **2. ADR 0020 da app**
+- [x] **2. ADR 0020 da app**
   - Ficheiro: `docs/adr/0020-sessoes-guiadas.md`, `docs/adr/README.md`
   - Skill: —
   - Tier: `opus`
@@ -485,11 +485,45 @@ Workflow** — commits lá, separados.
 
 > ⚠️ **Atualizar SEMPRE no fim de cada sessão.** É a secção que torna esta spec retomável.
 
-**Feito:** spec escrita (2026-10-23). Nenhum código, nenhum ADR, nada no Workflow.
+**Feito:**
+- Spec escrita (2026-10-23).
+- **Passo 1 — spike (2026-10-26, `claude` 2.1.310)**, `backend/scripts/guided-spike.ts`, numa pasta temporária com
+  uma skill de teste que faz 2 perguntas, escreve um ficheiro e tenta um Bash. **Tudo confirmado sem plano B:**
+  - (a) `PreToolUse` com matcher `AskUserQuestion` a devolver
+    `{"hookSpecificOutput":{"hookEventName":"PreToolUse","permissionDecision":"allow","updatedInput":{...tool_input, "answers":{"<pergunta>":"<label>"}}}}`
+    → o Claude segue com essas respostas, **sem seletor no ecrã** (multiSelect: labels separados por `, `). O
+    plano B (`deny` com motivo) não foi preciso.
+  - (b) `PermissionRequest` existe: stdin com `tool_name`, `tool_input` e `permission_suggestions`; a saída
+    `{"hookSpecificOutput":{"hookEventName":"PermissionRequest","decision":{"behavior":"allow"}}}` permite, e
+    `{"behavior":"deny","message":"…"}` recusa (o Claude recebe a `message` como resultado e continua). Nenhum
+    `Notification` quando o hook decide. **⚠️ Só dispara com `--permission-mode default`**: o modo por omissão
+    desta conta é `auto` (`permission_mode: "auto"` no stdin), que aprovou o Write e o Bash sozinho — a mesma causa
+    do achado da importação (o `audit-library.mjs` editado). A sessão guiada **tem de** lançar com
+    `--permission-mode default` (argumento fixo).
+  - (c) Um hook com `timeout: 86400` ficou **10 min** bloqueado à espera do `answer.json` e a sessão seguiu
+    normalmente com a resposta. O `86400` foi aceite sem erro de settings; um teto acima de 10 min não foi medido.
+  - (d) `[200~linha um
+linha dois
+…[201~` + `` (Enter 300 ms depois) → **um** `UserPromptSubmit` com
+    as 3 linhas.
+  - (e) Fixture em `backend/test/fixtures/guided-transcript.jsonl` (30 linhas, caminhos e utilizador anonimizados,
+    sem as linhas `api-request*` nem os attachments de contexto). O `.jsonl` tem tudo o que o feed precisa: a
+    pergunta e as respostas em `toolUseResult.{questions,answers}` da linha `user`; **cada decisão de permissão,
+    também as aceites**, num attachment `{"type":"hook_permission_decision","decision":"allow|deny","toolUseID"}`; a
+    recusa também em `toolDenialKind` na linha do `tool_result`; o conteúdo da skill numa linha `user` com
+    `isMeta: true`; e muitos tipos a ignorar (`mode`, `permission-mode`, `file-history-*`, `last-prompt`,
+    `ai-title`, `system`).
+- **Passo 2 — [[../adr/0020-sessoes-guiadas|ADR 0020]]** (2026-10-26), com linha no README. Acrescenta ao desenho: o
+  `--permission-mode default` fixo, `timeout: 86400` nos hooks bloqueantes, e o filtro de caracteres de controlo
+  (todos exceto `
+` e `	`) no texto escrito no PTY — sem ele um `ESC[201~` no texto fechava o paste.
 **Em curso:** nada.
-**Próxima ação concreta:** confirmar que os passos 1 e 4 da [[importar-para-a-biblioteca]] estão feitos
-(§6 dela); depois, passo 1 desta — `backend/scripts/guided-spike.ts`, a partir do spike da importação.
-**Desvios ao plano:** —
+**Próxima ação concreta:** passo 3 — no repo do Workflow: secção "Modo app" do `skill-create.md`, ADR 0011 de lá, allowlist; teste a seco à mão até à Fase 2 e Cancelar. Ler o `CLAUDE.md` do Workflow antes.
+**Desvios ao plano:**
+- Passo 1: o lançamento da §4.2 ganha `--permission-mode default` (sem ele, no modo `auto` desta conta, o
+  `PermissionRequest` nunca chega e não há cartões Permitir/Recusar). Escrever no ADR 0020 e no `claudeArgs` (passo 4).
+- Passo 1: a permissão com decisão no feed vem do attachment `hook_permission_decision` (por `toolUseID`), não de
+  um registo da app — confirma a decisão "a conversa vem do `.jsonl`" da §3.
 **O que uma sessão nova precisa de saber:**
 - A entrevista **não** se escreve na app. Se uma sessão se apanhar a codificar perguntas do `/create` no
   frontend, está a fazer a alternativa rejeitada.
@@ -502,9 +536,9 @@ Workflow** — commits lá, separados.
 
 | Pergunta | Bloqueia | Notas |
 |---|---|---|
-| O `updatedInput` com `answers` responde ao `AskUserQuestion` sem mostrar o seletor? | Passo 4 | Spike (passo 1); plano B (`deny` com a resposta no motivo) já decidido |
-| O hook `PermissionRequest` existe e decide nesta versão do CLI? | Passo 4 | Spike; se não existir, `PreToolUse` sem matcher a perguntar só para o que não está na allowlist (mais frágil: tem de replicar a lógica da allowlist) — decidir no spike e escrever no ADR 0020 |
-| Qual o `timeout` máximo de um hook? | Não — há o escape "Ver terminal" | Spike; afeta só quanto tempo uma pergunta pode ficar à espera |
+| O `updatedInput` com `answers` responde ao `AskUserQuestion` sem mostrar o seletor? | — | ✅ Sim (spike, 2026-10-26) — §6 (a) |
+| O hook `PermissionRequest` existe e decide nesta versão do CLI? | — | ✅ Sim, mas só com `--permission-mode default` (spike, 2026-10-26) — §6 (b) |
+| Qual o `timeout` máximo de um hook? | Não — há o escape "Ver terminal" | ✅ Em parte: `86400` aceite e 10 min provados (spike, 2026-10-26); um teto acima disso não medido |
 | Polling a 1,5 s chega para parecer fluido? | Não | Medir no passo 8; se não, SSE numa 2.ª iteração |
 | Vale um protótipo no Claude Design antes do passo 7? | Não | Perguntar ao dono no início do passo 7 |
 
