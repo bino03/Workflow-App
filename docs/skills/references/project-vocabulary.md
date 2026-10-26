@@ -74,4 +74,6 @@ Conceito (PT, na UI e nos docs) → identificador (EN, no código). ✅ Confirma
 | **Retomar** | Abrir um terminal novo com `--resume <uuid>` | **Religar** — voltar a ligar o browser a um terminal que nunca parou |
 | **Quota** | Uso da subscrição (janela de 5h, tecto semanal) — da conta | Rate limits da API (não se aplicam — não se usa a API) |
 | **Biblioteca** | `library/` do Workflow (só leitura; acrescenta-se por importação) | O vault deste projeto |
+| **Sessão guiada** | `GuidedView` — um terminal escondido conduzido pela app: as perguntas e as permissões do Claude chegam por hooks e respondem-se em cartões; a conversa lê-se do `.jsonl` ([[../../adr/0020-sessoes-guiadas]]). Hoje só para criar projetos (`purpose: 'create'`) | "Modo polido" de um terminal qualquer (2.ª fase, fora) |
+| **Criação** / **Novo projeto** | A sessão guiada que corre o `/create` do Workflow em modo app — do brief ao **Abrir projeto**. Uma de cada vez | Um terminal novo numa pasta (isso é "Novo terminal") |
 | **Importação** | `ImportView` — um pedido para a skill `/import` do Workflow: corre num terminal escondido, acaba numa revisão (aceitar = commit no Workflow, descartar = repor) | Copiar ficheiros para a biblioteca à mão |

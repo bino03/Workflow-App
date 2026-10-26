@@ -269,6 +269,8 @@ O `theme.ts` real tem **mais do que isto**, por duas coisas vistas no browser a 
 - Atalho de teclado: `.kbd` (mono 10.5, `text-3`, borda `border`, raio `sm`).
 - Faixa de estado: `.status-banner.is-work|is-wait|is-run|is-stop|is-err` ([[cards]] → "Faixa de estado").
 - Diff: `.diff-block` com linhas `.diff-line` + `.diff-add|diff-del|diff-hunk` ([[drawers-and-modals]] → "Drawer de revisão com diff").
+- Sessão guiada ([[guided-session]]): `.md` (Markdown das mensagens), `.chat-user` (bolha do dono), `.option-card` +
+  `.option-mark` (`.is-multi`, `.is-selected`), `.feed-line` + `.feed-target`, `.code-line` (um comando ou caminho em mono).
 - Elevação: `.elev-1/2/3` (§6).
 
 Antes de escrever estilo novo, verificar se uma destas resolve.

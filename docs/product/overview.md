@@ -42,10 +42,10 @@ A forma exata da UI (web/desktop) e os ecrãs ficam para desenhar mais tarde.
 
 ## Fora de âmbito (para já)
 
-- **Lançar o `/create` por formulário** — "deve fazer, mas está longe de ser uma prioridade"; fica
-  documentado para o futuro ([[../../notes/ideas|ideas]]).
-- UI que não seja "terminal dentro de uma página" (bolhas de chat, cartões de tool-calls) — exigiria
-  parsing do ecrã da TUI ([[../adr/0002-motor-via-pty-sobre-subscricao]]).
+- ~~Lançar o `/create` por formulário~~ e ~~UI que não seja "terminal dentro de uma página"~~ — saíram daqui
+  a 2026-10-26: o ecrã **Novo projeto** mostra o `/create` real em mensagens e cartões, **sem** ler o ecrã da
+  TUI — por hooks bloqueantes e pelo `.jsonl` ([[../adr/0020-sessoes-guiadas]], [[../features/novo-projeto-guiado]]).
+  Fora continua o "modo polido" para um terminal qualquer.
 - Outros utilizadores / comercialização — reabre a decisão do motor.
 
 ## Como se sabe que funciona

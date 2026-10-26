@@ -32,6 +32,7 @@ Lê **só** o(s) da área que estás a tocar.
 | Uma rota, item de menu, gate por role | [[design/app-shell-and-auth]] |
 | Separadores tipo browser (esconder, não fechar) | [[design/browser-tabs]] |
 | Grelha com estilos/arranjos escolhíveis, lugares fixos e "+" vazio | [[design/grid-styles]] |
+| Uma conversa com o Claude sem terminal (mensagens, cartões de escolha e de permissão, Markdown) | [[design/guided-session]] |
 
 ## Princípios
 

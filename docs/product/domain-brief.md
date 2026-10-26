@@ -61,7 +61,8 @@ Os ecrãs estão em standby (A7). Proposta:
 ## MVP vs. depois
 
 - MVP: `Terminal`, `ClaudeSession` (leitura), `LibraryEntry` (leitura), `UsageSnapshot`.
-- Depois: `Project` (painel de projetos), o que o `/create` por formulário precisar.
+- Depois: `Project` (painel de projetos), o que o `/create` por formulário precisar — afinal nenhuma entidade
+  nova: uma pasta por sessão guiada em `DATA_DIR/guided/` ([[../database]], [[../adr/0020-sessoes-guiadas]]).
 
 ## Pistas técnicas já decididas
 

@@ -16,7 +16,9 @@
 | `/login` | `pages/login/LoginPage.tsx` — pública; com sessão, volta para a rota de onde veio |
 | `/terminals` | `pages/TerminalsPage.tsx` — 🚧 estado vazio até à feature Terminais |
 | `/library` | `pages/LibraryPage.tsx` — 🚧 estado vazio até à feature Biblioteca |
+| `/new-project` | `pages/NewProjectPage.tsx` — criar um projeto pelo `/create` do Workflow ([[../../../features/novo-projeto-guiado]]) |
 | `/_tokens` | `pages/dev/TokenPreviewPage.tsx` — **só em dev** (fora do bundle de produção), pública |
+| `/_guided` | `pages/dev/GuidedPreviewPage.tsx` — **só em dev**, pública: os componentes da sessão guiada com dados falsos |
 | `*` | → `/terminals` |
 
 Esta tabela vive **só** aqui.
@@ -29,7 +31,7 @@ Segmentos novos sempre em inglês.
 
 - **Header de 48 px** (protótipo [[../../../design/handoff-2026-09-27/README|handoff 2026-09-27]]):
   wordmark "WORKFLOW" à esquerda (losango contornado em `accent` + display 13/600, maiúsculas,
-  `letter-spacing: .18em`, link para `/terminals`), `<nav>` logo a seguir (Terminais · Biblioteca;
+  `letter-spacing: .18em`, link para `/terminals`), `<nav>` logo a seguir (Terminais · Biblioteca · Novo projeto;
   ativo com sublinhado interior de 2 px em `accent`), espaço, e à direita a **quota** (quando a
   lateral não a mostra) e o menu de utilizador. Borda de baixo `border`.
 - Se um terminal escondido está à espera, o item "Terminais" da nav ganha um losango `state-wait`.

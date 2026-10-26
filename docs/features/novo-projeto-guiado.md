@@ -5,7 +5,7 @@
 | **Estado** | 🚧 Em curso — a dependência ([[importar-para-a-biblioteca]], passos 1 e 4) está feita |
 | **Criada** | 2026-10-23 |
 | **Última sessão** | 2026-10-26 |
-| **Passos** | 8 / 10 concluídos |
+| **Passos** | 9 / 10 concluídos |
 
 > Escrita para uma sessão que **não viu a conversa que a originou**. Se algo só faz sentido com contexto
 > externo, falta escrevê-lo.
@@ -460,7 +460,7 @@ Workflow** — commits lá, separados.
     com um terminal na pasta; **+ Novo projeto** nas tabs navega para lá; o polling para com o separador
     escondido; `npx tsc -b` e lint limpos.
 
-- [ ] **9. Docs da app**
+- [x] **9. Docs da app**
   - Ficheiro: `docs/product/use-cases.md`, `docs/architecture.md`, `docs/security.md` (hooks bloqueantes,
     texto para o PTY por REST), `docs/database.md` (`DATA_DIR/guided/`), `docs/code-map.md`,
     `docs/skills/references/project-vocabulary.md` ("sessão guiada"),
@@ -574,9 +574,18 @@ Workflow** — commits lá, separados.
   resumo (Markdown, tabela), decisões, próximo passo → Abrir projeto → `/terminals` com um terminal na pasta e o
   separador do projeto ativo; Fechar com confirmação → estado 1; `failed` → erro + Ver terminal + Fechar; Cancelar
   com confirmação (avisa da pasta a meio) → estado 1; consola limpa. Capturas vistas.
+- **Passo 9 — docs** (2026-10-26): `use-cases.md` (o fluxo), `architecture.md` (a peça), `security.md` (o que o browser
+  pode pedir, os argumentos novos, e as três superfícies: a rota que escreve no PTY, os hooks bloqueantes, as duas
+  permissões do `--settings`), `code-map.md` (secção nova), `project-vocabulary.md` ("Sessão guiada", "Criação"),
+  `design/guided-session.md` (novo: conversa, Markdown, cartões de opção, cartão de permissão, caixa de resposta,
+  painéis) + linha no router `frontend-visual-consistency.md` + classes em `tokens-and-colors.md`,
+  `design/app-shell-and-auth.md` (rotas `/new-project`, `/_guided`, item no menu); `overview.md` e `domain-brief.md`
+  deixam de pôr "o `/create` por formulário" e "bolhas de chat" fora de âmbito (contradiziam o ADR 0020).
+  `database.md` e `api.md` já vinham dos passos 4-6.
 **Em curso:** nada.
-**Próxima ação concreta:** passo 9 — docs da app (casos de uso, arquitetura, segurança, base de dados, code-map,
-vocabulário, padrões visuais novos em `docs/skills/references/design/`).
+**Próxima ação concreta:** passo 10 — **com o dono**: uma instância de `scripts/verify/` com `--workflow <real>
+--real-claude`, criar `_teste-create` de ponta a ponta só pela UI, medir o tempo e as idas a **Ver terminal**, e limpar
+(apagar a pasta, `git checkout` da linha em `projects/INDEX.md` do Workflow).
 **Desvios ao plano:**
 - Passo 1: o lançamento da §4.2 ganha `--permission-mode default` (sem ele, no modo `auto` desta conta, o
   `PermissionRequest` nunca chega e não há cartões Permitir/Recusar). Escrever no ADR 0020 e no `claudeArgs` (passo 4).

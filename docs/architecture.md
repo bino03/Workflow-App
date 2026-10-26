@@ -23,6 +23,7 @@ backend, com a subscrição Pro/Max já paga — nunca a API nem a Agent SDK ([[
 | Claude Code (`claude`) | — (binário instalado na máquina) | processo filho, um por terminal | — |
 | Biblioteca do Workflow | `WORKFLOW_PATH/library` | ficheiros Markdown; só leitura. O que entra vem da skill `/import` do Workflow num terminal escondido, e a app só faz o commit (ou repõe) a pedido do dono ([[adr/0019-importar-pelas-skills-do-workflow]]) | — |
 | Sessões gravadas do Claude Code | `~/.claude/projects/` | ficheiros `.jsonl`, só leitura | — |
+| Sessões guiadas (Novo projeto) | `backend/src/guided/` + `creation/` | o `claude` num terminal escondido, ligado à app por hooks **bloqueantes** (`guided-hook.cjs`) que esperam a resposta do dono em `DATA_DIR/guided/<id>/`; a conversa que a UI mostra lê-se do `.jsonl` ([[adr/0020-sessoes-guiadas]]) | — |
 | Bot de Telegram (opcional) | `backend/src/telegram/` | dentro do backend; long polling à Bot API (só saída) | — |
 | App Claude (Remote Control) | — | os terminais lançados com `--remote-control` ligam-se à Anthropic (só saída) e continuam-se no telemóvel ([[adr/0017-bot-telegram-e-remote-control]]) | — |
 

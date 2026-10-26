@@ -49,7 +49,13 @@ Desenhados no `/choose-design` (2026-09-27) — protótipos em
   terminal que não se vê; uma faixa no topo diz em que pé está, **Ver terminal** mostra-o quando a skill precisa
   de uma resposta, e no fim o dono revê a triagem e o diff e **aceita** (commit no Workflow) ou **descarta**
   ([[../features/importar-para-a-biblioteca]], [[../adr/0019-importar-pelas-skills-do-workflow]]).
-- (Futuro) O dono **lança o `/create`** a partir de um formulário.
+- O dono **cria um projeto novo sem terminal**: **Novo projeto** (na navegação, ou **+ Novo projeto** nos
+  separadores dos Terminais), escreve a ideia e carrega **Começar**. O `/create` do Workflow corre numa sessão
+  escondida; o que a descrição não respondeu aparece como mensagem com caixa de resposta, cada escolha como
+  cartões, cada permissão como **Permitir/Recusar**, a proposta formatada, e o trabalho como linhas curtas. Pode
+  fechar o browser e voltar — a criação continua; **Ver terminal** mostra a sessão real a qualquer momento. No fim,
+  o resumo e **Abrir projeto** levam-no aos Terminais com o projeto aberto ([[../features/novo-projeto-guiado]],
+  [[../adr/0020-sessoes-guiadas]]).
 
 ## Relacionado
 

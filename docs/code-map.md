@@ -75,6 +75,17 @@ isso há os outros:
 | **Detalhe** | [[api]] → "Biblioteca" |
 | **Importações** (🚧 [[features/importar-para-a-biblioteca]], [[adr/0019-importar-pelas-skills-do-workflow]]) | `backend/src/imports/` — `imports.routes.ts` (multipart) · `importService.ts` (criar, estado derivado, revelar, cancelar) · `imports.schemas.ts` (o pedido e o contrato `request.json`/`result.json` v1) · `stagingFiles.ts` (ficheiros enviados → `DATA_DIR/imports/<id>/files/`) · `workflowGit.ts` (o `git` do Workflow) · `importFiles.ts` (o `--settings` das importações e o `import-hook.cjs`) · o terminal escondido em `terminals/terminalsService.ts` (`createImport`/`reveal`) e a linha de comando em `terminals/claudeArgs.ts` · a skill do outro lado: `WORKFLOW_PATH/docs/skills/skill-import.md` |
 
+## Novo projeto e sessões guiadas — 🚧 (spec [[features/novo-projeto-guiado]], [[adr/0020-sessoes-guiadas]])
+
+| Camada | Ficheiros |
+|---|---|
+| **Entrada** | rota `/new-project` → `frontend/src/pages/NewProjectPage.tsx` (descrição → sessão → resumo); **+ Novo projeto** em `components/terminals/ProjectTabs.tsx` |
+| **Frontend** | `components/guided/` (genéricos: `GuidedFeed` com as mensagens e linhas, `QuestionCard` + `questionLabels.ts`, `PermissionCard`, `ReplyBox`) · `components/common/Markdown.tsx` (sem HTML) · `hooks/useGuidedSession.ts` (polling 1,5 s, pára com o separador escondido) · `services/{guided,creation}Service.ts` · `types/guided.ts` · `pages/dev/GuidedPreviewPage.tsx` (`/_guided`, só em dev) |
+| **Backend** | `backend/src/guided/` — `guided.routes.ts` · `guidedService.ts` (pasta, estado derivado, respostas, paste, resume) · `guidedFiles.ts` (o `--settings` e o `guided-hook.cjs`) · `transcriptFeed.ts` (`.jsonl` → conversa) · `guided.schemas.ts` · `backend/src/creation/` (`POST /api/creations`, `current`, `open`) · o terminal em `terminals/terminalsService.ts` (`createGuided`/`paste`) e `terminals/paste.ts` · a linha de comando em `terminals/claudeArgs.ts` (`kind: 'guided'`) |
+| **Dados** | `DATA_DIR/guided/<id>/` e `DATA_DIR/guided/by-session/` ([[database]]) · o `.jsonl` da sessão (só leitura) · do outro lado, `WORKFLOW_PATH/docs/skills/skill-create.md` → "Modo app" |
+| **Scripts** | `backend/scripts/guided-spike.ts` (o mecanismo, com o `claude` real) · `guided-engine-check.ts` (o motor de produção, com o `claude` real) · `create-app-dry-run.ts` (o `/create` real até à proposta) |
+| **Detalhe** | [[api]] → "Novo projeto", "Sessões guiadas" |
+
 ## Projetos — 🚧 (spec [[features/separadores-de-projetos]] em curso)
 
 | Camada | Ficheiros |
