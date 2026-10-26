@@ -92,6 +92,11 @@ a partir daquilo tudo. Nunca abri um terminal nem a app tocou na Upwork.
 
 ### Dentro
 - **Página `/upwork`** com entrada **Upwork** na navegação do header (ao lado de Terminais e Biblioteca).
+- **Interface igual à do Novo projeto — nenhum terminal à vista** (pedido explícito do dono). Tudo o que a
+  skill faz chega como mensagens, cartões de escolha, cartões Permitir/Recusar e a caixa de resposta. O terminal
+  da candidatura é `hidden`: não aparece na grelha nem nos separadores dos Terminais, e retomar/pausar acontece
+  por trás, sem nunca o mostrar. O único caminho até ele é o **Ver terminal** de escape, o mesmo do Novo
+  projeto, discreto e só quando a UI não sabe mostrar algo (ex.: um hook expirou).
 - **Perfil de freelancer** — um Markdown em `DATA_DIR/upwork/profile.md` (fora dos dois repositórios: dados
   pessoais), editado num drawer **Perfil** da página, com um modelo inicial (quem és, título, competências,
   projetos de portefólio com links, disponibilidade, tom, o que nunca prometer). Sem perfil, **Nova
@@ -174,6 +179,7 @@ a partir daquilo tudo. Nunca abri um terminal nem a app tocou na Upwork.
 | Terminais ocupados | Ao marcar `Enviada` e em **Pausar**, o terminal fecha (a sessão fica, `stopped`); escrever na conversa retoma-a sozinha | Uma candidatura vive semanas; `MAX_TERMINALS` é 8 | Terminal sempre aberto |
 | Várias candidaturas | Várias abertas ao mesmo tempo; **a gerar** (terminal a correr) até ao limite de terminais | Candidatar-se é em volume; o limite real é o dos terminais | Uma de cada vez, como a criação |
 | Onde vive na UI | Página própria `/upwork` + entrada no header | A lista e o pacote precisam de espaço; é uma secção, não uma ação | Drawer sobre os Terminais |
+| Forma da conversa | **A mesma UI do Novo projeto** (`GuidedFeed`, `QuestionCard`, `PermissionCard`, `ReplyBox`, `Markdown`), sem terminal à vista; **Ver terminal** só como escape | Pedido do dono ("como no de criar projeto, nada de terminais visíveis"); reutiliza componentes já verificados | Terminal embutido ao lado da conversa; abrir a candidatura num separador dos Terminais |
 | Estado da candidatura | Manual e livre, com histórico | O que acontece na Upwork a app não vê | Máquina de estados validada |
 
 **ADRs gerados** (escritos no passo 1, não agora):
@@ -272,7 +278,11 @@ candidatura, se essa criação tem `result.projectPath`, copia-o para `projectPa
   **Conversa** (o `GuidedFeed` + `QuestionCard`/`PermissionCard`/`ReplyBox` que já existem, com **Copiar** nas
   mensagens do Claude) · **Dados** (estado com histórico, cliente, Connects, URL como link externo, notas). No
   cabeçalho: estado, **Pausar**, **Criar projeto** (só `Ganha`), **Abrir projeto** (com `projectPath`),
-  **Arquivar**, Permissões Perguntar/Automático.
+  **Arquivar**, Permissões Perguntar/Automático, e **Ver terminal** discreto (o mesmo escape do Novo projeto).
+- **Igual ao Novo projeto**: o aspeto e o comportamento da conversa copiam `NewProjectPage.tsx` (estado "a
+  trabalhar", linhas de atividade agrupadas, cartões, caixa de resposta só no `waiting-text`). Se for preciso,
+  extrair o miolo da conversa do `NewProjectPage` para um componente partilhado (`components/guided/GuidedConversation.tsx`)
+  em vez de o duplicar. **Nunca** um `TerminalView`/xterm nesta página.
 - **Ficheiros**: `components/upwork/{ApplicationList,ApplicationDetail,PackageCards,ApplicationDataForm,NewApplicationDrawer,ProfileDrawer,CreateProjectModal}.tsx`, `hooks/useUpworkApplications.ts`, `services/upworkService.ts`.
 - **Estado vazio**: sem perfil → "Preenche o teu perfil primeiro" + **Perfil**; sem candidaturas → "Cola um
   anúncio da Upwork para começar" + **+ Nova candidatura**.
@@ -346,7 +356,7 @@ Ordem obrigatória. Tiers: `opus` (desenho, não delegar) · `sonnet` (implement
   - Ficheiros: `frontend/src/components/upwork/{ApplicationDetail,PackageCards,ApplicationDataForm,CreateProjectModal}.tsx`, `frontend/src/components/guided/GuidedFeed.tsx` (botão **Copiar** nas mensagens do Claude), `docs/skills/references/design/guided-session.md` (se o Copiar for padrão novo)
   - Skill: `frontend-design-system`
   - Tier: `sonnet`
-  - Aceite quando: cartões com Copiar (copiam o Markdown cru); os cartões atualizam depois de uma revisão; Conversa reaproveita os componentes guiados; Dados com histórico; Pausar/Arquivar/Criar projeto (só `Ganha`)/Abrir projeto; Criar projeto leva a `/new-project` com a criação a correr.
+  - Aceite quando: nenhum terminal visível em nenhum momento (gerar, pausar, retomar, responder) — o separador Conversa é a mesma UI do Novo projeto; cartões com Copiar (copiam o Markdown cru); os cartões atualizam depois de uma revisão; Conversa reaproveita os componentes guiados; Dados com histórico; Pausar/Arquivar/Criar projeto (só `Ganha`)/Abrir projeto; Criar projeto leva a `/new-project` com a criação a correr.
 
 - [ ] **10. Verificação no browser com a skill simulada + docs**
   - Ficheiros: cenário em scratchpad com `scripts/verify/instance.mjs` (skill simulada que escreve um pacote fixo); docs `api`, `database`, `security`, `architecture`, `code-map`, `product/use-cases`, `product/overview` (Fora de âmbito), `00-INDEX` se preciso
