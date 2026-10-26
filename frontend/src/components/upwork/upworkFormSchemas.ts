@@ -20,6 +20,13 @@ export function screeningLines(text: string) {
     .filter((line) => line.length > 0);
 }
 
+/** Um link do job na Upwork, ou vazio — o mesmo nos dois formulários. */
+const upworkLink = z
+  .string()
+  .trim()
+  .max(2000, 'Até 2000 caracteres.')
+  .refine((value) => value === '' || /^https:\/\/www\.upwork\.com\/\S*$/.test(value), 'Um link https://www.upwork.com/…');
+
 export const newApplicationFormSchema = z.object({
   job: z.string().trim().min(1, 'Cola o anúncio.').max(20_000, 'Até 20 000 caracteres.'),
   screening: z
@@ -29,12 +36,28 @@ export const newApplicationFormSchema = z.object({
       (text) => screeningLines(text).every((line) => line.length <= MAX_QUESTION_CHARS),
       `Cada pergunta até ${MAX_QUESTION_CHARS} caracteres.`,
     ),
-  url: z
-    .string()
-    .trim()
-    .max(2000, 'Até 2000 caracteres.')
-    .refine((value) => value === '' || /^https:\/\/www\.upwork\.com\/\S*$/.test(value), 'Um link https://www.upwork.com/…'),
+  url: upworkLink,
 });
 export type NewApplicationFormValues = z.infer<typeof newApplicationFormSchema>;
 
 export const NEW_APPLICATION_DEFAULTS: NewApplicationFormValues = { job: '', screening: '', url: '' };
+
+/** O nome do cliente vem da Upwork ("Acme Inc.", "J. & Sons (UK)"): lista branca (regra 6), com `&` e parênteses. */
+const CLIENT_NAME = /^[\p{L}\p{N}\s.,'&()-]*$/u;
+
+/** Dados da candidatura (separador Dados): tudo à mão, o estado incluído (ADR 0022 ponto 6). */
+export const applicationDataFormSchema = z.object({
+  status: z.enum(['draft', 'sent', 'interview', 'offer', 'won', 'lost', 'withdrawn']),
+  clientName: z.string().trim().max(200, 'Até 200 caracteres.').regex(CLIENT_NAME, 'Só letras, números, espaços e . , \' & ( ) -'),
+  // O InputNumber vazio devolve null = sem valor.
+  connectsSpent: z.number().int('Um número inteiro.').min(0, 'De 0 a 500.').max(500, 'De 0 a 500.').nullable(),
+  url: upworkLink,
+  // As notas são do dono e mostram-se só como texto: "ofereceram $500" é normal — só o limite do backend.
+  notes: z.string().max(8000, 'Até 8000 caracteres.'),
+});
+export type ApplicationDataFormValues = z.infer<typeof applicationDataFormSchema>;
+
+export const createProjectFormSchema = z.object({
+  agreement: z.string().trim().min(1, 'Cola o que ficou combinado.').max(20_000, 'Até 20 000 caracteres.'),
+});
+export type CreateProjectFormValues = z.infer<typeof createProjectFormSchema>;

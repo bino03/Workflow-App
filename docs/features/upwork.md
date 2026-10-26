@@ -5,7 +5,7 @@
 | **Estado** | 🚧 Em curso |
 | **Criada** | 2026-10-26 |
 | **Última sessão** | 2026-10-26 |
-| **Passos** | 8 / 11 concluídos |
+| **Passos** | 9 / 11 concluídos |
 
 > Escrita para uma sessão que **não viu a conversa que a originou**. Se algo só faz sentido com contexto
 > externo, falta escrevê-lo.
@@ -352,7 +352,7 @@ Ordem obrigatória. Tiers: `opus` (desenho, não delegar) · `sonnet` (implement
   - Tier: `sonnet`
   - Aceite quando: o perfil grava e reabre; Nova candidatura sem perfil leva ao Perfil; com perfil cria e abre a candidatura a gerar.
 
-- [ ] **9. Detalhe: Pacote, Conversa, Dados**
+- [x] **9. Detalhe: Pacote, Conversa, Dados**
   - Ficheiros: `frontend/src/components/upwork/{ApplicationDetail,PackageCards,ApplicationDataForm,CreateProjectModal}.tsx`, `frontend/src/components/guided/GuidedFeed.tsx` (botão **Copiar** nas mensagens do Claude), `docs/skills/references/design/guided-session.md` (se o Copiar for padrão novo)
   - Skill: `frontend-design-system`
   - Tier: `sonnet`
@@ -837,11 +837,29 @@ limpos; Chrome headless numa instância `--git-workflow` 16/16 (ordem do header,
 Nova candidatura desativada sem perfil, cards, seleção, filtro, arquivadas, consola limpa). Os botões **Perfil** e
 , `{}`,
 `<>`) e as perguntas numeradas, sem o URL.
+Passo 9 (2026-10-26) — `ApplicationDetail` (cabeçalho com estado, veredicto, a tag da sessão — "Em pausa" em vez de
+"Parada" —, Permissões, Pausar, Criar projeto só `won` sem projeto, Ver criação, Abrir projeto, Arquivar, Apagar nas
+arquivadas, Ver terminal discreto) com polling de 3 s enquanto a sessão vive; separadores **Pacote** (`PackageCards`; a
+gerar, cartões em espera + a conversa por baixo), **Conversa**, **Dados** (`ApplicationDataForm`, histórico). A
+conversa do `NewProjectPage` foi extraída para `components/guided/GuidedConversation.tsx` (+ `hooks/useGuidedAct.ts`),
+como o §4.4 previa; **Copiar** (`common/CopyButton.tsx`) nos cartões e, com `copyable`, nas mensagens do Claude.
+`CreateProjectModal` → `/new-project`. **Abrir projeto** = um terminal novo e visível na pasta (`createTerminal`).
+**Decisões tomadas sem perguntar** (pequenas, reversíveis): numa sessão pausada a Conversa mostra a caixa de resposta
+(escrever retoma — §2) em vez de um botão Retomar; **Arquivar** só fica ativo em `lost`/`withdrawn` ou `won` com projeto
+(o §2 lista esses estados), com dica; **Apagar** (a rota já existia) só aparece numa arquivada. Chrome headless **34/34**,
+com a skill simulada a escrever os ficheiros dela (`pending-*.json` com um PID vivo, `event.json`, o `.jsonl`, o pacote):
+nenhum terminal na página em nenhum momento, pergunta no Pacote a gerar, cartões + Copiar (a área de transferência tem o
+Markdown cru — o Windows troca \n por \r\n), revisão atualiza o cartão, Pausar → "Em pausa" → escrever acorda (o
+`SessionStart` escrito pelo cenário, como o hook faria), Dados com histórico, Criar projeto → `/new-project` com a criação
+(o Novo projeto refeito sobre o componente partilhado continua a mostrar os controlos), Abrir projeto → terminal na
+pasta, Arquivar (pacote copiado, sessão apagada), arquivada só de leitura, Apagar (confirmado no backend). Consola limpa.
+Um falso positivo apanhado a meio: o primeiro cenário clicava no diálogo errado e dava "Apagar" por bom sem `DELETE` —
+agora cada diálogo é encontrado pelo título e o resultado é confirmado na API.
 **Em curso:** —
-**Próxima ação concreta:** passo 9 — o painel da direita de `UpworkPage.tsx` (hoje um `Empty`) passa a
-`ApplicationDetail` com `selectedId`: separadores Pacote / Conversa / Dados. Ler antes `NewProjectPage.tsx` (a conversa a
-extrair para `components/guided/GuidedConversation.tsx`, §4.4) e `docs/skills/references/design/guided-session.md`.
-Invocar `/frontend-design-system`. A candidatura a gerar precisa de polling (o `package` e o `guided.status` mudam).
+**Próxima ação concreta:** passo 10 — boa parte da verificação já está feita nos cenários dos passos 7-9 (em scratchpad,
+não versionados: `upwork-step7/8/9.mjs`). Falta: decidir se o cenário do passo 9 passa a `scripts/verify/upwork.mjs`
+(versionado, como o `smoke.mjs`), e os docs `api` (já tem a secção), `database`, `security` (o `WebFetch` recusado, nada
+abre a Upwork), `architecture`, `product/use-cases`, `product/overview` (Fora de âmbito), `00-INDEX`.
 **Atenção:** uma sessão sem `.jsonl` (o `claude` nunca gravou nada) não se retoma: o `reopen` arranca uma conversa
 nova com o mesmo UUID e **sem** o prompt da skill. Na prática a skill grava sempre o 1.º turno; fica anotado.
 **Desvios ao plano:** (1) o URL do job **não vai para o `job.md`** — a skill não precisa dele; (2) nas sessões

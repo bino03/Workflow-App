@@ -1,13 +1,18 @@
 import { CheckOutlined, CloseOutlined, ToolOutlined } from '@ant-design/icons';
 import { useEffect, useRef } from 'react';
+import { CopyButton } from '@/components/common/CopyButton';
 import { Markdown } from '@/components/common/Markdown';
 import type { Answers, FeedEntry, Question } from '@/types/guided';
 import { displayLabel } from './questionLabels';
 
-export function AssistantMessage({ markdown }: { markdown: string }) {
+/** `copyable`: um **Copiar** ao lado do nome (a Upwork copia as respostas propostas para a conversa com o cliente). */
+export function AssistantMessage({ markdown, copyable = false }: { markdown: string; copyable?: boolean }) {
   return (
     <div className="flex flex-col gap-1 max-w-full">
-      <span className="kicker">Claude</span>
+      <div className="flex items-center justify-between gap-2 min-h-6">
+        <span className="kicker">Claude</span>
+        {copyable && <CopyButton text={markdown} />}
+      </div>
       <Markdown>{markdown}</Markdown>
     </div>
   );
@@ -56,10 +61,10 @@ export function PermissionLine({ summary, decision }: { summary: string; decisio
   );
 }
 
-function Entry({ entry }: { entry: FeedEntry }) {
+function Entry({ entry, copyable }: { entry: FeedEntry; copyable: boolean }) {
   switch (entry.type) {
     case 'assistant-text':
-      return <AssistantMessage markdown={entry.markdown} />;
+      return <AssistantMessage markdown={entry.markdown} copyable={copyable} />;
     case 'user-text':
       return <UserMessage text={entry.text} />;
     case 'question':
@@ -76,7 +81,7 @@ function Entry({ entry }: { entry: FeedEntry }) {
  * pergunta ainda por responder não aparece aqui — está no cartão por baixo do feed. Desce sozinha quando chega
  * uma entrada nova.
  */
-export function GuidedFeed({ entries }: { entries: FeedEntry[] }) {
+export function GuidedFeed({ entries, copyable = false }: { entries: FeedEntry[]; copyable?: boolean }) {
   const end = useRef<HTMLDivElement>(null);
   const last = entries.at(-1);
   useEffect(() => {
@@ -86,7 +91,7 @@ export function GuidedFeed({ entries }: { entries: FeedEntry[] }) {
   return (
     <div className="flex flex-col gap-4" role="log" aria-label="Conversa" aria-live="polite">
       {entries.map((entry) => (
-        <Entry key={entry.id} entry={entry} />
+        <Entry key={entry.id} entry={entry} copyable={copyable} />
       ))}
       <div ref={end} />
     </div>

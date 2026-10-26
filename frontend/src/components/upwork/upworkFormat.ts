@@ -14,6 +14,16 @@ export const STATUS_TAG: Record<ApplicationStatus, { label: string; className: s
   withdrawn: { label: 'Retirada', className: 'tag-stop' },
 };
 
+const MONTHS = ['jan', 'fev', 'mar', 'abr', 'mai', 'jun', 'jul', 'ago', 'set', 'out', 'nov', 'dez'];
+
+/** "26 out · 21:40", na hora local — o histórico e o "atualizado" do pacote. */
+export function formatDateTime(iso: string) {
+  const date = new Date(iso);
+  if (Number.isNaN(date.getTime())) return iso;
+  const time = date.toLocaleTimeString('pt-PT', { hour: '2-digit', minute: '2-digit' });
+  return `${date.getDate()} ${MONTHS[date.getMonth()]} · ${time}`;
+}
+
 export const VERDICT_TAG: Record<PackageVerdict, { label: string; className: string }> = {
   apply: { label: 'Candidatar', className: 'tag-ok' },
   maybe: { label: 'Talvez', className: 'tag-mid' },

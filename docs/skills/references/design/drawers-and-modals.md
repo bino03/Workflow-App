@@ -11,7 +11,7 @@
 | Tamanho | Largura | Uso |
 |---|---|---|
 | Small | `540` | Formulário simples: Novo terminal, Definições |
-| Medium | `600` | Ver uma entrada: detalhe da Biblioteca (manifesto) |
+| Medium | `600` | Ver uma entrada: detalhe da Biblioteca (manifesto) · formulário com texto longo colado: Perfil e Nova candidatura da Upwork |
 | Large | `900` | Visualização completa (nenhum ainda) |
 
 Valores do handoff de 2026-09-27 (Small e Medium vêm dos protótipos; Large é derivado).
@@ -95,6 +95,11 @@ lista):
   real (o ícone "Retomar" de um projeto já escolhido) — um seletor centrado, sem os campos que esse
   entry point nunca precisava, é menos bloat do que um formulário completo com metade desligada
   ([[../../../features/terminais|terminais]] passo 13, "Substituído 2026-09-29").
+
+**Exemplo: utilitário de um campo** (`components/upwork/CreateProjectModal.tsx`, 2026-10-26, Chrome headless) — colar o
+acordo e criar o projeto: um `TextArea` só, RHF + Zod, `min(640px, 94vw)`, rodapé com o que a ação faz à esquerda
+(caption `text-3`) e Cancelar · **Criar projeto** à direita. Um Modal e não um Drawer: não edita a entidade, dispara uma
+ação com um dado.
 
 **Variante: seletor de um clique** (`components/terminals/PreviewPortsModal.tsx`, 2026-10-23, verificado em Chrome
 headless) — quando a escolha é uma só, curta (2-5 linhas) e fácil de desfazer, cada linha é a ação: sem estado

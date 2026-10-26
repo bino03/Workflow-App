@@ -1,23 +1,21 @@
 import { CodeOutlined } from '@ant-design/icons';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { Button, Input, Select, Spin } from 'antd';
+import { Button, Input, Spin } from 'antd';
 import { isAxiosError } from 'axios';
-import { type ReactNode, useCallback, useEffect, useRef, useState } from 'react';
+import { type ReactNode, useCallback, useEffect, useState } from 'react';
 import { Controller, useForm } from 'react-hook-form';
 import { useNavigate } from 'react-router';
 import { z } from 'zod';
 import { FieldError } from '@/components/common/FieldError';
 import { Markdown } from '@/components/common/Markdown';
-import { GuidedFeed } from '@/components/guided/GuidedFeed';
-import { PermissionCard } from '@/components/guided/PermissionCard';
-import { QuestionCard } from '@/components/guided/QuestionCard';
-import { ReplyBox } from '@/components/guided/ReplyBox';
+import { GuidedConversation, GuidedModeSelect, GuidedStatusTag } from '@/components/guided/GuidedConversation';
 import { ErrorHandler } from '@/errors/errorHandler';
 import { useConfirm } from '@/hooks/useConfirm';
+import { useGuidedAct } from '@/hooks/useGuidedAct';
 import { useGuidedSession } from '@/hooks/useGuidedSession';
 import { getCurrentCreation, openCreatedProject, startCreation } from '@/services/creationService';
-import { answerQuestion, decidePermission, removeGuided, resumeGuided, revealGuided, sendGuidedMessage, setGuidedMode } from '@/services/guidedService';
-import type { Answers, GuidedMode, GuidedStatus, GuidedView } from '@/types/guided';
+import { removeGuided, resumeGuided, revealGuided, sendGuidedMessage } from '@/services/guidedService';
+import type { GuidedView } from '@/types/guided';
 
 /**
  * A descrição é texto livre para o Claude (vai para o brief que o `/create` lê): sem lista branca de caracteres,
@@ -28,17 +26,6 @@ type BriefValues = z.infer<typeof briefSchema>;
 
 /** O terminal escondido arranca com este tamanho; ao ser revelado, a grelha ajusta-o. */
 const RESUME_SIZE = { cols: 120, rows: 40 };
-
-const STATUS_TAG: Record<GuidedStatus, { className: string; icon: string; label: string }> = {
-  working: { className: 'tag-work', icon: 'is-work', label: 'A trabalhar' },
-  question: { className: 'tag-wait', icon: 'is-wait', label: 'À tua espera' },
-  permission: { className: 'tag-wait', icon: 'is-wait', label: 'À tua espera' },
-  'waiting-text': { className: 'tag-wait', icon: 'is-wait', label: 'À tua espera' },
-  'needs-you': { className: 'tag-wait', icon: 'is-wait', label: 'À tua espera' },
-  stopped: { className: 'tag-stop', icon: 'is-stop', label: 'Parada' },
-  done: { className: 'tag-run', icon: 'is-run', label: 'Criado' },
-  failed: { className: 'tag-err', icon: 'is-err', label: 'Falhou' },
-};
 
 function PageHeader({ title, extra }: { title: ReactNode; extra?: ReactNode }) {
   return (
@@ -112,48 +99,16 @@ function StartForm({ onStarted, onConflict }: { onStarted: (view: GuidedView) =>
   );
 }
 
-function lastActivity(view: ReturnType<typeof useGuidedSession>['entries']): string | null {
-  const entry = view.at(-1);
-  return entry?.type === 'activity' ? entry.summary : null;
-}
-
-const MODE_OPTIONS: { value: GuidedMode; label: string; title: string }[] = [
-  { value: 'ask', label: 'Perguntar', title: 'Cada permissão pede-te Permitir ou Recusar' },
-  { value: 'auto', label: 'Automático', title: 'A app aprova as permissões sem perguntar; as escolhas continuam a ser cartões' },
-];
-
 /** Estados 2 e 3 (spec §4.4): a conversa e, no fundo, o que o estado pede; ou o fim. */
 function CreationSession({ id, onGone }: { id: string; onGone: () => void }) {
   const navigate = useNavigate();
   const confirm = useConfirm();
   const { view, entries, gone, refresh } = useGuidedSession(id);
-  const [busy, setBusy] = useState(false);
-  const bottom = useRef<HTMLDivElement>(null);
+  const { busy, act } = useGuidedAct(refresh);
 
   useEffect(() => {
     if (gone) onGone();
   }, [gone, onGone]);
-
-  const lastEntryId = entries.at(-1)?.id;
-  const requestId = view?.pending?.requestId;
-  useEffect(() => {
-    bottom.current?.scrollIntoView({ block: 'end', behavior: 'smooth' });
-  }, [entries.length, lastEntryId, view?.status, requestId]);
-
-  /** Uma ação do dono: desativa tudo enquanto corre, e no fim relê a sessão (os erros vão ao ErrorHandler). */
-  const act = async (action: () => Promise<unknown>): Promise<boolean> => {
-    setBusy(true);
-    try {
-      await action();
-      return true;
-    } catch (e) {
-      ErrorHandler.handle(e);
-      return false;
-    } finally {
-      setBusy(false);
-      refresh();
-    }
-  };
 
   const reveal = () =>
     void act(async () => {
@@ -182,60 +137,13 @@ function CreationSession({ id, onGone }: { id: string; onGone: () => void }) {
     );
   }
 
-  const tag = STATUS_TAG[view.status];
   const finished = view.status === 'done' || view.status === 'failed';
   const title = view.status === 'done' ? (view.result?.projectName ?? 'Projeto criado') : view.status === 'failed' ? 'A criação não terminou' : 'A criar o projeto';
 
-  let bottomPanel: ReactNode = null;
+  let endPanel: ReactNode = null;
   switch (view.status) {
-    case 'working': {
-      const activity = lastActivity(entries);
-      bottomPanel = (
-        <div className="feed-line" role="status">
-          <span className="state-icon is-work" aria-hidden />
-          <span>O Claude está a trabalhar…</span>
-          {activity && <span className="text-text-3">· {activity}</span>}
-        </div>
-      );
-      break;
-    }
-    case 'question':
-      if (view.pending?.type === 'question') {
-        const { requestId: questionId, questions } = view.pending;
-        bottomPanel = (
-          <QuestionCard
-            key={questionId}
-            questions={questions}
-            busy={busy}
-            onSubmit={(answers: Answers) => void act(() => answerQuestion(id, questionId, answers))}
-          />
-        );
-      }
-      break;
-    case 'permission':
-      if (view.pending?.type === 'permission') {
-        const { requestId: permissionId, tool, summary } = view.pending;
-        bottomPanel = (
-          <PermissionCard key={permissionId} tool={tool} summary={summary} busy={busy} onDecide={(decision) => void act(() => decidePermission(id, permissionId, decision))} />
-        );
-      }
-      break;
-    case 'waiting-text':
-      bottomPanel = <ReplyBox busy={busy} onSend={(text) => act(() => sendGuidedMessage(id, text))} />;
-      break;
-    case 'needs-you':
-      bottomPanel = (
-        <div className="status-banner is-wait flex items-center gap-3 px-4 py-2.5" role="status">
-          <span className="state-icon is-wait" aria-hidden />
-          <span className="flex-1 text-[13.5px] leading-[20px]">A sessão precisa de algo que esta vista não mostra.</span>
-          <Button size="small" type="primary" disabled={busy} onClick={reveal}>
-            Ver terminal
-          </Button>
-        </div>
-      );
-      break;
     case 'stopped':
-      bottomPanel = (
+      endPanel = (
         <div className="status-banner is-stop flex items-center gap-3 px-4 py-2.5" role="status">
           <span className="state-icon is-stop" aria-hidden />
           <span className="flex-1 text-[13.5px] leading-[20px]">A sessão parou (o backend reiniciou?). Retomar continua a conversa onde ficou.</span>
@@ -246,7 +154,7 @@ function CreationSession({ id, onGone }: { id: string; onGone: () => void }) {
       );
       break;
     case 'done':
-      bottomPanel = view.result && (
+      endPanel = view.result && (
         <section className="card p-5 flex flex-col gap-4" aria-label="Projeto criado">
           <div className="flex items-center gap-2">
             <span className="state-icon is-run" aria-hidden />
@@ -290,7 +198,7 @@ function CreationSession({ id, onGone }: { id: string; onGone: () => void }) {
       );
       break;
     case 'failed':
-      bottomPanel = (
+      endPanel = (
         <section className="status-banner is-err p-4 flex flex-col gap-3" aria-label="A criação falhou">
           <div className="flex items-center gap-2">
             <span className="state-icon is-err" aria-hidden />
@@ -316,24 +224,8 @@ function CreationSession({ id, onGone }: { id: string; onGone: () => void }) {
         title={title}
         extra={
           <>
-            <span className={tag.className} data-status={view.status}>
-              <span className={`state-icon ${tag.icon}`} aria-hidden />
-              {tag.label}
-            </span>
-            {!finished && (
-              <label className="flex items-center gap-1.5 text-[12.5px] text-text-3">
-                Permissões
-                <Select<GuidedMode>
-                  size="small"
-                  aria-label="Permissões"
-                  className="w-[120px]"
-                  value={view.mode}
-                  options={MODE_OPTIONS}
-                  disabled={busy}
-                  onChange={(mode) => void act(() => setGuidedMode(id, mode))}
-                />
-              </label>
-            )}
+            <GuidedStatusTag status={view.status} />
+            {!finished && <GuidedModeSelect view={view} busy={busy} act={act} />}
             <Button size="small" icon={<CodeOutlined />} disabled={busy} onClick={reveal}>
               Ver terminal
             </Button>
@@ -345,9 +237,15 @@ function CreationSession({ id, onGone }: { id: string; onGone: () => void }) {
           </>
         }
       />
-      <GuidedFeed entries={entries} />
-      {bottomPanel}
-      <div ref={bottom} />
+      <GuidedConversation
+        view={view}
+        entries={entries}
+        busy={busy}
+        act={act}
+        onReveal={reveal}
+        onSend={(text) => act(() => sendGuidedMessage(id, text))}
+        endPanel={endPanel}
+      />
     </div>
   );
 }

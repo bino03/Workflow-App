@@ -89,6 +89,30 @@ caracteres de controlo. Limpa-se só se o envio correu bem.
 | Terminada | `.card p-5`: ponto `is-run` + "Projeto criado", a pasta num `.code-line`, o resumo em Markdown, "Decisões em aberto" (`kicker` + lista), o próximo passo em mono; **Fechar** e **Abrir projeto** (`primary`) |
 | Falhou | Faixa `is-err` em bloco: o erro, o resumo se houver, **Ver terminal** e **Fechar** (`primary`) |
 
+## Partilhado: `GuidedConversation` (2026-10-26)
+
+O feed + o painel do fundo de `working`/`question`/`permission`/`waiting-text`/`needs-you` vivem em
+`components/guided/GuidedConversation.tsx`, usado pelo Novo projeto e pela Upwork. O que depende do propósito entra por
+props: `onSend` (a rota de envio), `endPanel` (o painel de `stopped`/`done`/`failed`) e `copyable`. A tag de estado
+(`GuidedStatusTag`, com `labels` para renomear um estado) e o seletor de permissões (`GuidedModeSelect`) também.
+Ações do dono: `hooks/useGuidedAct.ts`.
+
+- **Copiar** (`components/common/CopyButton.tsx`): `Button size="small" type="text"` com `CopyOutlined`; depois de copiar
+  passa 1,5 s a "Copiado" com `CheckOutlined` em `success` — a confirmação é o próprio botão, sem notificação. Copia o
+  Markdown cru. Nas mensagens do Claude (`copyable`) fica à direita do kicker "Claude".
+- **Sessão em pausa que acorda ao escrever** (Upwork, ADR 0022): `stopped` não mostra **Retomar** mas a faixa `is-stop`
+  ("Em pausa… Escrever aqui retoma a conversa") **e** a `ReplyBox`; enquanto acorda, a faixa troca para o arco
+  `is-work` + "A retomar a sessão…". A tag diz "Em pausa", não "Parada". Sem Ver terminal nem Pausar enquanto pausada.
+
+## Pacote da Upwork (`components/upwork/PackageCards.tsx`, 2026-10-26)
+
+Um `.card p-4` por parte, pela ordem de uso (Análise · Carta · Respostas de triagem · Plano técnico · Perguntas ao
+cliente): título 14/600, a tag do veredicto só na Análise, "para o cliente"/"para ti" em `text-3` 12, **Copiar** à
+direita, e o Markdown. Por cima, uma linha `text-3` com a hora da última revisão e a língua. **A gerar**: os mesmos
+cinco títulos em cartões baixos a .6 de opacidade com o arco `is-work` e "em espera", e a conversa logo por baixo —
+uma pergunta da skill tem de se ver sem mudar de separador. Com o pacote pronto e o Claude à espera (pergunta,
+permissão), uma faixa `is-wait` por cima dos cartões leva à Conversa.
+
 ## Drift encontrado — não repetir
 
 _Nenhum ainda._

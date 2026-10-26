@@ -1,6 +1,7 @@
-import { useMemo, useState } from 'react';
+import { useCallback, useMemo, useState } from 'react';
 import { Alert, Button, Empty, Select, Spin } from 'antd';
 import { PlusOutlined, UserOutlined } from '@ant-design/icons';
+import { ApplicationDetail } from '@/components/upwork/ApplicationDetail';
 import { ApplicationList } from '@/components/upwork/ApplicationList';
 import { NewApplicationDrawer } from '@/components/upwork/NewApplicationDrawer';
 import { ProfileDrawer } from '@/components/upwork/ProfileDrawer';
@@ -45,6 +46,16 @@ export function UpworkPage() {
     setStatus(null);
     setSelectedId(null);
   };
+
+  const { remove } = upwork;
+  // Apagada, arquivada (sai da lista aberta) ou já não existe: a lista perde-a e o painel fecha.
+  const onRemoved = useCallback(
+    (id: string) => {
+      remove(id);
+      setSelectedId((current) => (current === id ? null : current));
+    },
+    [remove],
+  );
 
   const renderList = () => {
     if (upwork.error) {
@@ -131,12 +142,12 @@ export function UpworkPage() {
           )}
         </section>
 
-        <section className="flex-1 min-w-0 border-l border-border pl-6" aria-label="Candidatura aberta">
-          <Empty
-            className="mt-16"
-            image={Empty.PRESENTED_IMAGE_SIMPLE}
-            description={selectedId ? 'A candidatura abre aqui.' : 'Escolhe uma candidatura na lista.'}
-          />
+        <section className="flex-1 min-w-0 min-h-0 overflow-auto border-l border-border pl-6 pr-1" aria-label="Candidatura aberta">
+          {selectedId ? (
+            <ApplicationDetail key={selectedId} id={selectedId} onChanged={upwork.replace} onRemoved={onRemoved} />
+          ) : (
+            <Empty className="mt-16" image={Empty.PRESENTED_IMAGE_SIMPLE} description="Escolhe uma candidatura na lista." />
+          )}
         </section>
       </div>
 
