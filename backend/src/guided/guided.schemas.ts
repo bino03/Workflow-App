@@ -60,7 +60,8 @@ export const createResultSchema = z.object({
   summary: z.string().max(20_000).default(''),
   openDecisions: z.array(z.string().max(2000)).max(100).default([]),
   nextStep: z.string().max(500).nullable().default(null),
-  error: z.string().max(2000).optional(),
+  // `null` too: the skill writes it on success ("error": null), and that is not an invalid result.
+  error: z.string().max(2000).nullable().default(null),
 });
 
 // Request bodies.

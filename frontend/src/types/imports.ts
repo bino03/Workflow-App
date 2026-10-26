@@ -43,7 +43,7 @@ export type ImportResult = {
   summary: string;
   triage: { criterion: string; ok: boolean; note: string }[];
   commitMessage: string;
-  error?: string;
+  error: string | null;
 };
 
 export type ImportView = {

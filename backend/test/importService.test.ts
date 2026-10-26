@@ -98,6 +98,7 @@ function writeResult(id: string, overrides: Partial<ImportResult> = {}) {
     summary: 'Entrou.',
     triage: [{ criterion: 'Distinto', ok: true, note: '' }],
     commitMessage: 'feat: acrescenta o design teste à biblioteca',
+    error: null,
     ...overrides,
   };
   writeFileSync(join(dataDir, IMPORT_FILES.imports, id, 'result.json'), JSON.stringify(result));

@@ -100,7 +100,8 @@ export const importResultSchema = z.object({
   summary: z.string().max(20_000),
   triage: z.array(z.object({ criterion: z.string().max(200), ok: z.boolean(), note: z.string().max(2000) })).max(30),
   commitMessage: z.string().max(300),
-  error: z.string().max(2000).optional(),
+  // `null` too: the skill writes it on success ("error": null), and that is not an invalid result.
+  error: z.string().max(2000).nullable().default(null),
 });
 export type ImportResult = z.infer<typeof importResultSchema>;
 

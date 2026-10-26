@@ -34,7 +34,7 @@ export type CreateResult = {
   summary: string;
   openDecisions: string[];
   nextStep: string | null;
-  error?: string;
+  error: string | null;
 };
 
 export type GuidedView = {

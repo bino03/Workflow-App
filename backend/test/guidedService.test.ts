@@ -128,7 +128,7 @@ describe('GuidedService', () => {
 
   it('a result decides first; an invalid one is failed with the field; a stopped terminal is stopped', async () => {
     const { id, terminalId } = await started();
-    writeFileSync(join(dirOf(id), 'result.json'), JSON.stringify({ version: 1, status: 'done', projectPath: 'C:\\p\\Ginasio', projectName: 'Ginasio', summary: '# ok', openDecisions: ['x'], nextStep: '/implement-todo' }));
+    writeFileSync(join(dirOf(id), 'result.json'), JSON.stringify({ version: 1, status: 'done', projectPath: 'C:\\p\\Ginasio', projectName: 'Ginasio', summary: '# ok', openDecisions: ['x'], nextStep: '/implement-todo', error: null }));
     expect(service.get(id)).toMatchObject({ status: 'done', result: { projectName: 'Ginasio', openDecisions: ['x'] }, error: null });
     writeFileSync(join(dirOf(id), 'result.json'), JSON.stringify({ version: 1, status: 'failed', summary: '', error: 'Cancelado pelo utilizador' }));
     expect(service.get(id)).toMatchObject({ status: 'failed', error: 'Cancelado pelo utilizador', result: { projectPath: null } });
