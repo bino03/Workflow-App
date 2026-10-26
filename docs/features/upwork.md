@@ -5,7 +5,7 @@
 | **Estado** | 🚧 Em curso |
 | **Criada** | 2026-10-26 |
 | **Última sessão** | 2026-10-26 |
-| **Passos** | 5 / 11 concluídos |
+| **Passos** | 6 / 11 concluídos |
 
 > Escrita para uma sessão que **não viu a conversa que a originou**. Se algo só faz sentido com contexto
 > externo, falta escrevê-lo.
@@ -334,7 +334,7 @@ Ordem obrigatória. Tiers: `opus` (desenho, não delegar) · `sonnet` (implement
   - Tier: `sonnet`
   - Aceite quando: `package` lido do `package.json` (inválido → `packageError`; nomes de ficheiro fora da pasta recusados); `PATCH status: 'sent'` pausa; `/message` numa sessão `stopped` retoma e escreve depois do `waiting-text`; `/archive` copia o pacote para `applications/<id>/package/` e apaga a sessão guiada; `DELETE` apaga tudo.
 
-- [ ] **6. Criar projeto a partir de uma candidatura ganha**
+- [x] **6. Criar projeto a partir de uma candidatura ganha**
   - Ficheiros: `backend/src/upwork/upworkService.ts`, `backend/src/creation/creationService.ts` (aceitar uma descrição interna até 60 000), `backend/test/upwork.routes.test.ts`
   - Skill: nenhuma de backend no projeto — seguir [[../backend-conventions]]
   - Tier: `sonnet`
@@ -399,10 +399,18 @@ propósitos sem fim — a `ReplyBox` genérica também serve): `wake` = `reopen`
 evento `SessionStart` (hook novo nas sessões guiadas) e por 1 s de ecrã quieto (`TerminalsService.waitForQuiet`),
 só então `Stop` + paste. Medido antes com o `claude` real (§7) e provado depois pelo caminho de produção (3/3).
 Testes: +4 `guidedService`, +1 `terminalsService`, +6 `upwork.routes`, hook `SessionStart`.
+Passo 6 (2026-10-26) — `POST …/:id/project`: só `won`, grava o acordo, `projectBrief` (anúncio + carta + plano +
+acordo; acima de 60 000 a carta e o plano cedem, o anúncio e o acordo ficam inteiros), `CreationService.create` por
+dentro (`MAX_BRIEF_CHARS` = 60 000 no serviço; os 8000 continuam só no corpo HTTP); `projectPath` copiado do
+`result.json` da criação ao ler a candidatura. **Lacuna encontrada e fechada**: o anúncio só vivia no `job.md` da
+sessão (apagada ao arquivar) — o backend guarda agora uma cópia `applications/<id>/job.md`. Testes: +4 rotas,
+`upworkFiles.test.ts` (corte do brief); HTTP numa instância de verificação (`UPWORK_003` → 201 → brief pela ordem →
+`CREATE_001`). Backend da spec completo.
 **Em curso:** —
-**Próxima ação concreta:** passo 6 — `POST /api/upwork/applications/:id/project`: só `won` (`UPWORK_003`), grava
-`agreement`, compõe o brief (anúncio + `cover-letter.md` + `plan.md` + acordo) e chama o `CreationService` por dentro
-com limite 60 000; `projectPath` copiado do `result.json` da criação quando existe.
+**Próxima ação concreta:** passo 7 — frontend: `types/upwork.ts`, `services/upworkService.ts`,
+`hooks/useUpworkApplications.ts`, `pages/UpworkPage.tsx`, `components/upwork/ApplicationList.tsx`, rota em `main.tsx`,
+entrada **Upwork** à esquerda de "Novo projeto" no header (`AppLayout.tsx`, `NEW_PROJECT_ITEM`). Invocar
+`/frontend-design-system` e `/frontend-error-handling` antes; type-check com `npx tsc -b`.
 **Atenção:** uma sessão sem `.jsonl` (o `claude` nunca gravou nada) não se retoma: o `reopen` arranca uma conversa
 nova com o mesmo UUID e **sem** o prompt da skill. Na prática a skill grava sempre o 1.º turno; fica anotado.
 **Desvios ao plano:** (1) o URL do job **não vai para o `job.md`** — a skill não precisa dele; (2) nas sessões

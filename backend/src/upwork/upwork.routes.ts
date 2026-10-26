@@ -1,7 +1,7 @@
 import type { FastifyInstance } from 'fastify';
 import { parseWith } from '../common/validation.js';
 import { messageBodySchema } from '../guided/guided.schemas.js';
-import { createApplicationSchema, listQuerySchema, patchApplicationSchema, profileBodySchema } from './upwork.schemas.js';
+import { createApplicationSchema, listQuerySchema, patchApplicationSchema, profileBodySchema, projectBodySchema } from './upwork.schemas.js';
 import type { UpworkService } from './upworkService.js';
 
 export type UpworkRoutesOptions = {
@@ -43,6 +43,13 @@ export async function upworkRoutes(app: FastifyInstance, { upworkService }: Upwo
   });
 
   app.post<IdParams>('/api/upwork/applications/:id/archive', async (request) => upworkService.archive(request.params.id));
+
+  // Criar projeto: a creation of its own, in Novo projeto (spec step 6). The agreement is the owner's text: never logged.
+  app.post<IdParams>('/api/upwork/applications/:id/project', async (request, reply) => {
+    const creation = await upworkService.project(request.params.id, parseWith(projectBodySchema, request.body).agreement);
+    request.log.info({ applicationId: request.params.id, guidedId: creation.id }, 'upwork application became a creation');
+    return reply.status(201).send(creation);
+  });
 
   app.delete<IdParams>('/api/upwork/applications/:id', async (request, reply) => {
     await upworkService.remove(request.params.id);

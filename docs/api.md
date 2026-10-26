@@ -269,6 +269,7 @@ A conversa (perguntas, permissões, feed, modo) passa por `/api/guided`. **Nenhu
 | POST | `/api/upwork/applications/:id/pause` | — | `200 ApplicationView` — fecha o terminal, a sessão fica (`stopped`); já parada não é erro | `AUTH_002` · `UPWORK_001` · `UPWORK_004` · `UPWORK_005` (sem sessão) |
 | POST | `/api/upwork/applications/:id/message` | `{text}` (1–8000) | `204` — numa sessão `stopped` **acorda-a** primeiro (`--resume`, espera pelo `SessionStart` e por 1 s de ecrã quieto — 3–6 s) e só depois cola; senão igual a `/api/guided/:id/message` | `AUTH_002` · `COMMON_001` · `UPWORK_001` · `UPWORK_005` · `GUIDED_004` (a trabalhar, ou não ficou pronta em 60 s — tentar de novo) · `TERMINAL_*` |
 | POST | `/api/upwork/applications/:id/archive` | — | `200 ApplicationView` — copia o pacote para `applications/<id>/package/`, fecha e apaga a sessão (`guidedId: null`), sai da lista por omissão | `AUTH_002` · `UPWORK_001` · `UPWORK_004` |
+| POST | `/api/upwork/applications/:id/project` | `{agreement}` (1–20 000) — o acordo final colado pelo dono | `201 GuidedView` (a **criação**, no ecrã Novo projeto) — só com `status: 'won'`; grava `agreement` e `creationGuidedId`; o brief do `/create` é anúncio + carta enviada + plano técnico + acordo, por esta ordem (≤ 60 000: a carta e o plano cedem, o acordo nunca) | `AUTH_002` · `COMMON_001` · `UPWORK_001` · `UPWORK_003` · `UPWORK_004` · `CREATE_001` · `LIBRARY_001` · `TERMINAL_*` |
 | DELETE | `/api/upwork/applications/:id` | — | `204` — o registo, o pacote arquivado e a sessão | `AUTH_002` · `UPWORK_001` |
 
 - **`ApplicationView`** = o registo (`{id, title, url, clientName, status, history: {status, at}[], connectsSpent,
@@ -280,7 +281,9 @@ A conversa (perguntas, permissões, feed, modo) passa por `/api/guided`. **Nenhu
   plan, clientQuestions}` — cada parte o Markdown do ficheiro (≤ 50 000; em falta → `null`), lido do `package.json` da
   sessão (ou da cópia arquivada). Um `package.json` inválido, ou que nomeie um ficheiro com pasta → `package: null` e
   `packageError` com o campo.
-- Por fazer (spec passo 6): `/project`.
+- **`projectPath`**: quando a criação começada por `/project` acaba com `result.projectPath`, a candidatura copia-o ao
+  ser lida (GET de uma ou da lista) — antes de o dono fechar a criação. Fechada antes de alguém ler a candidatura, o
+  caminho perde-se (a UI lê-a enquanto a criação corre).
 
 ## Sessões guiadas (`guided/`, `/api/guided`) — 🚧
 

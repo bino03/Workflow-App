@@ -300,6 +300,77 @@ describe('/api/upwork', () => {
     });
   });
 
+  describe('Criar projeto (spec step 6)', () => {
+    const won = async (job = '# Dashboard para a Acme\n\nUm painel de entregas.') => {
+      await putProfile('# Quem sou');
+      const view = (await apply({ job })).json() as View;
+      const dir = join(dataDir, GUIDED_FILES.dir, view.guidedId);
+      writeFileSync(join(dir, 'cover-letter.md'), 'CARTA: Your dispatchers need one screen.');
+      writeFileSync(join(dir, 'plan.md'), 'PLANO: React + Ant Design, ~5 dias.');
+      writeFileSync(
+        join(dir, 'package.json'),
+        JSON.stringify({ version: 1, title: 'Acme dashboard', language: 'en', verdict: 'apply', updatedAt: new Date().toISOString(), files: { analysis: 'analysis.md', coverLetter: 'cover-letter.md', screening: 'screening.md', plan: 'plan.md', clientQuestions: 'client-questions.md' } }),
+      );
+      return view;
+    };
+    const project = async (id: string, agreement: unknown) => {
+      const response = await inject('POST', `/api/upwork/applications/${id}/project`, { agreement });
+      if (response.statusCode === 201) opened.push((response.json() as { id: string }).id);
+      return response;
+    };
+
+    it('only a won application → UPWORK_003; an empty agreement → 400', async () => {
+      const view = await won();
+      expect((await project(view.id, 'Acordo')).json()).toMatchObject({ errorCode: 'UPWORK_003' });
+      await inject('PATCH', `/api/upwork/applications/${view.id}`, { status: 'won' });
+      for (const agreement of ['', '   ', 'x'.repeat(20_001)]) expect((await project(view.id, agreement)).statusCode).toBe(400);
+    });
+
+    it('won: a creation of its own starts in Novo projeto, from the brief — post, letter, plan, agreement, in this order', async () => {
+      const view = await won();
+      await inject('PATCH', `/api/upwork/applications/${view.id}`, { status: 'won' });
+      const response = await project(view.id, 'ACORDO: 3 milestones, entrega a 15 de novembro.');
+      expect(response.statusCode).toBe(201);
+      const creation = response.json() as { id: string; purpose: string };
+      expect(creation.purpose).toBe('create');
+      expect((await inject('GET', '/api/creations/current')).json()).toMatchObject({ id: creation.id });
+
+      const brief = readFileSync(join(dataDir, GUIDED_FILES.dir, creation.id, 'brief.md'), 'utf8');
+      const order = ['Um painel de entregas.', 'CARTA:', 'PLANO:', 'ACORDO:'].map((part) => brief.indexOf(part));
+      expect(order.every((at) => at >= 0)).toBe(true);
+      expect([...order].sort((a, b) => a - b)).toEqual(order);
+      expect(brief).toContain('Acme dashboard');
+      expect(claude.launches.at(-1)!.args!.at(-1)).toBe(`/create --app ${join(dataDir, GUIDED_FILES.dir, creation.id, 'brief.md')}`);
+
+      const read = (await inject('GET', `/api/upwork/applications/${view.id}`)).json();
+      expect(read).toMatchObject({ agreement: 'ACORDO: 3 milestones, entrega a 15 de novembro.', creationGuidedId: creation.id, projectPath: null });
+      // Another creation open → CREATE_001, and the application is left as it was.
+      expect((await project(view.id, 'outro')).json()).toMatchObject({ errorCode: 'CREATE_001' });
+      expect((await inject('GET', `/api/upwork/applications/${view.id}`)).json()).toMatchObject({ creationGuidedId: creation.id });
+    });
+
+    it('when the creation ends with a project, the application takes its path — and keeps it after the creation is closed', async () => {
+      const view = await won();
+      await inject('PATCH', `/api/upwork/applications/${view.id}`, { status: 'won' });
+      const creation = (await project(view.id, 'Acordo')).json() as { id: string };
+      const projectPath = join(root, 'projetos', 'Acme');
+      writeFileSync(join(dataDir, GUIDED_FILES.dir, creation.id, 'result.json'), JSON.stringify({ version: 1, status: 'done', projectPath, projectName: 'Acme', summary: '' }));
+      expect((await inject('GET', `/api/upwork/applications/${view.id}`)).json()).toMatchObject({ projectPath });
+      await app.inject({ method: 'DELETE', url: `/api/guided/${creation.id}`, headers: { cookie } });
+      opened.splice(opened.indexOf(creation.id), 1);
+      expect(((await inject('GET', '/api/upwork/applications')).json() as { id: string; projectPath: string }[]).find((v) => v.id === view.id)).toMatchObject({ projectPath });
+    });
+
+    it('the post survives archiving: a won, archived application cannot start a project (UPWORK_004), and job.md stays with the record', async () => {
+      const view = await won('Anúncio que fica');
+      await inject('PATCH', `/api/upwork/applications/${view.id}`, { status: 'won' });
+      await inject('POST', `/api/upwork/applications/${view.id}/archive`);
+      opened.splice(opened.indexOf(view.guidedId), 1);
+      expect(readFileSync(join(dataDir, UPWORK_FILES.dir, UPWORK_FILES.applications, view.id, UPWORK_FILES.job), 'utf8')).toBe('Anúncio que fica\n');
+      expect((await project(view.id, 'Acordo')).json()).toMatchObject({ errorCode: 'UPWORK_004' });
+    });
+  });
+
   it('a session removed by hand leaves the application readable, with guided null', async () => {
     await putProfile('# Quem sou');
     const view = (await apply({ job: 'Job' })).json() as View;

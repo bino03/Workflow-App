@@ -60,6 +60,9 @@ export const patchApplicationSchema = z
   .partial()
   .refine((body) => Object.keys(body).length > 0, 'nada para alterar');
 
+/** Criar projeto: what was finally agreed with the client (offer, scope, milestones, relevant messages). */
+export const projectBodySchema = z.object({ agreement: z.string().trim().min(1).max(20_000) });
+
 /** `?archived=true` lists the archived ones; anything else (or nothing) the open ones. */
 export const listQuerySchema = z.object({ archived: z.enum(['true', 'false']).default('false').transform((v) => v === 'true') });
 

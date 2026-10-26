@@ -9,6 +9,12 @@ import type { CreateCreation } from './creation.schemas.js';
 /** The size a new visible terminal starts with; the grid resizes it when it attaches. */
 const OPEN_SIZE = { cols: 120, rows: 40 };
 
+/**
+ * The brief a caller inside the backend may hand over (a won Upwork application: post + letter + plan + agreement,
+ * spec upwork §4.2). The 8000 of POST /api/creations is the HTTP body's; the brief file itself stops here.
+ */
+export const MAX_BRIEF_CHARS = 60_000;
+
 export type CreationServiceDeps = {
   guided: Pick<GuidedService, 'start' | 'list' | 'get'>;
   terminals: Pick<TerminalsService, 'create'>;
@@ -28,6 +34,7 @@ export class CreationService {
 
   /** One creation at a time: another open one (running or finished but not closed) → CREATE_001. */
   async create({ description }: CreateCreation): Promise<GuidedView> {
+    if (description.length > MAX_BRIEF_CHARS) throw new Error(`brief longer than ${MAX_BRIEF_CHARS} characters`);
     // Synchronous check-and-set: two requests at once must not both pass "no open creation".
     if (this.starting || this.deps.guided.list('create').length > 0) throw new AppError('CREATE_001');
     this.starting = true;

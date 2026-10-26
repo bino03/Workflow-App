@@ -2,13 +2,16 @@ import { join } from 'node:path';
 
 /**
  * Where the Upwork section keeps its data (ADR 0022): `DATA_DIR/upwork/`, outside both repositories — personal data.
- * `profile.md` is the owner's freelancer profile; `applications/<id>/application.json` the record (backend only).
+ * `profile.md` is the owner's freelancer profile; `applications/<id>/application.json` the record and `job.md` the post
+ * (backend only).
  */
 export const UPWORK_FILES = {
   dir: 'upwork',
   profile: 'profile.md',
   applications: 'applications',
   record: 'application.json',
+  /** The post as pasted, kept with the record: the session's job.md goes when it is archived. */
+  job: 'job.md',
 } as const;
 
 export function upworkPaths(dataDir: string) {
@@ -20,6 +23,7 @@ export function upworkPaths(dataDir: string) {
     applications,
     folderOf: (id: string) => join(applications, id),
     recordOf: (id: string) => join(applications, id, UPWORK_FILES.record),
+    jobOf: (id: string) => join(applications, id, UPWORK_FILES.job),
   };
 }
 
@@ -64,3 +68,48 @@ export function titleFromJob(job: string): string {
   const line = job.split(/\r?\n/).map((l) => l.replace(/^#+\s*/, '').trim()).find((l) => l.length > 0) ?? 'Candidatura';
   return line.length > 120 ? `${line.slice(0, 119)}…` : line;
 }
+
+export type ProjectBriefParts = { title: string; job: string; coverLetter: string | null; plan: string | null; agreement: string };
+
+/**
+ * The brief `/create` starts from when an application is won (spec upwork §4.2): the post, the letter that was sent,
+ * the technical plan and the agreement — in this order. Over `maxChars`, the letter and the plan give way (the post and
+ * the agreement are capped at 20 000 each, and the agreement is what was really agreed), so a long application never
+ * fails to become a project.
+ */
+export function projectBrief(parts: ProjectBriefParts, maxChars: number): string {
+  const whole = composeBrief(parts);
+  if (whole.length <= maxChars) return whole;
+  const note = '\n\n(… cortado: o brief passava do limite.)';
+  const fixed = composeBrief({ ...parts, coverLetter: '', plan: '' }).length + 2 * note.length;
+  const each = Math.max(0, Math.floor((maxChars - fixed) / 2));
+  const cut = (text: string | null) => (text && text.trim().length > each ? text.trim().slice(0, each) + note : text);
+  return composeBrief({ ...parts, coverLetter: cut(parts.coverLetter), plan: cut(parts.plan) }).slice(0, maxChars);
+}
+
+function composeBrief({ title, job, coverLetter, plan, agreement }: ProjectBriefParts): string {
+  return [
+    '# Projeto ganho na Upwork',
+    '',
+    `Este projeto vem de uma candidatura ganha na Upwork: **${title}**. O acordo final (no fim) manda sobre o anúncio`,
+    'quando os dois divergem — é o âmbito combinado com o cliente.',
+    '',
+    '## Anúncio original',
+    '',
+    job.trim(),
+    '',
+    '## Carta enviada',
+    '',
+    coverLetter?.trim() || '(sem carta guardada)',
+    '',
+    '## Plano técnico da candidatura',
+    '',
+    plan?.trim() || '(sem plano guardado)',
+    '',
+    '## Acordo final',
+    '',
+    agreement.trim(),
+    '',
+  ].join('\n');
+}
+

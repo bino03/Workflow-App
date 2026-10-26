@@ -180,11 +180,10 @@ export async function buildApp({
   });
   const guidedService = new GuidedService({ dataDir: config.dataDir, terminals: terminalsService, sessions: sessionsReader });
   await app.register(guidedRoutes, { guidedService });
-  await app.register(creationRoutes, {
-    creationService: new CreationService({ guided: guidedService, terminals: terminalsService, workflowPath: config.workflowPath }),
-  });
+  const creationService = new CreationService({ guided: guidedService, terminals: terminalsService, workflowPath: config.workflowPath });
+  await app.register(creationRoutes, { creationService });
   await app.register(upworkRoutes, {
-    upworkService: new UpworkService({ dataDir: config.dataDir, workflowPath: config.workflowPath, guided: guidedService }),
+    upworkService: new UpworkService({ dataDir: config.dataDir, workflowPath: config.workflowPath, guided: guidedService, creation: creationService }),
   });
   await app.register(previewRoutes, { terminalsService, previewService });
   await app.register(terminalsGateway, { terminalManager, sessionStore: sessions });
