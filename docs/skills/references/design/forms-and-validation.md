@@ -102,6 +102,22 @@ lista de ficheiros e pedido próprios, e aqui o envio é um `POST` do serviço d
   estado antes de chamar o `onClose` do pai — nunca um `useEffect` no `open` (o ESLint deste projeto
   recusa `setState` síncrono dentro de um efeito: `react-hooks/set-state-in-effect`).
 
+## 4.2 Texto colado e edição de um documento (2026-10-26)
+
+Base: `components/upwork/{NewApplicationDrawer,ProfileDrawer}.tsx`, verificados em Chrome headless.
+
+- **Texto colado de fora** (um anúncio, uma descrição, uma resposta na conversa) que vai para ficheiros de uma
+  sessão e nunca para uma linha de comando: **só `max`**, sem a lista branca de caracteres da regra 6 — um anúncio
+  traz "$50/hr", código com `{}`, `<` e `>`. O mesmo que a descrição do Novo projeto e a `ReplyBox` já faziam.
+  Escrever o porquê ao lado do schema.
+- **Lista "uma por linha"** (perguntas de triagem): um `TextArea` só, partido em linhas não vazias ao enviar; os
+  limites (quantas, tamanho de cada) validam-se no schema sobre essas linhas.
+- **Drawer que edita um documento já carregado** (o perfil): `useForm({ values })` com o que a página tem — o
+  formulário segue o documento sem efeito nenhum; `close()` faz `reset(values)`, e o que não se gravou perde-se.
+  "Gravar" desativado enquanto nada mudou (`isDirty`), exceto quando o que está é o modelo inicial ainda por gravar.
+- Um erro do backend que **pede outro drawer** (`UPWORK_002`, sem perfil): `showNotification: false`, e o outro
+  abre **por cima** — o que se colou no primeiro fica.
+
 ## 5. Criar e editar partilham secções
 
 Quando os campos são os mesmos, o editar reutiliza as secções do criar dentro de um `FormProvider`

@@ -2,9 +2,11 @@ import { useMemo, useState } from 'react';
 import { Alert, Button, Empty, Select, Spin } from 'antd';
 import { PlusOutlined, UserOutlined } from '@ant-design/icons';
 import { ApplicationList } from '@/components/upwork/ApplicationList';
+import { NewApplicationDrawer } from '@/components/upwork/NewApplicationDrawer';
+import { ProfileDrawer } from '@/components/upwork/ProfileDrawer';
 import { APPLICATION_STATUSES, STATUS_TAG } from '@/components/upwork/upworkFormat';
 import { useUpworkApplications } from '@/hooks/useUpworkApplications';
-import type { ApplicationStatus } from '@/types/upwork';
+import type { ApplicationStatus, ApplicationView } from '@/types/upwork';
 
 const STATUS_OPTIONS = APPLICATION_STATUSES.map((status) => ({ value: status, label: STATUS_TAG[status].label }));
 
@@ -16,8 +18,8 @@ export function UpworkPage() {
   const [archived, setArchived] = useState(false);
   const [status, setStatus] = useState<ApplicationStatus | null>(null);
   const [selectedId, setSelectedId] = useState<string | null>(null);
-  const [, setProfileOpen] = useState(false);
-  const [, setCreating] = useState(false);
+  const [profileOpen, setProfileOpen] = useState(false);
+  const [creating, setCreating] = useState(false);
   const upwork = useUpworkApplications(archived);
 
   const shown = useMemo(
@@ -25,6 +27,17 @@ export function UpworkPage() {
     [upwork.applications, status],
   );
   const hasProfile = upwork.profile?.updatedAt != null;
+
+  // Sem perfil, Nova candidatura leva ao Perfil: a carta não tem de onde tirar a prova.
+  const startNew = () => (hasProfile ? setCreating(true) : setProfileOpen(true));
+
+  const openCreated = (application: ApplicationView) => {
+    // Uma candidatura nova é sempre aberta (não arquivada) e em rascunho: a lista e o filtro passam a mostrá-la.
+    if (archived) setArchived(false);
+    setStatus(null);
+    upwork.replace(application);
+    setSelectedId(application.id);
+  };
 
   // Como o agrupamento da Biblioteca ao mudar de separador: outra lista, filtros limpos.
   const toggleArchived = () => {
@@ -63,7 +76,7 @@ export function UpworkPage() {
         <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} description="Nenhuma candidatura arquivada." />
       ) : (
         <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} description="Cola um anúncio da Upwork para começar.">
-          <Button type="primary" icon={<PlusOutlined />} onClick={() => setCreating(true)}>
+          <Button type="primary" icon={<PlusOutlined />} onClick={startNew}>
             Nova candidatura
           </Button>
         </Empty>
@@ -88,7 +101,7 @@ export function UpworkPage() {
         <Button icon={<UserOutlined />} onClick={() => setProfileOpen(true)}>
           Perfil
         </Button>
-        <Button type="primary" icon={<PlusOutlined />} disabled={!hasProfile} onClick={() => setCreating(true)}>
+        <Button type="primary" icon={<PlusOutlined />} onClick={startNew}>
           Nova candidatura
         </Button>
       </div>
@@ -126,6 +139,14 @@ export function UpworkPage() {
           />
         </section>
       </div>
+
+      <ProfileDrawer open={profileOpen} onClose={() => setProfileOpen(false)} profile={upwork.profile} onSaved={upwork.setProfile} />
+      <NewApplicationDrawer
+        open={creating}
+        onClose={() => setCreating(false)}
+        onCreated={openCreated}
+        onProfileMissing={() => setProfileOpen(true)}
+      />
     </div>
   );
 }
