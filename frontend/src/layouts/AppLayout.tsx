@@ -14,6 +14,7 @@ import { useShortcuts } from '@/hooks/useShortcuts';
 const NAV_ITEMS = [
   { to: '/terminals', label: 'Terminais' },
   { to: '/library', label: 'Biblioteca' },
+  { to: '/new-project', label: 'Novo projeto' },
 ];
 
 const HEALTH_LABEL: Record<BackendHealth, string> = {

@@ -10,6 +10,7 @@ import { ConfirmDialogProvider } from '@/contexts/ConfirmDialogContext';
 import { AppLayout } from '@/layouts/AppLayout';
 import { LibraryPage } from '@/pages/LibraryPage';
 import { LoginPage } from '@/pages/login/LoginPage';
+import { NewProjectPage } from '@/pages/NewProjectPage';
 import { TerminalsPage } from '@/pages/TerminalsPage';
 import { NotificationBridge } from '@/services/general/NotificationBridge';
 import { theme } from '@/theme';
@@ -45,6 +46,7 @@ createRoot(document.getElementById('root')!).render(
                   >
                     <Route path="/terminals" element={<TerminalsPage />} />
                     <Route path="/library" element={<LibraryPage />} />
+                    <Route path="/new-project" element={<NewProjectPage />} />
                   </Route>
                   <Route path="*" element={<Navigate to="/terminals" replace />} />
                 </Routes>

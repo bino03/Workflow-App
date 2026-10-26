@@ -1,4 +1,5 @@
-import { CloseOutlined } from '@ant-design/icons';
+import { CloseOutlined, PlusOutlined } from '@ant-design/icons';
+import { Link } from 'react-router';
 import type { Project } from './projects';
 
 type ProjectTabsProps = {
@@ -53,6 +54,13 @@ export function ProjectTabs({ projects, activePath, onSelect, onClose }: Project
           </div>
         );
       })}
+      <Link
+        to="/new-project"
+        className="h-9 mb-1 flex-none flex items-center gap-1.5 px-3 rounded-md text-[13px] font-medium text-text-3 no-underline hover:bg-surface-2 hover:text-text-1"
+      >
+        <PlusOutlined style={{ fontSize: 11 }} />
+        Novo projeto
+      </Link>
     </div>
   );
 }

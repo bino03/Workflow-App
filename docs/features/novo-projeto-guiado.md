@@ -5,7 +5,7 @@
 | **Estado** | 🚧 Em curso — a dependência ([[importar-para-a-biblioteca]], passos 1 e 4) está feita |
 | **Criada** | 2026-10-23 |
 | **Última sessão** | 2026-10-26 |
-| **Passos** | 7 / 10 concluídos |
+| **Passos** | 8 / 10 concluídos |
 
 > Escrita para uma sessão que **não viu a conversa que a originou**. Se algo só faz sentido com contexto
 > externo, falta escrevê-lo.
@@ -448,7 +448,7 @@ Workflow** — commits lá, separados.
     `Ctrl+Enter`; perguntas respondidas aparecem compactas; HTML no Markdown **não** é interpretado; nenhum
     hex novo; `npx tsc -b` e lint limpos.
 
-- [ ] **8. Frontend — ecrã Novo projeto**
+- [x] **8. Frontend — ecrã Novo projeto**
   - Ficheiro: `frontend/src/pages/NewProjectPage.tsx`, `frontend/src/services/creationService.ts`,
     `frontend/src/main.tsx`, `frontend/src/layouts/AppLayout.tsx`,
     `frontend/src/components/terminals/ProjectTabs.tsx`
@@ -562,10 +562,21 @@ Workflow** — commits lá, separados.
   cores dos tokens (computadas), escolha única (círculo) e múltipla (quadrado), "Recomendado" como etiqueta e o label
   enviado intacto, "Outro" em cada uma, duas perguntas num só Responder, Permitir/Recusar, `Ctrl+Enter` com erro de
   campo e a enviar, `busy`, consola limpa. Captura vista.
+- **Passo 8 — ecrã Novo projeto** (2026-10-26): `pages/NewProjectPage.tsx` (`/new-project`: `StartForm` com RHF + Zod,
+  `CreationSession` com a conversa e o painel do estado, o fim com o resumo), `services/creationService.ts`, entrada
+  **Novo projeto** no `AppLayout`, **+ Novo projeto** no fim das `ProjectTabs`. `npx tsc -b` e lint limpos.
+  **Verificado no browser 30/30** (Chrome headless, instância `--git-workflow`, o `claude` sem login a correr e o
+  script a fazer de hook): tabs → `/new-project`; descrição vazia → erro de campo; Começar → brief gravado, a trabalhar;
+  feed do `.jsonl` por polling; pergunta → cartões → `answer-*.json` com o label tal como veio; permissão → Permitir →
+  `allow`; `Stop` → caixa → `Ctrl+Enter` → a trabalhar; **polling parado com o separador escondido (0 pedidos em
+  4,5 s) e retomado ao voltar**; `Notification` → aviso → Ver terminal → `/terminals` com o terminal na grelha;
+  voltar à página mostra a criação; processo morto → Parada → Retomar → à espera de texto; `result.json` `done` →
+  resumo (Markdown, tabela), decisões, próximo passo → Abrir projeto → `/terminals` com um terminal na pasta e o
+  separador do projeto ativo; Fechar com confirmação → estado 1; `failed` → erro + Ver terminal + Fechar; Cancelar
+  com confirmação (avisa da pasta a meio) → estado 1; consola limpa. Capturas vistas.
 **Em curso:** nada.
-**Próxima ação concreta:** passo 8 — `pages/NewProjectPage.tsx` (`/new-project`), `services/creationService.ts`,
-entrada no `AppLayout`, botão **+ Novo projeto** nas `ProjectTabs`; verificar no browser com o backend e o `claude`
-falso a simular cada estado.
+**Próxima ação concreta:** passo 9 — docs da app (casos de uso, arquitetura, segurança, base de dados, code-map,
+vocabulário, padrões visuais novos em `docs/skills/references/design/`).
 **Desvios ao plano:**
 - Passo 1: o lançamento da §4.2 ganha `--permission-mode default` (sem ele, no modo `auto` desta conta, o
   `PermissionRequest` nunca chega e não há cartões Permitir/Recusar). Escrever no ADR 0020 e no `claudeArgs` (passo 4).
@@ -595,6 +606,9 @@ falso a simular cada estado.
   segunda mensagem não entrar antes do hook. `resume` grava `Stop` (a conversa retomada fica no prompt).
 - Passo 4: a `GuidedView` ganhou `error` (porquê, quando o `result.json` é inválido), como a `ImportView`.
 - Passo 4: o `guided-engine-check.ts` não estava na spec — prova o motor com o `claude` real sem o Workflow.
+- Passo 8: na verificação, um `.jsonl` escrito pelo script **antes** de o `claude` arrancar fazia-o sair com código 1
+  (lançado com `--session-id <uuid>`, recusa um id que já tem transcript). Na app quem escreve o ficheiro é o próprio
+  `claude`, por isso não acontece — mas é a razão por que o `reopen` usa `--resume` sempre que o `.jsonl` existe.
 - Passo 7: entraram `remark-gfm` (sem ele não há tabelas — a proposta do `/create` é feita delas), `Markdown` em
   `components/common/` (o resumo do fim e, mais tarde, a revisão da importação usam-no) e `PermissionLine` (uma
   permissão já decidida no feed). O texto livre ("Outro", `ReplyBox`) **não** tem lista branca de caracteres, ao
