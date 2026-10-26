@@ -57,7 +57,7 @@ describe('GuidedService', () => {
   beforeEach(() => {
     dataDir = mkdtempSync(join(tmpdir(), 'wfa-guided-service-'));
     fake = fakeTerminals();
-    service = new GuidedService({ dataDir, terminals: fake.terminals, isAlive: (pid) => pid === ALIVE });
+    service = new GuidedService({ dataDir, terminals: fake.terminals, sessions: { fileOf: (cwd, id) => join(dataDir, 'claude', id + '.jsonl') }, isAlive: (pid) => pid === ALIVE });
   });
   afterEach(() => removeDir(dataDir));
 

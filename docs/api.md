@@ -241,6 +241,7 @@ Genérico: estas rotas **não começam** sessões — quem começa é a rota do 
 | Método | Rota | Corpo | Resposta | Erros |
 |---|---|---|---|---|
 | GET | `/api/guided/:id` | — | `200 GuidedView` | `AUTH_002` · `GUIDED_001` |
+| GET | `/api/guided/:id/feed?after=<n>` | — | `200 {entries: FeedEntry[], cursor}` — a conversa, do `.jsonl` da sessão, com o brief como 1.ª entrada. `after` = quantas entradas o cliente já tem (omissão 0 = todas); a última dessas vem **outra vez** (só ela pode ainda mudar — uma atividade que cresce, uma pergunta que recebe a resposta) e o cliente substitui-a pelo `id`. `cursor` = o total | `AUTH_002` · `COMMON_001` · `GUIDED_001` |
 | POST | `/api/guided/:id/answer` | `{requestId, answers: {<texto da pergunta>: <label \| labels separados por ", " \| texto do "Outro">}}` — uma resposta por pergunta, nenhuma a mais | `204` | `AUTH_002` · `COMMON_001` · `GUIDED_001` · `GUIDED_002` |
 | POST | `/api/guided/:id/permission` | `{requestId, decision: 'allow'\|'deny'}` | `204` | `AUTH_002` · `COMMON_001` · `GUIDED_001` · `GUIDED_002` |
 | POST | `/api/guided/:id/message` | `{text}` (1–8000, sem espaços nas pontas) | `204` — escrito no PTY como **um** bracketed paste, sem caracteres de controlo (exceto `\n`, `\t`; `\r\n` → `\n`), e Enter à parte | `AUTH_002` · `COMMON_001` · `GUIDED_001` · `GUIDED_003` · `GUIDED_004` |
@@ -252,6 +253,12 @@ Genérico: estas rotas **não começam** sessões — quem começa é a rota do 
   `{requestId, type: 'question', questions: [{question, header, multiSelect, options: [{label, description}]}]}` ·
   `{requestId, type: 'permission', tool, summary}` (o comando, ou o caminho — nunca o conteúdo a escrever) · `null`.
   `result`: o `result.json` validado (contrato do Workflow, `skill-create.md` → "Modo app").
+- **`FeedEntry`** (`guided/transcriptFeed.ts`): `{id, type: 'assistant-text', markdown, at}` ·
+  `{id, type: 'user-text', text, at}` · `{id, type: 'question', questions, answers | null, at}` ·
+  `{id, type: 'permission', summary, decision: 'allow'|'deny', at}` (`summary` = `<ferramenta>: <comando ou caminho>`) ·
+  `{id, type: 'activity', summary, count, at}` (chamadas seguidas agrupadas: "Leu 2 ficheiros · Correu 1 comando").
+  Não aparecem: linhas de sistema, o corpo das skills, resultados de ferramentas, pensamento, sub-agentes, o slash
+  command inicial. Uma permissão ainda por decidir aparece como atividade até ter decisão.
 - **`status`** deriva-se, por esta ordem: `done`/`failed` (há `result.json`; inválido → `failed` com o campo em
   `error`) · `stopped` (o terminal não corre) · `question`/`permission` (um pedido à espera cujo hook está vivo —
   o mais antigo) · `needs-you` (um pedido cujo hook morreu, ou o último evento é `Notification`) · `waiting-text`

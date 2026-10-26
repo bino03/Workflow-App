@@ -80,6 +80,9 @@ export const messageBodySchema = z.object({ text: z.string().trim().min(1).max(8
 
 export const resumeBodySchema = z.object({ cols: colsSchema, rows: rowsSchema });
 
+/** `after` = how many feed entries the client already has (0 or absent = all). */
+export const feedQuerySchema = z.object({ after: z.coerce.number().int().min(0).max(1_000_000).default(0) });
+
 export type GuidedPurpose = z.infer<typeof guidedPurposeSchema>;
 export type Question = z.infer<typeof questionSchema>;
 export type PendingFile = z.infer<typeof pendingFileSchema>;

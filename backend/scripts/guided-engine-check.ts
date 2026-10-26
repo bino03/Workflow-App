@@ -50,16 +50,17 @@ writeFileSync(
 async function main() {
   log(`root: ${root}`);
   const terminalManager = new TerminalManager({ spawn: claudeSpawner(resolveClaudeBin(process.env.CLAUDE_BIN ?? 'claude')), maxTerminals: 1, scrollbackBytes: 4 << 20 });
+  const claudeSessions = new ClaudeSessions(process.env.CLAUDE_CONFIG_DIR);
   const terminals = new TerminalsService({
     stateStore: await StateStore.load(dataDir),
     terminalManager,
-    sessions: new ClaudeSessions(process.env.CLAUDE_CONFIG_DIR ?? join(process.env.USERPROFILE ?? '', '.claude')),
+    sessions: claudeSessions,
     allowedRoots: [root],
     guidedSettingsPath: writeGuidedFiles(dataDir, [root]),
     // A fresh temporary folder is not trusted yet: the dialog is answered below, through the PTY.
     isTrustedFolder: async () => true,
   });
-  const guided = new GuidedService({ dataDir, terminals });
+  const guided = new GuidedService({ dataDir, terminals, sessions: claudeSessions });
   const started = Date.now();
   const rel = () => `+${Math.round((Date.now() - started) / 1000)}s`;
   const view = await guided.start({ purpose: 'create', cwd: workflow, input: 'Uma app de teste para o motor guiado.' });
@@ -104,6 +105,10 @@ async function main() {
     await sleep(500);
   }
   log(`answers.txt: ${existsSync(join(workflow, 'answers.txt')) ? readFileSync(join(workflow, 'answers.txt'), 'utf8').trim() : '(absent)'}`);
+  // Step 5: the conversation as the UI will show it.
+  for (const entry of (await guided.feed(view.id, 0)).entries) {
+    log(`  feed ${entry.type}: ${JSON.stringify({ ...entry, id: undefined, at: undefined, type: undefined }).slice(0, 200)}`);
+  }
   await guided.remove(view.id);
   log(`removed; guided folder left: ${existsSync(join(dataDir, 'guided', view.id))}`);
   await terminalManager.killAll();

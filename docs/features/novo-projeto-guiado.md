@@ -5,7 +5,7 @@
 | **Estado** | 🚧 Em curso — a dependência ([[importar-para-a-biblioteca]], passos 1 e 4) está feita |
 | **Criada** | 2026-10-23 |
 | **Última sessão** | 2026-10-26 |
-| **Passos** | 4 / 10 concluídos |
+| **Passos** | 5 / 10 concluídos |
 
 > Escrita para uma sessão que **não viu a conversa que a originou**. Se algo só faz sentido com contexto
 > externo, falta escrevê-lo.
@@ -416,7 +416,7 @@ Workflow** — commits lá, separados.
     durante `working` → `GUIDED_004`; o texto chega ao PTY em bracketed paste; o estado derivado segue a
     §4.1; `DELETE` limpa a pasta e o índice `by-session`; `npm run typecheck`/`test`/`lint` limpos.
 
-- [ ] **5. Backend — conversa a partir do `.jsonl`**
+- [x] **5. Backend — conversa a partir do `.jsonl`**
   - Ficheiro: `backend/src/guided/transcriptFeed.ts`, `backend/test/transcriptFeed.test.ts`
   - Skill: —
   - Tier: `sonnet`
@@ -535,9 +535,15 @@ Workflow** — commits lá, separados.
   `claude` real** (`backend/scripts/guided-engine-check.ts`, uma skill `create` de teste): pergunta com multiSelect →
   cartão → resposta; Write permitido, Bash recusado; `waiting-text` → mensagem de 2 linhas; `result.json` escrito sem
   pedir permissão → `done` em 20 s; `remove` limpa. `docs/api.md` e `docs/database.md`.
+- **Passo 5 — conversa do `.jsonl`** (2026-10-26): `guided/transcriptFeed.ts` (`buildFeed` puro, `TranscriptFeed` com
+  cache por tamanho/mtime, `feedPage`), `GuidedService.feed` (o brief como 1.ª entrada), `GET /api/guided/:id/feed`.
+  406 testes (+12: a fixture inteira pela ordem certa, atividade agrupada, blocos da mesma mensagem numa bolha,
+  pergunta/permissão por decidir, linhas inválidas e sub-agentes ignorados, o cursor, a rota). Com o `claude` real
+  (`guided-engine-check.ts`): brief → "Leu 1 ficheiro" → pergunta → 2 permissões → pergunta aberta → resposta de 2
+  linhas → "Escreveu 1 ficheiro" (o `result.json`, sem cartão). `docs/api.md`.
 **Em curso:** nada.
-**Próxima ação concreta:** passo 5 — `backend/src/guided/transcriptFeed.ts` sobre a fixture
-`backend/test/fixtures/guided-transcript.jsonl` (formato na §6, passo 1 (e)).
+**Próxima ação concreta:** passo 6 — `backend/src/creation/` (`POST /api/creations`, `current`, `open`), sobre o
+`GuidedService.start` e `list("create")`; `CREATE_001`/`002`.
 **Desvios ao plano:**
 - Passo 1: o lançamento da §4.2 ganha `--permission-mode default` (sem ele, no modo `auto` desta conta, o
   `PermissionRequest` nunca chega e não há cartões Permitir/Recusar). Escrever no ADR 0020 e no `claudeArgs` (passo 4).
@@ -567,6 +573,9 @@ Workflow** — commits lá, separados.
   segunda mensagem não entrar antes do hook. `resume` grava `Stop` (a conversa retomada fica no prompt).
 - Passo 4: a `GuidedView` ganhou `error` (porquê, quando o `result.json` é inválido), como a `ImportView`.
 - Passo 4: o `guided-engine-check.ts` não estava na spec — prova o motor com o `claude` real sem o Workflow.
+- Passo 5: o cursor não é "depois do id X": é quantas entradas o cliente tem, e a última volta sempre — só ela pode
+  mudar (uma atividade que cresce, uma pergunta que recebe resposta, uma chamada que passa de atividade a permissão
+  quando a decisão chega). A permissão por decidir não tem entrada própria no feed: o cartão vem da `GuidedView.pending`.
 **O que uma sessão nova precisa de saber:**
 - A entrevista **não** se escreve na app. Se uma sessão se apanhar a codificar perguntas do `/create` no
   frontend, está a fazer a alternativa rejeitada.

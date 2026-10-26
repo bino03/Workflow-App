@@ -2,11 +2,12 @@ import { randomUUID } from 'node:crypto';
 import { existsSync, mkdirSync, readFileSync, readdirSync, rmSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { AppError } from '../common/errors.js';
-import { isUuid } from '../sessions/claudeSessions.js';
+import { type ClaudeSessions, isUuid } from '../sessions/claudeSessions.js';
 import { atomicWrite } from '../state/atomicWrite.js';
 import { GUIDED_COMMANDS } from '../terminals/claudeArgs.js';
 import type { TerminalsService } from '../terminals/terminalsService.js';
 import { GUIDED_EVENTS, GUIDED_FILES, type GuidedEvent } from './guidedFiles.js';
+import { type FeedEntry, TranscriptFeed, feedPage } from './transcriptFeed.js';
 import {
   type CreateResult,
   type GuidedMeta,
@@ -26,6 +27,9 @@ const PENDING_FILE = /^pending-([0-9a-f-]{36})\.json$/i;
 export type GuidedServiceDeps = {
   dataDir: string;
   terminals: Pick<TerminalsService, 'createGuided' | 'get' | 'reveal' | 'close' | 'reopen' | 'paste'>;
+  /** Where the session's .jsonl is (ClaudeSessions.fileOf). */
+  sessions: Pick<ClaudeSessions, 'fileOf'>;
+  feed?: TranscriptFeed;
   /** Whether a hook process is still waiting (its pid); tests replace it. */
   isAlive?: (pid: number) => boolean;
   now?: () => Date;
@@ -47,10 +51,12 @@ export type StartGuided = {
 export class GuidedService {
   private readonly now: () => Date;
   private readonly isAlive: (pid: number) => boolean;
+  private readonly feedReader: TranscriptFeed;
 
   constructor(private readonly deps: GuidedServiceDeps) {
     this.now = deps.now ?? (() => new Date());
     this.isAlive = deps.isAlive ?? processIsAlive;
+    this.feedReader = deps.feed ?? new TranscriptFeed();
   }
 
   private get guidedDir(): string {
@@ -109,6 +115,18 @@ export class GuidedService {
 
   get(id: string): GuidedView {
     return this.view(this.meta(id));
+  }
+
+  /**
+   * The conversation so far, from the session's .jsonl, with the brief as its first entry (in place of the slash
+   * command that carried it). `after` = how many entries the client has (feedPage).
+   */
+  async feed(id: string, after: number): Promise<{ entries: FeedEntry[]; cursor: string }> {
+    const meta = this.meta(id);
+    const brief: FeedEntry = { id: 'brief', type: 'user-text', text: this.readInput(meta), at: meta.createdAt };
+    const cwd = this.deps.terminals.get(meta.terminalId)?.cwd;
+    const transcript = cwd === undefined ? [] : await this.feedReader.read(this.deps.sessions.fileOf(cwd, meta.claudeSessionId));
+    return feedPage([brief, ...transcript], after);
   }
 
   /** The owner's answer to an AskUserQuestion: one answer per question, keyed by the question's text. */
@@ -183,6 +201,14 @@ export class GuidedService {
     const meta = isUuid(id) ? readMeta(this.dirOf(id)) : null;
     if (!meta || meta.id !== id) throw new AppError('GUIDED_001');
     return meta;
+  }
+
+  private readInput(meta: GuidedMeta): string {
+    try {
+      return readFileSync(join(this.dirOf(meta.id), GUIDED_COMMANDS[meta.purpose].inputFile), 'utf8').trim();
+    } catch {
+      return '';
+    }
   }
 
   private writeEvent(id: string, event: GuidedEvent): void {

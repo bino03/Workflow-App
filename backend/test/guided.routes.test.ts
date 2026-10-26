@@ -1,7 +1,7 @@
 import { randomUUID } from 'node:crypto';
-import { mkdirSync, mkdtempSync, readdirSync, realpathSync, writeFileSync } from 'node:fs';
+import { copyFileSync, mkdirSync, mkdtempSync, readdirSync, realpathSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
-import { join } from 'node:path';
+import { dirname, join } from 'node:path';
 import Fastify, { type FastifyInstance } from 'fastify';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { buildApp } from '../src/app.js';
@@ -18,6 +18,7 @@ import { removeDir, testConfig, testStateStore } from './helpers.js';
 const base = realpathSync.native(mkdtempSync(join(tmpdir(), 'wfa-guided-routes-')));
 const workflow = join(base, 'root', 'Workflow');
 const dataDir = join(base, 'data');
+const claudeDir = join(base, 'claude');
 mkdirSync(workflow, { recursive: true });
 afterAll(() => removeDir(base));
 
@@ -60,12 +61,12 @@ describe('/api/guided', () => {
     terminals = new TerminalsService({
       stateStore: await testStateStore(),
       terminalManager,
-      sessions: new ClaudeSessions(join(base, 'claude')),
+      sessions: new ClaudeSessions(claudeDir),
       allowedRoots: [join(base, 'root')],
       guidedSettingsPath: writeGuidedFiles(dataDir, [join(base, 'root')]),
       isTrustedFolder: async () => true,
     });
-    guided = new GuidedService({ dataDir, terminals });
+    guided = new GuidedService({ dataDir, terminals, sessions: new ClaudeSessions(claudeDir) });
     app = Fastify();
     registerErrorHandler(app);
     await app.register(guidedRoutes, { guidedService: guided });
@@ -168,6 +169,27 @@ describe('/api/guided', () => {
     const args = claude.launches[before]!.args!;
     expect(args).toEqual(expect.arrayContaining(['--settings', join(dataDir, GUIDED_FILES.settings), '--permission-mode', 'default', '--add-dir', dirOf(view.id)]));
     expect(args.some((a) => a.startsWith('/create'))).toBe(false);
+    await app.inject({ method: 'DELETE', url: `/api/guided/${view.id}` });
+  });
+
+  it('feed: the brief first, then the conversation from the .jsonl; after=n resends the last known entry', async () => {
+    const view = await start();
+    const feed = async (after?: string) =>
+      (await app.inject({ method: 'GET', url: `/api/guided/${view.id}/feed${after === undefined ? '' : `?after=${after}`}` })).json() as {
+        entries: { id: string; type: string; text?: string }[];
+        cursor: string;
+      };
+    // Before claude writes its .jsonl: only the brief.
+    expect(await feed()).toEqual({ entries: [{ id: 'brief', type: 'user-text', text: 'Uma app de ginásio', at: view.createdAt }], cursor: '1' });
+
+    const file = new ClaudeSessions(claudeDir).fileOf(workflow, terminals.get(view.terminalId)!.claudeSessionId);
+    mkdirSync(dirname(file), { recursive: true });
+    copyFileSync(join(import.meta.dirname, 'fixtures', 'guided-transcript.jsonl'), file);
+    const all = await feed('0');
+    expect(all.entries.map((e) => e.type)).toEqual(['user-text', 'question', 'permission', 'permission', 'assistant-text', 'user-text', 'assistant-text']);
+    expect(all.cursor).toBe('7');
+    expect((await feed('7')).entries.map((e) => e.id)).toEqual([all.entries[6]!.id]);
+    expect((await app.inject({ method: 'GET', url: `/api/guided/${view.id}/feed?after=-1` })).statusCode).toBe(400);
     await app.inject({ method: 'DELETE', url: `/api/guided/${view.id}` });
   });
 

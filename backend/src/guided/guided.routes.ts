@@ -1,6 +1,6 @@
 import type { FastifyInstance } from 'fastify';
 import { parseWith } from '../common/validation.js';
-import { answerBodySchema, messageBodySchema, permissionBodySchema, resumeBodySchema } from './guided.schemas.js';
+import { answerBodySchema, feedQuerySchema, messageBodySchema, permissionBodySchema, resumeBodySchema } from './guided.schemas.js';
 import type { GuidedService } from './guidedService.js';
 
 export type GuidedRoutesOptions = {
@@ -16,6 +16,11 @@ type IdParams = { Params: { id: string } };
  */
 export async function guidedRoutes(app: FastifyInstance, { guidedService }: GuidedRoutesOptions): Promise<void> {
   app.get<IdParams>('/api/guided/:id', async (request) => guidedService.get(request.params.id));
+
+  app.get<IdParams & { Querystring: { after?: string } }>('/api/guided/:id/feed', async (request) => {
+    const { after } = parseWith(feedQuerySchema, request.query);
+    return guidedService.feed(request.params.id, after);
+  });
 
   app.post<IdParams>('/api/guided/:id/answer', async (request, reply) => {
     await guidedService.answer(request.params.id, parseWith(answerBodySchema, request.body));

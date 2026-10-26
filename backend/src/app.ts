@@ -173,7 +173,7 @@ export async function buildApp({
       git: new WorkflowGit({ gitBin: config.gitBin, repo: config.workflowPath }),
     }),
   });
-  const guidedService = new GuidedService({ dataDir: config.dataDir, terminals: terminalsService });
+  const guidedService = new GuidedService({ dataDir: config.dataDir, terminals: terminalsService, sessions: sessionsReader });
   await app.register(guidedRoutes, { guidedService });
   await app.register(previewRoutes, { terminalsService, previewService });
   await app.register(terminalsGateway, { terminalManager, sessionStore: sessions });
