@@ -57,6 +57,7 @@ function setup({
     remoteControl: false,
     preview: previews.get(ID) ?? null,
     importId: null,
+    guidedId: null,
     hidden: false,
   });
   const menus = new MenuStore<BotAction>();

@@ -127,7 +127,7 @@ function choose(q: Question): string {
   const labels = q.options.map((o) => o.label);
   if (labels.some((l) => /^Gerar/i.test(l))) return labels.find((l) => /cancel/i.test(l)) ?? 'Cancelar';
   if (/onde crio|destino|where/i.test(`${q.header} ${q.question}`)) return destination;
-  return labels.find((l) => /recommend|recomend/i.test(l)) ?? labels[0];
+  return labels.find((l) => /recommend|recomend/i.test(l)) ?? labels[0] ?? '';
 }
 
 function permit(tool: string, input: Record<string, unknown>): 'allow' | 'deny' {

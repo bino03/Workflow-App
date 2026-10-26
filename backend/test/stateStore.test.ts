@@ -29,6 +29,7 @@ function savedTerminal(overrides: Partial<SavedTerminal> = {}): SavedTerminal {
     importId: null,
     hidden: false,
     addDirs: [],
+    guidedId: null,
     ...overrides,
   };
 }

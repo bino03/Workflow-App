@@ -50,6 +50,10 @@ próprio Fastify (JSON mal formado, content-type errado → `COMMON_001`) e as r
 | `IMPORT_004` | 400 | Ficheiros a mais (> 200), grandes demais (> 10 MiB no total), que não batem com `source.paths`, ou com um caminho que o Windows não guarda tal como vem |
 | `IMPORT_005` | 409 | A importação não está no estado que a ação pede (ex. aceitar enquanto corre) |
 | `IMPORT_006` | 500 | O git do Workflow falhou ou recusou — o `message` traz o fim do stderr |
+| `GUIDED_001` | 404 | A sessão guiada não existe (ou o id nem é um UUID) |
+| `GUIDED_002` | 409 | O `requestId` não é o da pergunta/permissão que está à espera (já respondida, de outro tipo, ou o hook morreu) — a UI recarrega |
+| `GUIDED_003` | 409 | Escrever numa sessão guiada parada ou terminada — retomar primeiro |
+| `GUIDED_004` | 409 | Escrever enquanto o Claude trabalha ou espera um cartão (só em `waiting-text`/`needs-you`) |
 
 O frontend espelha esta tabela em `frontend/src/errors/errorMessages.ts`, pela mesma ordem — os dois
 mudam no mesmo commit.
@@ -227,6 +231,35 @@ na biblioteca: lança o `/import` do Workflow num terminal escondido e segue-o; 
   próprio `git status`, e cada um é resolvido (com symlinks e junctions) e confirmado dentro do repo antes de ser lido,
   reposto ou apagado. Como a importação só começa com o repo limpo, "o que mudou" é "o que a importação fez" — mas
   se o dono mexer no Workflow à mão enquanto uma importação está aberta, isso entra no diff (e no commit).
+
+## Sessões guiadas (`guided/`, `/api/guided`) — 🚧
+
+[[adr/0020-sessoes-guiadas]] · spec [[features/novo-projeto-guiado]]. Um terminal escondido cujas perguntas
+(`AskUserQuestion`) e permissões chegam à app por hooks bloqueantes, e a quem o dono responde sem ver o TUI.
+Genérico: estas rotas **não começam** sessões — quem começa é a rota do propósito (`/api/creations`, passo 6).
+
+| Método | Rota | Corpo | Resposta | Erros |
+|---|---|---|---|---|
+| GET | `/api/guided/:id` | — | `200 GuidedView` | `AUTH_002` · `GUIDED_001` |
+| POST | `/api/guided/:id/answer` | `{requestId, answers: {<texto da pergunta>: <label \| labels separados por ", " \| texto do "Outro">}}` — uma resposta por pergunta, nenhuma a mais | `204` | `AUTH_002` · `COMMON_001` · `GUIDED_001` · `GUIDED_002` |
+| POST | `/api/guided/:id/permission` | `{requestId, decision: 'allow'\|'deny'}` | `204` | `AUTH_002` · `COMMON_001` · `GUIDED_001` · `GUIDED_002` |
+| POST | `/api/guided/:id/message` | `{text}` (1–8000, sem espaços nas pontas) | `204` — escrito no PTY como **um** bracketed paste, sem caracteres de controlo (exceto `\n`, `\t`; `\r\n` → `\n`), e Enter à parte | `AUTH_002` · `COMMON_001` · `GUIDED_001` · `GUIDED_003` · `GUIDED_004` |
+| POST | `/api/guided/:id/resume` | `{cols, rows}` | `200 GuidedView` — o `reopen` do terminal (`--resume`, com os mesmos `--settings`, `--add-dir` e `--permission-mode default`); fica `waiting-text` | `AUTH_002` · `COMMON_001` · `GUIDED_001` · `TERMINAL_*` (`TERMINAL_006` se ainda corre) |
+| POST | `/api/guided/:id/reveal` | — | `200 TerminalView` (`hidden: false`) | `AUTH_002` · `GUIDED_001` |
+| DELETE | `/api/guided/:id` | — | `204` — fecha o terminal (vai para o histórico), apaga a pasta e o índice; um hook à espera acaba sem decisão | `AUTH_002` · `GUIDED_001` |
+
+- **`GuidedView`** = `{id, purpose: 'create', status, terminalId, createdAt, pending, result, error}`. `pending`:
+  `{requestId, type: 'question', questions: [{question, header, multiSelect, options: [{label, description}]}]}` ·
+  `{requestId, type: 'permission', tool, summary}` (o comando, ou o caminho — nunca o conteúdo a escrever) · `null`.
+  `result`: o `result.json` validado (contrato do Workflow, `skill-create.md` → "Modo app").
+- **`status`** deriva-se, por esta ordem: `done`/`failed` (há `result.json`; inválido → `failed` com o campo em
+  `error`) · `stopped` (o terminal não corre) · `question`/`permission` (um pedido à espera cujo hook está vivo —
+  o mais antigo) · `needs-you` (um pedido cujo hook morreu, ou o último evento é `Notification`) · `waiting-text`
+  (o último evento é `Stop`) · `working`.
+- **Lançamento** (`terminals/claudeArgs.ts`, `kind: 'guided'`): `--add-dir <DATA_DIR/guided/<id>>`, `--session-id`,
+  `--settings <DATA_DIR/claude-guided-settings.json>`, `--permission-mode default`, e por último o comando do
+  propósito — `/create --app <DATA_DIR/guided/<id>/brief.md>`, caminho validado (`<…>/<uuid>/brief.md`). `cwd` de
+  confiança (`TERMINAL_007`).
 
 ## Projetos (`projects/`, `/api/projects`) — ✅
 

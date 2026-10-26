@@ -5,7 +5,8 @@ import { resolveAllowedPath } from '../folders/cwdPolicy.js';
 import type { ClaudeSessions } from '../sessions/claudeSessions.js';
 import type { AppState, SavedTerminal } from '../state/state.schema.js';
 import type { StateStore } from '../state/stateStore.js';
-import { type ClaudeArgsOptions, type ClaudeLaunch, claudeArgs } from './claudeArgs.js';
+import { type ClaudeArgsOptions, type ClaudeLaunch, type GuidedPurpose, claudeArgs } from './claudeArgs.js';
+import { bracketedPaste } from './paste.js';
 import { remoteControlName } from './remoteName.js';
 import { ClaudeBinError } from './spawnClaude.js';
 import { TerminalLimitError, type TerminalManager } from './terminalManager.js';
@@ -28,6 +29,8 @@ export type TerminalView = {
   preview: TerminalPreview | null;
   /** Started by an import (ADR 0019); hidden ones are left out of `list()` until revealed. */
   importId: string | null;
+  /** Started by a guided session (ADR 0020); hidden like an import's until revealed. */
+  guidedId: string | null;
   hidden: boolean;
 };
 
@@ -38,6 +41,21 @@ export type CreateImportTerminal = {
   cwd: string;
   requestPath: string;
   /** The import's own folder, plus the project folder when the source is one — already resolved. */
+  addDirs: string[];
+  cols: number;
+  rows: number;
+};
+
+/** A hidden terminal that runs a guided session's command (ADR 0020). Only the guided module calls it. */
+export type CreateGuidedTerminal = {
+  guidedId: string;
+  /** Chosen by the caller, so the hook's session index exists before the process starts. */
+  sessionId: string;
+  purpose: GuidedPurpose;
+  /** WORKFLOW_PATH for `create`: inside ALLOWED_ROOTS and already trusted by Claude Code. */
+  cwd: string;
+  inputPath: string;
+  /** The guided session's own folder. */
   addDirs: string[];
   cols: number;
   rows: number;
@@ -63,6 +81,8 @@ export type TerminalsServiceDeps = {
   settingsPath?: string;
   /** DATA_DIR/claude-import-settings.json (status line + hooks, ADR 0019). Omitted → imports are refused. */
   importSettingsPath?: string;
+  /** DATA_DIR/claude-guided-settings.json (status line + blocking hooks, ADR 0020). Omitted → guided sessions are refused. */
+  guidedSettingsPath?: string;
   /**
    * Whether Claude Code already trusts a folder (`isTrustedFolder`, sessions/claudeTrust.ts). Only Remote
    * Control launches ask: nobody is at the PTY to answer the trust dialog. Omitted → never trusted.
@@ -123,6 +143,7 @@ export class TerminalsService {
       lastOpenedAt: at,
       remoteControl,
       importId: null,
+      guidedId: null,
       hidden: false,
       addDirs: [],
     };
@@ -155,12 +176,61 @@ export class TerminalsService {
       lastOpenedAt: at,
       remoteControl: false,
       importId: request.importId,
+      guidedId: null,
       hidden: true,
       addDirs: request.addDirs,
     };
     // Not a recent folder: the user never picked the Workflow for this terminal.
     await this.save(saved, { touch: false });
     return this.view(saved);
+  }
+
+  /**
+   * Starts a guided session's hidden terminal (ADR 0020): a new conversation whose first message is the
+   * purpose's command, with the guided --settings, --add-dir and --permission-mode default. Like an import, the
+   * folder must already be trusted.
+   */
+  async createGuided(request: CreateGuidedTerminal): Promise<TerminalView> {
+    const settingsPath = this.deps.guidedSettingsPath;
+    if (settingsPath === undefined) throw new Error('guided sessions need guidedSettingsPath');
+    const cwd = resolveAllowedPath(request.cwd, this.deps.allowedRoots);
+    await this.assertTrusted(cwd);
+    if (this.sessionsInUse().has(request.sessionId)) throw new AppError('TERMINAL_003');
+    const launch: ClaudeLaunch = { kind: 'guided', sessionId: request.sessionId, purpose: request.purpose, inputPath: request.inputPath };
+    const id = randomUUID();
+    this.spawn(id, cwd, launch, request, { settingsPath, addDirs: request.addDirs, permissionMode: 'default' });
+
+    const at = this.now().toISOString();
+    const saved: SavedTerminal = {
+      id,
+      label: 'Novo projeto',
+      cwd,
+      claudeSessionId: launch.sessionId,
+      createdAt: at,
+      updatedAt: at,
+      lastOpenedAt: at,
+      remoteControl: false,
+      importId: null,
+      guidedId: request.guidedId,
+      hidden: true,
+      addDirs: request.addDirs,
+    };
+    // Not a recent folder: the user never picked the Workflow for this terminal.
+    await this.save(saved, { touch: false });
+    return this.view(saved);
+  }
+
+  /**
+   * Types text into a running terminal as one bracketed paste, then Enter — what the keyboard would do, for a
+   * guided session's free-text answer (ADR 0020). Control characters are stripped first (bracketedPaste).
+   */
+  async paste(id: string, text: string): Promise<void> {
+    if (!this.saved(id)) throw new AppError('TERMINAL_001');
+    if (this.deps.terminalManager.get(id)?.status !== 'running') throw new AppError('TERMINAL_006', 'Terminal is not running');
+    this.deps.terminalManager.write(id, bracketedPaste(text));
+    // Enter apart from the paste, as a person would (the spike sent it 300 ms later).
+    await new Promise((resolve) => setTimeout(resolve, 150));
+    this.deps.terminalManager.write(id, '\r');
   }
 
   /** Makes a hidden terminal a normal one in the grid ("Ver terminal"). */
@@ -213,15 +283,20 @@ export class TerminalsService {
     const remote = remoteControl ? await this.remoteControlFor(cwd, launch) : undefined;
 
     if (inMemory) await this.deps.terminalManager.kill(id); // exited: forget it so the id can be reused
-    // An import's terminal keeps its hooks and folders; it never gets the /import prompt again.
-    const importLaunch = saved.importId === null ? {} : { settingsPath: this.deps.importSettingsPath, addDirs: saved.addDirs };
-    this.spawn(id, cwd, launch, size, { remoteControl: remote, ...importLaunch });
+    // An import's or a guided session's terminal keeps its hooks and folders; it never gets its first prompt again.
+    const hiddenLaunch: ClaudeArgsOptions =
+      saved.importId !== null
+        ? { settingsPath: this.deps.importSettingsPath, addDirs: saved.addDirs }
+        : saved.guidedId !== null
+          ? { settingsPath: this.deps.guidedSettingsPath, addDirs: saved.addDirs, permissionMode: 'default' }
+          : {};
+    this.spawn(id, cwd, launch, size, { remoteControl: remote, ...hiddenLaunch });
 
     const at = this.now().toISOString();
     this.deps.stateStore.update((draft) => {
       const terminal = draft.terminals.find((t) => t.id === id);
       if (terminal) Object.assign(terminal, { cwd, remoteControl, lastOpenedAt: at, updatedAt: at });
-      if (saved.importId === null) touchFolder(draft, cwd, at);
+      if (saved.importId === null && saved.guidedId === null) touchFolder(draft, cwd, at);
     });
     return { ...this.view(this.saved(id)!), freshSession };
   }
@@ -298,9 +373,9 @@ export class TerminalsService {
     cwd: string,
     launch: ClaudeLaunch,
     size: { cols: number; rows: number },
-    { remoteControl, settingsPath = this.deps.settingsPath, addDirs }: { remoteControl?: { name?: string } } & ClaudeArgsOptions = {},
+    { remoteControl, settingsPath = this.deps.settingsPath, addDirs, permissionMode }: { remoteControl?: { name?: string } } & ClaudeArgsOptions = {},
   ): void {
-    const args = claudeArgs(launch, { settingsPath, remoteControl, addDirs });
+    const args = claudeArgs(launch, { settingsPath, remoteControl, addDirs, permissionMode });
     try {
       this.deps.terminalManager.create({ id, cwd, cols: size.cols, rows: size.rows, args });
     } catch (error) {
@@ -328,6 +403,7 @@ export class TerminalsService {
       remoteControl: saved.remoteControl,
       preview: this.deps.previews?.get(saved.id) ?? null,
       importId: saved.importId,
+      guidedId: saved.guidedId,
       hidden: saved.hidden,
     };
   }

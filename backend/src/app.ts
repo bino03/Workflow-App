@@ -18,6 +18,9 @@ import { libraryRoutes } from './library/library.routes.js';
 import { LibraryService } from './library/libraryService.js';
 import { foldersRoutes } from './folders/folders.routes.js';
 import { FoldersService } from './folders/foldersService.js';
+import { guidedRoutes } from './guided/guided.routes.js';
+import { writeGuidedFiles } from './guided/guidedFiles.js';
+import { GuidedService } from './guided/guidedService.js';
 import { writeImportFiles } from './imports/importFiles.js';
 import { importsRoutes } from './imports/imports.routes.js';
 import { MAX_IMPORT_FILES } from './imports/imports.schemas.js';
@@ -155,6 +158,8 @@ export async function buildApp({
     settingsPath: writeUsageFiles(config.dataDir),
     // An import's hidden terminal: the same status line plus the hooks it is followed by (ADR 0019).
     importSettingsPath: writeImportFiles(config.dataDir),
+    // A guided session's hidden terminal: the status line, blocking hooks and two narrow permissions (ADR 0020).
+    guidedSettingsPath: writeGuidedFiles(config.dataDir, config.terminals.allowedRoots),
     isTrustedFolder: (cwd) => isTrustedFolder(cwd, config.terminals.claudeConfigDir),
     previews: previewService,
   });
@@ -168,6 +173,8 @@ export async function buildApp({
       git: new WorkflowGit({ gitBin: config.gitBin, repo: config.workflowPath }),
     }),
   });
+  const guidedService = new GuidedService({ dataDir: config.dataDir, terminals: terminalsService });
+  await app.register(guidedRoutes, { guidedService });
   await app.register(previewRoutes, { terminalsService, previewService });
   await app.register(terminalsGateway, { terminalManager, sessionStore: sessions });
   await app.register(usageRoutes, { dataDir: config.dataDir });

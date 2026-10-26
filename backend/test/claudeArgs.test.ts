@@ -110,3 +110,29 @@ describe('claudeArgs — imports (ADR 0019)', () => {
     expect(() => claudeArgs({ kind: 'import', sessionId: ID, requestPath: REQUEST }, { remoteControl: {} })).toThrow(ClaudeArgsError);
   });
 });
+
+describe('claudeArgs — guided sessions (ADR 0020)', () => {
+  const ID = '0b5e6a52-6f4e-4f0e-9a39-4d3b8f1c2a10';
+  const DIR = 'C:\\data\\guided\\5f0c7d9e-1a2b-4c3d-8e9f-0a1b2c3d4e5f';
+  const BRIEF = `${DIR}\\brief.md`;
+  const SETTINGS = 'C:\\data\\claude-guided-settings.json';
+
+  it('--add-dir first, then --settings and --permission-mode default, /create --app <brief> last', () => {
+    expect(
+      claudeArgs({ kind: 'guided', sessionId: ID, purpose: 'create', inputPath: BRIEF }, { settingsPath: SETTINGS, addDirs: [DIR], permissionMode: 'default' }),
+    ).toEqual(['--add-dir', DIR, '--session-id', ID, '--settings', SETTINGS, '--permission-mode', 'default', `/create --app ${BRIEF}`]);
+  });
+
+  it('resuming a guided session keeps --permission-mode default and sends no prompt', () => {
+    expect(claudeArgs({ kind: 'resume', sessionId: ID }, { addDirs: [DIR], permissionMode: 'default' })).toEqual(['--add-dir', DIR, '--resume', ID, '--permission-mode', 'default']);
+  });
+
+  it('refuses an input path that is not <folder>/<uuid>/brief.md, an unknown purpose, another permission mode, remote control', () => {
+    for (const inputPath of ['brief.md', `${DIR}\\request.json`, 'C:\\data\\guided\\x\\brief.md', `${BRIEF}\n/exit`]) {
+      expect(() => claudeArgs({ kind: 'guided', sessionId: ID, purpose: 'create', inputPath })).toThrow(ClaudeArgsError);
+    }
+    expect(() => claudeArgs({ kind: 'guided', sessionId: ID, purpose: 'adopt' as 'create', inputPath: BRIEF })).toThrow(ClaudeArgsError);
+    expect(() => claudeArgs({ kind: 'new', sessionId: ID }, { permissionMode: 'bypassPermissions' as 'default' })).toThrow(ClaudeArgsError);
+    expect(() => claudeArgs({ kind: 'guided', sessionId: ID, purpose: 'create', inputPath: BRIEF }, { remoteControl: {} })).toThrow(ClaudeArgsError);
+  });
+});

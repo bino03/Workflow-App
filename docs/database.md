@@ -21,6 +21,7 @@
 | Sessões gravadas (`ClaudeSession`) | `~/.claude/projects/` — do Claude Code, **só leitura** | apagadas pelo Claude Code ao fim de 30 dias (`cleanupPeriodDays`) |
 | Biblioteca (`LibraryEntry`) | `WORKFLOW_PATH/library` — só leitura ([[adr/0019-importar-pelas-skills-do-workflow]]) | — |
 | Importação | `DATA_DIR/imports/<id>/` — `meta.json` (o terminal e a sessão), `request.json` (o pedido, contrato v1 do Workflow), `files/` (os ficheiros enviados), `result.json` (escrito pela skill). Existe da criação até aceitar/descartar; o estado deriva-se, nunca se guarda. O último hook de cada sessão em `DATA_DIR/import-events/<session_id>.json` ([[adr/0019-importar-pelas-skills-do-workflow]]) | — |
+| Sessão guiada | `DATA_DIR/guided/<id>/` — `meta.json` (propósito, terminal, sessão), o ficheiro de entrada (`brief.md`, o texto do dono), `pending-<requestId>.json` (escrito pelo hook enquanto uma pergunta/permissão espera, com o `pid` do hook), `answer-<requestId>.json` (a resposta, lida e apagada pelo hook), `event.json` (o último evento: `Stop` · `UserPromptSubmit` · `Notification` · `Answered`), `result.json` (escrito pela skill). `DATA_DIR/guided/by-session/<session_id>` tem o id — é como o hook encontra a pasta. Existe do arranque até Cancelar/Fechar; o estado deriva-se, nunca se guarda ([[adr/0020-sessoes-guiadas]]) | ✅ — e um reinício deixa-a `stopped`, com Retomar |
 | Quota (`UsageSnapshot`) | `DATA_DIR/usage.json` — só o último `rate_limits` visto pela status line de qualquer terminal, com `fetchedAt` ([[adr/0012-argumentos-do-claude-e-status-line]]). Escrito pelo `statusline.cjs`, não pelo `StateStore` | ✅ — mas pode estar velho (sem atividade não se atualiza) |
 
 ## O ficheiro
@@ -78,6 +79,7 @@ porque o backend reiniciou.
 | `importId` | UUID \| null | — (omissão `null`) | Terminal lançado por uma importação ([[adr/0019-importar-pelas-skills-do-workflow]]); liga-o à pasta `DATA_DIR/imports/<id>/` |
 | `hidden` | booleano | — (omissão `false`) | Fora da grelha e do bot (`GET /api/terminals`) até ser revelado ("Ver terminal") |
 | `addDirs` | texto[] (≤ 4) | — (omissão `[]`) | Pastas passadas com `--add-dir`, para o reabrir igual (a da importação e, se a origem é um projeto, a do projeto). Os três campos novos leem-se com a omissão em ficheiros antigos — sem subir o `STATE_VERSION` |
+| `guidedId` | UUID \| null | — (omissão `null`) | Terminal lançado por uma sessão guiada ([[adr/0020-sessoes-guiadas]]); liga-o à pasta `DATA_DIR/guided/<id>/`, e reabre-se com o `--settings` das sessões guiadas e `--permission-mode default`. Ficheiros antigos → `null`, sem subir o `STATE_VERSION` |
 
 - **Ciclo**: abrir → guardado. Backend reinicia → aparece como **parado**, com **Reabrir** (`claude --resume
   <claudeSessionId>`) e **Reabrir todos**. Nada reabre sozinho (não gasta quota sem pedido).

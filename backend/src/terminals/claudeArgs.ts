@@ -15,7 +15,19 @@ export type ClaudeLaunch =
    * A new conversation whose first message is `/import <requestPath>` (ADR 0019) — interactive, not `-p`.
    * The path is the backend's own `DATA_DIR/imports/<uuid>/request.json`; the user's answers are inside it.
    */
-  | { kind: 'import'; sessionId: string; requestPath: string };
+  | { kind: 'import'; sessionId: string; requestPath: string }
+  /**
+   * A guided session (ADR 0020): a new conversation whose first message is the purpose's command, e.g.
+   * `/create --app <briefPath>`. The set of commands is closed; the path is the backend's own
+   * `DATA_DIR/guided/<uuid>/brief.md` — the user's text is inside it, never on the command line.
+   */
+  | { kind: 'guided'; sessionId: string; purpose: GuidedPurpose; inputPath: string };
+
+/** What a guided session is for, and the command and input file it starts with. */
+export const GUIDED_COMMANDS = {
+  create: { command: '/create --app', inputFile: 'brief.md' },
+} as const;
+export type GuidedPurpose = keyof typeof GUIDED_COMMANDS;
 
 export type ClaudeArgsOptions = {
   /** DATA_DIR/claude-settings.json (or the imports' one), written by the backend. Omitted → no --settings. */
@@ -24,6 +36,11 @@ export type ClaudeArgsOptions = {
   remoteControl?: { name?: string };
   /** Extra folders claude may read without asking (ADR 0019): absolute paths the backend resolved. */
   addDirs?: string[];
+  /**
+   * `--permission-mode default` (ADR 0020): a guided session needs every permission to reach its
+   * PermissionRequest hook, whatever the account's default mode is (`auto` approves on its own).
+   */
+  permissionMode?: 'default';
 };
 
 /**
@@ -45,15 +62,18 @@ function assertSafeAbsolute(path: string, what: string): void {
   }
 }
 
-/** `<anything>/<uuid>/request.json`, nothing else. */
-function assertRequestPath(path: string): void {
-  assertSafeAbsolute(path, 'request path');
-  if (basename(path) !== 'request.json' || !isUuid(basename(dirname(path)))) {
-    throw new ClaudeArgsError('request path must be <imports>/<uuid>/request.json');
+/** `<anything>/<uuid>/<file>`, nothing else. */
+function assertInputPath(path: string, file: string): void {
+  assertSafeAbsolute(path, `${file} path`);
+  if (basename(path) !== file || !isUuid(basename(dirname(path)))) {
+    throw new ClaudeArgsError(`input path must be <folder>/<uuid>/${file}`);
   }
 }
 
-export function claudeArgs(launch: ClaudeLaunch, { settingsPath, remoteControl, addDirs = [] }: ClaudeArgsOptions = {}): string[] {
+export function claudeArgs(
+  launch: ClaudeLaunch,
+  { settingsPath, remoteControl, addDirs = [], permissionMode }: ClaudeArgsOptions = {},
+): string[] {
   if (!isUuid(launch.sessionId)) throw new ClaudeArgsError('session id must be a UUID');
   // --add-dir takes several values: first, so the next flag ends it (confirmed in the import spike).
   const args: string[] = [];
@@ -66,11 +86,23 @@ export function claudeArgs(launch: ClaudeLaunch, { settingsPath, remoteControl, 
     if (!isAbsolute(settingsPath)) throw new ClaudeArgsError('settings path must be absolute');
     args.push('--settings', settingsPath);
   }
+  if (permissionMode !== undefined) {
+    if (permissionMode !== 'default') throw new ClaudeArgsError('permission mode is not allowed');
+    args.push('--permission-mode', permissionMode);
+  }
   if (launch.kind === 'import') {
     if (remoteControl) throw new ClaudeArgsError('an import never runs with remote control');
-    assertRequestPath(launch.requestPath);
+    assertInputPath(launch.requestPath, 'request.json');
     // The prompt is positional: always last.
     args.push(`/import ${launch.requestPath}`);
+    return args;
+  }
+  if (launch.kind === 'guided') {
+    if (remoteControl) throw new ClaudeArgsError('a guided session never runs with remote control');
+    const purpose = GUIDED_COMMANDS[launch.purpose] as (typeof GUIDED_COMMANDS)[GuidedPurpose] | undefined;
+    if (!purpose) throw new ClaudeArgsError('unknown guided purpose');
+    assertInputPath(launch.inputPath, purpose.inputFile);
+    args.push(`${purpose.command} ${launch.inputPath}`);
     return args;
   }
   if (remoteControl) {

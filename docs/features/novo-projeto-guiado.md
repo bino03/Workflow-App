@@ -5,7 +5,7 @@
 | **Estado** | 🚧 Em curso — a dependência ([[importar-para-a-biblioteca]], passos 1 e 4) está feita |
 | **Criada** | 2026-10-23 |
 | **Última sessão** | 2026-10-26 |
-| **Passos** | 3 / 10 concluídos |
+| **Passos** | 4 / 10 concluídos |
 
 > Escrita para uma sessão que **não viu a conversa que a originou**. Se algo só faz sentido com contexto
 > externo, falta escrevê-lo.
@@ -403,7 +403,7 @@ Workflow** — commits lá, separados.
     contexto/opções/decisão/consequências; **teste a seco** no Workflow, à mão, com um brief de teste e
     destino numa pasta temporária até à Fase 2, e Cancelar → `result.json` `failed`; commit no Workflow.
 
-- [ ] **4. Backend — motor da sessão guiada**
+- [x] **4. Backend — motor da sessão guiada**
   - Ficheiro: `backend/src/guided/{guided.schemas,guidedFiles,guidedService,guided.routes}.ts`,
     `backend/src/terminals/{claudeArgs,terminalManager,terminalsService}.ts`, `backend/src/common/errors.ts`,
     `backend/test/{guidedHook,guidedService,guided.routes}.test.ts`, `docs/api.md`
@@ -502,9 +502,7 @@ Workflow** — commits lá, separados.
     `--permission-mode default` (argumento fixo).
   - (c) Um hook com `timeout: 86400` ficou **10 min** bloqueado à espera do `answer.json` e a sessão seguiu
     normalmente com a resposta. O `86400` foi aceite sem erro de settings; um teto acima de 10 min não foi medido.
-  - (d) `[200~linha um
-linha dois
-…[201~` + `` (Enter 300 ms depois) → **um** `UserPromptSubmit` com
+  - (d) `ESC[200~linha um⏎linha dois⏎…ESC[201~` + `CR` (Enter 300 ms depois) → **um** `UserPromptSubmit` com
     as 3 linhas.
   - (e) Fixture em `backend/test/fixtures/guided-transcript.jsonl` (30 linhas, caminhos e utilizador anonimizados,
     sem as linhas `api-request*` nem os attachments de contexto). O `.jsonl` tem tudo o que o feed precisa: a
@@ -527,9 +525,19 @@ linha dois
   até à proposta em ~2,5 min; Cancelar → `result.json` `failed` / "Cancelado pelo utilizador"; destino não
   criado; `git status` do Workflow só com as edições do passo. O `result.json` foi escrito **sem pedido de
   permissão** graças a uma regra `Edit(//c/…/guided/<uuid>/**)` no `--settings`.
+- **Passo 4 — motor da sessão guiada** (2026-10-26): `guided/{guidedFiles,guided.schemas,guidedService,guided.routes}.ts`,
+  `claudeArgs` com `kind: 'guided'` e `permissionMode`, `terminals/paste.ts`, `TerminalsService.createGuided`/`paste`
+  e `reopen` de uma sessão guiada, `guidedId` no `state.json`, `GUIDED_001`–`004` (backend e `errorMessages.ts`).
+  394 testes (+31: o hook gerado com stdin falso — sessão alheia/UUID inválido ignorados, eventos, pergunta e
+  permissão com resposta, pasta apagada a meio; o serviço com terminais falsos — estado derivado, validações,
+  resume, remove; as rotas sobre o `TerminalsService` real e o `claude` falso — argumentos, paste limpo no PTY,
+  sessão obrigatória na app inteira). `typecheck` só com o erro antigo de `auth.test.ts`, lint limpo. **Com o
+  `claude` real** (`backend/scripts/guided-engine-check.ts`, uma skill `create` de teste): pergunta com multiSelect →
+  cartão → resposta; Write permitido, Bash recusado; `waiting-text` → mensagem de 2 linhas; `result.json` escrito sem
+  pedir permissão → `done` em 20 s; `remove` limpa. `docs/api.md` e `docs/database.md`.
 **Em curso:** nada.
-**Próxima ação concreta:** passo 4 — backend, motor da sessão guiada (`backend/src/guided/`, `claudeArgs` com
-`kind: 'prompted'`, o `guided-hook.cjs` do spike como base). Ler os desvios dos passos 1-3 abaixo antes.
+**Próxima ação concreta:** passo 5 — `backend/src/guided/transcriptFeed.ts` sobre a fixture
+`backend/test/fixtures/guided-transcript.jsonl` (formato na §6, passo 1 (e)).
 **Desvios ao plano:**
 - Passo 1: o lançamento da §4.2 ganha `--permission-mode default` (sem ele, no modo `auto` desta conta, o
   `PermissionRequest` nunca chega e não há cartões Permitir/Recusar). Escrever no ADR 0020 e no `claudeArgs` (passo 4).
@@ -546,6 +554,19 @@ linha dois
   mesma); ver no passo 10 se se repete.
 - Passo 3: entrou `backend/scripts/create-app-dry-run.ts` (não estava na spec) — serve para repetir o teste a
   seco quando o `/create` mudar.
+- Passo 4: em vez de generalizar o `kind: 'import'` num `kind: 'prompted'` com prompt livre, entrou um
+  `kind: 'guided'` com um conjunto **fechado** de comandos (`GUIDED_COMMANDS`: hoje só `create` → `/create --app`,
+  ficheiro `brief.md`) — nenhum texto livre chega à linha de comando, nem do backend.
+- Passo 4: um pedido à espera é `pending-<requestId>.json` (e a resposta `answer-<requestId>.json`), não um
+  `pending.json` único — o Claude pode pedir permissões em paralelo, e dois hooks escreviam no mesmo ficheiro. A
+  vista mostra o mais antigo. Cada pending leva o `pid` do hook: um hook morto (timeout, sessão parada) deixa de
+  contar como pergunta e passa a `needs-you`.
+- Passo 4: `event.json` ganha `Answered` (escrito pelo hook depois de responder → `working`), e uma `Notification`
+  logo a seguir a um `Stop` não se regista (é o Claude Code a dizer que está parado à espera — senão
+  `waiting-text` virava `needs-you` ao fim de um minuto). `message` grava `UserPromptSubmit` logo, para uma
+  segunda mensagem não entrar antes do hook. `resume` grava `Stop` (a conversa retomada fica no prompt).
+- Passo 4: a `GuidedView` ganhou `error` (porquê, quando o `result.json` é inválido), como a `ImportView`.
+- Passo 4: o `guided-engine-check.ts` não estava na spec — prova o motor com o `claude` real sem o Workflow.
 **O que uma sessão nova precisa de saber:**
 - A entrevista **não** se escreve na app. Se uma sessão se apanhar a codificar perguntas do `/create` no
   frontend, está a fazer a alternativa rejeitada.

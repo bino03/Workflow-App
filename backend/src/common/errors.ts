@@ -55,6 +55,11 @@ export const ErrorCode = {
   IMPORT_004: { status: 400, message: 'Too many files, too large, or a file path is not allowed' },
   IMPORT_005: { status: 409, message: 'The import is not in a state that allows this' },
   IMPORT_006: { status: 500, message: 'git refused the operation in the Workflow repository' },
+  // GUIDED (ADR 0020)
+  GUIDED_001: { status: 404, message: 'Guided session not found' },
+  GUIDED_002: { status: 409, message: 'That request was already answered or is no longer waiting' },
+  GUIDED_003: { status: 409, message: 'The guided session is not running' },
+  GUIDED_004: { status: 409, message: 'Claude is still working; wait for it to stop before writing' },
 } as const satisfies Record<string, { status: number; message: string }>;
 
 export type ErrorCode = keyof typeof ErrorCode;

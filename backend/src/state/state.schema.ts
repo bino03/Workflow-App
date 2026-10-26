@@ -25,6 +25,9 @@ export const savedTerminalSchema = z.object({
   importId: z.uuid().nullable().default(null),
   hidden: z.boolean().default(false),
   addDirs: z.array(z.string().min(1)).max(4).default([]),
+  // ADR 0020: a terminal started by a guided session — hidden like an import's, reopened with the guided
+  // --settings, the same --add-dir folders and --permission-mode default. Older files → null, no migration.
+  guidedId: z.uuid().nullable().default(null),
 });
 
 export const closedTerminalSchema = z.object({

@@ -50,6 +50,11 @@ export const ERROR_MESSAGES: Record<string, string> = {
   IMPORT_004: 'Ficheiros a mais (máx. 200), grandes demais (máx. 10 MB no total), ou com um nome que não é permitido.',
   IMPORT_005: 'A importação ainda não está pronta para isto.',
   IMPORT_006: 'O git do Workflow recusou a operação. Vê o terminal da importação ou o repositório do Workflow.',
+  // GUIDED (ADR 0020)
+  GUIDED_001: 'Esta sessão já não existe.',
+  GUIDED_002: 'Esta pergunta já foi respondida ou mudou — a vista foi atualizada.',
+  GUIDED_003: 'A sessão não está a correr — retoma-a primeiro.',
+  GUIDED_004: 'O Claude ainda está a trabalhar — espera que termine para escrever.',
 
   DEFAULT: 'Ocorreu um erro. Tenta outra vez.',
 };
