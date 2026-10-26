@@ -5,7 +5,7 @@ import { resolveAllowedPath } from '../folders/cwdPolicy.js';
 import type { ClaudeSessions } from '../sessions/claudeSessions.js';
 import type { AppState, SavedTerminal } from '../state/state.schema.js';
 import type { StateStore } from '../state/stateStore.js';
-import { type ClaudeArgsOptions, type ClaudeLaunch, type GuidedPurpose, claudeArgs } from './claudeArgs.js';
+import { type ClaudeArgsOptions, type ClaudeLaunch, GUIDED_COMMANDS, type GuidedPurpose, claudeArgs } from './claudeArgs.js';
 import { bracketedPaste } from './paste.js';
 import { remoteControlName } from './remoteName.js';
 import { ClaudeBinError } from './spawnClaude.js';
@@ -203,7 +203,7 @@ export class TerminalsService {
     const at = this.now().toISOString();
     const saved: SavedTerminal = {
       id,
-      label: 'Novo projeto',
+      label: GUIDED_COMMANDS[request.purpose].label,
       cwd,
       claudeSessionId: launch.sessionId,
       createdAt: at,

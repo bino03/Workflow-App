@@ -23,9 +23,11 @@ export type ClaudeLaunch =
    */
   | { kind: 'guided'; sessionId: string; purpose: GuidedPurpose; inputPath: string };
 
-/** What a guided session is for, and the command and input file it starts with. */
+/** What a guided session is for, the command and input file it starts with, and its hidden terminal's label. */
 export const GUIDED_COMMANDS = {
-  create: { command: '/create --app', inputFile: 'brief.md' },
+  create: { command: '/create --app', inputFile: 'brief.md', label: 'Novo projeto' },
+  // ADR 0022: a Upwork application. The job post is in job.md (never its URL); the session never ends by a result.
+  upwork: { command: '/upwork-proposal --app', inputFile: 'job.md', label: 'Candidatura Upwork' },
 } as const;
 export type GuidedPurpose = keyof typeof GUIDED_COMMANDS;
 

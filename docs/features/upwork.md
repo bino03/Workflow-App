@@ -2,10 +2,10 @@
 
 | | |
 |---|---|
-| **Estado** | 📋 Planeada |
+| **Estado** | 🚧 Em curso |
 | **Criada** | 2026-10-26 |
 | **Última sessão** | 2026-10-26 |
-| **Passos** | 0 / 11 concluídos |
+| **Passos** | 3 / 11 concluídos |
 
 > Escrita para uma sessão que **não viu a conversa que a originou**. Se algo só faz sentido com contexto
 > externo, falta escrevê-lo.
@@ -228,7 +228,7 @@ Sem base de dados ([[../adr/0009-estado-em-ficheiro-json|ADR 0009]]). Tudo em `D
 
 | Ficheiro | Quem escreve | O quê |
 |---|---|---|
-| `job.md` | backend, no arranque | Ficheiro de entrada: o anúncio verbatim, as perguntas de triagem numeradas, o URL (como texto), e o `appId` |
+| `job.md` | backend, no arranque | Ficheiro de entrada: o anúncio verbatim, as perguntas de triagem numeradas e o `appId` — **sem o URL** ([[../adr/0022-seccao-upwork|ADR 0022]]) |
 | `profile.md` | backend, no arranque | Cópia do `DATA_DIR/upwork/profile.md` desse momento |
 | `package.json` | skill | Manifesto: `{version: 1, title, language, verdict: 'apply'\|'maybe'\|'skip', updatedAt, files: {analysis, coverLetter, screening, plan, clientQuestions}}` — nomes de ficheiros **dentro** da pasta; reescrito a cada revisão |
 | `analysis.md`, `cover-letter.md`, `screening.md`, `plan.md`, `client-questions.md` | skill | O pacote. `screening.md` com `## 1. <pergunta>` + resposta, pela ordem do `job.md` |
@@ -303,21 +303,21 @@ candidatura, se essa criação tem `result.projectPath`, copia-o para `projectPa
 
 Ordem obrigatória. Tiers: `opus` (desenho, não delegar) · `sonnet` (implementação) · `haiku` (mecânico).
 
-- [ ] **1. ADRs (app 0022, Workflow 0012)**
+- [x] **1. ADRs (app 0022, Workflow 0012)**
   - Ficheiros: `docs/adr/0022-seccao-upwork.md`, `docs/adr/README.md`; no Workflow `docs/adr/0012-upwork-proposal.md` + o seu `README.md`
   - Skill: `engineering:architecture` (formato dos ADRs existentes, ex. 0020)
   - Tier: `opus`
   - Aceite quando: os dois ADRs escritos com contexto, opções (as rejeitadas do §3), decisão e consequências; listados nos índices.
 
-- [ ] **2. Skill `/upwork-proposal` no Workflow**
+- [x] **2. Skill `/upwork-proposal` no Workflow**
   - Ficheiros: Workflow `docs/skills/skill-upwork-proposal.md`, `.claude/skills/upwork-proposal/SKILL.md`, `docs/skills/SKILLS-INDEX.md`, a allowlist `.claude/settings.json` (ler `projects/INDEX.md`)
   - Skill: `create-new-skill` do Workflow (`docs/skills/skill-create-new-skill.md`)
   - Tier: `opus` — o conteúdo da carta é o produto
   - Conteúdo mínimo: **modo app** (`--app <…/job.md>`): ler `job.md` e `profile.md` da mesma pasta e `projects/INDEX.md`; se faltar algo decisivo, **uma** `AskUserQuestion` (ex. "qual destes projetos mostras?"); escrever os 5 ficheiros + `package.json` (contrato §4.1); depois de cada pedido de revisão, reescrever só os ficheiros afetados e o `package.json`; mensagens do cliente coladas → resposta proposta em Markdown na conversa (não em ficheiro). **Modo terminal**: anúncio colado na conversa, pacote em Markdown. Regras: nunca abrir o URL nem nenhum site da Upwork; nunca inventar experiência, clientes ou números que não estão no perfil/projetos; língua do anúncio para o que vai ao cliente, português para análise/plano; carta 200–300 palavras com o gancho nas 2 primeiras linhas; nunca sugerir contacto/pagamento fora da Upwork.
   - Aceite quando: num terminal do Workflow, `/upwork-proposal` com um anúncio real colado produz as 5 partes; em modo app com uma pasta de teste (`job.md` + `profile.md`) escreve os 6 ficheiros e um `package.json` válido; commit no Workflow.
 
-- [ ] **3. Propósito guiado `upwork` sem fim por resultado**
-  - Ficheiros: `backend/src/terminals/claudeArgs.ts` (`GUIDED_COMMANDS.upwork = {command: '/upwork-proposal --app', inputFile: 'job.md'}`), `backend/src/guided/guided.schemas.ts` (`guidedPurposeSchema`), `backend/src/guided/guidedService.ts` (`start` aceita ficheiros extra — `profile.md`; a derivação de estado ignora `result.json` para `upwork`; método `suspend(id)` = fechar o terminal sem apagar a pasta), `backend/test/{claudeArgs,guidedService}.test.ts`
+- [x] **3. Propósito guiado `upwork` sem fim por resultado**
+  - Ficheiros: `backend/src/terminals/claudeArgs.ts` (`GUIDED_COMMANDS.upwork = {command: '/upwork-proposal --app', inputFile: 'job.md'}`), `backend/src/guided/guided.schemas.ts` (`guidedPurposeSchema`), `backend/src/guided/guidedService.ts` (`start` aceita ficheiros extra — `profile.md`; a derivação de estado ignora `result.json` para `upwork`; método `suspend(id)` = fechar o terminal sem apagar a pasta), o hook guiado (recusar `WebFetch` para hosts `upwork.com` em sessões `upwork`, ADR 0022), `backend/test/{claudeArgs,guidedService}.test.ts`
   - Skill: nenhuma de backend no projeto — seguir [[../backend-conventions]] e [[../skills/references/code-best-practices|code-best-practices]]
   - Tier: `sonnet`
   - Aceite quando: testes novos — os argumentos de `upwork` com o caminho validado; uma sessão `upwork` com `result.json` na pasta continua `waiting-text`; `suspend` deixa `stopped` e o `resume` volta a `waiting-text`; os testes de `create` passam sem mudanças.
@@ -374,10 +374,26 @@ Ordem obrigatória. Tiers: `opus` (desenho, não delegar) · `sonnet` (implement
 
 > ⚠️ **Atualizar SEMPRE no fim de cada sessão.** É a secção que torna esta spec retomável.
 
-**Feito:** nada (spec escrita a 2026-10-26).
+**Feito:** passo 1 (2026-10-26) — ADR 0022 da app e ADR 0012 do Workflow, nos dois índices. Passo 2 (2026-10-26)
+— `/upwork-proposal` no Workflow (`033d2dc`, com o ADR 0012): skill, ponteiro, SKILLS-INDEX, auditoria limpa. Sem
+allowlist nova (a skill só lê e escreve na pasta da sessão). Verificado em modo app **seguindo a skill à mão**
+numa pasta de teste (`job.md` + `profile.md` fictício): 5 ficheiros + `package.json` válido, carta com 246
+palavras; a passagem apanhou uma afirmação inventada ("two production projects") → a skill ganhou um passo de
+reler cada afirmação contra o perfil. **Por verificar:** o `/upwork-proposal` invocado de verdade num terminal
+com um anúncio real — fica para o passo 11, com o dono.
+Passo 3 (2026-10-26) — propósito `upwork`: `GUIDED_COMMANDS.upwork` (`/upwork-proposal --app <…/job.md>`, com o
+rótulo do terminal escondido por propósito), `start({files})` escreve o `profile.md` ao lado (só nomes `*.md`
+simples), `result.json` ignorado em `upwork` (`OPEN_ENDED`), `suspend(id)` = `terminals.stop` (o `resume` já
+existia), o propósito no `guided-control` e o hook a recusar `WebFetch` a `upwork.com` (`PreToolUse` não
+bloqueante). +9 testes; os do `create` passam sem mudanças além do `purpose` no controlo.
 **Em curso:** —
-**Próxima ação concreta:** passo 1 — ler `docs/adr/0020-sessoes-guiadas.md` e `0021`, escrever `docs/adr/0022-seccao-upwork.md`.
-**Desvios ao plano:** —
+**Próxima ação concreta:** passo 4 — módulo `backend/src/upwork/` (perfil + registo), a partir de §4.1/§4.2.
+O `/message` numa sessão `upwork` parada **continua a dar `GUIDED_003` no `GuidedService`**: retomar e esperar pelo
+`waiting-text` é da rota da candidatura (passo 5), que chama `resume` e depois `message`.
+**Desvios ao plano:** (1) o URL do job **não vai para o `job.md`** — a skill não precisa dele; (2) nas sessões
+`upwork` o hook guiado **recusa `WebFetch` a hosts `upwork.com`** (a allowlist do Workflow aprova `WebFetch`) —
+os dois no ADR 0022, o (2) acrescentado ao passo 3; (3) a entrada **Upwork** no header fica **à esquerda de
+"Novo projeto"** (dono, passo 7).
 **O que uma sessão nova precisa de saber:** a base é a das sessões guiadas (ADR 0020/0021, código em
 `backend/src/guided/`, UI em `frontend/src/components/guided/`). Hoje `result.json` acaba uma sessão (`done`) e o
 `/message` recusa sessões `done`/`stopped` — o passo 3 muda isso **só** para `upwork`. Regra de ouro: nada na app
@@ -388,9 +404,10 @@ nem na skill abre a Upwork. Não editar o backend a partir de um terminal servid
 
 | Pergunta | Bloqueia | Notas |
 |---|---|---|
-| O modelo inicial do `profile.md` — que secções exatamente? | Passo 4 (modelo) e 2 (o que a skill lê) | Proposta: Quem sou · Título · Competências · Projetos (nome, o que fiz, link) · Disponibilidade · Tom · Nunca prometer. Confirmar com o dono no passo 2 |
+| ~~O modelo inicial do `profile.md`~~ | — | **Resolvido (2026-10-26, dono):** a proposta — Quem sou · Título · Competências · Projetos (nome, o que fiz, link) · Disponibilidade · Tom · Nunca prometer |
+| ~~Onde fica a entrada no header?~~ | — | **Resolvido (2026-10-26, dono):** **Upwork** fica **à esquerda de "Novo projeto"** no header (passo 7) |
 | Quanto tempo esperar pelo `waiting-text` ao retomar antes de escrever (`/message` numa sessão parada)? | Passo 5 | Medir: o `--resume` de uma conversa longa. Se passar o limite, devolver `GUIDED_004` e a UI tenta de novo |
-| A skill deve propor quantos Connects/Boost em números, ou só "vale / não vale"? | Passo 2 | A pesquisa dá ~$0,15/Connect e Boost só cobrado no top 4; os valores mudam. Default: só qualitativo |
+| ~~Connects/Boost em números?~~ | — | **Resolvido (2026-10-26, dono):** só qualitativo ("vale gastar / Boost compensa / não compensa") — os valores mudam |
 
 ## Relacionado
 

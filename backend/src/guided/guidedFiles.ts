@@ -60,6 +60,8 @@ export function permissionRulePath(path: string): string {
  *   The folder disappearing (a cancel) ends the wait without a decision.
  * - Stop, UserPromptSubmit, Notification record the last event. A Notification right after a Stop is Claude Code
  *   saying it is idle — the session is already waiting for text, so it is not recorded.
+ * - PreToolUse(WebFetch) in an `upwork` session (ADR 0022): a URL on upwork.com is denied — the Workflow's allowlist
+ *   approves WebFetch, so no PermissionRequest would ever ask. The purpose comes from the backend-only control file.
  * - A PermissionRequest is allowed without a card (ADR 0021) when the session's mode is `auto`, or when it is a
  *   file tool aimed inside the declared destination — a new folder inside ALLOWED_ROOTS (see `destination`).
  */
@@ -123,6 +125,14 @@ function allowsWithoutAsking(guidedId, dir, data) {
   return Boolean(dest && within(dest, target));
 }
 
+/** upwork.com or any of its subdomains — the app never touches the Upwork (ADR 0022). */
+function isUpwork(url) {
+  try {
+    const host = new URL(String(url)).hostname.toLowerCase().replace(/\\.$/, '');
+    return host === 'upwork.com' || host.endsWith('.upwork.com');
+  } catch { return false; }
+}
+
 function writeJson(file, data) {
   const tmp = file + '.' + process.pid + '.tmp';
   fs.writeFileSync(tmp, JSON.stringify(data));
@@ -151,6 +161,12 @@ async function main(data) {
   const event = data.hook_event_name;
   if (event === 'Stop' || event === 'UserPromptSubmit') return writeEvent(dir, event);
   if (event === 'Notification') return lastEvent(dir) === 'Stop' ? undefined : writeEvent(dir, event);
+
+  if (event === 'PreToolUse' && data.tool_name === 'WebFetch') {
+    const control = readJson(path.join(CONTROL_DIR, guidedId.toLowerCase() + '.json'));
+    if (!control || control.purpose !== 'upwork' || !isUpwork(data.tool_input && data.tool_input.url)) return;
+    return process.stdout.write(JSON.stringify({ hookSpecificOutput: { hookEventName: 'PreToolUse', permissionDecision: 'deny', permissionDecisionReason: 'A Workflow App nunca abre a Upwork (ADR 0022): trabalha só com o anúncio colado.' } }));
+  }
 
   let pending;
   if (event === 'PreToolUse' && data.tool_name === 'AskUserQuestion') {
@@ -213,7 +229,10 @@ export function writeGuidedFiles(dataDir: string, readRoots: readonly string[], 
       allow: [`Edit(${permissionRulePath(guidedDir)}/**)`, ...readRoots.map((root) => `Read(${permissionRulePath(root)}/**)`)],
     },
     hooks: {
-      PreToolUse: [{ matcher: 'AskUserQuestion', hooks: [blocking] }],
+      PreToolUse: [
+        { matcher: 'AskUserQuestion', hooks: [blocking] },
+        { matcher: 'WebFetch', hooks: [command] },
+      ],
       PermissionRequest: [{ hooks: [blocking] }],
       Stop: [{ hooks: [command] }],
       Notification: [{ hooks: [command] }],

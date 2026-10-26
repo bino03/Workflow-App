@@ -13,8 +13,9 @@ type Terminals = GuidedServiceDeps['terminals'];
 
 /** Terminals that only remember what they were asked: the service's own logic is what is under test. */
 function fakeTerminals() {
-  const calls: { created: CreateGuidedTerminal[]; pasted: { id: string; text: string }[]; closed: string[]; reopened: string[]; revealed: string[] } = {
+  const calls: { created: CreateGuidedTerminal[]; pasted: { id: string; text: string }[]; closed: string[]; reopened: string[]; revealed: string[]; stopped: string[] } = {
     created: [],
+    stopped: [],
     pasted: [],
     closed: [],
     reopened: [],
@@ -42,6 +43,11 @@ function fakeTerminals() {
       return { ...view(id), freshSession: false };
     },
     paste: async (id, text) => void calls.pasted.push({ id, text }),
+    stop: async (id) => {
+      calls.stopped.push(id);
+      status.set(id, 'stopped');
+      return view(id);
+    },
   };
   return { terminals, calls, status };
 }
@@ -222,7 +228,7 @@ describe('GuidedService', () => {
     writePending(id, question(questionId));
     const view = await service.setMode(id, 'auto');
     expect(view.mode).toBe('auto');
-    expect(JSON.parse(readFileSync(controlFile, 'utf8'))).toEqual({ version: 1, mode: 'auto', startedAt });
+    expect(JSON.parse(readFileSync(controlFile, 'utf8'))).toEqual({ version: 1, mode: 'auto', startedAt, purpose: 'create' });
     expect(JSON.parse(readFileSync(join(dirOf(id), `answer-${permissionId}.json`), 'utf8'))).toEqual({ requestId: permissionId, decision: 'allow' });
     // A hook that died has nobody to answer; a question is never decided by the mode.
     expect(existsSync(join(dirOf(id), `answer-${deadPermissionId}.json`))).toBe(false);
@@ -239,7 +245,48 @@ describe('GuidedService', () => {
     rmSync(controlFile);
     expect(service.get(id).mode).toBe('ask');
     await service.setMode(id, 'auto');
-    expect(JSON.parse(readFileSync(controlFile, 'utf8'))).toEqual({ version: 1, mode: 'auto', startedAt: createdAt });
+    expect(JSON.parse(readFileSync(controlFile, 'utf8'))).toEqual({ version: 1, mode: 'auto', startedAt: createdAt, purpose: 'create' });
+  });
+
+  describe('upwork (ADR 0022)', () => {
+    const upwork = () => service.start({ purpose: 'upwork', cwd: 'C:\\Workflow', input: '# Anúncio\n\nReact dashboard', files: { 'profile.md': '# Quem sou\n' } });
+
+    it('start: job.md as the input, profile.md next to it, the purpose in the backend-only control file', async () => {
+      const view = await upwork();
+      const [request] = fake.calls.created;
+      expect(request).toMatchObject({ purpose: 'upwork', inputPath: join(dirOf(view.id), 'job.md') });
+      expect(readFileSync(join(dirOf(view.id), 'job.md'), 'utf8')).toBe('# Anúncio\n\nReact dashboard\n');
+      expect(readFileSync(join(dirOf(view.id), 'profile.md'), 'utf8')).toBe('# Quem sou\n');
+      expect(JSON.parse(readFileSync(join(dataDir, GUIDED_FILES.control, `${view.id}.json`), 'utf8'))).toMatchObject({ purpose: 'upwork' });
+      expect(service.list('upwork').map((v) => v.id)).toEqual([view.id]);
+      expect(service.list('create')).toEqual([]);
+    });
+
+    it('start: an extra file name that is a path, a dot-file, not Markdown or the input file is refused before anything is written', async () => {
+      for (const name of ['../x.md', 'a/b.md', '.hidden.md', 'profile.json', 'job.md', 'Profile.md']) {
+        await expect(service.start({ purpose: 'upwork', cwd: 'C:\\Workflow', input: 'x', files: { [name]: 'x' } })).rejects.toThrow();
+      }
+      expect(fake.calls.created).toEqual([]);
+      expect(existsSync(join(dataDir, GUIDED_FILES.dir))).toBe(false);
+    });
+
+    it('a result.json in the folder does not end it: it keeps waiting for text', async () => {
+      const { id } = await upwork();
+      setEvent(id, 'Stop');
+      writeFileSync(join(dirOf(id), 'result.json'), JSON.stringify({ version: 1, status: 'done', summary: '' }));
+      expect(service.get(id)).toMatchObject({ status: 'waiting-text', result: null, error: null });
+    });
+
+    it('suspend stops the terminal and keeps the folder (stopped); resume brings it back waiting for text', async () => {
+      const { id, terminalId } = await upwork();
+      setEvent(id, 'Stop');
+      const paused = await service.suspend(id);
+      expect(fake.calls.stopped).toEqual([terminalId]);
+      expect(paused.status).toBe('stopped');
+      expect(existsSync(join(dirOf(id), 'job.md'))).toBe(true);
+      expect((await service.resume(id, { cols: 120, rows: 40 })).status).toBe('waiting-text');
+      expect(fake.calls.reopened).toEqual([terminalId]);
+    });
   });
 
   it('an id that is not a UUID, or unknown → GUIDED_001', () => {

@@ -125,6 +125,10 @@ nunca o conteúdo de um terminal nem o token (o URL da Bot API contém-no: os er
   do início da sessão). Um `destination.json` a apontar para um projeto que já existia continua a pedir. Bash nunca
   entra no caso (2). O modo e o início vivem em `DATA_DIR/guided-control/`, que só o backend escreve — fora de
   `DATA_DIR/guided/**`, onde o Claude escreve sem perguntar; senão o próprio Claude ligava o Automático.
+- **Sessões `upwork` nunca abrem a Upwork** ([[adr/0022-seccao-upwork]]): um `PreToolUse` com matcher `WebFetch`
+  **recusa** qualquer URL em `upwork.com` ou num subdomínio — mesmo em Automático, porque a allowlist do Workflow
+  aprova `WebFetch` e nunca chegaria a haver cartão. O propósito vem do `guided-control` (só o backend o escreve),
+  não do `meta.json`. O URL do job nem chega à sessão (não vai para o `job.md`).
 
 Consequência a não esquecer: **um terminal desta app é um shell na máquina** — o Claude Code executa
 comandos. Quem entra na app entra na máquina. Por isso a exposição à rede é uma decisão própria

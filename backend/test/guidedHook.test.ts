@@ -47,7 +47,11 @@ describe('guided --settings', () => {
   it('blocking hooks for AskUserQuestion and PermissionRequest, writing in guided/ and reading in the roots', () => {
     const settings = JSON.parse(readFileSync(settingsPath, 'utf8'));
     expect(settings.permissions.allow).toEqual([`Edit(${permissionRulePath(guidedDir)}/**)`, `Read(${permissionRulePath(root)}/**)`]);
-    expect(settings.hooks.PreToolUse).toEqual([{ matcher: 'AskUserQuestion', hooks: [expect.objectContaining({ timeout: BLOCKING_HOOK_TIMEOUT_S })] }]);
+    expect(settings.hooks.PreToolUse).toEqual([
+      { matcher: 'AskUserQuestion', hooks: [expect.objectContaining({ timeout: BLOCKING_HOOK_TIMEOUT_S })] },
+      // Not blocking: it only denies WebFetch to the Upwork in upwork sessions (ADR 0022).
+      { matcher: 'WebFetch', hooks: [expect.not.objectContaining({ timeout: expect.anything() })] },
+    ]);
     expect(settings.hooks.PermissionRequest[0].hooks[0].timeout).toBe(BLOCKING_HOOK_TIMEOUT_S);
     expect(Object.keys(settings.hooks).sort()).toEqual(['Notification', 'PermissionRequest', 'PreToolUse', 'Stop', 'UserPromptSubmit']);
     expect(settings.statusLine).toBeDefined();
@@ -244,5 +248,38 @@ describe('guided-hook.cjs — the Workflow and DATA_DIR are never a destination 
     writeFileSync(join(dir, GUIDED_FILES.destination), JSON.stringify({ version: 1, projectPath: join(root2, 'Novo') }));
     const { stdout } = await runHook({ session_id: sessionId, hook_event_name: 'PermissionRequest', tool_name: 'Write', tool_input: { file_path: join(root2, 'Novo', 'a.md'), content: 'x' } }, hook2).done;
     expect(JSON.parse(stdout).hookSpecificOutput.decision).toEqual({ behavior: 'allow' });
+  });
+});
+
+describe('guided-hook.cjs — upwork sessions never open the Upwork (ADR 0022)', () => {
+  const controlDir = join(dataDir, GUIDED_FILES.control);
+  const control = (id: string, purpose?: string) =>
+    writeFileSync(join(controlDir, `${id}.json`), JSON.stringify({ version: 1, mode: 'auto', startedAt: new Date().toISOString(), ...(purpose ? { purpose } : {}) }));
+  const webFetch = (sessionId: string, url: unknown) =>
+    runHook({ session_id: sessionId, hook_event_name: 'PreToolUse', tool_name: 'WebFetch', tool_input: { url, prompt: 'x' } }).done;
+
+  it('WebFetch to upwork.com or a subdomain is denied — even in Automático', async () => {
+    const { id, sessionId } = session();
+    control(id, 'upwork');
+    for (const url of ['https://www.upwork.com/jobs/~01abc', 'https://upwork.com/', 'http://WWW.UPWORK.COM./freelance-jobs', 'https://community.upwork.com/x']) {
+      const { stdout } = await webFetch(sessionId, url);
+      expect(JSON.parse(stdout).hookSpecificOutput).toMatchObject({ hookEventName: 'PreToolUse', permissionDecision: 'deny' });
+    }
+  });
+
+  it('other hosts, look-alikes and odd input are left to Claude Code (no output)', async () => {
+    const { id, sessionId } = session();
+    control(id, 'upwork');
+    for (const url of ['https://react.dev/learn', 'https://notupwork.com/', 'https://upwork.com.evil.example/', 'not a url', 42]) {
+      expect(await webFetch(sessionId, url)).toEqual({ stdout: '', code: 0 });
+    }
+  });
+
+  it('only in upwork sessions: a create session, or a control file without a purpose, fetches freely', async () => {
+    for (const purpose of ['create', undefined]) {
+      const { id, sessionId } = session();
+      control(id, purpose);
+      expect(await webFetch(sessionId, 'https://www.upwork.com/jobs/~01abc')).toEqual({ stdout: '', code: 0 });
+    }
   });
 });

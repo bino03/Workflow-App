@@ -265,7 +265,7 @@ Genérico: estas rotas **não começam** sessões — quem começa é a rota do 
 | POST | `/api/guided/:id/reveal` | — | `200 TerminalView` (`hidden: false`) | `AUTH_002` · `GUIDED_001` |
 | DELETE | `/api/guided/:id` | — | `204` — fecha o terminal (vai para o histórico), apaga a pasta e o índice; um hook à espera acaba sem decisão | `AUTH_002` · `GUIDED_001` |
 
-- **`GuidedView`** = `{id, purpose: 'create', status, terminalId, createdAt, pending, result, error}`. `pending`:
+- **`GuidedView`** = `{id, purpose: 'create' | 'upwork', status, terminalId, createdAt, pending, result, error}`. `pending`:
   `{requestId, type: 'question', questions: [{question, header, multiSelect, options: [{label, description}]}]}` ·
   `{requestId, type: 'permission', tool, summary}` (o comando, ou o caminho — nunca o conteúdo a escrever) · `null`.
   `result`: o `result.json` validado (contrato do Workflow, `skill-create.md` → "Modo app").

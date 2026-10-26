@@ -135,4 +135,22 @@ describe('claudeArgs — guided sessions (ADR 0020)', () => {
     expect(() => claudeArgs({ kind: 'new', sessionId: ID }, { permissionMode: 'bypassPermissions' as 'default' })).toThrow(ClaudeArgsError);
     expect(() => claudeArgs({ kind: 'guided', sessionId: ID, purpose: 'create', inputPath: BRIEF }, { remoteControl: {} })).toThrow(ClaudeArgsError);
   });
+
+  it('upwork (ADR 0022): /upwork-proposal --app <job.md> last; only <folder>/<uuid>/job.md', () => {
+    const JOB = `${DIR}\\job.md`;
+    expect(claudeArgs({ kind: 'guided', sessionId: ID, purpose: 'upwork', inputPath: JOB }, { settingsPath: SETTINGS, addDirs: [DIR], permissionMode: 'default' })).toEqual([
+      '--add-dir',
+      DIR,
+      '--session-id',
+      ID,
+      '--settings',
+      SETTINGS,
+      '--permission-mode',
+      'default',
+      `/upwork-proposal --app ${JOB}`,
+    ]);
+    for (const inputPath of [BRIEF, `${DIR}\\profile.md`, 'C:\\data\\guided\\x\\job.md', `${JOB}\n/exit`]) {
+      expect(() => claudeArgs({ kind: 'guided', sessionId: ID, purpose: 'upwork', inputPath })).toThrow(ClaudeArgsError);
+    }
+  });
 });

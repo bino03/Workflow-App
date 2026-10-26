@@ -6,7 +6,7 @@ import { colsSchema, rowsSchema } from '../terminals/protocol.js';
  * parsed here too: they come from a process the backend started, but a bad one must never break a request.
  */
 
-export const guidedPurposeSchema = z.enum(['create']);
+export const guidedPurposeSchema = z.enum(['create', 'upwork']);
 
 const instant = z.iso.datetime();
 
@@ -56,6 +56,8 @@ export const guidedControlSchema = z.object({
   version: z.literal(1),
   mode: guidedModeSchema,
   startedAt: instant,
+  /** For the hook's per-purpose rules (ADR 0022): here, not in meta.json, which Claude may write. Absent before it. */
+  purpose: guidedPurposeSchema.optional(),
 });
 
 /**

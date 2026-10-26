@@ -3,7 +3,7 @@
  * Mudam juntos.
  */
 
-export type GuidedPurpose = 'create';
+export type GuidedPurpose = 'create' | 'upwork';
 
 /** Como se decidem as permissões (ADR 0021): um cartão cada, ou aprovadas pela app. As perguntas são sempre cartões. */
 export type GuidedMode = 'ask' | 'auto';

@@ -29,7 +29,7 @@ const PENDING_FILE = /^pending-([0-9a-f-]{36})\.json$/i;
 
 export type GuidedServiceDeps = {
   dataDir: string;
-  terminals: Pick<TerminalsService, 'createGuided' | 'get' | 'reveal' | 'close' | 'reopen' | 'paste'>;
+  terminals: Pick<TerminalsService, 'createGuided' | 'get' | 'reveal' | 'close' | 'reopen' | 'paste' | 'stop'>;
   /** Where the session's .jsonl is (ClaudeSessions.fileOf). */
   sessions: Pick<ClaudeSessions, 'fileOf'>;
   feed?: TranscriptFeed;
@@ -44,7 +44,18 @@ export type StartGuided = {
   cwd: string;
   /** The content of the purpose's input file (the brief), written by the backend — never on the command line. */
   input: string;
+  /** More files the skill reads, next to the input (`upwork`: a copy of profile.md). Plain names, never paths. */
+  files?: Record<string, string>;
 };
+
+/** A file name the backend may write in a session folder: no separators, no dot-files, not one of the session's own. */
+const EXTRA_FILE = /^[a-z0-9][a-z0-9-]*\.md$/;
+
+/**
+ * Purposes whose session never ends by a result (ADR 0022): `result.json` is not theirs, and a stopped terminal is
+ * a pause — the session waits, saved, for the next message.
+ */
+const OPEN_ENDED: readonly GuidedPurpose[] = ['upwork'];
 
 /**
  * Guided sessions (ADR 0020): a hidden terminal driven through blocking hooks. A session **is** its folder,
@@ -80,18 +91,23 @@ export class GuidedService {
   }
 
   /** Writes the input file and the hook's index, then starts the hidden terminal. Nothing half-made stays behind. */
-  async start({ purpose, cwd, input }: StartGuided): Promise<GuidedView> {
+  async start({ purpose, cwd, input, files = {} }: StartGuided): Promise<GuidedView> {
+    const inputFile = GUIDED_COMMANDS[purpose].inputFile;
+    for (const name of Object.keys(files)) {
+      if (!EXTRA_FILE.test(name) || name === inputFile) throw new Error(`not a guided session file name: ${name}`);
+    }
     const id = randomUUID();
     const sessionId = randomUUID();
     const dir = this.dirOf(id);
-    const inputPath = join(dir, GUIDED_COMMANDS[purpose].inputFile);
+    const inputPath = join(dir, inputFile);
     mkdirSync(dir, { recursive: true });
     mkdirSync(join(this.guidedDir, GUIDED_FILES.bySession), { recursive: true });
     mkdirSync(join(this.deps.dataDir, GUIDED_FILES.control), { recursive: true });
     try {
       // Before the process: a destination born after this instant is the session's own (ADR 0021 point 1).
-      writeFileSync(this.controlOf(id), JSON.stringify({ version: 1, mode: 'ask', startedAt: this.now().toISOString() } satisfies GuidedControl));
+      writeFileSync(this.controlOf(id), JSON.stringify({ version: 1, mode: 'ask', startedAt: this.now().toISOString(), purpose } satisfies GuidedControl));
       writeFileSync(inputPath, input.endsWith('\n') ? input : `${input}\n`);
+      for (const [name, content] of Object.entries(files)) writeFileSync(join(dir, name), content);
       // Before the process starts: the hook ignores a session it cannot find.
       writeFileSync(this.indexOf(sessionId), id);
       const terminal = await this.deps.terminals.createGuided({
@@ -171,7 +187,7 @@ export class GuidedService {
   async setMode(id: string, mode: GuidedMode): Promise<GuidedView> {
     const meta = this.meta(id);
     const startedAt = this.control(meta).startedAt ?? meta.createdAt;
-    await atomicWrite(this.controlOf(meta.id), JSON.stringify({ version: 1, mode, startedAt } satisfies GuidedControl));
+    await atomicWrite(this.controlOf(meta.id), JSON.stringify({ version: 1, mode, startedAt, purpose: meta.purpose } satisfies GuidedControl));
     if (mode === 'auto') {
       for (const { pending } of this.pendings(meta).filter((p) => p.alive && p.pending.type === 'permission')) {
         await atomicWrite(join(this.dirOf(meta.id), `answer-${pending.requestId}.json`), JSON.stringify({ requestId: pending.requestId, decision: 'allow' }));
@@ -203,6 +219,16 @@ export class GuidedService {
     for (const file of this.pendingFiles(meta.id)) rmSync(join(this.dirOf(meta.id), file), { force: true });
     await this.deps.terminals.reopen(meta.terminalId, size);
     this.writeEvent(meta.id, 'Stop');
+    return this.view(meta);
+  }
+
+  /**
+   * Pause (ADR 0022): the process ends, the terminal, the folder and the conversation stay — `resume` brings it back.
+   * A question or permission still waiting dies with its hook; `resume` clears what it left.
+   */
+  async suspend(id: string): Promise<GuidedView> {
+    const meta = this.meta(id);
+    await this.deps.terminals.stop(meta.terminalId);
     return this.view(meta);
   }
 
@@ -288,7 +314,7 @@ export class GuidedService {
   /** The status, in this order (spec §4.1): a result; a terminal that is not running; a pending request; the last event. */
   private view(meta: GuidedMeta): GuidedView {
     const base = { id: meta.id, purpose: meta.purpose, terminalId: meta.terminalId, createdAt: meta.createdAt, mode: this.control(meta).mode };
-    const result = readResult(join(this.dirOf(meta.id), 'result.json'));
+    const result = OPEN_ENDED.includes(meta.purpose) ? undefined : readResult(join(this.dirOf(meta.id), 'result.json'));
     if (result !== undefined) {
       if ('invalid' in result) return { ...base, status: 'failed', pending: null, result: null, error: `result.json inválido: ${result.invalid}` };
       return { ...base, status: result.status, pending: null, result, error: result.status === 'failed' ? (result.error ?? null) : null };
