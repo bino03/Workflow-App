@@ -37,7 +37,7 @@ export type GuidedHookPaths = {
 /** Blocking hooks wait for the owner: an answer may take hours. Proved for 10 min in the spike (ADR 0020 point 5). */
 export const BLOCKING_HOOK_TIMEOUT_S = 86_400;
 
-export const GUIDED_EVENTS = ['Stop', 'Notification', 'UserPromptSubmit', 'Answered'] as const;
+export const GUIDED_EVENTS = ['Stop', 'Notification', 'UserPromptSubmit', 'Answered', 'SessionStart'] as const;
 export type GuidedEvent = (typeof GUIDED_EVENTS)[number];
 
 /**
@@ -58,7 +58,8 @@ export function permissionRulePath(path: string): string {
  * - PreToolUse(AskUserQuestion) and PermissionRequest block: write `pending-<rid>.json` (with this process's pid,
  *   so the backend can tell a pending that outlived its hook), wait for `answer-<rid>.json`, answer Claude Code.
  *   The folder disappearing (a cancel) ends the wait without a decision.
- * - Stop, UserPromptSubmit, Notification record the last event. A Notification right after a Stop is Claude Code
+ * - Stop, UserPromptSubmit, Notification record the last event. So does SessionStart: after a --resume, the first sign the
+ *   TUI is coming up (measured, spec upwork step 5 — a paste only lands once the screen then goes quiet). A Notification right after a Stop is Claude Code
  *   saying it is idle — the session is already waiting for text, so it is not recorded.
  * - PreToolUse(WebFetch) in an `upwork` session (ADR 0022): a URL on upwork.com is denied — the Workflow's allowlist
  *   approves WebFetch, so no PermissionRequest would ever ask. The purpose comes from the backend-only control file.
@@ -159,7 +160,7 @@ async function main(data) {
   const dir = path.join(GUIDED_DIR, guidedId.toLowerCase());
   if (!fs.existsSync(dir)) return;
   const event = data.hook_event_name;
-  if (event === 'Stop' || event === 'UserPromptSubmit') return writeEvent(dir, event);
+  if (event === 'Stop' || event === 'UserPromptSubmit' || event === 'SessionStart') return writeEvent(dir, event);
   if (event === 'Notification') return lastEvent(dir) === 'Stop' ? undefined : writeEvent(dir, event);
 
   if (event === 'PreToolUse' && data.tool_name === 'WebFetch') {
@@ -237,6 +238,7 @@ export function writeGuidedFiles(dataDir: string, readRoots: readonly string[], 
       Stop: [{ hooks: [command] }],
       Notification: [{ hooks: [command] }],
       UserPromptSubmit: [{ hooks: [command] }],
+      SessionStart: [{ hooks: [command] }],
     },
   };
   writeFileSync(settings, `${JSON.stringify(content, null, 2)}\n`);

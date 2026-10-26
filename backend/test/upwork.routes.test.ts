@@ -6,6 +6,7 @@ import type { FastifyInstance } from 'fastify';
 import { afterAll, afterEach, beforeAll, describe, expect, it } from 'vitest';
 import { buildApp } from '../src/app.js';
 import { GUIDED_FILES } from '../src/guided/guidedFiles.js';
+import { ClaudeSessions } from '../src/sessions/claudeSessions.js';
 import { claudeJsonPath } from '../src/sessions/claudeTrust.js';
 import { TerminalManager } from '../src/terminals/terminalManager.js';
 import { PROFILE_TEMPLATE, UPWORK_FILES } from '../src/upwork/upworkFiles.js';
@@ -183,6 +184,120 @@ describe('/api/upwork', () => {
       expect((await patch(body)).statusCode, JSON.stringify(body).slice(0, 60)).toBe(400);
     }
     expect((await inject('PATCH', '/api/upwork/applications/00000000-0000-4000-8000-000000000000', { notes: 'x' })).json()).toMatchObject({ errorCode: 'UPWORK_001' });
+  });
+
+  describe('the package (spec step 5)', () => {
+    const PACKAGE = {
+      version: 1,
+      title: 'React dashboard — logistics',
+      language: 'en',
+      verdict: 'apply',
+      updatedAt: '2026-10-26T15:30:00.000Z',
+      files: { analysis: 'analysis.md', coverLetter: 'cover-letter.md', screening: 'screening.md', plan: 'plan.md', clientQuestions: 'client-questions.md' },
+    };
+    const writePackage = (guidedId: string, manifest: object = PACKAGE) => {
+      const dir = join(dataDir, GUIDED_FILES.dir, guidedId);
+      for (const [name, text] of [['analysis.md', '**Vale a pena: sim.**'], ['cover-letter.md', 'Your dispatchers need…'], ['screening.md', '## 1. Q\nA'], ['plan.md', '## Abordagem']] as [string, string][]) {
+        writeFileSync(join(dir, name), text);
+      }
+      writeFileSync(join(dir, 'package.json'), JSON.stringify(manifest));
+    };
+
+    it('read from package.json: the five parts (a missing one is null), and the title the skill gave', async () => {
+      await putProfile('# Quem sou');
+      const view = (await apply({ job: 'Primeira linha do anúncio' })).json() as View;
+      expect(view.package).toBeNull();
+      writePackage(view.guidedId);
+      expect((await inject('GET', `/api/upwork/applications/${view.id}`)).json()).toMatchObject({
+        title: 'React dashboard — logistics',
+        package: { verdict: 'apply', language: 'en', analysis: '**Vale a pena: sim.**', coverLetter: 'Your dispatchers need…', clientQuestions: null },
+        packageError: null,
+      });
+    });
+
+    it('an invalid package.json, or one naming a file outside the folder, is packageError — and nothing outside is read', async () => {
+      await putProfile('# Quem sou');
+      const view = (await apply({ job: 'Job' })).json() as View;
+      writeFileSync(join(dataDir, 'secret.md'), 'segredo');
+      for (const [manifest, field] of [
+        [{ ...PACKAGE, files: { ...PACKAGE.files, analysis: '../../secret.md' } }, 'files.analysis'],
+        [{ ...PACKAGE, files: { ...PACKAGE.files, plan: 'C:\\\\x\\\\plan.md' } }, 'files.plan'],
+        [{ ...PACKAGE, verdict: 'yes' }, 'verdict'],
+        [{ ...PACKAGE, version: 2 }, 'version'],
+      ] as const) {
+        writePackage(view.guidedId, manifest);
+        const read = (await inject('GET', `/api/upwork/applications/${view.id}`)).json() as View & { packageError: string };
+        expect(read.package).toBeNull();
+        expect(read.packageError).toContain(field);
+        expect(JSON.stringify(read)).not.toContain('segredo');
+      }
+    });
+
+    it('PATCH to sent pauses the session (its terminal stops); Pausar does the same; another status does not', async () => {
+      await putProfile('# Quem sou');
+      const view = (await apply({ job: 'Job' })).json() as View;
+      expect(((await inject('PATCH', `/api/upwork/applications/${view.id}`, { status: 'interview' })).json() as View).guided!.status).not.toBe('stopped');
+      expect(((await inject('PATCH', `/api/upwork/applications/${view.id}`, { status: 'sent' })).json() as View).guided!.status).toBe('stopped');
+      // Paused already: fine.
+      expect(((await inject('POST', `/api/upwork/applications/${view.id}/pause`)).json() as View).guided!.status).toBe('stopped');
+    });
+
+    it('message to a paused application: resumes (--resume), waits for SessionStart and a quiet screen, then pastes', async () => {
+      await putProfile('# Quem sou');
+      const view = (await apply({ job: 'Job' })).json() as View;
+      await inject('POST', `/api/upwork/applications/${view.id}/pause`);
+      const sessionDir = join(dataDir, GUIDED_FILES.dir, view.guidedId);
+      // The conversation the real claude would have saved: so the reopen is a --resume.
+      const { claudeSessionId } = JSON.parse(readFileSync(join(sessionDir, 'meta.json'), 'utf8')) as { claudeSessionId: string };
+      const transcripts = new ClaudeSessions(claudeConfig).folderOf(workflow);
+      mkdirSync(transcripts, { recursive: true });
+      writeFileSync(join(transcripts, `${claudeSessionId}.jsonl`), '');
+      // What the guided hook writes when the real claude starts up.
+      const sessionStart = setTimeout(() => writeFileSync(join(sessionDir, 'event.json'), JSON.stringify({ event: 'SessionStart', at: new Date().toISOString() })), 500);
+      try {
+        const response = await inject('POST', `/api/upwork/applications/${view.id}/message`, { text: '  O cliente respondeu: olá  ' });
+        expect(response.statusCode).toBe(204);
+      } finally {
+        clearTimeout(sessionStart);
+      }
+      const { args } = claude.launches.at(-1)!;
+      expect(args).toEqual(expect.arrayContaining(['--resume', '--permission-mode', 'default']));
+      expect(args!.join(' ')).not.toContain('/upwork-proposal');
+      const read = (await inject('GET', `/api/upwork/applications/${view.id}`)).json() as View;
+      expect(read.guided!.status).not.toBe('stopped');
+      expect((await inject('POST', `/api/upwork/applications/${view.id}/message`, { text: '' })).statusCode).toBe(400);
+    });
+
+    it('archive: the package is copied, the session closed and deleted, the title kept; then UPWORK_004/005', async () => {
+      await putProfile('# Quem sou');
+      const view = (await apply({ job: 'Primeira linha' })).json() as View;
+      writePackage(view.guidedId);
+      const archived = await inject('POST', `/api/upwork/applications/${view.id}/archive`);
+      expect(archived.statusCode).toBe(200);
+      expect(archived.json()).toMatchObject({ archived: true, guidedId: null, guided: null, title: 'React dashboard — logistics', package: { coverLetter: 'Your dispatchers need…' } });
+      opened.splice(opened.indexOf(view.guidedId), 1);
+      expect(existsSync(join(dataDir, GUIDED_FILES.dir, view.guidedId))).toBe(false);
+      const record = JSON.parse(readFileSync(join(dataDir, UPWORK_FILES.dir, UPWORK_FILES.applications, view.id, UPWORK_FILES.record), 'utf8'));
+      expect(record.title).toBe('React dashboard — logistics');
+
+      expect(((await inject('GET', '/api/upwork/applications')).json() as View[]).map((v) => v.id)).not.toContain(view.id);
+      expect(((await inject('GET', '/api/upwork/applications?archived=true')).json() as View[]).map((v) => v.id)).toContain(view.id);
+      expect((await inject('PATCH', `/api/upwork/applications/${view.id}`, { notes: 'x' })).json()).toMatchObject({ errorCode: 'UPWORK_004' });
+      expect((await inject('POST', `/api/upwork/applications/${view.id}/archive`)).json()).toMatchObject({ errorCode: 'UPWORK_004' });
+      expect((await inject('POST', `/api/upwork/applications/${view.id}/pause`)).json()).toMatchObject({ errorCode: 'UPWORK_004' });
+      expect((await inject('POST', `/api/upwork/applications/${view.id}/message`, { text: 'olá' })).json()).toMatchObject({ errorCode: 'UPWORK_005' });
+    });
+
+    it('DELETE: the record, its archived package and its session go; then 404', async () => {
+      await putProfile('# Quem sou');
+      const view = (await apply({ job: 'Job' })).json() as View;
+      const deleted = await app.inject({ method: 'DELETE', url: `/api/upwork/applications/${view.id}`, headers: { cookie } });
+      expect(deleted.statusCode).toBe(204);
+      opened.splice(opened.indexOf(view.guidedId), 1);
+      expect(existsSync(join(dataDir, UPWORK_FILES.dir, UPWORK_FILES.applications, view.id))).toBe(false);
+      expect(existsSync(join(dataDir, GUIDED_FILES.dir, view.guidedId))).toBe(false);
+      expect((await inject('GET', `/api/upwork/applications/${view.id}`)).json()).toMatchObject({ errorCode: 'UPWORK_001' });
+    });
   });
 
   it('a session removed by hand leaves the application readable, with guided null', async () => {

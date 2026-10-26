@@ -90,7 +90,7 @@ isso há os outros:
 
 | Camada | Ficheiros |
 |---|---|
-| **Backend** | `backend/src/upwork/` — `upwork.routes.ts` · `upworkService.ts` (perfil, registo, a sessão guiada `upwork`) · `upwork.schemas.ts` (o registo, os corpos, `ApplicationView`) · `upworkFiles.ts` (caminhos, modelo do perfil, `job.md`) · o propósito em `terminals/claudeArgs.ts` (`GUIDED_COMMANDS.upwork`) e a regra `WebFetch` no hook de `guided/guidedFiles.ts` |
+| **Backend** | `backend/src/upwork/` — `upwork.routes.ts` · `upworkService.ts` (perfil, registo, a sessão guiada `upwork`, pausar, arquivar) · `packageReader.ts` (o `package.json` da skill) · `upwork.schemas.ts` (o registo, os corpos, `ApplicationView`) · `upworkFiles.ts` (caminhos, modelo do perfil, `job.md`) · o propósito em `terminals/claudeArgs.ts` (`GUIDED_COMMANDS.upwork`) e a regra `WebFetch` no hook de `guided/guidedFiles.ts` |
 | **Dados** | `DATA_DIR/upwork/` ([[database]]) · do outro lado, `WORKFLOW_PATH/docs/skills/skill-upwork-proposal.md` |
 | **Frontend** | por fazer (spec passos 7-9) — só `errors/errorMessages.ts` (`UPWORK_*`) e `types/guided.ts` (`purpose`) |
 | **Detalhe** | [[api]] → "Upwork" |

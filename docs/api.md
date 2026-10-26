@@ -265,15 +265,22 @@ A conversa (perguntas, permissões, feed, modo) passa por `/api/guided`. **Nenhu
 | GET | `/api/upwork/applications?archived=true\|false` | — | `200 ApplicationView[]`, mais recente primeiro (omissão `false`) | `AUTH_002` · `COMMON_001` |
 | POST | `/api/upwork/applications` | `{job (1–20 000), screeningQuestions?: string[] (≤ 15, cada 1–1000), url?}` — `url` só `https://www.upwork.com/…`, guardado como link e **fora** do `job.md` | `201 ApplicationView` — o registo e a sessão guiada (`job.md` + cópia do `profile.md`) | `AUTH_002` · `COMMON_001` · `UPWORK_002` · `LIBRARY_001` · `TERMINAL_002` · `TERMINAL_005` · `TERMINAL_007` |
 | GET | `/api/upwork/applications/:id` | — | `200 ApplicationView` | `AUTH_002` · `UPWORK_001` |
-| PATCH | `/api/upwork/applications/:id` | `{status?, clientName?, connectsSpent? (0–500), notes? (≤ 8000), url?}` — pelo menos um | `200 ApplicationView` — um `status` diferente junta-se ao `history` | `AUTH_002` · `COMMON_001` · `UPWORK_001` · `UPWORK_004` |
+| PATCH | `/api/upwork/applications/:id` | `{status?, clientName?, connectsSpent? (0–500), notes? (≤ 8000), url?}` — pelo menos um | `200 ApplicationView` — um `status` diferente junta-se ao `history`; passar a `sent` **pausa** a sessão | `AUTH_002` · `COMMON_001` · `UPWORK_001` · `UPWORK_004` |
+| POST | `/api/upwork/applications/:id/pause` | — | `200 ApplicationView` — fecha o terminal, a sessão fica (`stopped`); já parada não é erro | `AUTH_002` · `UPWORK_001` · `UPWORK_004` · `UPWORK_005` (sem sessão) |
+| POST | `/api/upwork/applications/:id/message` | `{text}` (1–8000) | `204` — numa sessão `stopped` **acorda-a** primeiro (`--resume`, espera pelo `SessionStart` e por 1 s de ecrã quieto — 3–6 s) e só depois cola; senão igual a `/api/guided/:id/message` | `AUTH_002` · `COMMON_001` · `UPWORK_001` · `UPWORK_005` · `GUIDED_004` (a trabalhar, ou não ficou pronta em 60 s — tentar de novo) · `TERMINAL_*` |
+| POST | `/api/upwork/applications/:id/archive` | — | `200 ApplicationView` — copia o pacote para `applications/<id>/package/`, fecha e apaga a sessão (`guidedId: null`), sai da lista por omissão | `AUTH_002` · `UPWORK_001` · `UPWORK_004` |
+| DELETE | `/api/upwork/applications/:id` | — | `204` — o registo, o pacote arquivado e a sessão | `AUTH_002` · `UPWORK_001` |
 
 - **`ApplicationView`** = o registo (`{id, title, url, clientName, status, history: {status, at}[], connectsSpent,
   notes, guidedId, agreement, creationGuidedId, projectPath, archived, createdAt, updatedAt}`) + `guided: GuidedView
-  | null` (`null` depois de arquivada, ou se a sessão foi fechada à mão) + `package` + `packageError` (por agora
-  sempre `null` — spec passo 5). `status`: `draft` · `sent` · `interview` · `offer` · `won` · `lost` · `withdrawn`,
-  livre (qualquer para qualquer).
-- Por fazer (spec passos 5-6): pausar ao marcar `sent`, `/pause`, `/message` (retoma sozinha), `/archive`, `DELETE`,
-  `/project`.
+  | null` (`null` depois de arquivada, ou se a sessão foi fechada à mão) + `package` + `packageError`. `title` é o do
+  `package.json` assim que existe (até lá, a 1.ª linha do anúncio). `status`: `draft` · `sent` · `interview` ·
+  `offer` · `won` · `lost` · `withdrawn`, livre (qualquer para qualquer).
+- **`PackageView`** = `{title, language, verdict: 'apply'|'maybe'|'skip', updatedAt, analysis, coverLetter, screening,
+  plan, clientQuestions}` — cada parte o Markdown do ficheiro (≤ 50 000; em falta → `null`), lido do `package.json` da
+  sessão (ou da cópia arquivada). Um `package.json` inválido, ou que nomeie um ficheiro com pasta → `package: null` e
+  `packageError` com o campo.
+- Por fazer (spec passo 6): `/project`.
 
 ## Sessões guiadas (`guided/`, `/api/guided`) — 🚧
 

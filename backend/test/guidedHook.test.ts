@@ -53,7 +53,7 @@ describe('guided --settings', () => {
       { matcher: 'WebFetch', hooks: [expect.not.objectContaining({ timeout: expect.anything() })] },
     ]);
     expect(settings.hooks.PermissionRequest[0].hooks[0].timeout).toBe(BLOCKING_HOOK_TIMEOUT_S);
-    expect(Object.keys(settings.hooks).sort()).toEqual(['Notification', 'PermissionRequest', 'PreToolUse', 'Stop', 'UserPromptSubmit']);
+    expect(Object.keys(settings.hooks).sort()).toEqual(['Notification', 'PermissionRequest', 'PreToolUse', 'SessionStart', 'Stop', 'UserPromptSubmit']);
     expect(settings.statusLine).toBeDefined();
   });
 });
@@ -80,6 +80,11 @@ describe('guided-hook.cjs', () => {
     expect(event(dir)).toBe('Stop');
     await runHook({ session_id: sessionId, hook_event_name: 'UserPromptSubmit', prompt: 'x' }).done;
     expect(event(dir)).toBe('UserPromptSubmit');
+    // After a --resume: the TUI is coming up (spec upwork step 5).
+    const started = await runHook({ session_id: sessionId, hook_event_name: 'SessionStart', source: 'resume' }).done;
+    expect(started).toEqual({ stdout: '', code: 0 });
+    expect(event(dir)).toBe('SessionStart');
+    await runHook({ session_id: sessionId, hook_event_name: 'UserPromptSubmit', prompt: 'x' }).done;
     const { stdout } = await runHook({ session_id: sessionId, hook_event_name: 'Notification', message: 'needs permission' }).done;
     expect(event(dir)).toBe('Notification');
     expect(stdout).toBe('');

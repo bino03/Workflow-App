@@ -5,7 +5,7 @@
 | **Estado** | 🚧 Em curso |
 | **Criada** | 2026-10-26 |
 | **Última sessão** | 2026-10-26 |
-| **Passos** | 4 / 11 concluídos |
+| **Passos** | 5 / 11 concluídos |
 
 > Escrita para uma sessão que **não viu a conversa que a originou**. Se algo só faz sentido com contexto
 > externo, falta escrevê-lo.
@@ -328,7 +328,7 @@ Ordem obrigatória. Tiers: `opus` (desenho, não delegar) · `sonnet` (implement
   - Tier: `sonnet`
   - Aceite quando: GET/PUT do perfil (com o modelo inicial), POST cria registo + sessão guiada (com `GuidedService` real e o `claude` falso dos testes), GET lista/um, PATCH com histórico, `UPWORK_002` sem perfil, `url` que não é `https://www.upwork.com/` → `COMMON_001`; `npm test` verde.
 
-- [ ] **5. Pacote, conversa retomada, pausa, arquivo**
+- [x] **5. Pacote, conversa retomada, pausa, arquivo**
   - Ficheiros: `backend/src/upwork/{upworkService,upwork.routes,packageReader}.ts`, `backend/test/{upworkService,upwork.routes}.test.ts`
   - Skill: nenhuma de backend no projeto — seguir [[../backend-conventions]]
   - Tier: `sonnet`
@@ -392,12 +392,19 @@ com as secções do §7), POST/GET/lista/PATCH das candidaturas. `upwork.routes.
 `claude` falso) e as rotas chamadas **por HTTP** numa instância de verificação (`--git-workflow`): 401 sem sessão,
 modelo, `UPWORK_002`, URL fora da Upwork → 400, 201 com `job.md` **sem** o URL, histórico `draft → sent`, 404.
 Docs: `api` (secção Upwork), `database`, `code-map`. `ApplicationView` já traz `package`/`packageError` (`null`).
+Passo 5 (2026-10-26) — `packageReader.ts` (manifesto com zod, só nomes `.md` sem pastas, partes ≤ 50 000), título
+do `package.json`, `PATCH sent` e `/pause` → `guided.suspend`, `/message`, `/archive` (cópia para `package/`,
+sessão apagada), `DELETE`. **Retomar ao escrever** (desvio ao desenho: ficou no `GuidedService.message`, para os
+propósitos sem fim — a `ReplyBox` genérica também serve): `wake` = `reopen` **sem** o `Stop` sintético, esperar pelo
+evento `SessionStart` (hook novo nas sessões guiadas) e por 1 s de ecrã quieto (`TerminalsService.waitForQuiet`),
+só então `Stop` + paste. Medido antes com o `claude` real (§7) e provado depois pelo caminho de produção (3/3).
+Testes: +4 `guidedService`, +1 `terminalsService`, +6 `upwork.routes`, hook `SessionStart`.
 **Em curso:** —
-**Próxima ação concreta:** passo 5 — `packageReader.ts` (ler `package.json` com zod, recusar nomes com pastas),
-`PATCH status: 'sent'` → `guided.suspend`, `/pause`, `/message` (sessão `stopped` → `guided.resume`, esperar pelo
-`waiting-text`, depois `guided.message` — o `GuidedService.message` continua a dar `GUIDED_003` a sessões paradas),
-`/archive` (copiar o pacote para `applications/<id>/package/`, `guided.remove`, `guidedId: null`) e `DELETE`.
-O título passa a vir do `package.json` quando ele chega (§4.1).
+**Próxima ação concreta:** passo 6 — `POST /api/upwork/applications/:id/project`: só `won` (`UPWORK_003`), grava
+`agreement`, compõe o brief (anúncio + `cover-letter.md` + `plan.md` + acordo) e chama o `CreationService` por dentro
+com limite 60 000; `projectPath` copiado do `result.json` da criação quando existe.
+**Atenção:** uma sessão sem `.jsonl` (o `claude` nunca gravou nada) não se retoma: o `reopen` arranca uma conversa
+nova com o mesmo UUID e **sem** o prompt da skill. Na prática a skill grava sempre o 1.º turno; fica anotado.
 **Desvios ao plano:** (1) o URL do job **não vai para o `job.md`** — a skill não precisa dele; (2) nas sessões
 `upwork` o hook guiado **recusa `WebFetch` a hosts `upwork.com`** (a allowlist do Workflow aprova `WebFetch`) —
 os dois no ADR 0022, o (2) acrescentado ao passo 3; (3) a entrada **Upwork** no header fica **à esquerda de
@@ -414,7 +421,7 @@ nem na skill abre a Upwork. Não editar o backend a partir de um terminal servid
 |---|---|---|
 | ~~O modelo inicial do `profile.md`~~ | — | **Resolvido (2026-10-26, dono):** a proposta — Quem sou · Título · Competências · Projetos (nome, o que fiz, link) · Disponibilidade · Tom · Nunca prometer |
 | ~~Onde fica a entrada no header?~~ | — | **Resolvido (2026-10-26, dono):** **Upwork** fica **à esquerda de "Novo projeto"** no header (passo 7) |
-| Quanto tempo esperar pelo `waiting-text` ao retomar antes de escrever (`/message` numa sessão parada)? | Passo 5 | Medir: o `--resume` de uma conversa longa. Se passar o limite, devolver `GUIDED_004` e a UI tenta de novo |
+| ~~Quanto tempo esperar ao retomar antes de escrever?~~ | — | **Resolvido (2026-10-26, medido com o `claude` real):** não é tempo, é um sinal — colar logo no `SessionStart` ou logo a seguir ao spawn **perde-se**; depois do `SessionStart` + 1 s de ecrã quieto entra (4/4 na medição, 3/3 pelo caminho de produção; 2,7–5,7 s). Limite 60 s → `GUIDED_004`, e a nova tentativa cola |
 | ~~Connects/Boost em números?~~ | — | **Resolvido (2026-10-26, dono):** só qualitativo ("vale gastar / Boost compensa / não compensa") — os valores mudam |
 
 ## Relacionado

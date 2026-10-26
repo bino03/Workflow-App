@@ -1,7 +1,8 @@
 import { randomUUID } from 'node:crypto';
-import { existsSync, mkdirSync, readFileSync, readdirSync, rmSync, statSync } from 'node:fs';
+import { copyFileSync, existsSync, mkdirSync, readFileSync, readdirSync, rmSync, statSync } from 'node:fs';
 import { join } from 'node:path';
 import { AppError } from '../common/errors.js';
+import { GUIDED_FILES } from '../guided/guidedFiles.js';
 import type { GuidedView } from '../guided/guided.schemas.js';
 import type { GuidedService } from '../guided/guidedService.js';
 import { isUuid } from '../sessions/claudeSessions.js';
@@ -14,13 +15,14 @@ import {
   type ProfileView,
   applicationSchema,
 } from './upwork.schemas.js';
+import { packageFiles, readPackage } from './packageReader.js';
 import { PROFILE_TEMPLATE, UPWORK_FILES, jobMarkdown, titleFromJob, upworkPaths } from './upworkFiles.js';
 
 export type UpworkServiceDeps = {
   dataDir: string;
   /** The Workflow: where `/upwork-proposal` runs. */
   workflowPath: string;
-  guided: Pick<GuidedService, 'start' | 'get' | 'remove'>;
+  guided: Pick<GuidedService, 'start' | 'get' | 'remove' | 'suspend' | 'message'>;
   now?: () => Date;
 };
 
@@ -120,9 +122,93 @@ export class UpworkService {
     if (record.archived) throw new AppError('UPWORK_004');
     const at = this.now().toISOString();
     const next: Application = { ...record, ...changes, updatedAt: at };
-    if (changes.status !== undefined && changes.status !== record.status) next.history = [...record.history, { status: changes.status, at }];
+    const statusChanged = changes.status !== undefined && changes.status !== record.status;
+    if (statusChanged) next.history = [...record.history, { status: changes.status!, at }];
     await this.write(next);
+    // Sent: nothing happens for days — the session pauses and gives its terminal back (ADR 0022 point 4).
+    if (statusChanged && changes.status === 'sent') await this.pauseSession(next);
     return this.view(next);
+  }
+
+  /** Pausar: the terminal closes, the session stays; writing in the conversation wakes it. */
+  async pause(id: string): Promise<ApplicationView> {
+    const record = this.open(id);
+    if (!(await this.pauseSession(record))) throw new AppError('UPWORK_005');
+    return this.view(record);
+  }
+
+  /** The owner writes in the conversation; a paused session wakes up first (GuidedService.message). */
+  async message(id: string, text: string): Promise<void> {
+    const record = this.record(id);
+    if (record.guidedId === null) throw new AppError('UPWORK_005');
+    try {
+      await this.deps.guided.message(record.guidedId, text);
+    } catch (error) {
+      if (error instanceof AppError && error.code === 'GUIDED_001') throw new AppError('UPWORK_005');
+      throw error;
+    }
+  }
+
+  /**
+   * Arquivar: the package is copied to `applications/<id>/package/` (it outlives the session), the session is closed
+   * and deleted, and the application leaves the default list. The title the skill gave stays.
+   */
+  async archive(id: string): Promise<ApplicationView> {
+    const record = this.open(id);
+    const next: Application = { ...record, archived: true, guidedId: null, updatedAt: this.now().toISOString() };
+    if (record.guidedId !== null) {
+      const sessionDir = this.sessionDirOf(record.guidedId);
+      const target = this.packageDirOf(record.id);
+      const files = packageFiles(sessionDir);
+      if (files.length > 0) {
+        mkdirSync(target, { recursive: true });
+        for (const name of files) copyFileSync(join(sessionDir, name), join(target, name));
+      }
+      next.title = readPackage(sessionDir).package?.title ?? record.title;
+      await this.write(next);
+      await this.removeSession(record.guidedId);
+    } else {
+      await this.write(next);
+    }
+    return this.view(next);
+  }
+
+  /** Apagar: the record, its archived package and its session — nothing stays. */
+  async remove(id: string): Promise<void> {
+    const record = this.record(id);
+    if (record.guidedId !== null) await this.removeSession(record.guidedId);
+    rmSync(this.paths.folderOf(record.id), { recursive: true, force: true });
+  }
+
+  /** An application that can still change. */
+  private open(id: string): Application {
+    const record = this.record(id);
+    if (record.archived) throw new AppError('UPWORK_004');
+    return record;
+  }
+
+  /** false when there is no session to pause (archived, or closed by hand). Already stopped is fine. */
+  private async pauseSession(record: Application): Promise<boolean> {
+    const guided = this.guidedOf(record);
+    if (guided === null) return false;
+    if (guided.status !== 'stopped') await this.deps.guided.suspend(guided.id);
+    return true;
+  }
+
+  private async removeSession(guidedId: string): Promise<void> {
+    try {
+      await this.deps.guided.remove(guidedId);
+    } catch (error) {
+      if (!(error instanceof AppError && error.code === 'GUIDED_001')) throw error;
+    }
+  }
+
+  private sessionDirOf(guidedId: string): string {
+    return join(this.deps.dataDir, GUIDED_FILES.dir, guidedId);
+  }
+
+  private packageDirOf(id: string): string {
+    return join(this.paths.folderOf(id), 'package');
   }
 
   private record(id: string): Application {
@@ -158,6 +244,10 @@ export class UpworkService {
   private view(record: Application, guided?: GuidedView): ApplicationView {
     const rest: Omit<Application, 'version'> & { version?: 1 } = { ...record };
     delete rest.version;
-    return { ...rest, guided: guided ?? this.guidedOf(record), package: null, packageError: null };
+    // While the session lives, the package is in its folder; once archived, in the application's own copy.
+    const read = readPackage(record.guidedId !== null ? this.sessionDirOf(record.guidedId) : this.packageDirOf(record.id));
+    // Until the skill names the job, the first line of the post (§4.1).
+    const title = read.package?.title ?? record.title;
+    return { ...rest, title, guided: guided ?? this.guidedOf(record), package: read.package, packageError: read.error };
   }
 }

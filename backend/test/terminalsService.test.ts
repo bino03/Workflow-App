@@ -352,4 +352,20 @@ describe('TerminalsService', () => {
       expect(stateStore.read().terminals).toEqual([]);
     });
   });
+
+  describe('waitForQuiet (spec upwork step 5)', () => {
+    it('false while the screen keeps changing, true once it has been quiet long enough; false for a terminal that is not there', async () => {
+      const view = await service.create({ cwd: project, mode: 'new', ...size });
+      await waitFor(() => manager.get(view.id)?.status === 'running');
+      // The fake echoes what it gets: typing every 50 ms keeps the screen busy.
+      const typing = setInterval(() => manager.write(view.id, 'x'), 50);
+      try {
+        expect(await service.waitForQuiet(view.id, { quietMs: 300, timeoutMs: 800 })).toBe(false);
+      } finally {
+        clearInterval(typing);
+      }
+      expect(await service.waitForQuiet(view.id, { quietMs: 300, timeoutMs: 3000 })).toBe(true);
+      expect(await service.waitForQuiet('00000000-0000-4000-8000-000000000000', { quietMs: 10, timeoutMs: 100 })).toBe(false);
+    });
+  });
 });

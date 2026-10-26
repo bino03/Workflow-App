@@ -22,6 +22,8 @@ function fakeTerminals() {
     revealed: [],
   };
   const status = new Map<string, TerminalView['status']>();
+  /** What waitForQuiet answers: the screen settles (true) or not in time (false). */
+  const screen = { quiet: true };
   const view = (id: string) => ({ id, status: status.get(id) ?? 'stopped' }) as TerminalView;
   const terminals: Terminals = {
     createGuided: async (request) => {
@@ -43,13 +45,14 @@ function fakeTerminals() {
       return { ...view(id), freshSession: false };
     },
     paste: async (id, text) => void calls.pasted.push({ id, text }),
+    waitForQuiet: async (id) => screen.quiet && status.get(id) === 'running',
     stop: async (id) => {
       calls.stopped.push(id);
       status.set(id, 'stopped');
       return view(id);
     },
   };
-  return { terminals, calls, status };
+  return { terminals, calls, status, screen };
 }
 
 const ALIVE = 1111;
@@ -63,7 +66,13 @@ describe('GuidedService', () => {
   beforeEach(() => {
     dataDir = mkdtempSync(join(tmpdir(), 'wfa-guided-service-'));
     fake = fakeTerminals();
-    service = new GuidedService({ dataDir, terminals: fake.terminals, sessions: { fileOf: (cwd, id) => join(dataDir, 'claude', id + '.jsonl') }, isAlive: (pid) => pid === ALIVE });
+    service = new GuidedService({
+      dataDir,
+      terminals: fake.terminals,
+      sessions: { fileOf: (cwd, id) => join(dataDir, 'claude', id + '.jsonl') },
+      isAlive: (pid) => pid === ALIVE,
+      wake: { timeoutMs: 400, quietMs: 10 },
+    });
   });
   afterEach(() => removeDir(dataDir));
 
@@ -286,6 +295,63 @@ describe('GuidedService', () => {
       expect(existsSync(join(dirOf(id), 'job.md'))).toBe(true);
       expect((await service.resume(id, { cols: 120, rows: 40 })).status).toBe('waiting-text');
       expect(fake.calls.reopened).toEqual([terminalId]);
+    });
+
+    /** The real claude fires SessionStart a moment after the --resume (measured: 1.5–4 s). */
+    function reopenFiresSessionStart(id: string, afterMs = 30) {
+      const reopen = fake.terminals.reopen;
+      fake.terminals.reopen = async (terminalId, size) => {
+        const view = await reopen(terminalId, size);
+        setTimeout(() => setEvent(id, 'SessionStart'), afterMs);
+        return view;
+      };
+    }
+
+    it('message to a paused session: --resume, wait for SessionStart and a quiet screen, then paste', async () => {
+      const { id, terminalId } = await upwork();
+      writePending(id, { ...question(), pid: DEAD });
+      await service.suspend(id);
+      reopenFiresSessionStart(id);
+      await service.message(id, 'O cliente respondeu:\nolá');
+      expect(fake.calls.reopened).toEqual([terminalId]);
+      expect(fake.calls.pasted).toEqual([{ id: terminalId, text: 'O cliente respondeu:\nolá' }]);
+      expect(readdirSync(dirOf(id)).some((n) => n.startsWith('pending-'))).toBe(false);
+      // The hook's UserPromptSubmit follows: a second message right away waits for the turn.
+      await expect(service.message(id, 'outra')).rejects.toMatchObject({ code: 'GUIDED_004' });
+    });
+
+    it('no SessionStart, or a screen that never settles, in time → GUIDED_004 and nothing pasted; the retry goes through', async () => {
+      const { id, terminalId } = await upwork();
+      await service.suspend(id);
+      await expect(service.message(id, 'olá')).rejects.toMatchObject({ code: 'GUIDED_004' });
+      expect(fake.calls.pasted).toEqual([]);
+      // Running and marked waiting: the owner's retry pastes.
+      expect(service.get(id).status).toBe('waiting-text');
+      await service.message(id, 'olá');
+      expect(fake.calls.pasted).toEqual([{ id: terminalId, text: 'olá' }]);
+
+      await service.suspend(id);
+      reopenFiresSessionStart(id);
+      fake.screen.quiet = false;
+      await expect(service.message(id, 'de novo')).rejects.toMatchObject({ code: 'GUIDED_004' });
+      expect(fake.calls.pasted).toHaveLength(1);
+    });
+
+    it('a second message while the first is waking the session is refused, not pasted twice', async () => {
+      const { id } = await upwork();
+      await service.suspend(id);
+      reopenFiresSessionStart(id, 100);
+      const first = service.message(id, 'um');
+      await expect(service.message(id, 'dois')).rejects.toMatchObject({ code: 'GUIDED_004' });
+      await first;
+      expect(fake.calls.pasted.map((p) => p.text)).toEqual(['um']);
+    });
+
+    it('a paused create session does not wake on a message: GUIDED_003, as before', async () => {
+      const { id } = await started();
+      await service.suspend(id);
+      await expect(service.message(id, 'olá')).rejects.toMatchObject({ code: 'GUIDED_003' });
+      expect(fake.calls.reopened).toEqual([]);
     });
   });
 

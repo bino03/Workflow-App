@@ -233,6 +233,26 @@ export class TerminalsService {
     this.deps.terminalManager.write(id, '\r');
   }
 
+  /**
+   * Resolves true once the terminal has printed nothing for `quietMs` (the TUI finished drawing), false if that does
+   * not happen within `timeoutMs` or the terminal is not there. A resumed guided session only takes a paste then.
+   */
+  async waitForQuiet(id: string, { quietMs, timeoutMs }: { quietMs: number; timeoutMs: number }): Promise<boolean> {
+    let lastOutputAt = Date.now();
+    const subscription = this.deps.terminalManager.attach(id, { onData: () => void (lastOutputAt = Date.now()), onExit: () => {} });
+    if (!subscription) return false;
+    try {
+      const deadline = Date.now() + timeoutMs;
+      while (Date.now() < deadline) {
+        if (Date.now() - lastOutputAt >= quietMs) return this.deps.terminalManager.get(id)?.status === 'running';
+        await new Promise((resolve) => setTimeout(resolve, 100));
+      }
+      return false;
+    } finally {
+      subscription.detach();
+    }
+  }
+
   /** Makes a hidden terminal a normal one in the grid ("Ver terminal"). */
   reveal(id: string): TerminalView {
     if (!this.saved(id)) throw new AppError('TERMINAL_001');

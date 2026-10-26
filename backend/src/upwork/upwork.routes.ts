@@ -1,5 +1,6 @@
 import type { FastifyInstance } from 'fastify';
 import { parseWith } from '../common/validation.js';
+import { messageBodySchema } from '../guided/guided.schemas.js';
 import { createApplicationSchema, listQuerySchema, patchApplicationSchema, profileBodySchema } from './upwork.schemas.js';
 import type { UpworkService } from './upworkService.js';
 
@@ -32,4 +33,20 @@ export async function upworkRoutes(app: FastifyInstance, { upworkService }: Upwo
   app.patch<IdParams>('/api/upwork/applications/:id', async (request) =>
     upworkService.patch(request.params.id, parseWith(patchApplicationSchema, request.body)),
   );
+
+  app.post<IdParams>('/api/upwork/applications/:id/pause', async (request) => upworkService.pause(request.params.id));
+
+  // A paused session wakes up first: the request lasts the few seconds the resume takes (ADR 0022 point 4).
+  app.post<IdParams>('/api/upwork/applications/:id/message', async (request, reply) => {
+    await upworkService.message(request.params.id, parseWith(messageBodySchema, request.body).text);
+    return reply.status(204).send();
+  });
+
+  app.post<IdParams>('/api/upwork/applications/:id/archive', async (request) => upworkService.archive(request.params.id));
+
+  app.delete<IdParams>('/api/upwork/applications/:id', async (request, reply) => {
+    await upworkService.remove(request.params.id);
+    request.log.info({ applicationId: request.params.id }, 'upwork application deleted');
+    return reply.status(204).send();
+  });
 }

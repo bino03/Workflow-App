@@ -29,7 +29,9 @@ const PENDING_FILE = /^pending-([0-9a-f-]{36})\.json$/i;
 
 export type GuidedServiceDeps = {
   dataDir: string;
-  terminals: Pick<TerminalsService, 'createGuided' | 'get' | 'reveal' | 'close' | 'reopen' | 'paste' | 'stop'>;
+  terminals: Pick<TerminalsService, 'createGuided' | 'get' | 'reveal' | 'close' | 'reopen' | 'paste' | 'stop' | 'waitForQuiet'>;
+  /** Waking a paused session (ADR 0022): how long for SessionStart and then the quiet screen. Tests shorten it. */
+  wake?: { timeoutMs: number; quietMs: number };
   /** Where the session's .jsonl is (ClaudeSessions.fileOf). */
   sessions: Pick<ClaudeSessions, 'fileOf'>;
   feed?: TranscriptFeed;
@@ -58,6 +60,12 @@ const EXTRA_FILE = /^[a-z0-9][a-z0-9-]*\.md$/;
 const OPEN_ENDED: readonly GuidedPurpose[] = ['upwork'];
 
 /**
+ * Measured with the real claude (spec upwork step 5, 4 of 4): a paste right at SessionStart, or right after the spawn,
+ * is lost; after SessionStart and then 1 s of a quiet screen it lands (2.9–5.7 s after the spawn).
+ */
+const DEFAULT_WAKE = { timeoutMs: 60_000, quietMs: 1000 };
+
+/**
  * Guided sessions (ADR 0020): a hidden terminal driven through blocking hooks. A session **is** its folder,
  * `DATA_DIR/guided/<id>/`, and its status is never stored — it is derived from the result, the terminal, the
  * pending requests and the last hook event. Generic: it does not know what `/create` asks.
@@ -66,8 +74,12 @@ export class GuidedService {
   private readonly now: () => Date;
   private readonly isAlive: (pid: number) => boolean;
   private readonly feedReader: TranscriptFeed;
+  private readonly wakeTiming: { timeoutMs: number; quietMs: number };
+  /** Sessions being woken by a message: a second message meanwhile is refused, not pasted twice. */
+  private readonly waking = new Set<string>();
 
   constructor(private readonly deps: GuidedServiceDeps) {
+    this.wakeTiming = deps.wake ?? DEFAULT_WAKE;
     this.now = deps.now ?? (() => new Date());
     this.isAlive = deps.isAlive ?? processIsAlive;
     this.feedReader = deps.feed ?? new TranscriptFeed();
@@ -202,6 +214,9 @@ export class GuidedService {
    */
   async message(id: string, text: string): Promise<void> {
     const meta = this.meta(id);
+    if (this.waking.has(meta.id)) throw new AppError('GUIDED_004');
+    // A paused session that never ends (ADR 0022) wakes up for the message: writing is how the owner comes back.
+    if (OPEN_ENDED.includes(meta.purpose) && this.view(meta).status === 'stopped') await this.wake(meta);
     const view = this.view(meta);
     if (view.status === 'stopped' || view.status === 'done' || view.status === 'failed') throw new AppError('GUIDED_003');
     if (view.status !== 'waiting-text' && view.status !== 'needs-you') throw new AppError('GUIDED_004');
@@ -220,6 +235,30 @@ export class GuidedService {
     await this.deps.terminals.reopen(meta.terminalId, size);
     this.writeEvent(meta.id, 'Stop');
     return this.view(meta);
+  }
+
+  /**
+   * `--resume` and wait until the TUI takes a paste: the real SessionStart, then a quiet screen (DEFAULT_WAKE). Unlike
+   * `resume`, no Stop is written up front — the session shows as working until it is ready. Not ready in time → the
+   * Stop is written anyway (the TUI is up, only slow) and GUIDED_004, so the owner's retry goes through.
+   */
+  private async wake(meta: GuidedMeta): Promise<void> {
+    this.waking.add(meta.id);
+    try {
+      for (const file of this.pendingFiles(meta.id)) rmSync(join(this.dirOf(meta.id), file), { force: true });
+      rmSync(join(this.dirOf(meta.id), 'event.json'), { force: true });
+      await this.deps.terminals.reopen(meta.terminalId, HIDDEN_SIZE);
+      const { timeoutMs, quietMs } = this.wakeTiming;
+      const deadline = Date.now() + timeoutMs;
+      while (this.lastEvent(meta.id) !== 'SessionStart' && Date.now() < deadline) await new Promise((resolve) => setTimeout(resolve, 100));
+      const ready =
+        this.lastEvent(meta.id) === 'SessionStart' &&
+        (await this.deps.terminals.waitForQuiet(meta.terminalId, { quietMs, timeoutMs: Math.max(0, deadline - Date.now()) }));
+      this.writeEvent(meta.id, 'Stop');
+      if (!ready) throw new AppError('GUIDED_004');
+    } finally {
+      this.waking.delete(meta.id);
+    }
   }
 
   /**
