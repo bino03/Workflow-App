@@ -23,7 +23,7 @@ backend, com a subscrição Pro/Max já paga — nunca a API nem a Agent SDK ([[
 | Claude Code (`claude`) | — (binário instalado na máquina) | processo filho, um por terminal | — |
 | Biblioteca do Workflow | `WORKFLOW_PATH/library` | ficheiros Markdown; só leitura. O que entra vem da skill `/import` do Workflow num terminal escondido, e a app só faz o commit (ou repõe) a pedido do dono ([[adr/0019-importar-pelas-skills-do-workflow]]) | — |
 | Sessões gravadas do Claude Code | `~/.claude/projects/` | ficheiros `.jsonl`, só leitura | — |
-| Sessões guiadas (Novo projeto) | `backend/src/guided/` + `creation/` | o `claude` num terminal escondido, ligado à app por hooks **bloqueantes** (`guided-hook.cjs`) que esperam a resposta do dono em `DATA_DIR/guided/<id>/`; a conversa que a UI mostra lê-se do `.jsonl` ([[adr/0020-sessoes-guiadas]]) | — |
+| Sessões guiadas (Novo projeto, Upwork) | `backend/src/guided/` + `creation/` + `upwork/` | o `claude` num terminal escondido, ligado à app por hooks **bloqueantes** (`guided-hook.cjs`) que esperam a resposta do dono em `DATA_DIR/guided/<id>/`; a conversa que a UI mostra lê-se do `.jsonl` ([[adr/0020-sessoes-guiadas]]). As candidaturas Upwork são sessões guiadas **sem fim** (`upwork`): pausam (o terminal fecha) e acordam quando o dono escreve; o registo vive em `DATA_DIR/upwork/` e **nada fala com a Upwork** ([[adr/0022-seccao-upwork]]) | — |
 | Bot de Telegram (opcional) | `backend/src/telegram/` | dentro do backend; long polling à Bot API (só saída) | — |
 | App Claude (Remote Control) | — | os terminais lançados com `--remote-control` ligam-se à Anthropic (só saída) e continuam-se no telemóvel ([[adr/0017-bot-telegram-e-remote-control]]) | — |
 
@@ -125,12 +125,14 @@ frontend/
     ├── config/               ← apiBase.ts (único sítio com o endereço do backend, HTTP e ws://), drawer.ts (DRAWER_WIDTH)
     ├── layouts/AppLayout.tsx
     ├── contexts/  hooks/  services/  errors/  types/  terminal/xtermTheme.ts
-    ├── pages/                ← login/, TerminalsPage, LibraryPage, dev/ (só em dev)
+    ├── pages/                ← login/, TerminalsPage, LibraryPage, NewProjectPage, UpworkPage, dev/ (só em dev)
     └── components/
         ├── PrivateRoute.tsx
         ├── common/           ← ListActions, SectionCard, FieldError, Wordmark, PagePlaceholder
         ├── terminals/        ← 🚧 TerminalView (xterm.js + fit addon + WebSocket), lista/separadores
-        └── library/          ← ✅ LibraryEntryDrawer, MaturityTag, libraryFormat (a página é pages/LibraryPage)
+        ├── library/          ← ✅ LibraryEntryDrawer, MaturityTag, libraryFormat (a página é pages/LibraryPage)
+        ├── guided/           ← ✅ GuidedConversation (feed + cartões, sem terminal), partilhada pelo Novo projeto e a Upwork
+        └── upwork/           ← ✅ lista, detalhe (Pacote · Conversa · Dados), drawers Perfil / Nova candidatura
 ```
 
 O terminal é um componente à parte das convenções de formulários/drawers: um `TerminalView` por terminal

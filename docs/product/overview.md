@@ -46,6 +46,9 @@ A forma exata da UI (web/desktop) e os ecrãs ficam para desenhar mais tarde.
   a 2026-10-26: o ecrã **Novo projeto** mostra o `/create` real em mensagens e cartões, **sem** ler o ecrã da
   TUI — por hooks bloqueantes e pelo `.jsonl` ([[../adr/0020-sessoes-guiadas]], [[../features/novo-projeto-guiado]]).
   Fora continua o "modo polido" para um terminal qualquer.
+- **Qualquer contacto com a Upwork** (API, login, ler o anúncio pelo URL, enviar propostas): a secção Upwork entra por
+  colar e sai por copiar — a Upwork proíbe automação fora da API aprovada ([[../adr/0022-seccao-upwork]]). Também fora,
+  na v1: preço e milestones na proposta, o contrato em curso e estatísticas ([[../features/upwork]] §2).
 - Outros utilizadores / comercialização — reabre a decisão do motor.
 
 ## Como se sabe que funciona

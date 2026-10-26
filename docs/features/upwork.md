@@ -5,7 +5,7 @@
 | **Estado** | 🚧 Em curso |
 | **Criada** | 2026-10-26 |
 | **Última sessão** | 2026-10-26 |
-| **Passos** | 9 / 11 concluídos |
+| **Passos** | 10 / 11 concluídos |
 
 > Escrita para uma sessão que **não viu a conversa que a originou**. Se algo só faz sentido com contexto
 > externo, falta escrevê-lo.
@@ -358,7 +358,7 @@ Ordem obrigatória. Tiers: `opus` (desenho, não delegar) · `sonnet` (implement
   - Tier: `sonnet`
   - Aceite quando: nenhum terminal visível em nenhum momento (gerar, pausar, retomar, responder) — o separador Conversa é a mesma UI do Novo projeto; cartões com Copiar (copiam o Markdown cru); os cartões atualizam depois de uma revisão; Conversa reaproveita os componentes guiados; Dados com histórico; Pausar/Arquivar/Criar projeto (só `Ganha`)/Abrir projeto; Criar projeto leva a `/new-project` com a criação a correr.
 
-- [ ] **10. Verificação no browser com a skill simulada + docs**
+- [x] **10. Verificação no browser com a skill simulada + docs**
   - Ficheiros: cenário em scratchpad com `scripts/verify/instance.mjs` (skill simulada que escreve um pacote fixo); docs `api`, `database`, `security`, `architecture`, `code-map`, `product/use-cases`, `product/overview` (Fora de âmbito), `00-INDEX` se preciso
   - Skill: [[testing-and-verification]] · [[../commands]] → verificação
   - Tier: `sonnet` (a verificação corre **inline**, nunca num subagente)
@@ -855,11 +855,18 @@ Markdown cru — o Windows troca \n por \r\n), revisão atualiza o cartão, Paus
 pasta, Arquivar (pacote copiado, sessão apagada), arquivada só de leitura, Apagar (confirmado no backend). Consola limpa.
 Um falso positivo apanhado a meio: o primeiro cenário clicava no diálogo errado e dava "Apagar" por bom sem `DELETE` —
 agora cada diálogo é encontrado pelo título e o resultado é confirmado na API.
+Passo 10 (2026-10-26) — `scripts/verify/upwork.mjs` (versionado; instância com `--git-workflow`): o "Como sei que está bem
+feito" inteiro com a skill simulada — Perfil pelo drawer, Nova candidatura, pergunta da skill, pacote, Copiar, revisão,
+**Enviada** (com 12 Connects) pausa, escrever retoma, Entrevista → **Ganha** (histórico de 4), Criar projeto →
+`/new-project` com o brief, Abrir projeto, Arquivar, Apagar — **34/34**, consola limpa; `smoke.mjs` 6/6. A simulação
+(escrever os ficheiros da skill e do hook à mão) está descrita em `docs/commands.md`. A skill no cenário é simulada no
+próprio script, não no `instance.mjs` como o passo dizia — fica junto do cenário que a usa. Docs: `commands`,
+`architecture` (peça e árvore do frontend), `product/use-cases` (ecrã e caso de uso), `product/overview` (Fora de
+âmbito). `api`, `database` e `security` já tinham a Upwork desde os passos 3-6; `00-INDEX` não lista specs.
 **Em curso:** —
-**Próxima ação concreta:** passo 10 — boa parte da verificação já está feita nos cenários dos passos 7-9 (em scratchpad,
-não versionados: `upwork-step7/8/9.mjs`). Falta: decidir se o cenário do passo 9 passa a `scripts/verify/upwork.mjs`
-(versionado, como o `smoke.mjs`), e os docs `api` (já tem a secção), `database`, `security` (o `WebFetch` recusado, nada
-abre a Upwork), `architecture`, `product/use-cases`, `product/overview` (Fora de âmbito), `00-INDEX`.
+**Próxima ação concreta:** passo 11, **com o dono** — `/run`, preencher o Perfil a sério, escolher um anúncio verdadeiro,
+**Gerar** com o `/upwork-proposal` real, ler a carta (ajustes vão para a skill no Workflow) e colar uma mensagem de
+cliente na conversa. É a primeira vez que a skill corre invocada de verdade (o passo 2 seguiu-a à mão).
 **Atenção:** uma sessão sem `.jsonl` (o `claude` nunca gravou nada) não se retoma: o `reopen` arranca uma conversa
 nova com o mesmo UUID e **sem** o prompt da skill. Na prática a skill grava sempre o 1.º turno; fica anotado.
 **Desvios ao plano:** (1) o URL do job **não vai para o `job.md`** — a skill não precisa dele; (2) nas sessões

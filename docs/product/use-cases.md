@@ -21,6 +21,7 @@ Desenhados no `/choose-design` (2026-09-27) — protótipos em
 | Terminais | Navegação **por projeto** (lateral lista projetos do registo do Workflow, um separador tipo browser por projeto aberto — [[../features/separadores-de-projetos]]); dentro de um separador, sessões abertas com estado de cada uma, "+" cria logo um terminal novo nesse projeto (sem drawer), "Retomar" abre um modal só com as sessões gravadas dessa pasta (sem escolher pasta nem nome), fechar (confirmação), quota à vista. Dois modos: **foco dividido** (por omissão) e **grelha** — na grelha, quatro arranjos à escolha por projeto (3×2 · colunas · 2×2 · principal + laterais — [[../features/estilos-de-grelha]]) | ✅ desenhado |
 | Biblioteca | Stacks · Designs · Skills, pesquisa, filtro por maturidade, drawer de detalhe com o manifesto, upload de uma skill para uma stack | ✅ desenhado |
 | Login | Entrar (um só utilizador) | ✅ desenhado |
+| Upwork | Candidaturas: lista com estado (filtro, arquivadas) à esquerda, a candidatura aberta à direita — Pacote (análise, carta, triagem, plano, perguntas, cada um com Copiar), Conversa (a do Novo projeto, sem terminal), Dados (estado com histórico, cliente, Connects, link, notas); drawers Perfil e Nova candidatura ([[../features/upwork]]) | ✅ decidido (sem protótipo — segue o Novo projeto e o mestre-detalhe) |
 | Definições | Drawer no menu de utilizador: escolher o modo de layout dos terminais; mudar, remover e repor os atalhos de teclado ([[../features/atalhos-editaveis]]); passkeys | ✅ decidido (sem protótipo — segue o drawer do Novo terminal) |
 
 ## Casos de uso
@@ -56,6 +57,13 @@ Desenhados no `/choose-design` (2026-09-27) — protótipos em
   fechar o browser e voltar — a criação continua; **Ver terminal** mostra a sessão real a qualquer momento. No fim,
   o resumo e **Abrir projeto** levam-no aos Terminais com o projeto aberto ([[../features/novo-projeto-guiado]],
   [[../adr/0020-sessoes-guiadas]]).
+- O dono **candidata-se a um job da Upwork sem terminal**: **Upwork** → **Nova candidatura**, cola o anúncio e as
+  perguntas de triagem e carrega **Gerar**. O `/upwork-proposal` do Workflow escreve a análise "vale a pena?", a carta, as
+  respostas de triagem, o plano técnico e perguntas ao cliente, cada um num cartão com **Copiar**; o dono revê, pede
+  ajustes na conversa, copia e envia **na Upwork**. Marca o estado à mão (Enviada pausa a sessão; quando o cliente
+  responde, cola a mensagem na conversa e a sessão retoma sozinha), e quando ganha cola o acordo e carrega **Criar
+  projeto**, que abre o Novo projeto com tudo como brief. A app nunca abre nem lê a Upwork ([[../features/upwork]],
+  [[../adr/0022-seccao-upwork]]).
 
 ## Relacionado
 
