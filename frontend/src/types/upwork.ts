@@ -58,6 +58,9 @@ export type AttachmentsView = {
   missing: string[];
 };
 
+/** Preparar anexos (ADR 0025): a pasta com as cópias, os nomes copiados, os que faltavam, e se o Explorador abriu. */
+export type PreparedAttachments = { folder: string; files: string[]; skipped: string[]; opened: boolean };
+
 /** `updatedAt: null` = ainda não há perfil; o `markdown` é então o modelo inicial. */
 export type ProfileView = { markdown: string; updatedAt: string | null };
 

@@ -85,6 +85,12 @@ describe('loadConfig', () => {
     expect(issuesOf(testEnv({ PORTFOLIO_PATH: 'C:\\does\\not\\exist\\wfa' })).join()).toContain('does not exist');
   });
 
+  it('OPEN_FOLDERS: on by default, false turns it off, anything else refused', () => {
+    expect(loadConfig(testEnv()).openFolders).toBe(true);
+    expect(loadConfig(testEnv({ OPEN_FOLDERS: 'false' })).openFolders).toBe(false);
+    expect(issuesOf(testEnv({ OPEN_FOLDERS: 'no' })).join()).toContain('OPEN_FOLDERS');
+  });
+
   it('parses COOKIE_SECURE strictly', () => {
     expect(loadConfig(testEnv({ COOKIE_SECURE: 'true' })).auth.cookieSecure).toBe(true);
     expect(issuesOf(testEnv({ COOKIE_SECURE: 'yes' })).join()).toContain('COOKIE_SECURE');

@@ -23,12 +23,17 @@ import { type BriefMessage, PROFILE_TEMPLATE, UPWORK_FILES, jobMarkdown, project
 /** One screenshot to send: the file on disk and the name the Upwork should see. */
 export type AttachmentImage = { file: string; contentType: string; uploadName: string };
 
+/** Preparar anexos (ADR 0025): where the copies went, which were copied, which were not there, and if a window opened. */
+export type PreparedAttachments = { folder: string; files: string[]; skipped: string[]; opened: boolean };
+
 export type UpworkServiceDeps = {
   dataDir: string;
   /** The Workflow: where `/upwork-proposal` runs. */
   workflowPath: string;
   /** The portfolio whose screenshots the applications attach (ADR 0024); undefined = no images. */
   portfolioPath?: string;
+  /** Shows a folder to the owner (Preparar anexos, ADR 0025): false if it could not. Injected so tests open nothing. */
+  openFolder?: (folder: string) => boolean;
   guided: Pick<GuidedService, 'start' | 'get' | 'remove' | 'suspend' | 'message' | 'feed'>;
   /** Novo projeto: a won application becomes a creation of its own (spec upwork step 6). */
   creation: Pick<CreationService, 'create'>;
@@ -246,6 +251,35 @@ export class UpworkService {
     const extension = item.file.split('.').pop()!.toLowerCase();
     if (file === null) throw new AppError('UPWORK_006');
     return { file, contentType: IMAGE_TYPES[extension]!, uploadName: item.uploadName };
+  }
+
+  /**
+   * Preparar anexos (ADR 0025): the screenshots `attachments.json` lists, copied under their `uploadName` into the
+   * application's own `anexos/` (emptied first — what is there is the last preparation), and the folder shown in the
+   * Explorer, for the owner to drag them all into the Upwork at once. Also the record of what was sent.
+   */
+  prepareAttachments(id: string): PreparedAttachments {
+    const record = this.record(id);
+    const { data } = parseAttachments(this.packageDirFor(record));
+    if (!data || data.items.length === 0 || this.deps.portfolioPath === undefined) throw new AppError('UPWORK_007');
+    const folder = this.paths.attachmentsOf(record.id);
+    rmSync(folder, { recursive: true, force: true });
+    mkdirSync(folder, { recursive: true });
+    const files: string[] = [];
+    const skipped: string[] = [];
+    for (const item of data.items) {
+      const source = attachmentFile(this.deps.portfolioPath, item);
+      // Two items with the same name would overwrite each other: the first one stays.
+      if (source === null || files.includes(item.uploadName)) {
+        skipped.push(item.uploadName);
+        continue;
+      }
+      copyFileSync(source, join(folder, item.uploadName));
+      files.push(item.uploadName);
+    }
+    if (files.length === 0) throw new AppError('UPWORK_007');
+    const opened = this.deps.openFolder ? this.deps.openFolder(folder) : false;
+    return { folder, files, skipped, opened };
   }
 
   /** Apagar: the record, its archived package and its session — nothing stays. */

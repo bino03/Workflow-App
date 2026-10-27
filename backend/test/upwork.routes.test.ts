@@ -30,6 +30,8 @@ writeFileSync(join(portfolioImages, 'demo', 'lista de pedidos.png'), PNG);
 writeFileSync(join(portfolio, 'secret.png'), 'segredo');
 writeFileSync(join(base, 'outside', 'escape.png'), 'segredo');
 symlinkSync(join(base, 'outside'), join(portfolioImages, 'escape'), 'junction');
+// Preparar anexos (ADR 0025): the folders the backend asked to show — a fake, so no Explorer window opens.
+const shownFolders: string[] = [];
 writeFileSync(claudeJsonPath(claudeConfig), JSON.stringify({ projects: { [workflow.replace(/\\/g, '/')]: { hasTrustDialogAccepted: true } } }));
 
 let passwordHash: string;
@@ -68,7 +70,16 @@ describe('/api/upwork', () => {
       PORTFOLIO_PATH: portfolio,
     });
     const terminalManager = new TerminalManager({ spawn: claude.spawn, maxTerminals: 3, scrollbackBytes: 64 * 1024 });
-    app = await buildApp({ stateStore: await testStateStore(), config, terminalManager, logger: false });
+    app = await buildApp({
+      stateStore: await testStateStore(),
+      config,
+      terminalManager,
+      logger: false,
+      openFolder: (folder) => {
+        shownFolders.push(folder);
+        return true;
+      },
+    });
     const login = await app.inject({ method: 'POST', url: '/api/auth/login', payload: { username: TEST_USERNAME, password: PASSWORD } });
     cookie = `session=${login.cookies.find((c) => c.name === 'session')!.value}`;
   });
@@ -397,6 +408,40 @@ describe('/api/upwork', () => {
         expect(read.attachmentsError).toContain(field);
         expect((await image(view.id, 0)).statusCode).toBe(404);
       }
+    });
+
+    it('Preparar anexos: copies the available ones under their uploadName into anexos/, skips the rest, shows the folder', async () => {
+      await putProfile('# Quem sou');
+      const view = (await apply({ job: 'Job' })).json() as View;
+      const prepare = () => inject('POST', `/api/upwork/applications/${view.id}/attachments/prepare`);
+      // Nothing listed yet → 409, and no window.
+      const shownBefore = shownFolders.length;
+      expect((await prepare()).json()).toMatchObject({ errorCode: 'UPWORK_007' });
+      expect(shownFolders).toHaveLength(shownBefore);
+
+      const folder = join(dataDir, UPWORK_FILES.dir, UPWORK_FILES.applications, view.id, 'anexos');
+      mkdirSync(folder, { recursive: true });
+      writeFileSync(join(folder, 'old-selection.png'), 'antes');
+      // The same uploadName twice: the first one stays.
+      writeAttachments(view.guidedId, { ...ATTACHMENTS, items: [...ATTACHMENTS.items, { ...ITEM, uploadName: 'demo-01-request-list.png' }] });
+      const response = await prepare();
+      expect(response.statusCode).toBe(200);
+      expect(response.json()).toEqual({
+        folder,
+        files: ['demo-01-request-list.png'],
+        skipped: ['demo-02-gone.png', 'demo-03-escape.png', 'demo-01-request-list.png'],
+        opened: true,
+      });
+      expect(shownFolders.at(-1)).toBe(folder);
+      expect(readFileSync(join(folder, 'demo-01-request-list.png')).equals(PNG)).toBe(true);
+      // Emptied first: only the last preparation is there — and never the file outside.
+      expect(existsSync(join(folder, 'old-selection.png'))).toBe(false);
+      expect(existsSync(join(folder, 'demo-03-escape.png'))).toBe(false);
+
+      // Only missing images → 409.
+      writeAttachments(view.guidedId, { ...ATTACHMENTS, items: [ATTACHMENTS.items[1]!] });
+      expect((await prepare()).json()).toMatchObject({ errorCode: 'UPWORK_007' });
+      expect((await app.inject({ method: 'POST', url: `/api/upwork/applications/${view.id}/attachments/prepare` })).statusCode).toBe(401);
     });
 
     it('archive keeps the list: the archived application still shows and serves its screenshots', async () => {

@@ -1,8 +1,9 @@
-import { DownloadOutlined } from '@ant-design/icons';
+import { DownloadOutlined, FolderOpenOutlined } from '@ant-design/icons';
 import { Alert, Button } from 'antd';
+import { useState } from 'react';
 import { CopyButton } from '@/components/common/CopyButton';
-import { attachmentUrl } from '@/services/upworkService';
-import type { AttachmentsView } from '@/types/upwork';
+import { attachmentUrl, prepareAttachments } from '@/services/upworkService';
+import type { AttachmentsView, PreparedAttachments } from '@/types/upwork';
 
 type Item = AttachmentsView['items'][number];
 
@@ -50,17 +51,57 @@ function AttachmentTile({ applicationId, item, index, showImage }: { application
   );
 }
 
+/** O que fazer a seguir à preparação: a pasta, quantos ficheiros, e o que ficou de fora. */
+function PreparedBanner({ prepared }: { prepared: PreparedAttachments }) {
+  const count = prepared.files.length === 1 ? '1 ficheiro' : `${prepared.files.length} ficheiros`;
+  return (
+    <div className="status-banner is-done flex flex-col gap-1 px-4 py-2.5" role="status">
+      <span className="text-[13.5px] leading-[20px]">
+        {prepared.opened
+          ? `Pasta aberta no Explorador: seleciona os ${count} (Ctrl+A) e arrasta-os para os anexos da proposta na Upwork.`
+          : `${count} prontos nesta pasta — abre-a e arrasta-os para os anexos da proposta na Upwork.`}
+      </span>
+      <span className="flex items-center gap-2">
+        <span className="truncate font-mono text-[12px] text-text-2" title={prepared.folder}>
+          {prepared.folder}
+        </span>
+        <CopyButton text={prepared.folder} label="Copiar caminho" />
+      </span>
+      {prepared.skipped.length > 0 && (
+        <span className="text-[12px] text-text-3">Ficaram de fora (não estão no portfólio): {prepared.skipped.join(', ')}</span>
+      )}
+    </div>
+  );
+}
+
 /**
  * Os prints a anexar à proposta (ADR 0024): escolhidos pelo `/upwork-proposal` dos catálogos do portfólio. O upload na
- * Upwork é à mão — daqui descarrega-se cada imagem já com o nome que o cliente vai ver.
+ * Upwork é à mão — **Preparar anexos** (ADR 0025) põe-nos numa pasta, com o nome que o cliente vai ver, e abre-a no
+ * Explorador para os arrastar de uma vez; cada um também se descarrega sozinho.
  */
 export function AttachmentsCard({ applicationId, attachments, error }: { applicationId: string; attachments: AttachmentsView | null; error: string | null }) {
+  const [preparing, setPreparing] = useState(false);
+  const [prepared, setPrepared] = useState<PreparedAttachments | null>(null);
+
+  const prepare = async () => {
+    setPreparing(true);
+    try {
+      setPrepared(await prepareAttachments(applicationId));
+    } catch {
+      // O interceptor da API já notificou (UPWORK_007).
+      setPrepared(null);
+    } finally {
+      setPreparing(false);
+    }
+  };
+
   if (error) {
     return <Alert type="warning" showIcon title="Os prints não se leram" description={<span className="font-mono text-[12px]">{error}</span>} />;
   }
   // Um pacote de antes dos prints, ou a skill ainda a escrever: nada a mostrar.
   if (!attachments) return null;
   const { items, missing, portfolioConfigured } = attachments;
+  const canPrepare = portfolioConfigured && items.some((item) => item.available);
   return (
     <section className="card p-4 flex flex-col gap-3" aria-label="Prints a anexar">
       <div className="flex items-center gap-2">
@@ -68,7 +109,13 @@ export function AttachmentsCard({ applicationId, attachments, error }: { applica
         <span className="text-[12px] text-text-3">para o cliente · {items.length === 1 ? '1 print' : `${items.length} prints`}</span>
         <span className="flex-1" />
         {items.length > 0 && <CopyButton text={allCaptions(items)} label="Copiar legendas" />}
+        {items.length > 0 && (
+          <Button size="small" type="primary" icon={<FolderOpenOutlined />} loading={preparing} disabled={!canPrepare} onClick={() => void prepare()}>
+            Preparar anexos
+          </Button>
+        )}
       </div>
+      {prepared && <PreparedBanner prepared={prepared} />}
       {!portfolioConfigured && (
         <Alert type="info" showIcon title="Define PORTFOLIO_PATH no backend/.env para ver e descarregar as imagens." />
       )}

@@ -134,7 +134,8 @@ node scripts/verify/instance.mjs stop --clean             # mata a árvore pelo 
   `.env` do dono o defina) e o cenário usa dois prints reais do catálogo do SIGA. Cobre a ordem (a seguir à carta), as
   miniaturas carregadas do backend, um print em falta (sem `<img>`, Descarregar desativado, 404), Descarregar com o
   `uploadName`, Copiar legendas (precisa de `Page.bringToFront`: o headless só lê a área de transferência com foco), o
-  projeto sem prints e o arquivo. ✅ 17/17 a 2026-10-27; `upwork.mjs` 34/34 com `PORTFOLIO_PATH` definido.
+  projeto sem prints, **Preparar anexos** (a instância tem `OPEN_FOLDERS=false`: copia sem abrir janela; o cenário confirma a
+  faixa e os ficheiros no disco) e o arquivo. ✅ 21/21 a 2026-10-27; `upwork.mjs` 34/34 com `PORTFOLIO_PATH` definido.
 
 - **`instance.mjs start`** — porta própria (`--port`, omissão 7498; recusa a 7400 e a 7401 do dono),
   pasta de execução em `%TEMP%\wfa-verify-<porta>` (`--dir` para outra). Lá dentro: `data/` (`DATA_DIR`),

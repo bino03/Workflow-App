@@ -2,6 +2,7 @@ import { existsSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { buildApp } from './app.js';
 import { PasskeyFileError, PasskeyStore } from './auth/passkeyStore.js';
+import { openInExplorer } from './common/openFolder.js';
 import { type Config, ConfigError, loadConfig } from './config.js';
 import { StateFileError, StateStore } from './state/stateStore.js';
 import { ClaudeBinError, type SpawnPty, claudeSpawner, resolveClaudeBin } from './terminals/spawnClaude.js';
@@ -61,7 +62,8 @@ const terminalManager = new TerminalManager({
   maxTerminals: config.terminals.maxTerminals,
   scrollbackBytes: config.terminals.scrollbackBytes,
 });
-const app = await buildApp({ config, terminalManager, stateStore, passkeyStore });
+// Preparar anexos shows its folder in the Explorer (ADR 0025) — unless OPEN_FOLDERS=false (the verify instances).
+const app = await buildApp({ config, terminalManager, stateStore, passkeyStore, openFolder: config.openFolders ? openInExplorer : undefined });
 if (claudeBinError) app.log.warn(claudeBinError);
 
 const SHUTDOWN_TIMEOUT_MS = 5000;

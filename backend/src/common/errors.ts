@@ -70,6 +70,7 @@ export const ErrorCode = {
   UPWORK_004: { status: 409, message: 'The application is archived' },
   UPWORK_005: { status: 409, message: 'The application has no session any more (archived)' },
   UPWORK_006: { status: 404, message: 'Attachment not found' },
+  UPWORK_007: { status: 409, message: 'No screenshots to prepare (none listed, none in the portfolio, or no PORTFOLIO_PATH)' },
 } as const satisfies Record<string, { status: number; message: string }>;
 
 export type ErrorCode = keyof typeof ErrorCode;

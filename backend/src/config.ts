@@ -76,6 +76,12 @@ const envSchema = z.object({
 
   DATA_DIR: optionalString.refine((path) => path === undefined || isAbsolute(path), 'must be an absolute path'),
 
+  // Preparar anexos opens its folder in the Explorer (ADR 0025); false for headless runs (the verify instances).
+  OPEN_FOLDERS: z
+    .enum(['true', 'false'])
+    .default('true')
+    .transform((value) => value === 'true'),
+
   // The portfolio whose screenshots an application attaches (ADR 0024). Optional: unset → the list without images.
   PORTFOLIO_PATH: optionalString
     .refine((path) => path === undefined || isAbsolute(path), 'must be an absolute path')
@@ -159,6 +165,8 @@ export type Config = {
   workflowPath: string;
   /** The portfolio (ADR 0024): its `public/images/projects` is served read-only to the Upwork detail. */
   portfolioPath: string | undefined;
+  /** Preparar anexos shows its folder in the Explorer (ADR 0025). */
+  openFolders: boolean;
   /** git for the imports' review (ADR 0019): status/diff/add/commit/checkout in WORKFLOW_PATH, nothing else. */
   gitBin: string;
   /** Where state.json lives (ADR 0009); created at startup if missing. */
@@ -248,6 +256,7 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): Config {
     },
     workflowPath: e.WORKFLOW_PATH,
     portfolioPath: e.PORTFOLIO_PATH === undefined ? undefined : realpathSync(e.PORTFOLIO_PATH),
+    openFolders: e.OPEN_FOLDERS,
     gitBin: e.GIT_BIN,
     dataDir: e.DATA_DIR ?? join(homedir(), '.workflow-app'),
     frontendDist: e.FRONTEND_DIST ?? DEFAULT_FRONTEND_DIST,

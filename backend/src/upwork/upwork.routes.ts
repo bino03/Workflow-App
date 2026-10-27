@@ -66,6 +66,13 @@ export async function upworkRoutes(app: FastifyInstance, { upworkService }: Upwo
       .send(createReadStream(image.file));
   });
 
+  // Preparar anexos (ADR 0025): copies under their Upwork names into the application's folder, shown in the Explorer.
+  app.post<IdParams>('/api/upwork/applications/:id/attachments/prepare', async (request) => {
+    const prepared = upworkService.prepareAttachments(request.params.id);
+    request.log.info({ applicationId: request.params.id, files: prepared.files.length, opened: prepared.opened }, 'upwork attachments prepared');
+    return prepared;
+  });
+
   app.post<IdParams>('/api/upwork/applications/:id/archive', async (request) => upworkService.archive(request.params.id));
 
   // Criar projeto: a creation of its own, in Novo projeto (spec step 6). The agreement is the owner's text: never logged.

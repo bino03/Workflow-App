@@ -1,7 +1,7 @@
 import api from '@/api';
 import { API_BASE_URL } from '@/config/apiBase';
 import type { GuidedView } from '@/types/guided';
-import type { ApplicationChanges, ApplicationView, NewApplication, ProfileView } from '@/types/upwork';
+import type { ApplicationChanges, ApplicationView, NewApplication, PreparedAttachments, ProfileView } from '@/types/upwork';
 
 /**
  * Secção Upwork (ADR 0022). A app nunca fala com a Upwork: o anúncio entra colado e o pacote sai copiado.
@@ -21,6 +21,11 @@ export async function getApplications(archived: boolean): Promise<ApplicationVie
 
 export async function getApplication(id: string): Promise<ApplicationView> {
   return (await api.get<ApplicationView>(`/upwork/applications/${id}`)).data;
+}
+
+/** Preparar anexos (ADR 0025): copia os prints, com o nome para a Upwork, para a pasta da candidatura e abre-a. */
+export async function prepareAttachments(id: string): Promise<PreparedAttachments> {
+  return (await api.post<PreparedAttachments>(`/upwork/applications/${id}/attachments/prepare`)).data;
 }
 
 /** Um print a anexar (ADR 0024), pela posição no `attachments.json`: `download` guarda-o com o nome para a Upwork. */

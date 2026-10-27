@@ -66,6 +66,8 @@ export type AppDeps = {
   preview?: { tailscale?: PreviewServiceDeps['tailscale']; devPorts?: PreviewServiceDeps['devPorts'] };
   /** Tests only: a fake Telegram API (the bot's long polling and the preview notices go through it). */
   telegramApi?: TelegramBotDeps['api'];
+  /** Preparar anexos (ADR 0025): shows a folder to the owner. Default: none — tests never open a window. */
+  openFolder?: (folder: string) => boolean;
 };
 
 export async function buildApp({
@@ -78,6 +80,7 @@ export async function buildApp({
   logStream,
   preview,
   telegramApi,
+  openFolder,
 }: AppDeps): Promise<FastifyInstance> {
   const app = Fastify({
     logger: logger && {
@@ -187,6 +190,7 @@ export async function buildApp({
       dataDir: config.dataDir,
       workflowPath: config.workflowPath,
       portfolioPath: config.portfolioPath,
+      openFolder,
       guided: guidedService,
       creation: creationService,
     }),

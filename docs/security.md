@@ -134,6 +134,9 @@ nunca o conteúdo de um terminal nem o token (o URL da Bot API contém-no: os er
   caminho. `slug`/`file` validados (sem pastas, `..`, drive, ponto inicial) e o ficheiro, depois de `realpath`, tem de
   ficar dentro da pasta (uma junction para fora → 404). `uploadName` em ASCII kebab-case antes de ir para o
   `Content-Disposition`; `nosniff`. Testado em `upwork.routes.test.ts`.
+- **Preparar anexos abre o Explorador** ([[adr/0025-preparar-anexos-numa-pasta]]): `explorer.exe` com **um** argumento — a
+  pasta `applications/<id>/anexos/` que o próprio backend criou, nunca um caminho do pedido —, sem shell, destacado
+  (`common/openFolder.ts`). `OPEN_FOLDERS=false` desliga-o; os testes nunca o recebem.
 
 Consequência a não esquecer: **um terminal desta app é um shell na máquina** — o Claude Code executa
 comandos. Quem entra na app entra na máquina. Por isso a exposição à rede é uma decisão própria

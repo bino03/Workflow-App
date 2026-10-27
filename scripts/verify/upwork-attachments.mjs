@@ -98,6 +98,18 @@ try {
   await click(`[...${tiles}[1].querySelectorAll('button')].find((b) => b.textContent.includes('Copiar legenda'))`);
   check('Copiar legenda copies just that one', (await clipboard()) === ITEMS[1].caption);
 
+  // Preparar anexos: the two in the portfolio copied under their Upwork names; the missing one named. The instance runs
+  // with OPEN_FOLDERS=false, so no Explorer window — the banner says where the folder is instead.
+  await click(button('Preparar anexos', prints));
+  check('Preparar anexos shows the banner', await page.waitFor(`!!${prints}.querySelector('.status-banner')`, 10000));
+  const anexos = join(instance.dataDir, 'upwork', 'applications', app.id, 'anexos');
+  check('the banner names the folder', await page.evaluate(has(anexos, prints)));
+  check('the missing one is named as left out', await page.evaluate(has('Ficaram de fora (não estão no portfólio): siga-03-gone.png', prints)));
+  check(
+    'the folder has the two, under their Upwork names',
+    ['siga-01-calendar.png', 'siga-02-request-list.png'].every((name) => existsSync(join(anexos, name))) && !existsSync(join(anexos, 'siga-03-gone.png')),
+  );
+
   // Archived: the list and the images stay.
   await page.api('PATCH', `/upwork/applications/${app.id}`, { status: 'withdrawn' });
   const archived = await page.api('POST', `/upwork/applications/${app.id}/archive`);

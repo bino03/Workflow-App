@@ -12,6 +12,8 @@ export const UPWORK_FILES = {
   record: 'application.json',
   /** The post as pasted, kept with the record: the session's job.md goes when it is archived. */
   job: 'job.md',
+  /** Preparar anexos (ADR 0025): the screenshots copied under their Upwork names, for the owner to drag in. */
+  attachments: 'anexos',
 } as const;
 
 export function upworkPaths(dataDir: string) {
@@ -24,6 +26,7 @@ export function upworkPaths(dataDir: string) {
     folderOf: (id: string) => join(applications, id),
     recordOf: (id: string) => join(applications, id, UPWORK_FILES.record),
     jobOf: (id: string) => join(applications, id, UPWORK_FILES.job),
+    attachmentsOf: (id: string) => join(applications, id, UPWORK_FILES.attachments),
   };
 }
 

@@ -172,6 +172,8 @@ async function start() {
     WORKFLOW_PATH: workflowPath,
     // Only read (the screenshots an application attaches); empty = unset, whatever the owner's .env says.
     PORTFOLIO_PATH: portfolioPath,
+    // Preparar anexos copies the files but opens no Explorer window on the owner's screen.
+    OPEN_FOLDERS: 'false',
     DATA_DIR: dataDir,
     FRONTEND_DIST: dist,
     TELEGRAM_BOT_TOKEN: '',
