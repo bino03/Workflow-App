@@ -7,6 +7,32 @@ import type { AttachmentsView, PreparedAttachments } from '@/types/upwork';
 
 type Item = AttachmentsView['items'][number];
 
+/**
+ * A app aberta na própria máquina do backend (ADR 0026): aí o Explorador abre a pasta dos anexos. Noutro dispositivo
+ * (o portátil, pela rede ou pelo Tailscale) a pasta ficava no ecrã do servidor — descarrega-se para este computador.
+ */
+const AT_THIS_MACHINE = ['localhost', '127.0.0.1', '[::1]'].includes(window.location.hostname);
+
+/** Pausa entre downloads: o Chrome junta vários seguidos num pedido de autorização, e uns ms evitam perder algum. */
+const DOWNLOAD_GAP_MS = 350;
+
+/** Descarrega cada print para a pasta Downloads deste computador, com o nome para a Upwork (o backend dá-o). */
+async function downloadAll(applicationId: string, items: Item[]): Promise<number> {
+  let count = 0;
+  for (const [index, item] of items.entries()) {
+    if (!item.available) continue;
+    const link = document.createElement('a');
+    link.href = attachmentUrl(applicationId, index, true);
+    link.download = item.uploadName;
+    document.body.append(link);
+    link.click();
+    link.remove();
+    count++;
+    await new Promise((resolve) => setTimeout(resolve, DOWNLOAD_GAP_MS));
+  }
+  return count;
+}
+
 /** Todas as legendas de uma vez, pela ordem de anexar — para colar numa nota ou na própria carta. */
 function allCaptions(items: Item[]): string {
   return items.map((item, index) => `${index + 1}. ${item.uploadName} — ${item.caption}`).join('\n');
@@ -51,22 +77,33 @@ function AttachmentTile({ applicationId, item, index, showImage }: { application
   );
 }
 
-/** O que fazer a seguir à preparação: a pasta, quantos ficheiros, e o que ficou de fora. */
-function PreparedBanner({ prepared }: { prepared: PreparedAttachments }) {
-  const count = prepared.files.length === 1 ? '1 ficheiro' : `${prepared.files.length} ficheiros`;
+/**
+ * O que fazer a seguir: na própria máquina, a pasta e quantos ficheiros; noutro dispositivo, onde ficaram os downloads.
+ * Nos dois casos, o que ficou de fora.
+ */
+function PreparedBanner({ prepared, downloaded }: { prepared: PreparedAttachments; downloaded: number | null }) {
+  const files = (n: number) => (n === 1 ? '1 ficheiro' : `${n} ficheiros`);
   return (
     <div className="status-banner is-done flex flex-col gap-1 px-4 py-2.5" role="status">
-      <span className="text-[13.5px] leading-[20px]">
-        {prepared.opened
-          ? `Pasta aberta no Explorador: seleciona os ${count} (Ctrl+A) e arrasta-os para os anexos da proposta na Upwork.`
-          : `${count} prontos nesta pasta — abre-a e arrasta-os para os anexos da proposta na Upwork.`}
-      </span>
-      <span className="flex items-center gap-2">
-        <span className="truncate font-mono text-[12px] text-text-2" title={prepared.folder}>
-          {prepared.folder}
+      {downloaded !== null ? (
+        <span className="text-[13.5px] leading-[20px]">
+          {`${files(downloaded)} descarregados para a pasta Downloads deste computador (ex.: ${prepared.files[0]}). Na proposta da Upwork, anexa-os a partir daí.`}
         </span>
-        <CopyButton text={prepared.folder} label="Copiar caminho" />
-      </span>
+      ) : (
+        <>
+          <span className="text-[13.5px] leading-[20px]">
+            {prepared.opened
+              ? `Pasta aberta no Explorador: seleciona os ${files(prepared.files.length)} (Ctrl+A) e arrasta-os para os anexos da proposta na Upwork.`
+              : `${files(prepared.files.length)} prontos nesta pasta — abre-a e arrasta-os para os anexos da proposta na Upwork.`}
+          </span>
+          <span className="flex items-center gap-2">
+            <span className="truncate font-mono text-[12px] text-text-2" title={prepared.folder}>
+              {prepared.folder}
+            </span>
+            <CopyButton text={prepared.folder} label="Copiar caminho" />
+          </span>
+        </>
+      )}
       {prepared.skipped.length > 0 && (
         <span className="text-[12px] text-text-3">Ficaram de fora (não estão no portfólio): {prepared.skipped.join(', ')}</span>
       )}
@@ -82,11 +119,15 @@ function PreparedBanner({ prepared }: { prepared: PreparedAttachments }) {
 export function AttachmentsCard({ applicationId, attachments, error }: { applicationId: string; attachments: AttachmentsView | null; error: string | null }) {
   const [preparing, setPreparing] = useState(false);
   const [prepared, setPrepared] = useState<PreparedAttachments | null>(null);
+  const [downloaded, setDownloaded] = useState<number | null>(null);
 
+  // Nos dois sítios a cópia fica no servidor (o registo do que foi enviado); fora da máquina, descarrega-se também.
   const prepare = async () => {
     setPreparing(true);
     try {
-      setPrepared(await prepareAttachments(applicationId));
+      const result = await prepareAttachments(applicationId);
+      setDownloaded(AT_THIS_MACHINE ? null : await downloadAll(applicationId, attachments?.items ?? []));
+      setPrepared(result);
     } catch {
       // O interceptor da API já notificou (UPWORK_007).
       setPrepared(null);
@@ -110,12 +151,19 @@ export function AttachmentsCard({ applicationId, attachments, error }: { applica
         <span className="flex-1" />
         {items.length > 0 && <CopyButton text={allCaptions(items)} label="Copiar legendas" />}
         {items.length > 0 && (
-          <Button size="small" type="primary" icon={<FolderOpenOutlined />} loading={preparing} disabled={!canPrepare} onClick={() => void prepare()}>
-            Preparar anexos
+          <Button
+            size="small"
+            type="primary"
+            icon={AT_THIS_MACHINE ? <FolderOpenOutlined /> : <DownloadOutlined />}
+            loading={preparing}
+            disabled={!canPrepare}
+            onClick={() => void prepare()}
+          >
+            {AT_THIS_MACHINE ? 'Preparar anexos' : 'Descarregar todos'}
           </Button>
         )}
       </div>
-      {prepared && <PreparedBanner prepared={prepared} />}
+      {prepared && <PreparedBanner prepared={prepared} downloaded={downloaded} />}
       {!portfolioConfigured && (
         <Alert type="info" showIcon title="Define PORTFOLIO_PATH no backend/.env para ver e descarregar as imagens." />
       )}

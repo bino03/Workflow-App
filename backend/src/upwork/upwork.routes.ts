@@ -1,5 +1,6 @@
 import { createReadStream } from 'node:fs';
 import type { FastifyInstance } from 'fastify';
+import { isLocalRequest } from '../common/localRequest.js';
 import { parseWith } from '../common/validation.js';
 import { messageBodySchema } from '../guided/guided.schemas.js';
 import {
@@ -66,9 +67,10 @@ export async function upworkRoutes(app: FastifyInstance, { upworkService }: Upwo
       .send(createReadStream(image.file));
   });
 
-  // Preparar anexos (ADR 0025): copies under their Upwork names into the application's folder, shown in the Explorer.
+  // Preparar anexos (ADR 0025): copies under their Upwork names into the application's folder — shown in the Explorer
+  // only when the owner is at this machine (ADR 0026); from the laptop the page downloads them instead.
   app.post<IdParams>('/api/upwork/applications/:id/attachments/prepare', async (request) => {
-    const prepared = upworkService.prepareAttachments(request.params.id);
+    const prepared = upworkService.prepareAttachments(request.params.id, isLocalRequest(request));
     request.log.info({ applicationId: request.params.id, files: prepared.files.length, opened: prepared.opened }, 'upwork attachments prepared');
     return prepared;
   });

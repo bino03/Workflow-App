@@ -413,7 +413,14 @@ describe('/api/upwork', () => {
     it('Preparar anexos: copies the available ones under their uploadName into anexos/, skips the rest, shows the folder', async () => {
       await putProfile('# Quem sou');
       const view = (await apply({ job: 'Job' })).json() as View;
-      const prepare = () => inject('POST', `/api/upwork/applications/${view.id}/attachments/prepare`);
+      // The page opened at this machine: loopback + a localhost Origin (the Vite dev server's, here).
+      const prepare = (origin: string | null = 'http://localhost:7401', remoteAddress = '127.0.0.1') =>
+        app.inject({
+          method: 'POST',
+          url: `/api/upwork/applications/${view.id}/attachments/prepare`,
+          headers: origin ? { cookie, origin } : { cookie },
+          remoteAddress,
+        });
       // Nothing listed yet → 409, and no window.
       const shownBefore = shownFolders.length;
       expect((await prepare()).json()).toMatchObject({ errorCode: 'UPWORK_007' });
@@ -437,6 +444,25 @@ describe('/api/upwork', () => {
       // Emptied first: only the last preparation is there — and never the file outside.
       expect(existsSync(join(folder, 'old-selection.png'))).toBe(false);
       expect(existsSync(join(folder, 'demo-03-escape.png'))).toBe(false);
+
+      // From the laptop (ADR 0026): the copies are made, nothing opens on this machine. Behind tailscale serve the request
+      // comes from loopback but the Origin is the tailnet name; with no Origin, or from another address, the same.
+      for (const [origin, address] of [
+        ['https://box.tail1234.ts.net', '127.0.0.1'],
+        [null, '127.0.0.1'],
+        ['http://localhost:7401', '100.64.0.7'],
+        ['http://192.168.1.20:7400', '127.0.0.1'],
+      ] as const) {
+        const shown = shownFolders.length;
+        writeFileSync(join(folder, 'old-selection.png'), 'antes');
+        const remote = await prepare(origin, address);
+        expect(remote.json()).toMatchObject({ folder, files: ['demo-01-request-list.png'], opened: false });
+        expect(shownFolders).toHaveLength(shown);
+        expect(existsSync(join(folder, 'old-selection.png'))).toBe(false);
+      }
+      for (const origin of ['http://127.0.0.1:7400', 'http://[::1]:7400']) {
+        expect((await prepare(origin)).json()).toMatchObject({ opened: true });
+      }
 
       // Only missing images → 409.
       writeAttachments(view.guidedId, { ...ATTACHMENTS, items: [ATTACHMENTS.items[1]!] });

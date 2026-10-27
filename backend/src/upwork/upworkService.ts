@@ -256,9 +256,10 @@ export class UpworkService {
   /**
    * Preparar anexos (ADR 0025): the screenshots `attachments.json` lists, copied under their `uploadName` into the
    * application's own `anexos/` (emptied first — what is there is the last preparation), and the folder shown in the
-   * Explorer, for the owner to drag them all into the Upwork at once. Also the record of what was sent.
+   * Explorer, for the owner to drag them all into the Upwork at once. Also the record of what was sent. `show` = the
+   * owner is at this machine; from another device the copies are made (the record) and nothing opens here.
    */
-  prepareAttachments(id: string): PreparedAttachments {
+  prepareAttachments(id: string, show: boolean): PreparedAttachments {
     const record = this.record(id);
     const { data } = parseAttachments(this.packageDirFor(record));
     if (!data || data.items.length === 0 || this.deps.portfolioPath === undefined) throw new AppError('UPWORK_007');
@@ -278,7 +279,7 @@ export class UpworkService {
       files.push(item.uploadName);
     }
     if (files.length === 0) throw new AppError('UPWORK_007');
-    const opened = this.deps.openFolder ? this.deps.openFolder(folder) : false;
+    const opened = show && this.deps.openFolder ? this.deps.openFolder(folder) : false;
     return { folder, files, skipped, opened };
   }
 

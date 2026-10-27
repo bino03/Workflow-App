@@ -38,9 +38,12 @@ export function checker() {
  * Launches a throwaway headless Chrome and attaches to its page. Page console errors and uncaught
  * exceptions are collected in `errors`. `close()` kills Chrome and removes its profile.
  */
-export async function openBrowser({ cdpPort = 9335, width = 1600, height = 1000 } = {}) {
+export async function openBrowser({ cdpPort = 9335, width = 1600, height = 1000, args = [] } = {}) {
   const profile = mkdtempSync(join(tmpdir(), 'wfa-chrome-'));
-  const chrome = spawn(CHROME, ['--headless=new', `--remote-debugging-port=${cdpPort}`, `--user-data-dir=${profile}`, `--window-size=${width},${height}`, 'about:blank'], { stdio: 'ignore' });
+  // `args`: extra Chrome flags — e.g. --host-resolver-rules to open the app under another name ("the laptop").
+  const chrome = spawn(CHROME, ['--headless=new', `--remote-debugging-port=${cdpPort}`, `--user-data-dir=${profile}`, `--window-size=${width},${height}`, ...args, 'about:blank'], {
+    stdio: 'ignore',
+  });
 
   let target;
   for (let i = 0; i < 60 && !target; i++) {

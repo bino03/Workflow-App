@@ -136,7 +136,9 @@ nunca o conteúdo de um terminal nem o token (o URL da Bot API contém-no: os er
   `Content-Disposition`; `nosniff`. Testado em `upwork.routes.test.ts`.
 - **Preparar anexos abre o Explorador** ([[adr/0025-preparar-anexos-numa-pasta]]): `explorer.exe` com **um** argumento — a
   pasta `applications/<id>/anexos/` que o próprio backend criou, nunca um caminho do pedido —, sem shell, destacado
-  (`common/openFolder.ts`). `OPEN_FOLDERS=false` desliga-o; os testes nunca o recebem.
+  (`common/openFolder.ts`). `OPEN_FOLDERS=false` desliga-o; os testes nunca o recebem. Só abre para um pedido da **própria máquina**
+  (loopback **e** `Origin` `localhost`, `common/localRequest.ts`, [[adr/0026-anexos-a-partir-de-outro-dispositivo]]) — atrás do
+  `tailscale serve` tudo chega de loopback, por isso o IP sozinho não chega. Decide uma janela, nunca acesso.
 
 Consequência a não esquecer: **um terminal desta app é um shell na máquina** — o Claude Code executa
 comandos. Quem entra na app entra na máquina. Por isso a exposição à rede é uma decisão própria

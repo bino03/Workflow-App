@@ -49,4 +49,5 @@ Com o [[0024-prints-do-portfolio-nas-candidaturas]], cada print descarrega-se so
 
 ## Estado
 
-`aceite` — 2026-10-27.
+`aceite` — 2026-10-27. Os pontos 2 (quando abre o Explorador) e 3 (o botão) foram alterados por
+[[0026-anexos-a-partir-de-outro-dispositivo]] no mesmo dia.

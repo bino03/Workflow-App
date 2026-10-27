@@ -7,7 +7,8 @@
 //   node scripts/verify/instance.mjs start --fresh --git-workflow --portfolio "<the portfolio>"
 //   node scripts/verify/upwork-attachments.mjs [run dir]
 //   node scripts/verify/instance.mjs stop --clean
-import { existsSync, readFileSync, writeFileSync } from 'node:fs';
+import { existsSync, mkdtempSync, readdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { checker, login, openBrowser, readInstance } from './cdp.mjs';
 
@@ -122,5 +123,39 @@ try {
   check('scenario ran to the end', false, error.message);
 } finally {
   await page.close();
+}
+
+// From the laptop (ADR 0026): the same app opened under another name — Chrome resolves wfa-remote.test to this machine,
+// as the tailnet name would be. The button is Descarregar todos and the files land in this browser's downloads.
+const remoteBase = instance.base.replace('localhost', 'wfa-remote.test');
+const laptop = await openBrowser({ cdpPort: 9336, args: ['--host-resolver-rules=MAP wfa-remote.test 127.0.0.1'] });
+const downloads = mkdtempSync(join(tmpdir(), 'wfa-downloads-'));
+try {
+  check('laptop: login under another name', await login(laptop, { ...instance, base: remoteBase }));
+  await laptop.send('Browser.setDownloadBehavior', { behavior: 'allow', downloadPath: downloads });
+  const { body: app } = await laptop.api('POST', '/upwork/applications', { job: 'Booking from the laptop', screeningQuestions: [] });
+  writePackage(app.guidedId, 'Booking from the laptop');
+  await laptop.navigate(`${remoteBase}/upwork`);
+  await laptop.waitFor(`${cards}.length >= 1`, 15000);
+  await laptop.evaluate(`(${card('Booking from the laptop')}).click()`);
+  await laptop.waitFor(`!!${prints}`, 15000);
+  check('laptop: the button is Descarregar todos', await laptop.evaluate(`!!${button('Descarregar todos', prints)} && !${button('Preparar anexos', prints)}`));
+  await laptop.evaluate(`(${button('Descarregar todos', prints)}).click()`);
+  check('laptop: the banner points to Downloads', await laptop.waitFor(has('descarregados para a pasta Downloads deste computador', prints), 15000));
+  check('laptop: no server path in the banner', !(await laptop.evaluate(has(instance.dataDir, prints))));
+  let names = [];
+  for (let i = 0; i < 40 && names.length < 2; i++) {
+    names = readdirSync(downloads).filter((name) => !name.endsWith('.crdownload')).sort();
+    await new Promise((r) => setTimeout(r, 250));
+  }
+  check('laptop: both files downloaded under their Upwork names', names.join(',') === 'siga-01-calendar.png,siga-02-request-list.png', names.join(','));
+  const anexos = join(instance.dataDir, 'upwork', 'applications', app.id, 'anexos');
+  check('laptop: the record copy is made on the server too', existsSync(join(anexos, 'siga-01-calendar.png')));
+  check('laptop: no console errors', laptop.errors.length === 0, laptop.errors.join(' | '));
+} catch (error) {
+  check('laptop part ran to the end', false, error.message);
+} finally {
+  await laptop.close();
+  rmSync(downloads, { recursive: true, force: true });
 }
 process.exit(finish());
