@@ -63,6 +63,7 @@ export const ERROR_MESSAGES: Record<string, string> = {
   UPWORK_003: 'Só se cria projeto a partir de uma candidatura ganha.',
   UPWORK_004: 'A candidatura está arquivada.',
   UPWORK_005: 'A sessão desta candidatura já não existe (arquivada) — não dá para continuar a conversa.',
+  UPWORK_006: 'O print não está no portfólio (ou PORTFOLIO_PATH não está definido).',
 
   DEFAULT: 'Ocorreu um erro. Tenta outra vez.',
 };

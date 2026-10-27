@@ -71,6 +71,12 @@ export const projectBodySchema = z.object({
     .transform((text) => (text ? text : null)),
 });
 
+/** A screenshot by its position in attachments.json (ADR 0024). */
+export const attachmentParamsSchema = z.object({ index: z.coerce.number().int().min(0).max(9) });
+
+/** `?download=1` → saved under its uploadName; anything else → shown inline. */
+export const attachmentQuerySchema = z.object({ download: z.literal('1').optional().transform((value) => value === '1') });
+
 /** `?archived=true` lists the archived ones; anything else (or nothing) the open ones. */
 export const listQuerySchema = z.object({ archived: z.enum(['true', 'false']).default('false').transform((v) => v === 'true') });
 
@@ -92,11 +98,24 @@ export type PackageView = {
   clientQuestions: string | null;
 };
 
+/** The screenshots the skill picked to attach (`attachments.json`, ADR 0024); null until it exists. */
+export type AttachmentsView = {
+  updatedAt: string;
+  /** false = no PORTFOLIO_PATH: the list shows, the images do not. */
+  portfolioConfigured: boolean;
+  items: { project: string; slug: string; file: string; uploadName: string; caption: string; available: boolean }[];
+  /** Projects the letter cites that have no screenshots in the portfolio's catalog. */
+  missing: string[];
+};
+
 export type ApplicationView = Omit<Application, 'version'> & {
   guided: GuidedView | null;
   package: PackageView | null;
   /** Why the package could not be read (an invalid package.json), as for an invalid result.json. */
   packageError: string | null;
+  attachments: AttachmentsView | null;
+  /** Why attachments.json could not be read. */
+  attachmentsError: string | null;
 };
 
 export type ProfileView = { markdown: string; updatedAt: string | null };

@@ -69,6 +69,7 @@ export const ErrorCode = {
   UPWORK_003: { status: 409, message: 'A project can only be created from a won application' },
   UPWORK_004: { status: 409, message: 'The application is archived' },
   UPWORK_005: { status: 409, message: 'The application has no session any more (archived)' },
+  UPWORK_006: { status: 404, message: 'Attachment not found' },
 } as const satisfies Record<string, { status: number; message: string }>;
 
 export type ErrorCode = keyof typeof ErrorCode;

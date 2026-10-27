@@ -76,6 +76,11 @@ const envSchema = z.object({
 
   DATA_DIR: optionalString.refine((path) => path === undefined || isAbsolute(path), 'must be an absolute path'),
 
+  // The portfolio whose screenshots an application attaches (ADR 0024). Optional: unset → the list without images.
+  PORTFOLIO_PATH: optionalString
+    .refine((path) => path === undefined || isAbsolute(path), 'must be an absolute path')
+    .refine((path) => path === undefined || existsSync(path), 'path does not exist'),
+
   FRONTEND_DIST: optionalString.refine((path) => path === undefined || isAbsolute(path), 'must be an absolute path'),
 
   // Telegram bot (ADR 0017). Optional: no token → no bot. The token never reaches `claude` (spawnClaude denylist).
@@ -152,6 +157,8 @@ export type Config = {
     scrollbackBytes: number;
   };
   workflowPath: string;
+  /** The portfolio (ADR 0024): its `public/images/projects` is served read-only to the Upwork detail. */
+  portfolioPath: string | undefined;
   /** git for the imports' review (ADR 0019): status/diff/add/commit/checkout in WORKFLOW_PATH, nothing else. */
   gitBin: string;
   /** Where state.json lives (ADR 0009); created at startup if missing. */
@@ -240,6 +247,7 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): Config {
       scrollbackBytes: e.SCROLLBACK_BYTES,
     },
     workflowPath: e.WORKFLOW_PATH,
+    portfolioPath: e.PORTFOLIO_PATH === undefined ? undefined : realpathSync(e.PORTFOLIO_PATH),
     gitBin: e.GIT_BIN,
     dataDir: e.DATA_DIR ?? join(homedir(), '.workflow-app'),
     frontendDist: e.FRONTEND_DIST ?? DEFAULT_FRONTEND_DIST,

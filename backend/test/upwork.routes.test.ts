@@ -1,4 +1,4 @@
-import { existsSync, mkdirSync, mkdtempSync, readFileSync, realpathSync, writeFileSync } from 'node:fs';
+import { existsSync, mkdirSync, mkdtempSync, readFileSync, realpathSync, symlinkSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import argon2 from 'argon2';
@@ -21,7 +21,15 @@ const workflow = join(root, 'Workflow');
 const claudeConfig = join(base, 'claude');
 const dataDir = join(base, 'data');
 const profileFile = join(dataDir, UPWORK_FILES.dir, UPWORK_FILES.profile);
-for (const dir of [join(workflow, 'library'), claudeConfig]) mkdirSync(dir, { recursive: true });
+// The portfolio (ADR 0024): one project with a screenshot, a secret outside its images folder, and a junction out.
+const portfolio = join(base, 'portfolio');
+const portfolioImages = join(portfolio, 'public', 'images', 'projects');
+const PNG = Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a, 1, 2, 3]);
+for (const dir of [join(workflow, 'library'), claudeConfig, join(portfolioImages, 'demo'), join(base, 'outside')]) mkdirSync(dir, { recursive: true });
+writeFileSync(join(portfolioImages, 'demo', 'lista de pedidos.png'), PNG);
+writeFileSync(join(portfolio, 'secret.png'), 'segredo');
+writeFileSync(join(base, 'outside', 'escape.png'), 'segredo');
+symlinkSync(join(base, 'outside'), join(portfolioImages, 'escape'), 'junction');
 writeFileSync(claudeJsonPath(claudeConfig), JSON.stringify({ projects: { [workflow.replace(/\\/g, '/')]: { hasTrustDialogAccepted: true } } }));
 
 let passwordHash: string;
@@ -51,7 +59,14 @@ describe('/api/upwork', () => {
 
   beforeAll(async () => {
     claude = fakeClaude();
-    const config = testConfig({ APP_PASSWORD_HASH: passwordHash, ALLOWED_ROOTS: root, WORKFLOW_PATH: workflow, CLAUDE_CONFIG_DIR: claudeConfig, DATA_DIR: dataDir });
+    const config = testConfig({
+      APP_PASSWORD_HASH: passwordHash,
+      ALLOWED_ROOTS: root,
+      WORKFLOW_PATH: workflow,
+      CLAUDE_CONFIG_DIR: claudeConfig,
+      DATA_DIR: dataDir,
+      PORTFOLIO_PATH: portfolio,
+    });
     const terminalManager = new TerminalManager({ spawn: claude.spawn, maxTerminals: 3, scrollbackBytes: 64 * 1024 });
     app = await buildApp({ stateStore: await testStateStore(), config, terminalManager, logger: false });
     const login = await app.inject({ method: 'POST', url: '/api/auth/login', payload: { username: TEST_USERNAME, password: PASSWORD } });
@@ -297,6 +312,114 @@ describe('/api/upwork', () => {
       expect(existsSync(join(dataDir, UPWORK_FILES.dir, UPWORK_FILES.applications, view.id))).toBe(false);
       expect(existsSync(join(dataDir, GUIDED_FILES.dir, view.guidedId))).toBe(false);
       expect((await inject('GET', `/api/upwork/applications/${view.id}`)).json()).toMatchObject({ errorCode: 'UPWORK_001' });
+    });
+  });
+
+  describe('the screenshots to attach (ADR 0024)', () => {
+    const ITEM = {
+      project: 'Demo',
+      slug: 'demo',
+      file: 'lista de pedidos.png',
+      uploadName: 'demo-01-request-list.png',
+      caption: 'Request list with status tabs.',
+    };
+    const ATTACHMENTS = {
+      version: 1,
+      updatedAt: '2026-10-27T15:00:00.000Z',
+      items: [ITEM, { ...ITEM, file: 'not-there.png', uploadName: 'demo-02-gone.png' }, { ...ITEM, slug: 'escape', file: 'escape.png', uploadName: 'demo-03-escape.png' }],
+      missing: ['GymApp'],
+    };
+    const writeAttachments = (guidedId: string, content: object = ATTACHMENTS) =>
+      writeFileSync(join(dataDir, GUIDED_FILES.dir, guidedId, 'attachments.json'), JSON.stringify(content));
+    type WithAttachments = View & {
+      attachments: { portfolioConfigured: boolean; items: { uploadName: string; available: boolean }[]; missing: string[] } | null;
+      attachmentsError: string | null;
+    };
+    const image = (id: string, index: number | string, query = '') => inject('GET', `/api/upwork/applications/${id}/attachments/${index}${query}`);
+
+    it('needs a session', async () => {
+      expect((await app.inject({ method: 'GET', url: '/api/upwork/applications/x/attachments/0' })).statusCode).toBe(401);
+    });
+
+    it('read from attachments.json: each item says whether its image is there; none yet → null, no error', async () => {
+      await putProfile('# Quem sou');
+      const view = (await apply({ job: 'Job' })).json() as WithAttachments;
+      expect(view).toMatchObject({ attachments: null, attachmentsError: null });
+      writeAttachments(view.guidedId);
+      const read = (await inject('GET', `/api/upwork/applications/${view.id}`)).json() as WithAttachments;
+      expect(read.attachmentsError).toBeNull();
+      expect(read.attachments).toMatchObject({ portfolioConfigured: true, missing: ['GymApp'] });
+      // The third one is a junction out of the images folder: not available.
+      expect(read.attachments!.items.map((item) => item.available)).toEqual([true, false, false]);
+    });
+
+    it('served from the portfolio: inline for the thumbnail, as a download under its uploadName', async () => {
+      await putProfile('# Quem sou');
+      const view = (await apply({ job: 'Job' })).json() as View;
+      writeAttachments(view.guidedId);
+      const inline = await image(view.id, 0);
+      expect(inline.statusCode).toBe(200);
+      expect(inline.headers['content-type']).toBe('image/png');
+      expect(inline.headers['content-disposition']).toBe('inline; filename="demo-01-request-list.png"');
+      expect(inline.headers['x-content-type-options']).toBe('nosniff');
+      expect(inline.rawPayload.equals(PNG)).toBe(true);
+      expect((await image(view.id, 0, '?download=1')).headers['content-disposition']).toBe('attachment; filename="demo-01-request-list.png"');
+    });
+
+    it('a missing image, a junction out, an index past the list → 404 UPWORK_006; an odd index → 400; never the outside file', async () => {
+      await putProfile('# Quem sou');
+      const view = (await apply({ job: 'Job' })).json() as View;
+      writeAttachments(view.guidedId);
+      for (const index of [1, 2, 3, 9]) {
+        const response = await image(view.id, index);
+        expect(response.statusCode).toBe(404);
+        expect(response.json()).toMatchObject({ errorCode: 'UPWORK_006' });
+        expect(response.body).not.toContain('segredo');
+      }
+      for (const index of ['-1', '10', 'x', '0.5']) expect((await image(view.id, index)).statusCode).toBe(400);
+      expect((await image(view.id, 0, '?download=yes')).statusCode).toBe(400);
+      expect((await image('00000000-0000-4000-8000-000000000000', 0)).json()).toMatchObject({ errorCode: 'UPWORK_001' });
+    });
+
+    it('an invalid attachments.json (a path, a bad uploadName, not an image) is attachmentsError — the package still reads', async () => {
+      await putProfile('# Quem sou');
+      const view = (await apply({ job: 'Job' })).json() as View;
+      for (const [items, field] of [
+        [[{ ...ITEM, file: '../../secret.png' }], 'items.0.file'],
+        [[{ ...ITEM, file: 'C:\\secret.png' }], 'items.0.file'],
+        [[{ ...ITEM, file: 'notes.md' }], 'items.0.file'],
+        [[{ ...ITEM, uploadName: 'x".png' }], 'items.0.uploadName'],
+        [[{ ...ITEM, slug: '../demo' }], 'items.0.slug'],
+      ] as const) {
+        writeAttachments(view.guidedId, { ...ATTACHMENTS, items });
+        const read = (await inject('GET', `/api/upwork/applications/${view.id}`)).json() as WithAttachments;
+        expect(read.attachments).toBeNull();
+        expect(read.attachmentsError).toContain(field);
+        expect((await image(view.id, 0)).statusCode).toBe(404);
+      }
+    });
+
+    it('archive keeps the list: the archived application still shows and serves its screenshots', async () => {
+      await putProfile('# Quem sou');
+      const view = (await apply({ job: 'Job' })).json() as View;
+      const dir = join(dataDir, GUIDED_FILES.dir, view.guidedId);
+      writeFileSync(join(dir, 'cover-letter.md'), 'Letter');
+      writeFileSync(
+        join(dir, 'package.json'),
+        JSON.stringify({
+          version: 1,
+          title: 'T',
+          language: 'en',
+          verdict: 'apply',
+          updatedAt: '2026-10-26T15:30:00.000Z',
+          files: { analysis: 'analysis.md', coverLetter: 'cover-letter.md', screening: 'screening.md', plan: 'plan.md', clientQuestions: 'client-questions.md' },
+        }),
+      );
+      writeAttachments(view.guidedId);
+      const archived = (await inject('POST', `/api/upwork/applications/${view.id}/archive`)).json() as WithAttachments;
+      opened.splice(opened.indexOf(view.guidedId), 1);
+      expect(archived.attachments!.items).toHaveLength(3);
+      expect((await image(view.id, 0)).statusCode).toBe(200);
     });
   });
 

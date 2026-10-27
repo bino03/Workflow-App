@@ -1,7 +1,16 @@
+import { createReadStream } from 'node:fs';
 import type { FastifyInstance } from 'fastify';
 import { parseWith } from '../common/validation.js';
 import { messageBodySchema } from '../guided/guided.schemas.js';
-import { createApplicationSchema, listQuerySchema, patchApplicationSchema, profileBodySchema, projectBodySchema } from './upwork.schemas.js';
+import {
+  attachmentParamsSchema,
+  attachmentQuerySchema,
+  createApplicationSchema,
+  listQuerySchema,
+  patchApplicationSchema,
+  profileBodySchema,
+  projectBodySchema,
+} from './upwork.schemas.js';
 import type { UpworkService } from './upworkService.js';
 
 export type UpworkRoutesOptions = {
@@ -9,6 +18,7 @@ export type UpworkRoutesOptions = {
 };
 
 type IdParams = { Params: { id: string } };
+type AttachmentParams = { Params: { id: string; index: string }; Querystring: { download?: string } };
 
 /**
  * The Upwork section (ADR 0022): the profile and the applications. The conversation itself (questions, permissions,
@@ -40,6 +50,20 @@ export async function upworkRoutes(app: FastifyInstance, { upworkService }: Upwo
   app.post<IdParams>('/api/upwork/applications/:id/message', async (request, reply) => {
     await upworkService.message(request.params.id, parseWith(messageBodySchema, request.body).text);
     return reply.status(204).send();
+  });
+
+  // A screenshot to attach (ADR 0024): by its position in attachments.json, read from the portfolio only. `?download=1`
+  // saves it under the name the Upwork should see; otherwise it shows inline (the thumbnail).
+  app.get<AttachmentParams>('/api/upwork/applications/:id/attachments/:index', async (request, reply) => {
+    const { index } = parseWith(attachmentParamsSchema, { index: request.params.index });
+    const { download } = parseWith(attachmentQuerySchema, request.query);
+    const image = upworkService.attachment(request.params.id, index);
+    return reply
+      .type(image.contentType)
+      .header('Content-Disposition', `${download ? 'attachment' : 'inline'}; filename="${image.uploadName}"`)
+      .header('Cache-Control', 'private, no-cache')
+      .header('X-Content-Type-Options', 'nosniff')
+      .send(createReadStream(image.file));
   });
 
   app.post<IdParams>('/api/upwork/applications/:id/archive', async (request) => upworkService.archive(request.params.id));

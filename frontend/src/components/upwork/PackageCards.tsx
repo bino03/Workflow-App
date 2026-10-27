@@ -1,4 +1,4 @@
-import type { ReactNode } from 'react';
+import { Fragment, type ReactNode } from 'react';
 import { CopyButton } from '@/components/common/CopyButton';
 import { Markdown } from '@/components/common/Markdown';
 import { VERDICT_TAG, formatDateTime } from '@/components/upwork/upworkFormat';
@@ -34,8 +34,11 @@ function PartCard({ title, note, markdown, extra }: { title: string; note: strin
   );
 }
 
-/** O pacote da candidatura (spec upwork §4.4): um cartão por parte, cada um com **Copiar** do Markdown cru. */
-export function PackageCards({ pack }: { pack: PackageView }) {
+/**
+ * O pacote da candidatura (spec upwork §4.4): um cartão por parte, cada um com **Copiar** do Markdown cru.
+ * `afterLetter` entra logo a seguir à carta — os prints a anexar (ADR 0024) vão com ela.
+ */
+export function PackageCards({ pack, afterLetter }: { pack: PackageView; afterLetter?: ReactNode }) {
   const verdict = VERDICT_TAG[pack.verdict];
   return (
     <div className="flex flex-col gap-4">
@@ -44,13 +47,15 @@ export function PackageCards({ pack }: { pack: PackageView }) {
         <span className="font-mono">{pack.language}</span>. Pede mudanças na Conversa ("mais curta", "realça o projeto X").
       </p>
       {PARTS.map((part) => (
-        <PartCard
-          key={part.key}
-          title={part.title}
-          note={part.forClient ? 'para o cliente' : 'para ti'}
-          markdown={pack[part.key]}
-          extra={part.key === 'analysis' ? <span className={verdict.className}>{verdict.label}</span> : undefined}
-        />
+        <Fragment key={part.key}>
+          <PartCard
+            title={part.title}
+            note={part.forClient ? 'para o cliente' : 'para ti'}
+            markdown={pack[part.key]}
+            extra={part.key === 'analysis' ? <span className={verdict.className}>{verdict.label}</span> : undefined}
+          />
+          {part.key === 'coverLetter' && afterLetter}
+        </Fragment>
       ))}
     </div>
   );

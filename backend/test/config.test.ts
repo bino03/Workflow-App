@@ -77,6 +77,14 @@ describe('loadConfig', () => {
     expect(issuesOf(testEnv({ DATA_DIR: 'relative' })).join()).toContain('DATA_DIR');
   });
 
+  it('PORTFOLIO_PATH: unset or empty → undefined; an existing absolute folder → its real path; relative or missing refused', () => {
+    expect(loadConfig(testEnv({ PORTFOLIO_PATH: undefined })).portfolioPath).toBeUndefined();
+    expect(loadConfig(testEnv({ PORTFOLIO_PATH: '' })).portfolioPath).toBeUndefined();
+    expect(loadConfig(testEnv({ PORTFOLIO_PATH: tmpdir() })).portfolioPath).toBe(realpathSync(tmpdir()));
+    expect(issuesOf(testEnv({ PORTFOLIO_PATH: 'portfolio' })).join()).toContain('PORTFOLIO_PATH');
+    expect(issuesOf(testEnv({ PORTFOLIO_PATH: 'C:\\does\\not\\exist\\wfa' })).join()).toContain('does not exist');
+  });
+
   it('parses COOKIE_SECURE strictly', () => {
     expect(loadConfig(testEnv({ COOKIE_SECURE: 'true' })).auth.cookieSecure).toBe(true);
     expect(issuesOf(testEnv({ COOKIE_SECURE: 'yes' })).join()).toContain('COOKIE_SECURE');

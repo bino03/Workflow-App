@@ -43,6 +43,19 @@ export type ApplicationView = {
   package: PackageView | null;
   /** Porque é que o pacote não se leu (um `package.json` inválido). */
   packageError: string | null;
+  attachments: AttachmentsView | null;
+  /** Porque é que o `attachments.json` não se leu. */
+  attachmentsError: string | null;
+};
+
+/** Os prints que o `/upwork-proposal` escolheu do portfólio (`attachments.json`, ADR 0024). */
+export type AttachmentsView = {
+  updatedAt: string;
+  /** false = sem `PORTFOLIO_PATH` no backend: a lista aparece, as imagens não. */
+  portfolioConfigured: boolean;
+  items: { project: string; slug: string; file: string; uploadName: string; caption: string; available: boolean }[];
+  /** Projetos citados na carta sem prints no catálogo do portfólio. */
+  missing: string[];
 };
 
 /** `updatedAt: null` = ainda não há perfil; o `markdown` é então o modelo inicial. */

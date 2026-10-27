@@ -5,6 +5,7 @@
 //   node scripts/verify/instance.mjs start [--port 7498] [--dir <run dir>] [--fresh] [--projects 3]
 //                                          [--sessions] [--workflow <real Workflow path>] [--git-workflow]
 //                                          [--real-claude]   (with --workflow: the owner's ~/.claude — spends quota)
+//                                          [--portfolio <path>]  (PORTFOLIO_PATH, read-only — ADR 0024; omitted = unset)
 //   node scripts/verify/instance.mjs stop  [--port 7498] [--dir <run dir>] [--clean]
 //
 // start prints the run dir; <run dir>/instance.json has the URL, username and password for the driver.
@@ -32,6 +33,7 @@ const { positionals, values: opts } = parseArgs({
     workflow: { type: 'string' },
     'git-workflow': { type: 'boolean', default: false },
     'real-claude': { type: 'boolean', default: false },
+    portfolio: { type: 'string' },
     clean: { type: 'boolean', default: false },
   },
 });
@@ -134,6 +136,8 @@ async function start() {
     );
   }
   if (opts['git-workflow'] && !opts.workflow) gitWorkflow(workflowPath, claudeDir);
+  const portfolioPath = opts.portfolio ? resolve(opts.portfolio) : '';
+  if (portfolioPath && !existsSync(portfolioPath)) fail(`--portfolio ${portfolioPath}: does not exist`);
   if (opts.sessions && projectDirs.length > 1) seedSessions(claudeDir, projectDirs[1]);
 
   // A fresh login on every start: nothing reusable outlives the run dir.
@@ -166,6 +170,8 @@ async function start() {
     CLAUDE_CONFIG_DIR: realClaude ? '' : claudeDir,
     MAX_TERMINALS: '12',
     WORKFLOW_PATH: workflowPath,
+    // Only read (the screenshots an application attaches); empty = unset, whatever the owner's .env says.
+    PORTFOLIO_PATH: portfolioPath,
     DATA_DIR: dataDir,
     FRONTEND_DIST: dist,
     TELEGRAM_BOT_TOKEN: '',
@@ -192,7 +198,7 @@ async function start() {
 
   writeFileSync(
     join(runDir, 'instance.json'),
-    JSON.stringify({ base, port, username, password, runDir, rootsDir, workflowPath, claudeDir, dataDir, projects: Object.fromEntries(names.map((n, i) => [n, projectDirs[i]])) }, null, 2),
+    JSON.stringify({ base, port, username, password, runDir, rootsDir, workflowPath, portfolioPath, claudeDir, dataDir, projects: Object.fromEntries(names.map((n, i) => [n, projectDirs[i]])) }, null, 2),
   );
   console.log(`up on ${base} (pid ${child.pid})`);
   console.log(runDir);

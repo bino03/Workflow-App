@@ -268,15 +268,21 @@ A conversa (perguntas, permissões, feed, modo) passa por `/api/guided`. **Nenhu
 | PATCH | `/api/upwork/applications/:id` | `{status?, clientName?, connectsSpent? (0–500), notes? (≤ 8000), url?}` — pelo menos um | `200 ApplicationView` — um `status` diferente junta-se ao `history`; passar a `sent` **pausa** a sessão | `AUTH_002` · `COMMON_001` · `UPWORK_001` · `UPWORK_004` |
 | POST | `/api/upwork/applications/:id/pause` | — | `200 ApplicationView` — fecha o terminal, a sessão fica (`stopped`); já parada não é erro | `AUTH_002` · `UPWORK_001` · `UPWORK_004` · `UPWORK_005` (sem sessão) |
 | POST | `/api/upwork/applications/:id/message` | `{text}` (1–8000) | `204` — numa sessão `stopped` **acorda-a** primeiro (`--resume`, espera pelo `SessionStart` e por 1 s de ecrã quieto — 3–6 s) e só depois cola; senão igual a `/api/guided/:id/message` | `AUTH_002` · `COMMON_001` · `UPWORK_001` · `UPWORK_005` · `GUIDED_004` (a trabalhar, ou não ficou pronta em 60 s — tentar de novo) · `TERMINAL_*` |
-| POST | `/api/upwork/applications/:id/archive` | — | `200 ApplicationView` — copia o pacote para `applications/<id>/package/`, fecha e apaga a sessão (`guidedId: null`), sai da lista por omissão | `AUTH_002` · `UPWORK_001` · `UPWORK_004` |
+| GET | `/api/upwork/applications/:id/attachments/:index?download=1` | — | `200` a imagem (`image/png`, `image/jpeg` ou `image/webp`, `nosniff`) — o print na posição `index` (0–9) do `attachments.json`, lido de `PORTFOLIO_PATH/public/images/projects/<slug>/<file>`; `Content-Disposition` `inline` ou, com `download=1`, `attachment`, sempre com `filename="<uploadName>"` ([[adr/0024-prints-do-portfolio-nas-candidaturas]]) | `AUTH_002` · `COMMON_001` (índice ou `download` inválidos) · `UPWORK_001` · `UPWORK_006` (sem lista, índice fora dela, ficheiro em falta ou fora da pasta, sem `PORTFOLIO_PATH`) |
+| POST | `/api/upwork/applications/:id/archive` | — | `200 ApplicationView` — copia o pacote (e o `attachments.json`, se houver) para `applications/<id>/package/`, fecha e apaga a sessão (`guidedId: null`), sai da lista por omissão | `AUTH_002` · `UPWORK_001` · `UPWORK_004` |
 | POST | `/api/upwork/applications/:id/project` | `{agreement?}` (0–20 000, **opcional** — vazio ou ausente → `null`) — o acordo final colado pelo dono | `201 GuidedView` (a **criação**, no ecrã Novo projeto) — só com `status: 'won'`; grava `agreement` e `creationGuidedId`; o brief do `/create` é a candidatura inteira, por esta ordem: anúncio, carta enviada, plano técnico, perguntas ao cliente, **a conversa** (as mensagens de texto do dono e do Claude, do `.jsonl`), notas, acordo. ≤ 60 000: a conversa cede primeiro (as mensagens mais antigas), depois a carta, o plano e as perguntas; o anúncio, as notas e o acordo nunca ([[adr/0023-brief-com-a-candidatura-inteira]]) | `AUTH_002` · `COMMON_001` · `UPWORK_001` · `UPWORK_003` · `UPWORK_004` · `CREATE_001` · `LIBRARY_001` · `TERMINAL_*` |
 | DELETE | `/api/upwork/applications/:id` | — | `204` — o registo, o pacote arquivado e a sessão | `AUTH_002` · `UPWORK_001` |
 
 - **`ApplicationView`** = o registo (`{id, title, url, clientName, status, history: {status, at}[], connectsSpent,
   notes, guidedId, agreement, creationGuidedId, projectPath, archived, createdAt, updatedAt}`) + `guided: GuidedView
-  | null` (`null` depois de arquivada, ou se a sessão foi fechada à mão) + `package` + `packageError`. `title` é o do
+  | null` (`null` depois de arquivada, ou se a sessão foi fechada à mão) + `package` + `packageError` + `attachments` +
+  `attachmentsError`. `title` é o do
   `package.json` assim que existe (até lá, a 1.ª linha do anúncio). `status`: `draft` · `sent` · `interview` ·
   `offer` · `won` · `lost` · `withdrawn`, livre (qualquer para qualquer).
+- **`AttachmentsView`** = `{updatedAt, portfolioConfigured, items: {project, slug, file, uploadName, caption,
+  available}[], missing: string[]}` — do `attachments.json` que o `/upwork-proposal` escreve ao lado do pacote (forma no
+  Step 2b da skill); `available` = a imagem existe dentro da pasta de imagens do portfólio. Sem ficheiro → `null`;
+  inválido (um `file` com pasta, um `uploadName` fora de ASCII kebab-case, mais de 10) → `null` e `attachmentsError`.
 - **`PackageView`** = `{title, language, verdict: 'apply'|'maybe'|'skip', updatedAt, analysis, coverLetter, screening,
   plan, clientQuestions}` — cada parte o Markdown do ficheiro (≤ 50 000; em falta → `null`), lido do `package.json` da
   sessão (ou da cópia arquivada). Um `package.json` inválido, ou que nomeie um ficheiro com pasta → `package: null` e

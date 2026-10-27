@@ -183,7 +183,13 @@ export async function buildApp({
   const creationService = new CreationService({ guided: guidedService, terminals: terminalsService, workflowPath: config.workflowPath });
   await app.register(creationRoutes, { creationService });
   await app.register(upworkRoutes, {
-    upworkService: new UpworkService({ dataDir: config.dataDir, workflowPath: config.workflowPath, guided: guidedService, creation: creationService }),
+    upworkService: new UpworkService({
+      dataDir: config.dataDir,
+      workflowPath: config.workflowPath,
+      portfolioPath: config.portfolioPath,
+      guided: guidedService,
+      creation: creationService,
+    }),
   });
   await app.register(previewRoutes, { terminalsService, previewService });
   await app.register(terminalsGateway, { terminalManager, sessionStore: sessions });

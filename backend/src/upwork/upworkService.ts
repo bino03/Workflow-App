@@ -16,13 +16,19 @@ import {
   type ProfileView,
   applicationSchema,
 } from './upwork.schemas.js';
+import { ATTACHMENTS_FILE, IMAGE_TYPES, attachmentFile, parseAttachments, readAttachments } from './attachmentsReader.js';
 import { packageFiles, readPackage } from './packageReader.js';
 import { type BriefMessage, PROFILE_TEMPLATE, UPWORK_FILES, jobMarkdown, projectBrief, titleFromJob, upworkPaths } from './upworkFiles.js';
+
+/** One screenshot to send: the file on disk and the name the Upwork should see. */
+export type AttachmentImage = { file: string; contentType: string; uploadName: string };
 
 export type UpworkServiceDeps = {
   dataDir: string;
   /** The Workflow: where `/upwork-proposal` runs. */
   workflowPath: string;
+  /** The portfolio whose screenshots the applications attach (ADR 0024); undefined = no images. */
+  portfolioPath?: string;
   guided: Pick<GuidedService, 'start' | 'get' | 'remove' | 'suspend' | 'message' | 'feed'>;
   /** Novo projeto: a won application becomes a creation of its own (spec upwork step 6). */
   creation: Pick<CreationService, 'create'>;
@@ -212,6 +218,8 @@ export class UpworkService {
       const sessionDir = this.sessionDirOf(record.guidedId);
       const target = this.packageDirOf(record.id);
       const files = packageFiles(sessionDir);
+      // The screenshots' list outlives the session too: an archived application still shows what was attached.
+      if (files.length > 0 && existsSync(join(sessionDir, ATTACHMENTS_FILE))) files.push(ATTACHMENTS_FILE);
       if (files.length > 0) {
         mkdirSync(target, { recursive: true });
         for (const name of files) copyFileSync(join(sessionDir, name), join(target, name));
@@ -223,6 +231,21 @@ export class UpworkService {
       await this.write(next);
     }
     return this.view(next);
+  }
+
+  /**
+   * One of the screenshots `attachments.json` lists, by its position — the client never names a path. The file comes
+   * from the portfolio's images folder only (ADR 0024).
+   */
+  attachment(id: string, index: number): AttachmentImage {
+    const record = this.record(id);
+    const { data } = parseAttachments(this.packageDirFor(record));
+    const item = data?.items[index];
+    if (!item) throw new AppError('UPWORK_006');
+    const file = attachmentFile(this.deps.portfolioPath, item);
+    const extension = item.file.split('.').pop()!.toLowerCase();
+    if (file === null) throw new AppError('UPWORK_006');
+    return { file, contentType: IMAGE_TYPES[extension]!, uploadName: item.uploadName };
   }
 
   /** Apagar: the record, its archived package and its session — nothing stays. */
@@ -295,6 +318,11 @@ export class UpworkService {
     return join(this.paths.folderOf(id), 'package');
   }
 
+  /** While the session lives, the package is in its folder; once archived, in the application's own copy. */
+  private packageDirFor(record: Application): string {
+    return record.guidedId !== null ? this.sessionDirOf(record.guidedId) : this.packageDirOf(record.id);
+  }
+
   private record(id: string): Application {
     const record = isUuid(id) ? this.readRecord(id) : null;
     if (!record || record.id !== id) throw new AppError('UPWORK_001');
@@ -328,10 +356,19 @@ export class UpworkService {
   private view(record: Application, guided?: GuidedView): ApplicationView {
     const rest: Omit<Application, 'version'> & { version?: 1 } = { ...record };
     delete rest.version;
-    // While the session lives, the package is in its folder; once archived, in the application's own copy.
-    const read = readPackage(record.guidedId !== null ? this.sessionDirOf(record.guidedId) : this.packageDirOf(record.id));
+    const dir = this.packageDirFor(record);
+    const read = readPackage(dir);
+    const attachments = readAttachments(dir, this.deps.portfolioPath);
     // Until the skill names the job, the first line of the post (§4.1).
     const title = read.package?.title ?? record.title;
-    return { ...rest, title, guided: guided ?? this.guidedOf(record), package: read.package, packageError: read.error };
+    return {
+      ...rest,
+      title,
+      guided: guided ?? this.guidedOf(record),
+      package: read.package,
+      packageError: read.error,
+      attachments: attachments.attachments,
+      attachmentsError: attachments.error,
+    };
   }
 }

@@ -129,6 +129,11 @@ nunca o conteúdo de um terminal nem o token (o URL da Bot API contém-no: os er
   **recusa** qualquer URL em `upwork.com` ou num subdomínio — mesmo em Automático, porque a allowlist do Workflow
   aprova `WebFetch` e nunca chegaria a haver cartão. O propósito vem do `guided-control` (só o backend o escreve),
   não do `meta.json`. O URL do job nem chega à sessão (não vai para o `job.md`).
+- **Os prints do portfólio** ([[adr/0024-prints-do-portfolio-nas-candidaturas]]): o backend lê `PORTFOLIO_PATH`, mas
+  **só** `public/images/projects/`, só imagens, e só por **posição** no `attachments.json` — o pedido nunca traz um
+  caminho. `slug`/`file` validados (sem pastas, `..`, drive, ponto inicial) e o ficheiro, depois de `realpath`, tem de
+  ficar dentro da pasta (uma junction para fora → 404). `uploadName` em ASCII kebab-case antes de ir para o
+  `Content-Disposition`; `nosniff`. Testado em `upwork.routes.test.ts`.
 
 Consequência a não esquecer: **um terminal desta app é um shell na máquina** — o Claude Code executa
 comandos. Quem entra na app entra na máquina. Por isso a exposição à rede é uma decisão própria

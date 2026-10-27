@@ -1,4 +1,5 @@
 import api from '@/api';
+import { API_BASE_URL } from '@/config/apiBase';
 import type { GuidedView } from '@/types/guided';
 import type { ApplicationChanges, ApplicationView, NewApplication, ProfileView } from '@/types/upwork';
 
@@ -20,6 +21,11 @@ export async function getApplications(archived: boolean): Promise<ApplicationVie
 
 export async function getApplication(id: string): Promise<ApplicationView> {
   return (await api.get<ApplicationView>(`/upwork/applications/${id}`)).data;
+}
+
+/** Um print a anexar (ADR 0024), pela posição no `attachments.json`: `download` guarda-o com o nome para a Upwork. */
+export function attachmentUrl(id: string, index: number, download = false): string {
+  return `${API_BASE_URL}/upwork/applications/${id}/attachments/${index}${download ? '?download=1' : ''}`;
 }
 
 /** Cria o registo e arranca a sessão guiada `upwork` que gera o pacote. */

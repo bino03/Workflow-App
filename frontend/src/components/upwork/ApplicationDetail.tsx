@@ -6,6 +6,7 @@ import { useNavigate } from 'react-router';
 import { GuidedConversation, GuidedModeSelect, GuidedStatusTag } from '@/components/guided/GuidedConversation';
 import { ReplyBox } from '@/components/guided/ReplyBox';
 import { ApplicationDataForm } from '@/components/upwork/ApplicationDataForm';
+import { AttachmentsCard } from '@/components/upwork/AttachmentsCard';
 import { CreateProjectModal } from '@/components/upwork/CreateProjectModal';
 import { PackageCards, PackagePlaceholder } from '@/components/upwork/PackageCards';
 import { STATUS_TAG, VERDICT_TAG, canArchive } from '@/components/upwork/upworkFormat';
@@ -176,7 +177,10 @@ export function ApplicationDetail({ id, refreshSignal, onChanged, onRemoved }: A
             </Button>
           </div>
         )}
-        <PackageCards pack={application.package} />
+        <PackageCards
+          pack={application.package}
+          afterLetter={<AttachmentsCard applicationId={application.id} attachments={application.attachments} error={application.attachmentsError} />}
+        />
       </div>
     );
   };
