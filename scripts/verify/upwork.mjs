@@ -164,8 +164,8 @@ try {
   await click(button('Criar projeto', detail));
   await page.waitFor(`!!document.querySelector('#upwork-agreement')`);
   await page.type('#upwork-agreement', 'Fixed price, 2 milestones: charts, then login.');
-  await page.waitFor(`!${button('Criar projeto', dialog('Cola o que ficou combinado'))}.disabled`);
-  await click(button('Criar projeto', dialog('Cola o que ficou combinado')));
+  await page.waitFor(`!${button('Criar projeto', dialog('O /create recebe tudo'))}.disabled`);
+  await click(button('Criar projeto', dialog('O /create recebe tudo')));
   check('Criar projeto → /new-project with the brief', await page.waitFor(`location.pathname === '/new-project' && ${has('Projeto ganho na Upwork')} && ${has('2 milestones')}`, 20000));
 
   // The creation finishes: Abrir projeto opens a terminal in its folder.

@@ -3,6 +3,7 @@ import { Alert, Button, Empty, Select, Spin } from 'antd';
 import { PlusOutlined, UserOutlined } from '@ant-design/icons';
 import { ApplicationDetail } from '@/components/upwork/ApplicationDetail';
 import { ApplicationList } from '@/components/upwork/ApplicationList';
+import { CreateProjectModal } from '@/components/upwork/CreateProjectModal';
 import { NewApplicationDrawer } from '@/components/upwork/NewApplicationDrawer';
 import { ProfileDrawer } from '@/components/upwork/ProfileDrawer';
 import { APPLICATION_STATUSES, STATUS_TAG } from '@/components/upwork/upworkFormat';
@@ -21,6 +22,10 @@ export function UpworkPage() {
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [profileOpen, setProfileOpen] = useState(false);
   const [creating, setCreating] = useState(false);
+  /** Novo projeto pedido pelo menu de contexto: a candidatura cujo acordo se está a colar. */
+  const [projectFor, setProjectFor] = useState<string | null>(null);
+  /** Uma ação do menu sobre a candidatura aberta: o detalhe relê-a (guarda a sua cópia). */
+  const [detailSignal, setDetailSignal] = useState(0);
   const upwork = useUpworkApplications(archived);
 
   const shown = useMemo(
@@ -55,6 +60,15 @@ export function UpworkPage() {
       setSelectedId((current) => (current === id ? null : current));
     },
     [remove],
+  );
+
+  const { replace } = upwork;
+  const onMenuChanged = useCallback(
+    (application: ApplicationView) => {
+      replace(application);
+      if (application.id === selectedId) setDetailSignal((n) => n + 1);
+    },
+    [replace, selectedId],
   );
 
   const renderList = () => {
@@ -96,7 +110,16 @@ export function UpworkPage() {
     if (shown.length === 0) {
       return <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} description="Nenhuma candidatura com este estado." />;
     }
-    return <ApplicationList applications={shown} selectedId={selectedId} onSelect={(application) => setSelectedId(application.id)} />;
+    return (
+      <ApplicationList
+        applications={shown}
+        selectedId={selectedId}
+        onSelect={(application) => setSelectedId(application.id)}
+        onChanged={onMenuChanged}
+        onRemoved={onRemoved}
+        onCreateProject={setProjectFor}
+      />
+    );
   };
 
   return (
@@ -144,7 +167,7 @@ export function UpworkPage() {
 
         <section className="flex-1 min-w-0 min-h-0 overflow-auto border-l border-border pl-6 pr-1" aria-label="Candidatura aberta">
           {selectedId ? (
-            <ApplicationDetail key={selectedId} id={selectedId} onChanged={upwork.replace} onRemoved={onRemoved} />
+            <ApplicationDetail key={selectedId} id={selectedId} refreshSignal={detailSignal} onChanged={upwork.replace} onRemoved={onRemoved} />
           ) : (
             <Empty className="mt-16" image={Empty.PRESENTED_IMAGE_SIMPLE} description="Escolhe uma candidatura na lista." />
           )}
@@ -152,6 +175,7 @@ export function UpworkPage() {
       </div>
 
       <ProfileDrawer open={profileOpen} onClose={() => setProfileOpen(false)} profile={upwork.profile} onSaved={upwork.setProfile} />
+      <CreateProjectModal applicationId={projectFor} onClose={() => setProjectFor(null)} />
       <NewApplicationDrawer
         open={creating}
         onClose={() => setCreating(false)}

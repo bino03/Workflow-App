@@ -92,4 +92,5 @@ Três forças moldam a decisão:
 
 ## Estado
 
-`aceite` — 2026-10-26.
+`aceite` — 2026-10-26. O ponto 7 (o que vai no brief, e o acordo obrigatório) foi alterado por
+[[0023-brief-com-a-candidatura-inteira]] a 2026-10-27.

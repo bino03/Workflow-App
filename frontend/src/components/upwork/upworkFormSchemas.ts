@@ -58,6 +58,7 @@ export const applicationDataFormSchema = z.object({
 export type ApplicationDataFormValues = z.infer<typeof applicationDataFormSchema>;
 
 export const createProjectFormSchema = z.object({
-  agreement: z.string().trim().min(1, 'Cola o que ficou combinado.').max(20_000, 'Até 20 000 caracteres.'),
+  // Opcional: a negociação pode estar toda na conversa, que também vai no brief.
+  agreement: z.string().trim().max(20_000, 'Até 20 000 caracteres.'),
 });
 export type CreateProjectFormValues = z.infer<typeof createProjectFormSchema>;

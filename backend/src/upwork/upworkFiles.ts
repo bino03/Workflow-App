@@ -69,30 +69,67 @@ export function titleFromJob(job: string): string {
   return line.length > 120 ? `${line.slice(0, 119)}…` : line;
 }
 
-export type ProjectBriefParts = { title: string; job: string; coverLetter: string | null; plan: string | null; agreement: string };
+/** One message of the application's conversation: the owner (client messages pasted, requests) or Claude. */
+export type BriefMessage = { from: 'owner' | 'claude'; text: string };
+
+export type ProjectBriefParts = {
+  title: string;
+  job: string;
+  coverLetter: string | null;
+  plan: string | null;
+  clientQuestions: string | null;
+  conversation: BriefMessage[];
+  notes: string;
+  /** Optional: the negotiation may be all in the conversation already. */
+  agreement: string | null;
+};
 
 /**
  * The brief `/create` starts from when an application is won (spec upwork §4.2): the post, the letter that was sent,
- * the technical plan and the agreement — in this order. Over `maxChars`, the letter and the plan give way (the post and
- * the agreement are capped at 20 000 each, and the agreement is what was really agreed), so a long application never
- * fails to become a project.
+ * the technical plan, the questions for the client, the conversation, the owner's notes and the agreement — in this
+ * order. Over `maxChars`, the conversation gives way first (oldest messages first: the latest are closest to what was
+ * agreed), then the letter, the plan and the questions. The post (20 000), the notes (8000) and the agreement
+ * (20 000) are capped on the way in and stay whole, so a long application never fails to become a project.
  */
 export function projectBrief(parts: ProjectBriefParts, maxChars: number): string {
-  const whole = composeBrief(parts);
+  const whole = composeBrief(parts, false);
   if (whole.length <= maxChars) return whole;
+
+  const room = maxChars - composeBrief({ ...parts, conversation: [] }, true).length;
+  const kept: BriefMessage[] = [];
+  let used = 0;
+  for (const message of [...parts.conversation].reverse()) {
+    used += formatMessage(message).length + 2;
+    if (used > room) break;
+    kept.unshift(message);
+  }
+  const shorter = composeBrief({ ...parts, conversation: kept }, kept.length < parts.conversation.length);
+  if (shorter.length <= maxChars) return shorter;
+
   const note = '\n\n(… cortado: o brief passava do limite.)';
-  const fixed = composeBrief({ ...parts, coverLetter: '', plan: '' }).length + 2 * note.length;
-  const each = Math.max(0, Math.floor((maxChars - fixed) / 2));
+  const rest = { ...parts, conversation: [] };
+  const fixed = composeBrief({ ...rest, coverLetter: '', plan: '', clientQuestions: '' }, true).length + 3 * note.length;
+  const each = Math.max(0, Math.floor((maxChars - fixed) / 3));
   const cut = (text: string | null) => (text && text.trim().length > each ? text.trim().slice(0, each) + note : text);
-  return composeBrief({ ...parts, coverLetter: cut(parts.coverLetter), plan: cut(parts.plan) }).slice(0, maxChars);
+  return composeBrief(
+    { ...rest, coverLetter: cut(parts.coverLetter), plan: cut(parts.plan), clientQuestions: cut(parts.clientQuestions) },
+    true,
+  ).slice(0, maxChars);
 }
 
-function composeBrief({ title, job, coverLetter, plan, agreement }: ProjectBriefParts): string {
+function formatMessage({ from, text }: BriefMessage): string {
+  return `**${from === 'owner' ? 'Dono' : 'Claude'}:** ${text.trim()}`;
+}
+
+function composeBrief(parts: ProjectBriefParts, conversationCut: boolean): string {
+  const { title, job, coverLetter, plan, clientQuestions, conversation, notes, agreement } = parts;
+  const messages = conversation.map(formatMessage);
+  if (conversationCut) messages.unshift('(… mensagens mais antigas cortadas: o brief passava do limite.)');
   return [
     '# Projeto ganho na Upwork',
     '',
-    `Este projeto vem de uma candidatura ganha na Upwork: **${title}**. O acordo final (no fim) manda sobre o anúncio`,
-    'quando os dois divergem — é o âmbito combinado com o cliente.',
+    `Este projeto vem de uma candidatura ganha na Upwork: **${title}**. O acordo final e a conversa com o cliente (no`,
+    'fim) mandam sobre o anúncio quando divergem — são o âmbito combinado.',
     '',
     '## Anúncio original',
     '',
@@ -106,9 +143,23 @@ function composeBrief({ title, job, coverLetter, plan, agreement }: ProjectBrief
     '',
     plan?.trim() || '(sem plano guardado)',
     '',
+    '## Perguntas ao cliente',
+    '',
+    clientQuestions?.trim() || '(sem perguntas guardadas)',
+    '',
+    '## Conversa da candidatura',
+    '',
+    'O dono colou aqui as mensagens do cliente e pediu respostas; o Claude propôs-as. A negociação está aqui.',
+    '',
+    messages.length > 0 ? messages.join('\n\n') : '(sem mensagens)',
+    '',
+    '## Notas do dono',
+    '',
+    notes.trim() || '(sem notas)',
+    '',
     '## Acordo final',
     '',
-    agreement.trim(),
+    agreement?.trim() || '(nenhum acordo colado — o combinado está na conversa acima)',
     '',
   ].join('\n');
 }

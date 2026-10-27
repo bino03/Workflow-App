@@ -110,6 +110,24 @@ com `aria-current` no selecionado, `rounded-md`, `bg-surface-1`, borda `border` 
 cliente e data em `text-3`. Coluna de 380 px; filtro `Select allowClear` + chip **Arquivadas** por cima (trocar de
 lista limpa o filtro, como o agrupamento da Biblioteca ao mudar de separador).
 
+### 6.1 Menu de contexto num card
+
+Primeiro em código: `components/upwork/ApplicationContextMenu.tsx` (2026-10-27, Chrome headless 26/26) — o card fica
+dentro de um `Dropdown trigger={['contextMenu']}` do antd (o mesmo `Dropdown` do menu de utilizador e da grelha). O
+botão direito abre-o junto ao rato; **Shift+F10 / tecla de menu** num card focado também (o browser dispara o mesmo
+`contextmenu`). Regras:
+
+- **Age sobre esse card sem o selecionar** — o painel de detalhe não muda. Se o card alterado é o aberto, o detalhe
+  relê-se (`refreshSignal`), porque guarda a sua cópia.
+- **Só o que faz sentido no estado do registo**: os itens calculam-se a partir dele; grupos separados por `divider`,
+  nunca um divisor no início, no fim ou dois seguidos; menu vazio → sem menu.
+- **Mesmas ações que os botões do detalhe**, num hook partilhado (`hooks/useApplicationActions.ts`), com a mesma
+  confirmação `useConfirm()` (título "Marcar como X?", `actionLabel` próprio, `danger: false` no que não destrói) — nunca
+  `Popconfirm`: o menu fecha ao clicar e o `Popconfirm` ficava sem âncora.
+- **Copiar a partir do menu** confirma com uma notificação (`notificationService.success`): não há botão que mude
+  para "Copiado".
+- O que destrói (`Apagar`) vai em último, com `danger: true`.
+
 ## Drift encontrado — não copiar
 
 _Nenhum ainda._ Vigiar: ações horizontais só-ícone; estilos de botão repetidos por ficheiro; `padding` a duplicar o do layout.

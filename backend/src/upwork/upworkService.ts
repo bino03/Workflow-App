@@ -17,13 +17,13 @@ import {
   applicationSchema,
 } from './upwork.schemas.js';
 import { packageFiles, readPackage } from './packageReader.js';
-import { PROFILE_TEMPLATE, UPWORK_FILES, jobMarkdown, projectBrief, titleFromJob, upworkPaths } from './upworkFiles.js';
+import { type BriefMessage, PROFILE_TEMPLATE, UPWORK_FILES, jobMarkdown, projectBrief, titleFromJob, upworkPaths } from './upworkFiles.js';
 
 export type UpworkServiceDeps = {
   dataDir: string;
   /** The Workflow: where `/upwork-proposal` runs. */
   workflowPath: string;
-  guided: Pick<GuidedService, 'start' | 'get' | 'remove' | 'suspend' | 'message'>;
+  guided: Pick<GuidedService, 'start' | 'get' | 'remove' | 'suspend' | 'message' | 'feed'>;
   /** Novo projeto: a won application becomes a creation of its own (spec upwork step 6). */
   creation: Pick<CreationService, 'create'>;
   now?: () => Date;
@@ -123,21 +123,49 @@ export class UpworkService {
   }
 
   /**
-   * Criar projeto (spec upwork step 6): only a won application. The agreement the owner pastes is saved, and the brief
-   * — post, the letter that was sent, the plan, the agreement — starts a creation of its own in Novo projeto. Never
-   * `/create` inside the application's session.
+   * Criar projeto (spec upwork step 6): only a won application. The agreement the owner pastes (optional) is saved, and
+   * the brief — post, the letter that was sent, the plan, the questions, the conversation, the notes, the agreement —
+   * starts a creation of its own in Novo projeto. Never `/create` inside the application's session.
    */
-  async project(id: string, agreement: string): Promise<GuidedView> {
+  async project(id: string, agreement: string | null): Promise<GuidedView> {
     const record = this.open(id);
     if (record.status !== 'won') throw new AppError('UPWORK_003');
     const view = this.view(record);
     const brief = projectBrief(
-      { title: view.title, job: this.readJob(record), coverLetter: view.package?.coverLetter ?? null, plan: view.package?.plan ?? null, agreement },
+      {
+        title: view.title,
+        job: this.readJob(record),
+        coverLetter: view.package?.coverLetter ?? null,
+        plan: view.package?.plan ?? null,
+        clientQuestions: view.package?.clientQuestions ?? null,
+        conversation: await this.conversation(record),
+        notes: record.notes,
+        agreement,
+      },
       MAX_BRIEF_CHARS,
     );
     const creation = await this.deps.creation.create({ description: brief });
     await this.write({ ...record, agreement, creationGuidedId: creation.id, projectPath: null, updatedAt: this.now().toISOString() });
     return creation;
+  }
+
+  /**
+   * What was said in the application's session after the package: the client's messages the owner pasted and the
+   * answers Claude proposed (the negotiation). The brief that opened it is the post, already in the project brief. A
+   * session that is gone or unreadable gives nothing — the project still starts.
+   */
+  private async conversation(record: Application): Promise<BriefMessage[]> {
+    if (record.guidedId === null) return [];
+    try {
+      const { entries } = await this.deps.guided.feed(record.guidedId, 0);
+      return entries.flatMap((entry): BriefMessage[] => {
+        if (entry.type === 'user-text' && entry.id !== 'brief') return [{ from: 'owner', text: entry.text }];
+        if (entry.type === 'assistant-text') return [{ from: 'claude', text: entry.markdown }];
+        return [];
+      });
+    } catch {
+      return [];
+    }
   }
 
   /** Free, manual changes (ADR 0022 point 6): any status to any other, each one added to the history. */

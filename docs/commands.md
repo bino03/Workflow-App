@@ -124,6 +124,7 @@ cd frontend && npm run build && cd ..                     # a instância serve o
 node scripts/verify/instance.mjs start --fresh            # instância de teste na 7498 → imprime a pasta de execução
 node scripts/verify/smoke.mjs                             # cenário de exemplo: login pelo formulário, registo, consola
 node scripts/verify/upwork.mjs                            # a secção Upwork de ponta a ponta (instância com --git-workflow)
+node scripts/verify/upwork-menu.mjs                       # o menu de contexto da lista Upwork (mesma instância, nova)
 node scripts/verify/instance.mjs stop --clean             # mata a árvore pelo PID da porta e apaga a pasta
 ```
 
@@ -151,6 +152,11 @@ node scripts/verify/instance.mjs stop --clean             # mata a árvore pelo 
   por isso o cenário escreve à mão o que o `/upwork-proposal` e o hook guiado escreveriam (`pending-<id>.json` com um PID
   vivo, `event.json` — incluindo o `SessionStart` ao retomar —, o `.jsonl` e o pacote). Cada ação é confirmada na API, não
   só no ecrã. A mesma técnica serve para qualquer sessão guiada.
+- **`upwork-menu.mjs`** — o menu de contexto da lista Upwork ([[adr/0023-brief-com-a-candidatura-inteira|ADR 0023]]): o
+  clique direito é **real** (`Input.dispatchMouseEvent` com `button: 'right'`), não um `contextmenu` sintético; espera que
+  nenhum diálogo (nem a máscara a fechar) cubra o card antes de clicar — senão o clique cai na máscara. Cobre os itens
+  por estado, Cancelar/Marcar, o detalhe aberto a acompanhar, Copiar carta, Novo projeto sem acordo (o brief lido do
+  disco, por ordem), Ver criação → Abrir projeto, Retirada → Arquivar → Apagar, e Shift+F10. Mesma instância.
 - O URL é `localhost` (não `127.0.0.1`): é a única origem sob o `rpID` das passkeys.
 
 ## Testes — o que liga a quê
@@ -162,7 +168,7 @@ node scripts/verify/instance.mjs stop --clean             # mata a árvore pelo 
 | Backend | Spike manual da status line (`scripts/statusline-spike.ts`): `--session-id`, `--settings`, `rate_limits` no JSON, caminho do `.jsonl` | o `claude` real (`--prompt` gasta uma mensagem) | ✅ a 2026-09-28: `rate_limits` só depois da 1.ª resposta |
 | Frontend | `npx tsc -b` + lint | — | ✅ limpos a 2026-09-28 |
 | Frontend | Testes automáticos | — | **nenhum** (omissão da stack) — verificação no browser (DOM + rede); a `/_tokens` (só dev) mostra tokens e componentes comuns montados |
-| App inteira | `scripts/verify/` — cenários por CDP contra uma instância de teste (secção acima) | o backend real numa porta à parte, Chrome headless | ✅ `smoke.mjs` 6/6 a 2026-10-23 e 2026-10-26 · `upwork.mjs` 34/34 a 2026-10-26. Os cenários das specs antigas não foram portados |
+| App inteira | `scripts/verify/` — cenários por CDP contra uma instância de teste (secção acima) | o backend real numa porta à parte, Chrome headless | ✅ `smoke.mjs` 6/6 a 2026-10-23, 2026-10-26 e 2026-10-27 · `upwork.mjs` 34/34 a 2026-10-26 e 2026-10-27 · `upwork-menu.mjs` 26/26 a 2026-10-27. Os cenários das specs antigas não foram portados |
 
 **O que não está coberto, sem suavizar**: ninguém testa automaticamente o Claude Code a correr dentro
 do PTY (depende do login real e gasta quota); a renderização do terminal (canvas do xterm.js) só se

@@ -307,6 +307,7 @@ describe('/api/upwork', () => {
       const dir = join(dataDir, GUIDED_FILES.dir, view.guidedId);
       writeFileSync(join(dir, 'cover-letter.md'), 'CARTA: Your dispatchers need one screen.');
       writeFileSync(join(dir, 'plan.md'), 'PLANO: React + Ant Design, ~5 dias.');
+      writeFileSync(join(dir, 'client-questions.md'), 'PERGUNTAS: Who are the dispatchers?');
       writeFileSync(
         join(dir, 'package.json'),
         JSON.stringify({ version: 1, title: 'Acme dashboard', language: 'en', verdict: 'apply', updatedAt: new Date().toISOString(), files: { analysis: 'analysis.md', coverLetter: 'cover-letter.md', screening: 'screening.md', plan: 'plan.md', clientQuestions: 'client-questions.md' } }),
@@ -319,11 +320,23 @@ describe('/api/upwork', () => {
       return response;
     };
 
-    it('only a won application → UPWORK_003; an empty agreement → 400', async () => {
+    it('only a won application → UPWORK_003; an agreement over 20 000 or not text → 400', async () => {
       const view = await won();
       expect((await project(view.id, 'Acordo')).json()).toMatchObject({ errorCode: 'UPWORK_003' });
       await inject('PATCH', `/api/upwork/applications/${view.id}`, { status: 'won' });
-      for (const agreement of ['', '   ', 'x'.repeat(20_001)]) expect((await project(view.id, agreement)).statusCode).toBe(400);
+      for (const agreement of ['x'.repeat(20_001), 42]) expect((await project(view.id, agreement)).statusCode).toBe(400);
+    });
+
+    it('the agreement is optional: blank or absent → null, and the brief carries the questions and the notes', async () => {
+      const view = await won();
+      await inject('PATCH', `/api/upwork/applications/${view.id}`, { status: 'won', notes: 'NOTAS: o cliente paga por milestone.' });
+      const response = await project(view.id, '   ');
+      expect(response.statusCode).toBe(201);
+      const brief = readFileSync(join(dataDir, GUIDED_FILES.dir, (response.json() as { id: string }).id, 'brief.md'), 'utf8');
+      const order = ['Um painel de entregas.', 'CARTA:', 'PLANO:', 'PERGUNTAS:', 'Conversa da candidatura', 'NOTAS:', 'nenhum acordo colado'].map((part) => brief.indexOf(part));
+      expect(order.every((at) => at >= 0)).toBe(true);
+      expect([...order].sort((a, b) => a - b)).toEqual(order);
+      expect((await inject('GET', `/api/upwork/applications/${view.id}`)).json()).toMatchObject({ agreement: null });
     });
 
     it('won: a creation of its own starts in Novo projeto, from the brief — post, letter, plan, agreement, in this order', async () => {

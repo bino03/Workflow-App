@@ -13,8 +13,9 @@ type CreateProjectModalProps = {
 };
 
 /**
- * Criar projeto a partir de uma candidatura ganha (spec upwork §2): um utilitário de um campo — o acordo colado —,
- * por isso Modal. O backend junta anúncio + carta + plano + acordo no brief e começa a criação no Novo projeto.
+ * Criar projeto a partir de uma candidatura ganha (spec upwork §2): um utilitário de um campo — o acordo, opcional —,
+ * por isso Modal. O backend junta anúncio, carta, plano, perguntas, a conversa, as notas e o acordo no brief e começa a
+ * criação no Novo projeto. Aberto pelo cabeçalho do detalhe e pelo menu de contexto da lista.
  */
 export function CreateProjectModal({ applicationId, onClose }: CreateProjectModalProps) {
   const navigate = useNavigate();
@@ -67,8 +68,9 @@ export function CreateProjectModal({ applicationId, onClose }: CreateProjectModa
     >
       <form className="flex flex-col gap-3" onSubmit={(event) => event.preventDefault()} noValidate>
         <p className="m-0 text-[13.5px] leading-[21px] text-text-2">
-          Cola o que ficou combinado com o cliente: a oferta, o âmbito, as milestones e as mensagens que mudaram alguma coisa.
-          O anúncio, a carta e o plano já vão no brief.
+          O /create recebe tudo o que a candidatura tem: o anúncio, a carta enviada, o plano técnico, as perguntas ao cliente,
+          a conversa (as mensagens do cliente que colaste e as respostas) e as notas. Se o acordo final não está na conversa
+          — a oferta, o âmbito, as milestones —, cola-o aqui; pode ficar vazio.
         </p>
         <Controller
           name="agreement"
@@ -77,7 +79,8 @@ export function CreateProjectModal({ applicationId, onClose }: CreateProjectModa
             <Input.TextArea
               {...field}
               id="upwork-agreement"
-              aria-label="Acordo"
+              aria-label="Acordo (opcional)"
+              placeholder="Acordo final (opcional)"
               autoSize={{ minRows: 8, maxRows: 18 }}
               maxLength={20_000}
               disabled={isSubmitting}

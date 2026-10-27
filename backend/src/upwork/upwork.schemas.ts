@@ -61,7 +61,15 @@ export const patchApplicationSchema = z
   .refine((body) => Object.keys(body).length > 0, 'nada para alterar');
 
 /** Criar projeto: what was finally agreed with the client (offer, scope, milestones, relevant messages). */
-export const projectBodySchema = z.object({ agreement: z.string().trim().min(1).max(20_000) });
+/** The agreement is optional: the negotiation may be all in the conversation, which goes in the brief too. */
+export const projectBodySchema = z.object({
+  agreement: z
+    .string()
+    .trim()
+    .max(20_000)
+    .nullish()
+    .transform((text) => (text ? text : null)),
+});
 
 /** `?archived=true` lists the archived ones; anything else (or nothing) the open ones. */
 export const listQuerySchema = z.object({ archived: z.enum(['true', 'false']).default('false').transform((v) => v === 'true') });

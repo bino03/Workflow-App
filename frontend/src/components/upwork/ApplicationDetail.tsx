@@ -8,28 +8,18 @@ import { ReplyBox } from '@/components/guided/ReplyBox';
 import { ApplicationDataForm } from '@/components/upwork/ApplicationDataForm';
 import { CreateProjectModal } from '@/components/upwork/CreateProjectModal';
 import { PackageCards, PackagePlaceholder } from '@/components/upwork/PackageCards';
-import { STATUS_TAG, VERDICT_TAG } from '@/components/upwork/upworkFormat';
+import { STATUS_TAG, VERDICT_TAG, canArchive } from '@/components/upwork/upworkFormat';
 import { ErrorHandler } from '@/errors/errorHandler';
-import { useConfirm } from '@/hooks/useConfirm';
+import { useApplicationActions } from '@/hooks/useApplicationActions';
 import { useGuidedAct } from '@/hooks/useGuidedAct';
 import { isLiveStatus, useGuidedSession } from '@/hooks/useGuidedSession';
 import { revealGuided } from '@/services/guidedService';
-import { createTerminal } from '@/services/terminalService';
-import {
-  archiveApplication,
-  deleteApplication,
-  getApplication,
-  pauseApplication,
-  sendApplicationMessage,
-} from '@/services/upworkService';
+import { getApplication, pauseApplication, sendApplicationMessage } from '@/services/upworkService';
 import type { GuidedView } from '@/types/guided';
 import type { ApplicationView } from '@/types/upwork';
 
 /** O pacote muda enquanto a skill escreve; o feed já tem o seu polling (1,5 s), isto só apanha os ficheiros. */
 const POLL_MS = 3000;
-
-/** O terminal de "Abrir projeto" nasce com este tamanho; a grelha ajusta-o ao aparecer. */
-const TERMINAL_SIZE = { cols: 120, rows: 40 };
 
 /** Numa candidatura, uma sessão parada é o normal: está em pausa até o dono escrever. */
 const GUIDED_LABELS = { stopped: 'Em pausa' };
@@ -38,6 +28,8 @@ type Tab = 'package' | 'conversation' | 'data';
 
 type ApplicationDetailProps = {
   id: string;
+  /** Muda quando o menu de contexto da lista alterou esta candidatura: relê-a. */
+  refreshSignal: number;
   /** Cada leitura volta à lista (o título e o veredicto chegam com o pacote). */
   onChanged: (application: ApplicationView) => void;
   onRemoved: (id: string) => void;
@@ -47,9 +39,8 @@ type ApplicationDetailProps = {
  * A candidatura aberta (spec upwork §4.4): Pacote · Conversa · Dados, sem nenhum terminal à vista — a conversa é a
  * mesma do Novo projeto. Uma candidatura por montagem (`key={id}`).
  */
-export function ApplicationDetail({ id, onChanged, onRemoved }: ApplicationDetailProps) {
+export function ApplicationDetail({ id, refreshSignal, onChanged, onRemoved }: ApplicationDetailProps) {
   const navigate = useNavigate();
-  const confirm = useConfirm();
   const [application, setApplication] = useState<ApplicationView | null>(null);
   const [tick, setTick] = useState(0);
   const [tab, setTab] = useState<Tab>('package');
@@ -83,13 +74,14 @@ export function ApplicationDetail({ id, onChanged, onRemoved }: ApplicationDetai
       cancelled = true;
       if (timer) clearTimeout(timer);
     };
-  }, [id, tick, onChanged, onRemoved]);
+  }, [id, tick, refreshSignal, onChanged, onRemoved]);
 
   const refresh = useCallback(() => {
     setTick((n) => n + 1);
     refreshSession();
   }, [refreshSession]);
   const { busy, act } = useGuidedAct(refresh);
+  const actions = useApplicationActions({ onChanged, onRemoved, run: act });
 
   if (!application) {
     return (
@@ -104,7 +96,7 @@ export function ApplicationDetail({ id, onChanged, onRemoved }: ApplicationDetai
   const running = view !== null && view.status !== 'stopped';
   const status = STATUS_TAG[application.status];
   const verdict = application.package ? VERDICT_TAG[application.package.verdict] : null;
-  const canArchive = ['lost', 'withdrawn'].includes(application.status) || (application.status === 'won' && application.projectPath !== null);
+  const archivable = canArchive(application);
 
   const reveal = () =>
     void act(async () => {
@@ -114,33 +106,6 @@ export function ApplicationDetail({ id, onChanged, onRemoved }: ApplicationDetai
     });
 
   const send = (text: string) => act(() => sendApplicationMessage(id, text));
-
-  const openProject = (projectPath: string) =>
-    void act(async () => {
-      const terminal = await createTerminal({ cwd: projectPath, mode: 'new', ...TERMINAL_SIZE });
-      void navigate('/terminals', { state: { focusTerminalId: terminal.id } });
-    });
-
-  const archive = () =>
-    confirm({
-      title: 'Arquivar esta candidatura?',
-      actionLabel: 'Arquivar',
-      danger: false,
-      message: 'O pacote fica guardado; a conversa com o Claude é apagada e já não dá para continuar. Sai da lista (filtro Arquivadas).',
-      onConfirm: async () => {
-        if (await act(async () => onChanged(await archiveApplication(id)))) onRemoved(id);
-      },
-    });
-
-  const remove = () =>
-    confirm({
-      title: 'Apagar esta candidatura?',
-      actionLabel: 'Apagar',
-      message: 'O registo e o pacote guardado desaparecem. Não dá para desfazer.',
-      onConfirm: async () => {
-        if (await act(() => deleteApplication(id))) onRemoved(id);
-      },
-    });
 
   const conversation = (): ReactNode => {
     if (!view) {
@@ -246,19 +211,19 @@ export function ApplicationDetail({ id, onChanged, onRemoved }: ApplicationDetai
             </Button>
           )}
           {application.projectPath && (
-            <Button size="small" type="primary" disabled={busy} onClick={() => openProject(application.projectPath!)}>
+            <Button size="small" type="primary" disabled={busy} onClick={() => actions.openProject(application.projectPath!)}>
               Abrir projeto
             </Button>
           )}
           {!application.archived && (
-            <Tooltip title={canArchive ? undefined : 'Marca-a como Perdida ou Retirada (ou Ganha, com o projeto criado) primeiro'}>
-              <Button size="small" disabled={busy || !canArchive} onClick={archive}>
+            <Tooltip title={archivable ? undefined : 'Marca-a como Perdida ou Retirada (ou Ganha, com o projeto criado) primeiro'}>
+              <Button size="small" disabled={busy || !archivable} onClick={() => actions.archive(application)}>
                 Arquivar
               </Button>
             </Tooltip>
           )}
           {application.archived && (
-            <Button size="small" type="text" danger disabled={busy} onClick={remove}>
+            <Button size="small" type="text" danger disabled={busy} onClick={() => actions.remove(application)}>
               Apagar
             </Button>
           )}

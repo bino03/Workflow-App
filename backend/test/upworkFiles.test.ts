@@ -15,24 +15,56 @@ describe('upworkFiles', () => {
   });
 
   describe('projectBrief', () => {
-    const parts = { title: 'Acme', job: 'POST', coverLetter: 'LETTER', plan: 'PLAN', agreement: 'AGREEMENT' };
+    const parts = {
+      title: 'Acme',
+      job: 'POST',
+      coverLetter: 'LETTER',
+      plan: 'PLAN',
+      clientQuestions: 'QUESTIONS',
+      conversation: [
+        { from: 'owner' as const, text: 'CLIENT-SAYS' },
+        { from: 'claude' as const, text: 'CLAUDE-PROPOSES' },
+      ],
+      notes: 'NOTES',
+      agreement: 'AGREEMENT',
+    };
+    const ORDER = ['POST', 'LETTER', 'PLAN', 'QUESTIONS', '**Dono:** CLIENT-SAYS', '**Claude:** CLAUDE-PROPOSES', 'NOTES', 'AGREEMENT'];
 
-    it('the four parts in order; a missing letter or plan says so', () => {
+    it('all the parts in order; a missing one says so', () => {
       const brief = projectBrief(parts, MAX_BRIEF_CHARS);
-      expect(['POST', 'LETTER', 'PLAN', 'AGREEMENT'].map((p) => brief.indexOf(p))).toEqual(
-        ['POST', 'LETTER', 'PLAN', 'AGREEMENT'].map((p) => brief.indexOf(p)).sort((a, b) => a - b),
+      const at = ORDER.map((p) => brief.indexOf(p));
+      expect(at.every((i) => i >= 0)).toBe(true);
+      expect([...at].sort((a, b) => a - b)).toEqual(at);
+      expect(projectBrief({ ...parts, coverLetter: null, plan: '  ', clientQuestions: null, conversation: [], notes: '', agreement: null }, MAX_BRIEF_CHARS)).toMatch(
+        /sem carta guardada[\s\S]*sem plano guardado[\s\S]*sem perguntas guardadas[\s\S]*sem mensagens[\s\S]*sem notas[\s\S]*nenhum acordo colado/,
       );
-      expect(projectBrief({ ...parts, coverLetter: null, plan: '  ' }, MAX_BRIEF_CHARS)).toMatch(/sem carta guardada[\s\S]*sem plano guardado/);
     });
 
-    it('over the limit, the letter and the plan give way — the post and the agreement stay whole', () => {
+    it('over the limit, the oldest messages go first — the latest stay, and the rest is whole', () => {
+      const conversation = Array.from({ length: 40 }, (_, i) => ({ from: i % 2 ? ('claude' as const) : ('owner' as const), text: `M${i}-${'m'.repeat(2000)}` }));
+      const brief = projectBrief({ ...parts, conversation }, MAX_BRIEF_CHARS);
+      expect(brief.length).toBeLessThanOrEqual(MAX_BRIEF_CHARS);
+      expect(brief).toContain('mensagens mais antigas cortadas');
+      expect(brief).not.toContain('M0-');
+      expect(brief).toContain('M39-');
+      for (const part of ['LETTER', 'PLAN', 'QUESTIONS', 'NOTES']) expect(brief).toContain(part);
+      expect(brief).not.toContain('(… cortado');
+    });
+
+    it('still over: the letter, the plan and the questions give way — the post, the notes and the agreement stay whole', () => {
       const job = `J${'j'.repeat(19_998)}Z`;
+      const notes = `N${'n'.repeat(7_998)}Z`;
       const agreement = `A${'a'.repeat(19_998)}END`;
-      const brief = projectBrief({ ...parts, job, agreement, coverLetter: 'L'.repeat(50_000), plan: 'P'.repeat(50_000) }, MAX_BRIEF_CHARS);
+      const brief = projectBrief(
+        { ...parts, job, notes, agreement, coverLetter: 'L'.repeat(50_000), plan: 'P'.repeat(50_000), clientQuestions: 'Q'.repeat(50_000) },
+        MAX_BRIEF_CHARS,
+      );
       expect(brief.length).toBeLessThanOrEqual(MAX_BRIEF_CHARS);
       expect(brief).toContain(job);
+      expect(brief).toContain(notes);
       expect(brief.trimEnd().endsWith(agreement)).toBe(true);
-      expect(brief.match(/cortado/g)).toHaveLength(2);
+      expect(brief.match(/\(… cortado/g)).toHaveLength(3);
+      expect(brief).not.toContain('CLIENT-SAYS');
     });
   });
 });
