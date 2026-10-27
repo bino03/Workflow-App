@@ -286,7 +286,8 @@ A conversa (perguntas, permissões, feed, modo) passa por `/api/guided`. **Nenhu
   inválido (um `file` com pasta, um `uploadName` fora de ASCII kebab-case, mais de 10) → `null` e `attachmentsError`.
 - **`PackageView`** = `{title, language, verdict: 'apply'|'maybe'|'skip', updatedAt, analysis, coverLetter, screening,
   plan, clientQuestions}` — cada parte o Markdown do ficheiro (≤ 50 000; em falta → `null`), lido do `package.json` da
-  sessão (ou da cópia arquivada). Um `package.json` inválido, ou que nomeie um ficheiro com pasta → `package: null` e
+  sessão (ou da cópia arquivada). O `updatedAt` é o **mtime mais recente** do manifesto e das partes, não o que o
+  `package.json` diz (o modelo não tem relógio e adivinha-o); arquivar preserva os mtimes. Um `package.json` inválido, ou que nomeie um ficheiro com pasta → `package: null` e
   `packageError` com o campo.
 - **`projectPath`**: quando a criação começada por `/project` acaba com `result.projectPath`, a candidatura copia-o ao
   ser lida (GET de uma ou da lista) — antes de o dono fechar a criação. Fechada antes de alguém ler a candidatura, o

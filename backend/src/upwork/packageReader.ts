@@ -1,4 +1,4 @@
-import { existsSync, readFileSync } from 'node:fs';
+import { existsSync, readFileSync, statSync } from 'node:fs';
 import { join } from 'node:path';
 import { z } from 'zod';
 import type { PackageView } from './upwork.schemas.js';
@@ -19,6 +19,7 @@ export const packageManifestSchema = z.object({
   title: z.string().trim().min(1).max(120),
   language: z.string().regex(/^[a-z]{2,3}(-[A-Za-z]{2,4})?$/),
   verdict: z.enum(['apply', 'maybe', 'skip']),
+  /** Required by the skill, but not shown: the model has no clock and guesses it (see `readPackage`). */
   updatedAt: z.iso.datetime(),
   files: z.object({ analysis: fileName, coverLetter: fileName, screening: fileName, plan: fileName, clientQuestions: fileName }),
 });
@@ -44,7 +45,17 @@ export function readPackage(dir: string): PackageRead {
     const issue = parsed.error.issues[0]!;
     return { package: null, error: `package.json inválido: ${issue.path.join('.') || '(raiz)'} — ${issue.message}` };
   }
-  const { title, language, verdict, updatedAt, files } = parsed.data;
+  const { title, language, verdict, files } = parsed.data;
+  // The disk knows when the package last changed; the manifest's updatedAt is the model's guess (it once wrote
+  // 12:10 for a rewrite at 16:40), so the newest mtime of the manifest and its parts is what the card shows.
+  const mtimes = [PACKAGE_FILE, ...Object.values(files)].map((name) => {
+    try {
+      return statSync(join(dir, name)).mtimeMs;
+    } catch {
+      return 0;
+    }
+  });
+  const updatedAt = new Date(Math.max(...mtimes)).toISOString();
   const part = (name: string): string | null => {
     try {
       return readFileSync(join(dir, name), 'utf8').slice(0, MAX_PART_CHARS);

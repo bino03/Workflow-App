@@ -271,7 +271,7 @@ candidatura, se essa criação tem `result.projectPath`, copia-o para `projectPa
 ### 4.3 Tipos / DTOs
 
 - `ApplicationView` = `application.json` sem `version` + `guided: GuidedView | null` + `package: PackageView | null`.
-- `PackageView` = `{title, language, verdict, updatedAt, analysis, coverLetter, screening, plan, clientQuestions}`
+- `PackageView` = `{title, language, verdict, updatedAt, analysis, coverLetter, screening, plan, clientQuestions}` — `updatedAt` = o mtime mais recente do manifesto e das partes (não o do `package.json`)
   (cada um o Markdown lido do ficheiro, ≤ 50 000; ficheiro em falta → `null`). `package.json` inválido → `null` +
   `packageError` com o campo (como o `result.json` inválido).
 - Frontend: `frontend/src/types/upwork.ts` espelha-os.
@@ -469,10 +469,14 @@ altera (`refreshSignal`). Backend: `{agreement}` opcional; o brief leva também 
 rota); Chrome headless `scripts/verify/upwork-menu.mjs` **26/26** (clique direito real por CDP, Shift+F10, consola
 limpa). De caminho: o passo 8 tinha duplicado ~415 linhas desta spec (`String.replace` com `` $` `` no texto) —
 reposto.
-**Em curso:** passo 11 — falta, com o dono: pedir um ajuste à carta na Conversa e ver o cartão atualizar; colar uma
-mensagem de cliente.
-**Próxima ação concreta:** passo 11, **com o dono** — `/run`; numa candidatura real, pedir um ajuste na Conversa
-(o cartão Carta tem de atualizar sozinho) e colar uma mensagem de cliente (resposta proposta com Copiar).
+Passo 11, ajuste à carta (2026-10-27, com o dono) — pediu na Conversa "tira os links das apps": o `cover-letter.md`
+foi reescrito sem links (290 palavras, o resto igual) e o `package.json` regravado. **Defeito encontrado:** o
+`updatedAt` do manifesto dizia 12:10 para uma escrita às 16:40 — o modelo não tem relógio e adivinha. O "Atualizado" do
+cartão passou a ser o **mtime mais recente** do manifesto e das partes (`packageReader.ts`); arquivar preserva os mtimes
+(`utimesSync`). +1 teste (467/467).
+**Em curso:** passo 11 — falta, com o dono: colar uma mensagem de cliente.
+**Próxima ação concreta:** passo 11, **com o dono** — numa candidatura real, colar uma mensagem de cliente na Conversa
+(resposta proposta com Copiar).
 **Atenção:** uma sessão sem `.jsonl` (o `claude` nunca gravou nada) não se retoma: o `reopen` arranca uma conversa
 nova com o mesmo UUID e **sem** o prompt da skill. Na prática a skill grava sempre o 1.º turno; fica anotado.
 **Desvios ao plano:** (1) o URL do job **não vai para o `job.md`** — a skill não precisa dele; (2) nas sessões

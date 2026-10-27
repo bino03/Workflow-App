@@ -1,5 +1,5 @@
 import { randomUUID } from 'node:crypto';
-import { copyFileSync, existsSync, mkdirSync, readFileSync, readdirSync, rmSync, statSync } from 'node:fs';
+import { copyFileSync, existsSync, mkdirSync, readFileSync, readdirSync, rmSync, statSync, utimesSync } from 'node:fs';
 import { join } from 'node:path';
 import { AppError } from '../common/errors.js';
 import { type CreationService, MAX_BRIEF_CHARS } from '../creation/creationService.js';
@@ -227,7 +227,12 @@ export class UpworkService {
       if (files.length > 0 && existsSync(join(sessionDir, ATTACHMENTS_FILE))) files.push(ATTACHMENTS_FILE);
       if (files.length > 0) {
         mkdirSync(target, { recursive: true });
-        for (const name of files) copyFileSync(join(sessionDir, name), join(target, name));
+        for (const name of files) {
+          copyFileSync(join(sessionDir, name), join(target, name));
+          // The card's "Atualizado" is the files' mtime: the copy keeps it, or archiving would look like a rewrite.
+          const { atime, mtime } = statSync(join(sessionDir, name));
+          utimesSync(join(target, name), atime, mtime);
+        }
       }
       next.title = readPackage(sessionDir).package?.title ?? record.title;
       await this.write(next);

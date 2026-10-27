@@ -1,4 +1,4 @@
-import { existsSync, mkdirSync, mkdtempSync, readFileSync, realpathSync, symlinkSync, writeFileSync } from 'node:fs';
+import { existsSync, mkdirSync, mkdtempSync, readFileSync, realpathSync, symlinkSync, utimesSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import argon2 from 'argon2';
@@ -239,6 +239,22 @@ describe('/api/upwork', () => {
         package: { verdict: 'apply', language: 'en', analysis: '**Vale a pena: sim.**', coverLetter: 'Your dispatchers need…', clientQuestions: null },
         packageError: null,
       });
+    });
+
+    it('updatedAt is the newest mtime of the manifest and its parts, not the guess in package.json; archiving keeps it', async () => {
+      await putProfile('# Quem sou');
+      const view = (await apply({ job: 'Job' })).json() as View;
+      writePackage(view.guidedId);
+      const dir = join(dataDir, GUIDED_FILES.dir, view.guidedId);
+      const old = new Date('2026-10-27T10:00:00.000Z');
+      for (const name of ['package.json', 'analysis.md', 'screening.md', 'plan.md']) utimesSync(join(dir, name), old, old);
+      const rewrite = new Date('2026-10-27T16:39:00.000Z');
+      utimesSync(join(dir, 'cover-letter.md'), rewrite, rewrite);
+      const read = (await inject('GET', `/api/upwork/applications/${view.id}`)).json() as { package: { updatedAt: string } };
+      expect(read.package.updatedAt).toBe(rewrite.toISOString());
+      const archived = (await inject('POST', `/api/upwork/applications/${view.id}/archive`)).json() as { package: { updatedAt: string } };
+      opened.splice(opened.indexOf(view.guidedId), 1);
+      expect(archived.package.updatedAt).toBe(rewrite.toISOString());
     });
 
     it('an invalid package.json, or one naming a file outside the folder, is packageError — and nothing outside is read', async () => {
