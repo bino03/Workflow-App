@@ -21,7 +21,13 @@ export type ClaudeLaunch =
    * `/create --app <briefPath>`. The set of commands is closed; the path is the backend's own
    * `DATA_DIR/guided/<uuid>/brief.md` — the user's text is inside it, never on the command line.
    */
-  | { kind: 'guided'; sessionId: string; purpose: GuidedPurpose; inputPath: string };
+  | { kind: 'guided'; sessionId: string; purpose: GuidedPurpose; inputPath: string }
+  /**
+   * An account's login terminal (ADR 0027): a new conversation whose first message is `/login` (confirmed in the
+   * spike of the accounts spec). The owner finishes the OAuth in the browser and answers the account's first-run
+   * dialogs in the same terminal.
+   */
+  | { kind: 'login'; sessionId: string };
 
 /** What a guided session is for, the command and input file it starts with, and its hidden terminal's label. */
 export const GUIDED_COMMANDS = {
@@ -97,6 +103,11 @@ export function claudeArgs(
     assertInputPath(launch.requestPath, 'request.json');
     // The prompt is positional: always last.
     args.push(`/import ${launch.requestPath}`);
+    return args;
+  }
+  if (launch.kind === 'login') {
+    if (remoteControl) throw new ClaudeArgsError('a login terminal never runs with remote control');
+    args.push('/login');
     return args;
   }
   if (launch.kind === 'guided') {

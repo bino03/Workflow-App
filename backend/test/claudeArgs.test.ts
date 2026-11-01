@@ -154,3 +154,21 @@ describe('claudeArgs — guided sessions (ADR 0020)', () => {
     }
   });
 });
+
+describe('claudeArgs — login terminal (ADR 0027)', () => {
+  const id = '6f1e2d3c-4b5a-4987-8a6b-5c4d3e2f1a0b';
+
+  it('a new conversation whose first message is /login, always last', () => {
+    expect(claudeArgs({ kind: 'login', sessionId: id }, { settingsPath: SETTINGS })).toEqual([
+      '--session-id',
+      id,
+      '--settings',
+      SETTINGS,
+      '/login',
+    ]);
+  });
+
+  it('never with remote control', () => {
+    expect(() => claudeArgs({ kind: 'login', sessionId: id }, { remoteControl: {} })).toThrow(ClaudeArgsError);
+  });
+});

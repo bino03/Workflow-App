@@ -164,7 +164,7 @@ describe('StateStore', () => {
       { ...base, accounts: [account(), account(), account(), account(), account()] },
       { ...base, accounts: [repeated, repeated] },
       { ...base, activeAccountId: '../outra' },
-      { ...base, terminals: [{ ...savedTerminal(), accountId: 'C:\Windows' }] },
+      { ...base, terminals: [{ ...savedTerminal(), accountId: 'C:\\Windows' }] },
     ]) {
       await writeFile(file, JSON.stringify(bad));
       await expect(StateStore.load(dataDir)).rejects.toBeInstanceOf(StateFileError);

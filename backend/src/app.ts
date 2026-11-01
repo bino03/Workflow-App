@@ -38,6 +38,7 @@ import { ProjectsService } from './projects/projectsService.js';
 import { ClaudeSessions } from './sessions/claudeSessions.js';
 import { isTrustedFolder } from './sessions/claudeTrust.js';
 import { AccountDirs } from './accounts/accountDirs.js';
+import { accountsRoutes } from './accounts/accounts.routes.js';
 import { AccountsService } from './accounts/accountsService.js';
 import { sessionsRoutes } from './sessions/sessions.routes.js';
 import type { StateStore } from './state/stateStore.js';
@@ -158,8 +159,16 @@ export async function buildApp({
     app.addHook('onClose', async () => previewService.shutdown());
   }
 
-  const accountsService = new AccountsService({ stateStore, dirs: AccountDirs.fromConfig(config) });
-  const terminalsService = new TerminalsService({
+  // The accounts and the terminals need each other: the terminals reach the accounts directly, the accounts reach
+  // the terminals through a function (only called after both exist).
+  const accountsService = new AccountsService({
+    stateStore,
+    dirs: AccountDirs.fromConfig(config),
+    dataDir: config.dataDir,
+    defaultCwd: config.terminals.defaultCwd,
+    terminals: () => terminalsService,
+  });
+  const terminalsService: TerminalsService = new TerminalsService({
     stateStore,
     terminalManager,
     sessions: sessionsReader,
@@ -177,6 +186,7 @@ export async function buildApp({
     previews: previewService,
   });
   await app.register(terminalsRoutes, { terminalsService });
+  await app.register(accountsRoutes, { accountsService });
   await app.register(importsRoutes, {
     importService: new ImportService({
       dataDir: config.dataDir,

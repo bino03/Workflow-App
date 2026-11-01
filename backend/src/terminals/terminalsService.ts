@@ -63,6 +63,16 @@ export type CreateGuidedTerminal = {
   rows: number;
 };
 
+/** An account's login terminal (ADR 0027): visible, in DEFAULT_CWD, first message `/login`. Only the accounts call it. */
+export type CreateLoginTerminal = {
+  accountId: AccountId;
+  /** DEFAULT_CWD: inside ALLOWED_ROOTS. */
+  cwd: string;
+  label: string;
+  cols: number;
+  rows: number;
+};
+
 export type CreateTerminal = {
   cwd: string;
   mode: 'new' | 'resume' | 'continue';
@@ -242,6 +252,48 @@ export class TerminalsService {
     // Not a recent folder: the user never picked the Workflow for this terminal.
     await this.save(saved, { touch: false });
     return this.view(saved);
+  }
+
+  /**
+   * Starts an account's login terminal (ADR 0027): a normal, visible terminal in that account whose first message
+   * is `/login`. It stays open after the login, so the account's first-run dialogs are answered there once — a
+   * guided session or an import started later has nobody at its PTY.
+   */
+  async createLogin(request: CreateLoginTerminal): Promise<TerminalView> {
+    const cwd = resolveAllowedPath(request.cwd, this.deps.allowedRoots);
+    const accountId = this.requireAccount(request.accountId);
+    const configDir = await this.deps.accounts?.prepareLaunch(accountId);
+    const launch: ClaudeLaunch = { kind: 'login', sessionId: randomUUID() };
+    const id = randomUUID();
+    this.spawn(id, cwd, launch, request, { configDir });
+
+    const at = this.now().toISOString();
+    const saved: SavedTerminal = {
+      id,
+      label: request.label,
+      cwd,
+      claudeSessionId: launch.sessionId,
+      createdAt: at,
+      updatedAt: at,
+      lastOpenedAt: at,
+      remoteControl: false,
+      importId: null,
+      guidedId: null,
+      accountId,
+      hidden: false,
+      addDirs: [],
+    };
+    // Not a recent folder: the owner never picked it for this terminal.
+    await this.save(saved, { touch: false });
+    return this.view(saved);
+  }
+
+  /** How many terminals of an account are running now (a removal is refused while any is). */
+  runningCount(accountId: AccountId): number {
+    return this.deps.stateStore
+      .read()
+      .terminals.filter((saved) => this.resolveAccount(saved.accountId) === accountId && this.deps.terminalManager.get(saved.id)?.status === 'running')
+      .length;
   }
 
   /**

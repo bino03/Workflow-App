@@ -351,6 +351,26 @@ projeto (ou a lista toda) sai, nunca 500.
   da Biblioteca, é a única fonte que existe para o registo de projetos; o parser
   (`backend/src/projects/projectIndexParser.ts`) tolera linhas mal formadas, saltando-as.
 
+## Contas do Claude (`accounts/`, `/api/accounts`) — 🚧
+
+[[adr/0027-varias-contas-do-claude]] · [[features/contas-do-claude]]. Todas com sessão. `:id` é `primary` ou um UUID;
+qualquer outra coisa dá `ACCOUNT_001`, como uma conta que não existe. O nome tem 1-40 caracteres, com a mesma
+lista branca dos terminais.
+
+| Método | Rota | Corpo | Resposta | Erros |
+|---|---|---|---|---|
+| GET | `/api/accounts` | — | `200 AccountsView`, com a principal primeiro e as extra por criação | `AUTH_002` |
+| POST | `/api/accounts` | `{label}` | `201 AccountView`. Cria `DATA_DIR/accounts/<id>` com as junctions para a principal e os ficheiros sincronizados. A conta nasce sem login | `COMMON_001` · `ACCOUNT_002` (já há 5) · `ACCOUNT_005` |
+| PATCH | `/api/accounts/:id` | `{label}` | `200 AccountView`. Com `primary`, muda o nome da principal | `COMMON_001` · `ACCOUNT_001` |
+| PUT | `/api/accounts/active` | `{accountId}` | `200 AccountsView`. Passa a ser a conta por omissão de tudo o que se cria a seguir, e a do `/api/usage` | `COMMON_001` · `ACCOUNT_001` |
+| DELETE | `/api/accounts/:id` | — | `204`. Apaga a pasta e o login, desfazendo primeiro as junctions. Os terminais da conta (guardados e fechados) passam para a principal; se era a ativa, a ativa passa a ser a principal | `ACCOUNT_001` · `ACCOUNT_003` (a principal) · `ACCOUNT_004` (um terminal dela a correr) · `ACCOUNT_005` (uma pasta verdadeira, ou um link escondido; nada é apagado) |
+| POST | `/api/accounts/:id/login` | `{cols, rows}` | `201 TerminalView`. Abre um terminal visível nessa conta, em `DEFAULT_CWD`, chamado `Login — <nome>`, com `/login` como primeira mensagem. Fica aberto depois do login, para responder lá aos diálogos de primeira vez da conta | `COMMON_001` · `ACCOUNT_001` · `TERMINAL_002` · `TERMINAL_005` · `ACCOUNT_005` |
+
+- `AccountView = {id, label, isPrimary, email, loggedIn, runningTerminals, usage: UsageView}`. `label` é "Principal"
+  enquanto a principal não tem nome. `loggedIn` exige `.credentials.json` e `oauthAccount` no `.claude.json`.
+  `email` vem de `oauthAccount.emailAddress`. Nenhuma rota lê ou devolve tokens.
+- `AccountsView = {activeAccountId, accounts: AccountView[]}`.
+
 ## Quota (`usage/`, `/api/usage`) — ✅
 
 | Método | Rota | Acesso | Resposta |

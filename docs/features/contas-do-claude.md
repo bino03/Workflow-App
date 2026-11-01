@@ -5,7 +5,7 @@
 | **Estado** | 🚧 Em curso |
 | **Criada** | 2026-11-01 |
 | **Última sessão** | 2026-11-01 |
-| **Passos** | 5 / 10 concluídos |
+| **Passos** | 6 / 10 concluídos |
 
 > Escrita para uma sessão que **não viu a conversa que a originou**. Se algo só faz sentido com contexto
 > externo, falta escrevê-lo.
@@ -274,7 +274,7 @@ Ordem obrigatória. Tiers: `opus` (desenho, não delegar) · `sonnet` (implement
     a principal, escreve `usage.json`; com um caminho fora de `accounts/`, também escreve `usage.json`. O
     `/api/usage` devolve a da ativa. Testes a passar.
 
-- [ ] **6. API de contas**
+- [x] **6. API de contas**
   - Ficheiro: `backend/src/accounts/{accountsService,accounts.routes,accounts.schemas}.ts` (novos),
     `common/errors.ts` (`ACCOUNT_001..005`), `app.ts`, `backend/test/accounts.routes.test.ts`
   - Skill: — (ler [[../backend-conventions]])
@@ -377,8 +377,22 @@ Ordem obrigatória. Tiers: `opus` (desenho, não delegar) · `sonnet` (implement
 - O `statusline.cjs` escolhe o ficheiro pelo `CLAUDE_CONFIG_DIR` do `claude`. Uma pasta diretamente em `DATA_DIR/accounts/<uuid>` grava `usage-<uuid>.json`; qualquer outra grava `usage.json`.
 - `readUsage(dataDir, accountId)` lê o ficheiro dessa conta, e `GET /api/usage` devolve o da conta ativa. Por isso a barra lateral não mudou de chamada.
 - Testes: backend 495/495 (duas corridas). Por HTTP numa instância de teste com a conta extra ativa: 7% em vez dos 44% da principal.
+**Passo 6 feito a 2026-11-01**:
+- O que entrou:
+  - `accounts/{accounts.routes,accounts.schemas}.ts` e o `AccountsService` completo: listar, criar, renomear, ativar, remover e abrir o terminal de login.
+  - O `claudeArgs` ganhou `kind: 'login'` (`/login` em último lugar, nunca com Remote Control).
+  - O `TerminalsService` ganhou `createLogin` e `runningCount`.
+  - As contas chegam aos terminais por uma função passada no arranque, para não haver dependência circular.
+- Desvios:
+  - `POST /:id/login` responde `201`, e não `200`.
+  - `PUT /active` devolve a `AccountsView` inteira.
+  - A principal também pode abrir um terminal de login (`primary` é um `:id` válido).
+- Testes:
+  - Backend 505/505, com `test/accounts.routes.test.ts` 8/8.
+  - Por HTTP numa instância de teste, 16/16: criar, renomear, ativar e abrir o login, cujo `claude` corre na pasta da conta; remover com um terminal a correr dá 409 `ACCOUNT_004`; depois de fechar o terminal dá 204, a pasta desaparece e a principal fica intacta.
+- Corrigido de passagem: um teste do passo 2 tinha um escape inválido que o lint apanhou (`'C:\Windows'`).
 **Em curso:** —
-**Próxima ação concreta:** passo 6 (API de contas: `accounts.routes.ts`, completar o `accountsService`), em modo NORMAL (confirmar com o dono entre passos).
+**Próxima ação concreta:** passo 7 (tamanho do contexto: `contextTokens` no `claudeSessions.ts` e `GET /api/terminals/:id/context`), em modo NORMAL (confirmar com o dono entre passos).
 **Desvios ao plano:** —
 **O que uma sessão nova precisa de saber:**
 - **Cada conta nova mostra os diálogos de primeira vez** do Claude Code (no spike: "Claude in Chrome extension
