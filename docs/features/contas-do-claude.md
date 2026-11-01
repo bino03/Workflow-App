@@ -5,7 +5,7 @@
 | **Estado** | 🚧 Em curso |
 | **Criada** | 2026-11-01 |
 | **Última sessão** | 2026-11-01 |
-| **Passos** | 4 / 10 concluídos |
+| **Passos** | 5 / 10 concluídos |
 
 > Escrita para uma sessão que **não viu a conversa que a originou**. Se algo só faz sentido com contexto
 > externo, falta escrevê-lo.
@@ -266,7 +266,7 @@ Ordem obrigatória. Tiers: `opus` (desenho, não delegar) · `sonnet` (implement
     ativa. Testes a passar, e [[../security]] (o filho continua só com `CLAUDE_CONFIG_DIR`) e
     [[../environment]] atualizados.
 
-- [ ] **5. Quota por conta**
+- [x] **5. Quota por conta**
   - Ficheiro: `backend/src/usage/usageFiles.ts`, `usage/usage.routes.ts`, `backend/test/usage*.test.ts`
   - Skill: — (ler [[../backend-conventions]])
   - Tier: `sonnet`
@@ -373,8 +373,12 @@ Ordem obrigatória. Tiers: `opus` (desenho, não delegar) · `sonnet` (implement
 - Testes:
   - Backend 491/491, em duas corridas seguidas.
   - Numa instância de teste, por HTTP: o `claude` de um terminal da conta extra escreveu `backups/` e `sessions/` na pasta dessa conta. Uma conta inexistente dá 404 `ACCOUNT_001`; um id inválido dá 400.
+**Passo 5 feito a 2026-11-01**:
+- O `statusline.cjs` escolhe o ficheiro pelo `CLAUDE_CONFIG_DIR` do `claude`. Uma pasta diretamente em `DATA_DIR/accounts/<uuid>` grava `usage-<uuid>.json`; qualquer outra grava `usage.json`.
+- `readUsage(dataDir, accountId)` lê o ficheiro dessa conta, e `GET /api/usage` devolve o da conta ativa. Por isso a barra lateral não mudou de chamada.
+- Testes: backend 495/495 (duas corridas). Por HTTP numa instância de teste com a conta extra ativa: 7% em vez dos 44% da principal.
 **Em curso:** —
-**Próxima ação concreta:** passo 5 (quota por conta: `usage/usageFiles.ts`), em modo NORMAL (confirmar com o dono entre passos).
+**Próxima ação concreta:** passo 6 (API de contas: `accounts.routes.ts`, completar o `accountsService`), em modo NORMAL (confirmar com o dono entre passos).
 **Desvios ao plano:** —
 **O que uma sessão nova precisa de saber:**
 - **Cada conta nova mostra os diálogos de primeira vez** do Claude Code (no spike: "Claude in Chrome extension

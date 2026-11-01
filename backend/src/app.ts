@@ -202,7 +202,7 @@ export async function buildApp({
   });
   await app.register(previewRoutes, { terminalsService, previewService });
   await app.register(terminalsGateway, { terminalManager, sessionStore: sessions });
-  await app.register(usageRoutes, { dataDir: config.dataDir });
+  await app.register(usageRoutes, { dataDir: config.dataDir, activeAccountId: () => accountsService.activeAccountId() });
   await app.register(sessionsRoutes, { sessions: sessionsReader, stateStore, terminalsService, allowedRoots: config.terminals.allowedRoots });
   await app.register(foldersRoutes, {
     foldersService: new FoldersService({ stateStore, sessions: sessionsReader, allowedRoots: config.terminals.allowedRoots }),

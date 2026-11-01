@@ -1,5 +1,6 @@
 import { mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
+import type { AccountId } from '../state/state.schema.js';
 
 /**
  * The quota comes from the JSON Claude Code hands to its status line command (ADR 0012, confirmed in the
@@ -12,17 +13,39 @@ export const USAGE_FILES = {
   usage: 'usage.json',
 } as const;
 
+const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+/** The primary's quota keeps today's `usage.json`; an extra account's is `usage-<id>.json` (ADR 0027). */
+export function usageFileName(accountId: AccountId): string {
+  return accountId !== 'primary' && UUID.test(accountId) ? `usage-${accountId.toLowerCase()}.json` : USAGE_FILES.usage;
+}
+
 /**
  * Runs inside Claude Code, once per status line refresh, for every terminal. It must never fail or be slow:
  * everything is in a try/catch and it always prints a line. Only `rate_limits` (plus when it was seen) is
  * kept — never paths, prompts or session ids. The first JSON of a fresh session has no `rate_limits`, so
  * nothing is written then (otherwise every new terminal would wipe the value).
+ *
+ * One file per Claude account (ADR 0027): a claude whose CLAUDE_CONFIG_DIR is a folder directly inside
+ * DATA_DIR/accounts, named by a UUID, writes `usage-<uuid>.json`; any other (the primary, unset, or a folder
+ * elsewhere) writes `usage.json`. The status line inherits the env of the claude that runs it.
  */
-function statusLineScript(usageFile: string): string {
+function statusLineScript(dataDir: string): string {
   return `// Written by the Workflow App backend at startup (backend/src/usage/usageFiles.ts). Do not edit.
 const fs = require('node:fs');
 const path = require('node:path');
-const USAGE_FILE = ${JSON.stringify(usageFile)};
+const DATA_DIR = ${JSON.stringify(dataDir)};
+const ACCOUNTS_DIR = path.join(DATA_DIR, 'accounts');
+const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+function usageFile() {
+  const configDir = process.env.CLAUDE_CONFIG_DIR;
+  if (configDir && path.isAbsolute(configDir)) {
+    const relative = path.relative(ACCOUNTS_DIR, path.resolve(configDir));
+    if (UUID.test(relative)) return path.join(DATA_DIR, 'usage-' + relative.toLowerCase() + '.json');
+  }
+  return path.join(DATA_DIR, ${JSON.stringify(USAGE_FILES.usage)});
+}
+const USAGE_FILE = usageFile();
 let input = '';
 process.stdin.on('data', (chunk) => (input += chunk));
 process.stdin.on('end', () => {
@@ -60,9 +83,8 @@ export function statusLineSetting(dataDir: string) {
 /** Writes the settings and the script into DATA_DIR (every start: they are ours). Returns the --settings path. */
 export function writeUsageFiles(dataDir: string): string {
   mkdirSync(dataDir, { recursive: true });
-  const usageFile = join(dataDir, USAGE_FILES.usage);
   const settings = join(dataDir, USAGE_FILES.settings);
-  writeFileSync(join(dataDir, USAGE_FILES.script), statusLineScript(usageFile));
+  writeFileSync(join(dataDir, USAGE_FILES.script), statusLineScript(dataDir));
   writeFileSync(settings, `${JSON.stringify({ statusLine: statusLineSetting(dataDir) }, null, 2)}\n`);
   return settings;
 }
@@ -78,10 +100,10 @@ function toWindow(raw: unknown): UsageWindow | null {
   return { usedPct: Math.min(100, Math.max(0, used)), resetsAt: new Date(resets * 1000).toISOString() };
 }
 
-/** The last quota seen by any terminal. Missing or unreadable file → nulls, never an error. */
-export function readUsage(dataDir: string): UsageView {
+/** The last quota seen by any terminal of that account. Missing or unreadable file → nulls, never an error. */
+export function readUsage(dataDir: string, accountId: AccountId = 'primary'): UsageView {
   try {
-    const data = JSON.parse(readFileSync(join(dataDir, USAGE_FILES.usage), 'utf8')) as {
+    const data = JSON.parse(readFileSync(join(dataDir, usageFileName(accountId)), 'utf8')) as {
       rate_limits?: { five_hour?: unknown; seven_day?: unknown };
       fetchedAt?: unknown;
     };

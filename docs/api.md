@@ -355,11 +355,15 @@ projeto (ou a lista toda) sai, nunca 500.
 
 | Método | Rota | Acesso | Resposta |
 |---|---|---|---|
-| GET | `/api/usage` | sessão | `UsageView` = `{fiveHour, weekly, fetchedAt}` — cada janela `{usedPct, resetsAt}` ou `null`; `fetchedAt` ISO ou `null` |
+| GET | `/api/usage` | sessão | `UsageView` da **conta ativa** = `{fiveHour, weekly, fetchedAt}` — cada janela `{usedPct, resetsAt}` ou `null`; `fetchedAt` ISO ou `null` |
 
 - Fonte: a status line injetada em todo o `claude` que a app lança ([[adr/0012-argumentos-do-claude-e-status-line]]).
   O backend escreve `DATA_DIR/claude-settings.json` e `DATA_DIR/statusline.cjs` no arranque; o script grava
   `usage.json` só quando o JSON traz `rate_limits` (a partir da 1.ª resposta de uma sessão).
+- Uma quota por conta ([[adr/0027-varias-contas-do-claude]]). Um `claude` cujo `CLAUDE_CONFIG_DIR` é uma pasta
+  diretamente dentro de `DATA_DIR/accounts`, com nome UUID, grava `usage-<id>.json`. Qualquer outro grava
+  `usage.json` (a principal, sem a variável, ou uma pasta noutro sítio). A rota lê o ficheiro da conta ativa. Uma
+  conta ativa que já não existe lê-se como a principal.
 - `usedPct` 0–100; `resetsAt` ISO (vem em segundos Unix); `fetchedAt` = quando foi visto. Sem ficheiro ou
   ilegível → tudo `null`, nunca erro. Um valor velho é da UI tratar (a cinzento + "há X min").
 

@@ -27,10 +27,12 @@ beforeEach(() => {
 afterEach(() => rmSync(dataDir, { recursive: true, force: true }));
 
 /** Runs the status line script the way Claude Code does: JSON on stdin, one line out. */
-function runStatusLine(settingsPath: string, input: string) {
+function runStatusLine(settingsPath: string, input: string, configDir?: string) {
   const { statusLine } = JSON.parse(readFileSync(settingsPath, 'utf8')) as { statusLine: { type: string; command: string } };
   const [node, script] = [...statusLine.command.matchAll(/"([^"]+)"/g)].map((m) => m[1]!);
-  const result = spawnSync(node!, [script!], { input, encoding: 'utf8' });
+  // Like Claude Code: the status line inherits the claude's env — CLAUDE_CONFIG_DIR only for an extra account.
+  const env = Object.fromEntries(Object.entries(process.env).filter(([name]) => name.toUpperCase() !== 'CLAUDE_CONFIG_DIR'));
+  const result = spawnSync(node!, [script!], { input, encoding: 'utf8', env: configDir ? { ...env, CLAUDE_CONFIG_DIR: configDir } : env });
   return { status: result.status, stdout: result.stdout };
 }
 
@@ -70,6 +72,45 @@ describe('status line files', () => {
   });
 });
 
+describe('one quota file per account (ADR 0027)', () => {
+  const EXTRA = '6F1E2D3C-4B5A-4987-8A6B-5C4D3E2F1A0B';
+  const extraFile = `usage-${EXTRA.toLowerCase()}.json`;
+
+  it("an extra account's claude writes usage-<id>.json and leaves the primary's untouched", () => {
+    const settingsPath = writeUsageFiles(dataDir);
+    runStatusLine(settingsPath, JSON.stringify(withLimits));
+    const primaryBefore = readFileSync(join(dataDir, USAGE_FILES.usage), 'utf8');
+    const other = { ...withLimits, rate_limits: { five_hour: { used_percentage: 3, resets_at: 1790607000 }, seven_day: { used_percentage: 1, resets_at: 1790780400 } } };
+    expect(runStatusLine(settingsPath, JSON.stringify(other), join(dataDir, 'accounts', EXTRA)).status).toBe(0);
+    expect(JSON.parse(readFileSync(join(dataDir, extraFile), 'utf8')).rate_limits).toEqual(other.rate_limits);
+    expect(readFileSync(join(dataDir, USAGE_FILES.usage), 'utf8')).toBe(primaryBefore);
+    expect(readUsage(dataDir, EXTRA).fiveHour?.usedPct).toBe(3);
+    expect(readUsage(dataDir).fiveHour?.usedPct).toBe(44);
+  });
+
+  it('the primary, a folder outside accounts/, a nested one or a non-UUID name all write usage.json', () => {
+    const settingsPath = writeUsageFiles(dataDir);
+    for (const configDir of [
+      join(tmpdir(), 'outro-claude'),
+      join(dataDir, 'accounts', EXTRA, 'sub'),
+      join(dataDir, 'accounts', 'nao-e-uuid'),
+      join(dataDir, 'fora', EXTRA),
+      'relativa\\pasta',
+    ]) {
+      rmSync(join(dataDir, USAGE_FILES.usage), { force: true });
+      runStatusLine(settingsPath, JSON.stringify(withLimits), configDir);
+      expect(existsSync(join(dataDir, USAGE_FILES.usage)), configDir).toBe(true);
+    }
+    expect(existsSync(join(dataDir, extraFile))).toBe(false);
+  });
+
+  it('readUsage of an account with no file yet → nulls; an id that is not a UUID reads the primary', () => {
+    writeFileSync(join(dataDir, USAGE_FILES.usage), JSON.stringify({ rate_limits: withLimits.rate_limits, fetchedAt: '2026-09-28T14:30:00.000Z' }));
+    expect(readUsage(dataDir, EXTRA)).toEqual({ fiveHour: null, weekly: null, fetchedAt: null });
+    expect(readUsage(dataDir, '../usage').fiveHour?.usedPct).toBe(44);
+  });
+});
+
 describe('readUsage', () => {
   it('turns resets_at (Unix seconds) into ISO', () => {
     writeFileSync(join(dataDir, USAGE_FILES.usage), JSON.stringify({ rate_limits: withLimits.rate_limits, fetchedAt: '2026-09-28T14:30:00.000Z' }));
@@ -106,6 +147,33 @@ describe('GET /api/usage', () => {
     runStatusLine(join(dataDir, USAGE_FILES.settings), JSON.stringify(withLimits));
     const body = (await app.inject({ method: 'GET', url: '/api/usage', headers: { cookie } })).json();
     expect(body.fiveHour).toEqual({ usedPct: 44, resetsAt: new Date(1790607000 * 1000).toISOString() });
+    await app.close();
+  });
+
+  it("returns the active account's quota; an active id that no longer exists reads the primary's (ADR 0027)", async () => {
+    const EXTRA = '6f1e2d3c-4b5a-4987-8a6b-5c4d3e2f1a0b';
+    const password = 'usage route password';
+    const config = testConfig({ APP_PASSWORD_HASH: await argon2.hash(password, { type: argon2.argon2id }), DATA_DIR: dataDir });
+    const terminalManager = new TerminalManager({ spawn: () => { throw new Error('no spawn'); }, maxTerminals: 1, scrollbackBytes: 1024 });
+    const stateStore = await testStateStore();
+    const app = await buildApp({ stateStore, config, terminalManager, logger: false });
+    const login = await app.inject({ method: 'POST', url: '/api/auth/login', payload: { username: TEST_USERNAME, password } });
+    const cookie = `session=${login.cookies.find((c) => c.name === 'session')!.value}`;
+    const usage = async () => (await app.inject({ method: 'GET', url: '/api/usage', headers: { cookie } })).json().fiveHour?.usedPct;
+
+    const settings = join(dataDir, USAGE_FILES.settings);
+    runStatusLine(settings, JSON.stringify(withLimits));
+    const extraLimits = { five_hour: { used_percentage: 7, resets_at: 1790607000 }, seven_day: { used_percentage: 2, resets_at: 1790780400 } };
+    runStatusLine(settings, JSON.stringify({ ...withLimits, rate_limits: extraLimits }), join(dataDir, 'accounts', EXTRA));
+
+    expect(await usage()).toBe(44);
+    stateStore.update((draft) => {
+      draft.accounts.push({ id: EXTRA, label: 'Trabalho', createdAt: '2026-11-01T10:00:00.000Z' });
+      draft.activeAccountId = EXTRA;
+    });
+    expect(await usage()).toBe(7);
+    stateStore.update((draft) => void (draft.accounts = []));
+    expect(await usage()).toBe(44);
     await app.close();
   });
 });
