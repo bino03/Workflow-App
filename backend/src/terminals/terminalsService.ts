@@ -144,6 +144,7 @@ export class TerminalsService {
       remoteControl,
       importId: null,
       guidedId: null,
+      accountId: 'primary',
       hidden: false,
       addDirs: [],
     };
@@ -177,6 +178,7 @@ export class TerminalsService {
       remoteControl: false,
       importId: request.importId,
       guidedId: null,
+      accountId: 'primary',
       hidden: true,
       addDirs: request.addDirs,
     };
@@ -212,6 +214,7 @@ export class TerminalsService {
       remoteControl: false,
       importId: null,
       guidedId: request.guidedId,
+      accountId: 'primary',
       hidden: true,
       addDirs: request.addDirs,
     };
@@ -361,6 +364,7 @@ export class TerminalsService {
         closedAt,
         summary,
         summarySource,
+        accountId: saved.accountId,
       });
     });
   }

@@ -93,7 +93,7 @@ describe('TerminalsService', () => {
 
       const state = stateStore.read();
       expect(state.terminals).toEqual([
-        { id: view.id, label: 'api', cwd: project, claudeSessionId: view.claudeSessionId, createdAt: view.createdAt, updatedAt: view.createdAt, lastOpenedAt: view.createdAt, remoteControl: false, importId: null, hidden: false, addDirs: [], guidedId: null },
+        { id: view.id, label: 'api', cwd: project, claudeSessionId: view.claudeSessionId, createdAt: view.createdAt, updatedAt: view.createdAt, lastOpenedAt: view.createdAt, remoteControl: false, importId: null, hidden: false, addDirs: [], guidedId: null, accountId: 'primary' },
       ]);
       expect(state.folders).toEqual([{ path: project, favorite: false, lastUsedAt: view.createdAt }]);
     });
@@ -276,6 +276,7 @@ describe('TerminalsService', () => {
           closedAt: expect.any(String),
           summary: 'Sessão antiga',
           summarySource: 'ai-title',
+          accountId: 'primary',
         },
       ]);
     });

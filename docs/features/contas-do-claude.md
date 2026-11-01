@@ -2,10 +2,10 @@
 
 | | |
 |---|---|
-| **Estado** | 📋 Planeada |
+| **Estado** | 🚧 Em curso |
 | **Criada** | 2026-11-01 |
 | **Última sessão** | 2026-11-01 |
-| **Passos** | 0 / 10 concluídos |
+| **Passos** | 2 / 10 concluídos |
 
 > Escrita para uma sessão que **não viu a conversa que a originou**. Se algo só faz sentido com contexto
 > externo, falta escrevê-lo.
@@ -218,7 +218,7 @@ Em `backend/src/common/errors.ts` e, espelhados 1:1, em `frontend/src/errors/err
 
 Ordem obrigatória. Tiers: `opus` (desenho, não delegar) · `sonnet` (implementação) · `haiku` (mecânico).
 
-- [ ] **1. Spike: confirmar os pressupostos do ADR 0027** (com o dono, que faz o login da 2.ª conta)
+- [x] **1. Spike: confirmar os pressupostos do ADR 0027** (com o dono, que faz o login da 2.ª conta)
   - Ficheiro: `backend/scripts/accounts-spike.ts` (como `import-spike.ts`), numa pasta temporária
   - Skill: — (spike)
   - Tier: `sonnet`
@@ -235,7 +235,7 @@ Ordem obrigatória. Tiers: `opus` (desenho, não delegar) · `sonnet` (implement
     Se algum falhar, para-se e revê-se o ADR com o
     dono antes do passo 2. Se tudo passar, o ADR 0027 passa a `aceite` (alterar só o estado).
 
-- [ ] **2. Estado: contas no `state.json`**
+- [x] **2. Estado: contas no `state.json`**
   - Ficheiro: `backend/src/state/state.schema.ts`, `backend/test/stateStore.test.ts` (ou o teste do schema que existir)
   - Skill: — (não há skill de backend; ler [[../backend-conventions]])
   - Tier: `sonnet`
@@ -326,12 +326,45 @@ Ordem obrigatória. Tiers: `opus` (desenho, não delegar) · `sonnet` (implement
 
 > ⚠️ **Atualizar SEMPRE no fim de cada sessão.** É a secção que torna esta spec retomável.
 
-**Feito:** spec e ADR 0027 (`proposto`) escritos (2026-11-01).
+**Feito:** spec e ADR 0027 escritos (2026-11-01). **Passo 1 (spike) feito a 2026-11-01** com o `claude` 2.1.316 e
+`backend/scripts/accounts-spike.ts`, com o dono a fazer o login da 2.ª conta (Claude Pro). O ADR 0027 passou a
+`aceite`. Resultados:
+- (a) ✅ `CLAUDE_CONFIG_DIR` novo → login; ficam `.credentials.json` e `oauthAccount.emailAddress` na pasta da conta.
+- (b) ✅ Com `projects/` em junction, o `.jsonl` é gravado através dela (pelo PTY da app). `--resume` de uma conversa da
+  principal abre-a inteira na conta nova.
+- (c) ✅ As skills, os plugins e os mods ligados aparecem. O `wfa-spike` copiado para `mcpServers` aparece ligado no
+  `/mcp` e a chave sobrevive a uma sessão completa (o `claude` reescreve o `.claude.json`, com backups em `backups/`).
+  ⚠️ Os servidores MCP com **OAuth** (o `notion`) aparecem como "needs authentication": o token é da conta, não da
+  configuração. Autentica-se uma vez por conta.
+- (d) ✅ A status line vê `CLAUDE_CONFIG_DIR` no `process.env` e recebe os `rate_limits` da conta nova (0%/0% contra os
+  da principal).
+- (e) ✅ `claude "/login"` arrancou logo o login, sem onboarding antes (dito pelo dono).
+- (f) ✅ `unlink` das 6 junctions (`lstat().isSymbolicLink()` dá `true` numa junction) + `fs.rm` da pasta: a cópia da
+  principal ficou intacta (skills 440 → 440, plugins 649 → 649, dev-mods 10 → 10).
+- (g) ➖ Não exercitado: nem a sessão normal nem o `/remote-control` criaram `daemon.status.json` na conta nova (o
+  supervisor só aparece com sessões em background). Cada conta tem o seu `sessions/`. O Remote Control funcionou na
+  conta nova.
+
+**Passo 2 feito a 2026-11-01**:
+- O que mudou:
+  - `accounts`, `activeAccountId` e `primaryAccountLabel` no `state.json`, e `accountId` em `SavedTerminal` e `ClosedTerminal`.
+  - Tudo entrou com `.default()`, sem migração.
+  - `accountIdSchema` e `MAX_EXTRA_ACCOUNTS = 4` ficam em `state/state.schema.ts`.
+- Até ao passo 4, o `terminalsService` cria todos os terminais com `accountId: 'primary'`. Ao fechar, o terminal leva a sua conta para o histórico.
+- Testes: backend 470/470.
+
 **Em curso:** —
-**Próxima ação concreta:** passo 1 — escrever `backend/scripts/accounts-spike.ts` e corrê-lo com o dono presente
-(o login da 2.ª conta é dele).
+**Próxima ação concreta:** passo 3 (`accounts/accountDirs.ts`, tier opus), em modo NORMAL (confirmar com o dono entre passos).
 **Desvios ao plano:** —
 **O que uma sessão nova precisa de saber:**
+- **Cada conta nova mostra os diálogos de primeira vez** do Claude Code (no spike: "Claude in Chrome extension
+  detected"), porque o `.claude.json` dela começa só com `mcpServers`. A confiança das pastas também é por conta. Um
+  `claude` sem ninguém no PTY (sessões guiadas, importações, Upwork, Remote Control pelo bot) pode ficar parado num
+  destes diálogos (ver §7).
+- **`CLAUDE_CODE_CHILD_SESSION`**: um `claude` lançado a partir de outra sessão do Claude Code herda esta marca e **não
+  grava transcrições** ("Transcript saving is off"). Foi isto que confundiu o spike. O `childEnv()` da app já não passa
+  as variáveis `CLAUDE_CODE_*` ao filho, por isso não afeta a app. Afeta apenas spikes que abram janelas a partir de
+  uma sessão.
 - **Nunca editar o backend a partir de um terminal servido por ele em `npm run dev`** (CLAUDE.md, regra 8). Os passos
   2-7 correm numa sessão fora da app.
 - O spike e a verificação não podem tocar em `~/.claude` além de **ler**. A 2.ª conta do spike vive numa pasta
@@ -344,8 +377,9 @@ Ordem obrigatória. Tiers: `opus` (desenho, não delegar) · `sonnet` (implement
 
 | Pergunta | Bloqueia | Notas |
 |---|---|---|
-| `claude "/login"` corre o login como primeira mensagem, ou o onboarding (tema, método de login) aparece antes? | Passo 6 (`/login` da rota) | Spike (e). Se não correr, o terminal abre normal e a faixa diz "escreve /login" |
-| As junctions de `plugins/` funcionam com os caminhos absolutos do `known_marketplaces.json`? | Passo 3 | Spike (c). Devem funcionar: os caminhos apontam para a principal, que é o alvo |
+| ~~`claude "/login"` corre o login como primeira mensagem?~~ | — | ✅ Spike (e), 2026-11-01: sim. A rota `/login` usa-o |
+| ~~As junctions de `plugins/` funcionam com os caminhos absolutos do `known_marketplaces.json`?~~ | — | ✅ Spike (c), 2026-11-01: os plugins aparecem na conta nova |
+| ~~Como evitar que um `claude` sem ninguém no PTY fique parado num diálogo de primeira vez de uma conta extra?~~ | — | ✅ Dono, 2026-11-01: **o terminal de login fica aberto** depois do `/login`, e a faixa diz para responder lá aos diálogos de primeira vez. Não se copiam flags internas do `.claude.json` (mudam entre versões). Entra no passo 6 (rota `/login`) e no passo 8 (texto da faixa) |
 | O `QuotaMeter` do drawer usa o mesmo componente da barra lateral ou uma versão compacta? | Passo 8 | Decidir no passo, com [[../skills/references/frontend-visual-consistency]] |
 
 ## Relacionado

@@ -47,7 +47,10 @@
   "terminals": [],
   "closedTerminals": [],
   "folders": [],
-  "keybindings": {}
+  "keybindings": {},
+  "accounts": [],
+  "activeAccountId": "primary",
+  "primaryAccountLabel": null
 }
 ```
 
@@ -63,6 +66,8 @@ erDiagram
   CLOSED_TERMINAL }o..o| CLAUDE_SESSION : "claudeSessionId"
   SAVED_TERMINAL ||..o| CLOSED_TERMINAL : "ao fechar, passa a"
   FOLDER
+  ACCOUNT ||..o{ SAVED_TERMINAL : "accountId (omissão primary)"
+  ACCOUNT ||..o{ CLOSED_TERMINAL : "accountId"
 ```
 
 ## Coleções
@@ -84,6 +89,7 @@ porque o backend reiniciou.
 | `hidden` | booleano | — (omissão `false`) | Fora da grelha e do bot (`GET /api/terminals`) até ser revelado ("Ver terminal") |
 | `addDirs` | texto[] (≤ 4) | — (omissão `[]`) | Pastas passadas com `--add-dir`, para o reabrir igual (a da importação e, se a origem é um projeto, a do projeto). Os três campos novos leem-se com a omissão em ficheiros antigos — sem subir o `STATE_VERSION` |
 | `guidedId` | UUID \| null | — (omissão `null`) | Terminal lançado por uma sessão guiada ([[adr/0020-sessoes-guiadas]]); liga-o à pasta `DATA_DIR/guided/<id>/`, e reabre-se com o `--settings` das sessões guiadas e `--permission-mode default`. Ficheiros antigos → `null`, sem subir o `STATE_VERSION` |
+| `accountId` | `'primary'` \| UUID | — (omissão `'primary'`) | A conta do Claude em que corre ([[adr/0027-varias-contas-do-claude]]). Um id de uma conta que já não existe lê-se como `primary`. Ficheiros antigos → `'primary'`, sem subir o `STATE_VERSION` |
 
 - **Ciclo**: abrir → guardado. Backend reinicia → aparece como **parado**, com **Reabrir** (`claude --resume
   <claudeSessionId>`) e **Reabrir todos**. Nada reabre sozinho (não gasta quota sem pedido).
@@ -101,6 +107,7 @@ O que representa: o histórico — um terminal que o utilizador fechou, com quan
 | `closedAt` | instante | ✅ | |
 | `summary` | texto ≤ 600 | — | Copiado do `.jsonl` da sessão **no momento de fechar** (o Claude Code apaga-o ao fim de 30 dias) |
 | `summarySource` | `ai-title` \| `last-message` \| `null` | — | `ai-title`: o título que o Claude Code gerou; `last-message`: a última mensagem do assistente, cortada; `null`: sessão sem conteúdo ou ilegível |
+| `accountId` | `'primary'` \| UUID | — (omissão `'primary'`) | A conta do terminal guardado, copiada ao fechar |
 
 - **Limite**: os **200 mais recentes** (por `closedAt`); ao entrar o 201.º, sai o mais antigo (hard delete).
 - **Ordem**: `closedAt` descendente.
@@ -135,6 +142,17 @@ O que representa: as binds de teclado que o dono **mudou** ([[adr/0016-atalhos-e
   chave. "Repor predefinidos" deixa `{}`.
 - O esquema só valida a **forma**. Que teclas são permitidas e as colisões decide o `KeybindingsService`
   ao gravar. Um id que o catálogo já não tem fica no ficheiro, mas é ignorado (nunca impede o arranque).
+
+### Contas do Claude — `accounts`, `activeAccountId`, `primaryAccountLabel`
+
+O que representa: as contas do Claude além da principal, e a que está ativa ([[adr/0027-varias-contas-do-claude]],
+[[features/contas-do-claude]]). Os três campos chegaram com `.default()`, sem subir o `STATE_VERSION`.
+
+| Campo | Tipo | Nota |
+|---|---|---|
+| `accounts` | `{id: uuid, label: texto 1-40, createdAt}[]`, **máx. 4**, `id` único | Só as extra. A principal é implícita (id `primary`, a pasta de hoje). A pasta de cada extra é `DATA_DIR/accounts/<id>` e deriva só do id |
+| `activeAccountId` | `'primary'` \| UUID | A omissão de tudo o que se cria. Um id que já não existe lê-se como `primary` |
+| `primaryAccountLabel` | texto 1-40 \| `null` | `null` → a UI mostra "Principal" |
 
 ## Relações
 

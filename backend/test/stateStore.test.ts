@@ -30,6 +30,7 @@ function savedTerminal(overrides: Partial<SavedTerminal> = {}): SavedTerminal {
     hidden: false,
     addDirs: [],
     guidedId: null,
+    accountId: 'primary',
     ...overrides,
   };
 }
@@ -44,6 +45,7 @@ function closedTerminal(closedAt: string): ClosedTerminal {
     closedAt,
     summary: null,
     summarySource: null,
+    accountId: 'primary',
   };
 }
 
@@ -62,7 +64,7 @@ describe('StateStore', () => {
 
   it('missing file → empty state, and nothing written until the first change', async () => {
     const store = await StateStore.load(dataDir);
-    expect(store.read()).toEqual({ version: 2, terminals: [], closedTerminals: [], folders: [], keybindings: {} });
+    expect(store.read()).toEqual({ version: 2, terminals: [], closedTerminals: [], folders: [], keybindings: {}, accounts: [], activeAccountId: 'primary', primaryAccountLabel: null });
     await store.flush();
     expect(existsSync(file)).toBe(false);
   });
@@ -118,6 +120,55 @@ describe('StateStore', () => {
     await writeFile(file, JSON.stringify({ version: 2, terminals: [older], closedTerminals: [], folders: [], keybindings: {} }));
     const store = await StateStore.load(dataDir);
     expect(store.read().terminals).toEqual([{ ...older, importId: null, hidden: false, addDirs: [] }]);
+  });
+
+  it('a file saved before accounts existed loads with the primary only (ADR 0027, no migration)', async () => {
+    const terminal: Partial<SavedTerminal> = savedTerminal({ label: 'api' });
+    delete terminal.accountId;
+    const closed: Partial<ClosedTerminal> = closedTerminal(at(5));
+    delete closed.accountId;
+    const content = JSON.stringify({ version: 2, terminals: [terminal], closedTerminals: [closed], folders: [], keybindings: {} });
+    await writeFile(file, content);
+    const state = (await StateStore.load(dataDir)).read();
+    expect(state.version).toBe(2);
+    expect(state.accounts).toEqual([]);
+    expect(state.activeAccountId).toBe('primary');
+    expect(state.primaryAccountLabel).toBeNull();
+    expect(state.terminals).toEqual([{ ...terminal, accountId: 'primary' }]);
+    expect(state.closedTerminals).toEqual([{ ...closed, accountId: 'primary' }]);
+    expect(await readFile(file, 'utf8')).toBe(content);
+  });
+
+  it('keeps extra accounts and the account of each terminal', async () => {
+    const accountId = randomUUID();
+    const store = await StateStore.load(dataDir);
+    store.update((draft) => {
+      draft.accounts.push({ id: accountId, label: 'Trabalho', createdAt: at(0) });
+      draft.activeAccountId = accountId;
+      draft.primaryAccountLabel = 'Pessoal';
+      draft.terminals.push(savedTerminal({ accountId }));
+    });
+    await store.flush();
+    const reread = (await StateStore.load(dataDir)).read();
+    expect(reread.accounts).toEqual([{ id: accountId, label: 'Trabalho', createdAt: at(0) }]);
+    expect(reread.activeAccountId).toBe(accountId);
+    expect(reread.primaryAccountLabel).toBe('Pessoal');
+    expect(reread.terminals[0]?.accountId).toBe(accountId);
+  });
+
+  it('refuses more than 4 extra accounts, a repeated account id, and an account id that is neither primary nor a UUID', async () => {
+    const account = () => ({ id: randomUUID(), label: 'x', createdAt: at(0) });
+    const base = { version: 2, terminals: [], closedTerminals: [], folders: [], keybindings: {} };
+    const repeated = account();
+    for (const bad of [
+      { ...base, accounts: [account(), account(), account(), account(), account()] },
+      { ...base, accounts: [repeated, repeated] },
+      { ...base, activeAccountId: '../outra' },
+      { ...base, terminals: [{ ...savedTerminal(), accountId: 'C:\Windows' }] },
+    ]) {
+      await writeFile(file, JSON.stringify(bad));
+      await expect(StateStore.load(dataDir)).rejects.toBeInstanceOf(StateFileError);
+    }
   });
 
   it('a v1 file loads as v2 with no shortcut changes, and is only rewritten on the next change', async () => {

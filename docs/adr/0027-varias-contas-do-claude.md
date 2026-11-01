@@ -1,12 +1,12 @@
 ---
 tags: [adr]
-status: proposto
+status: aceite
 data: 2026-11-01
 ---
 
 # 0027 — Várias contas do Claude: uma pasta de configuração por conta, com o resto partilhado
 
-**Data**: 2026-11-01 · **Estado**: `proposto` (passa a `aceite` quando o spike da spec
+**Data**: 2026-11-01 · **Estado**: `aceite` (2026-11-01, spike do passo 1; era `proposto` até o spike da spec
 [[../features/contas-do-claude]] confirmar os pressupostos) · **Decidido com**: o dono — "quando quero mudar de conta,
 dou logout, login, abro o link no browser certo e colo o código… não há maneira de automatizar isto?"
 

@@ -10,6 +10,22 @@ export const MAX_RECENT_FOLDERS = 10;
 
 const instant = z.iso.datetime();
 
+/** Extra Claude accounts allowed besides the primary (ADR 0027): 5 in total. */
+export const MAX_EXTRA_ACCOUNTS = 4;
+
+/**
+ * Which Claude account a terminal runs in (ADR 0027): `primary` is today's config dir, an extra one is a UUID
+ * whose folder is `DATA_DIR/accounts/<id>`. An id that no longer exists reads as `primary` (accountsService).
+ */
+export const accountIdSchema = z.union([z.literal('primary'), z.uuid()]);
+
+/** Only the extra accounts: the primary is implicit. */
+export const accountSchema = z.object({
+  id: z.uuid(),
+  label: z.string().trim().min(1).max(40),
+  createdAt: instant,
+});
+
 export const savedTerminalSchema = z.object({
   id: z.uuid(),
   label: z.string().max(80).nullable(),
@@ -28,6 +44,8 @@ export const savedTerminalSchema = z.object({
   // ADR 0020: a terminal started by a guided session — hidden like an import's, reopened with the guided
   // --settings, the same --add-dir folders and --permission-mode default. Older files → null, no migration.
   guidedId: z.uuid().nullable().default(null),
+  // ADR 0027: the Claude account it runs in. Older files → 'primary', no migration.
+  accountId: accountIdSchema.default('primary'),
 });
 
 export const closedTerminalSchema = z.object({
@@ -39,6 +57,7 @@ export const closedTerminalSchema = z.object({
   closedAt: instant,
   summary: z.string().max(600).nullable(),
   summarySource: z.enum(['ai-title', 'last-message']).nullable(),
+  accountId: accountIdSchema.default('primary'),
 });
 
 export const folderSchema = z.object({
@@ -71,6 +90,10 @@ export const stateSchema = z
     closedTerminals: z.array(closedTerminalSchema),
     folders: z.array(folderSchema),
     keybindings: keyBindingsSchema,
+    // ADR 0027. Older files → no extra accounts, the primary active and unnamed ("Principal"), no migration.
+    accounts: z.array(accountSchema).max(MAX_EXTRA_ACCOUNTS).default([]),
+    activeAccountId: accountIdSchema.default('primary'),
+    primaryAccountLabel: z.string().trim().min(1).max(40).nullable().default(null),
   })
   .refine((state) => uniqueBy(state.terminals, (terminal) => terminal.id), {
     message: 'terminal ids must be unique',
@@ -79,16 +102,31 @@ export const stateSchema = z
   .refine((state) => uniqueBy(state.folders, (folder) => folder.path), {
     message: 'folder paths must be unique',
     path: ['folders'],
+  })
+  .refine((state) => uniqueBy(state.accounts, (account) => account.id), {
+    message: 'account ids must be unique',
+    path: ['accounts'],
   });
 
 export type SavedTerminal = z.infer<typeof savedTerminalSchema>;
 export type ClosedTerminal = z.infer<typeof closedTerminalSchema>;
 export type Folder = z.infer<typeof folderSchema>;
 export type KeyBinding = z.infer<typeof keyBindingSchema>;
+export type AccountId = z.infer<typeof accountIdSchema>;
+export type Account = z.infer<typeof accountSchema>;
 export type AppState = z.infer<typeof stateSchema>;
 
 export function emptyState(): AppState {
-  return { version: STATE_VERSION, terminals: [], closedTerminals: [], folders: [], keybindings: {} };
+  return {
+    version: STATE_VERSION,
+    terminals: [],
+    closedTerminals: [],
+    folders: [],
+    keybindings: {},
+    accounts: [],
+    activeAccountId: 'primary',
+    primaryAccountLabel: null,
+  };
 }
 
 /**
