@@ -1,5 +1,5 @@
 import { existsSync } from 'node:fs';
-import { readFile, readdir, stat } from 'node:fs/promises';
+import { open, readFile, readdir, stat } from 'node:fs/promises';
 import { homedir } from 'node:os';
 import { join } from 'node:path';
 
@@ -32,6 +32,8 @@ export type SessionInfo = {
   messageCount: number;
   /** The AI title, else the first prompt; null when the session has neither. */
   preview: string | null;
+  /** The size of the last request, in tokens (`contextTokensOf`); null without an assistant reply. */
+  contextTokens: number | null;
 };
 
 export type SessionSummary = {
@@ -54,6 +56,32 @@ function parseLines(text: string): Line[] {
   }
   return lines;
 }
+
+/**
+ * The size of the conversation as the model last saw it (ADR 0027 — what "Continuar noutra conta" will cost):
+ * the usage of an assistant reply, `input_tokens + cache_creation_input_tokens + cache_read_input_tokens`.
+ * Subagent (sidechain) replies and synthetic ones (all zeros) do not count. null when the line is not one.
+ */
+export function contextTokensOf(line: Line): number | null {
+  if (line.type !== 'assistant' || line.isSidechain === true) return null;
+  const usage = (line.message as { usage?: Record<string, unknown> } | undefined)?.usage;
+  if (!usage || typeof usage !== 'object') return null;
+  const part = (key: string) => (typeof usage[key] === 'number' && Number.isFinite(usage[key]) ? (usage[key] as number) : 0);
+  const total = part('input_tokens') + part('cache_creation_input_tokens') + part('cache_read_input_tokens');
+  return total > 0 ? total : null;
+}
+
+/** The last reply's context size in already-parsed lines. */
+function lastContextTokens(lines: Line[]): number | null {
+  for (let i = lines.length - 1; i >= 0; i--) {
+    const tokens = contextTokensOf(lines[i]!);
+    if (tokens !== null) return tokens;
+  }
+  return null;
+}
+
+/** First read from the end of a .jsonl; doubled until a reply is found or the whole file was read. */
+const TAIL_BYTES = 256 * 1024;
 
 const oneLine = (text: string) => text.replace(/\s+/g, ' ').trim();
 
@@ -155,6 +183,31 @@ export class ClaudeSessions {
     return latest?.id ?? null;
   }
 
+  /**
+   * The size of a conversation's last request (`contextTokensOf`), read from the end of the file: fast on a
+   * 30 MB conversation. null without a .jsonl or without a reply. Never throws.
+   */
+  async contextTokens(cwd: string, sessionId: string): Promise<number | null> {
+    let handle: Awaited<ReturnType<typeof open>> | undefined;
+    try {
+      handle = await open(this.fileOf(cwd, sessionId), 'r');
+      const { size } = await handle.stat();
+      for (let length = Math.min(TAIL_BYTES, size); ; length = Math.min(length * 2, size)) {
+        const buffer = Buffer.alloc(length);
+        await handle.read(buffer, 0, length, size - length);
+        let text = buffer.toString('utf8');
+        // Unless the whole file was read, the first line is cut in the middle: drop it.
+        if (length < size) text = text.slice(text.indexOf('\n') + 1);
+        const tokens = lastContextTokens(parseLines(text));
+        if (tokens !== null || length === size) return tokens;
+      }
+    } catch {
+      return null;
+    } finally {
+      await handle?.close();
+    }
+  }
+
   /** The summary kept in the history when a terminal closes. Never throws (closing must not fail on it). */
   async readSummary(cwd: string, sessionId: string): Promise<SessionSummary> {
     try {
@@ -207,6 +260,7 @@ export class ClaudeSessions {
         updatedAt: info.mtime.toISOString(),
         messageCount,
         preview: preview ? cut(preview, PREVIEW_MAX) : null,
+        contextTokens: lastContextTokens(lines),
       };
     } catch {
       return null;

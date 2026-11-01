@@ -82,6 +82,7 @@ UUID dá o mesmo `TERMINAL_001` que um id desconhecido.
 | GET | `/api/terminals` | — | `TerminalView[]` (os gravados, por `createdAt`, sem os `hidden`) | — |
 | POST | `/api/terminals` | `{cwd, mode: 'new'\|'resume'\|'continue', sessionId?, label?, accountId?, cols, rows}` — `sessionId` (UUID) obrigatório em `resume`; `accountId` (`'primary'` ou UUID) omitido = a conta ativa | `201 TerminalView` | `COMMON_001` · `FOLDER_001` · `TERMINAL_002` · `TERMINAL_003` · `TERMINAL_004` · `TERMINAL_005` · `SESSION_001` · `ACCOUNT_001` · `ACCOUNT_005` |
 | POST | `/api/terminals/:id/reopen` | `{cols, rows, accountId?}` | `200 TerminalView & {freshSession}` — `--resume` da sessão; sem `.jsonl` (o `claude` não grava sessões sem mensagens) começa uma conversa nova no mesmo terminal e `freshSession: true`. Um terminal com `remoteControl` volta com `--remote-control`. Volta na sua conta; `accountId` reabre-o noutra ("Continuar noutra conta": a conversa é partilhada) e grava-a | `TERMINAL_001` · `TERMINAL_002` · `TERMINAL_005` · `TERMINAL_006` · `TERMINAL_007` · `FOLDER_001` · `ACCOUNT_001` · `ACCOUNT_005` |
+| GET | `/api/terminals/:id/context` | — | `200 {tokens: number \| null}`: o tamanho da conversa do terminal (como `contextTokens` em Sessões gravadas). É o que "Continuar noutra conta" vai contar na primeira mensagem. Lido do fim do `.jsonl`; leva poucos ms numa conversa de 30 MB | `TERMINAL_001` |
 | PATCH | `/api/terminals/:id` | `{label: string \| null}` | `200 TerminalView` | `COMMON_001` · `TERMINAL_001` |
 | DELETE | `/api/terminals/:id` | — | `204` | `TERMINAL_001` |
 | POST | `/api/terminals/:id/preview` | `{devPort?}` (inteiro 1-65535; nenhum outro campo) | `200 {preview}` — a porta de dev foi servida (ou já estava); `200 {ports: DevPort[]}` — há várias, escolher uma e repetir com `devPort` | `TERMINAL_001` · `COMMON_001` · `PREVIEW_001`–`007` |
@@ -146,10 +147,15 @@ Todas com sessão (`AUTH_002`). Qualquer pasta passa por `resolveAllowedPath` (`
 | GET | `/api/folders/browse?path=` | `path` | `{path, parent, entries: [{name, path, sessionCount}]}` | `COMMON_001` · `FOLDER_001` |
 | PUT | `/api/folders/favorite` | `{path, favorite: boolean}` | `204` | `COMMON_001` · `FOLDER_001` |
 
-- `SavedSession = {id, startedAt, updatedAt, messageCount, preview, closed, openIn}` — lido de
+- `SavedSession = {id, startedAt, updatedAt, messageCount, preview, contextTokens, closed, openIn, accountId}` — lido de
   `<CLAUDE_CONFIG_DIR ou ~/.claude>/projects/<pasta codificada>/<uuid>.jsonl` (formato em [[features/terminais]] §4.1).
   `closed` = `{label, summary, closedAt}` do terminal fechado na app que usou a sessão (o histórico só aparece
   aqui); `openIn` = o terminal gravado que a usa (retomá-la dá `TERMINAL_003`).
+- `contextTokens` = o tamanho do último pedido, em tokens: o `usage` da última resposta do assistente,
+  `input_tokens + cache_creation_input_tokens + cache_read_input_tokens`. Não contam as respostas de subagentes
+  (`isSidechain`) nem as sintéticas a zero; `null` sem resposta. `accountId` = a conta do Claude onde a conversa
+  correu da última vez na app (a do terminal aberto, senão a do fechado); `null` se a app nunca a correu
+  ([[adr/0027-varias-contas-do-claude]]).
 - `FolderView = {path, favorite, lastUsedAt}`. Favoritas e recentes que já não existem ou saíram das raízes
   não aparecem. Desmarcar uma favorita nunca usada esquece-a.
 - `browse`: um nível; pastas começadas por `.` e links/junctions ficam de fora; `parent` é `null` na raiz

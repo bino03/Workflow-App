@@ -106,7 +106,11 @@ describe('/api/terminals', () => {
     const reopen = await call('POST', `/api/terminals/${view.id}/reopen`, size);
     expect([reopen.statusCode, reopen.json().errorCode]).toEqual([409, 'TERMINAL_006']);
 
+    // ADR 0027: the conversation has no assistant reply yet → no size.
+    expect((await call('GET', `/api/terminals/${view.id}/context`)).json()).toEqual({ tokens: null });
+
     expect((await call('DELETE', `/api/terminals/${view.id}`)).statusCode).toBe(204);
+    expect((await call('GET', `/api/terminals/${view.id}/context`)).json().errorCode).toBe('TERMINAL_001');
     expect((await call('GET', '/api/terminals')).json()).toEqual([]);
     const again = await call('DELETE', `/api/terminals/${view.id}`);
     expect([again.statusCode, again.json().errorCode]).toEqual([404, 'TERMINAL_001']);

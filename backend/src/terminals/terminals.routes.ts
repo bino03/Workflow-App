@@ -35,6 +35,9 @@ export async function terminalsRoutes(app: FastifyInstance, { terminalsService }
     return view;
   });
 
+  // ADR 0027: what continuing this conversation in another account costs on its first message.
+  app.get<IdParams>('/api/terminals/:id/context', async (request) => ({ tokens: await terminalsService.contextTokens(terminalId(request.params.id)) }));
+
   app.patch<IdParams>('/api/terminals/:id', async (request) => {
     const id = terminalId(request.params.id);
     const { label } = parseWith(renameTerminalSchema, request.body);

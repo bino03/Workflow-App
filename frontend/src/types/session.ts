@@ -10,4 +10,8 @@ export type SavedSession = {
   closed: { label: string | null; summary: string | null; closedAt: string } | null;
   /** Terminal gravado que a usa — retomá-la é recusado. */
   openIn: string | null;
+  /** Tamanho do último pedido, em tokens (ADR 0027); null sem resposta do assistente. */
+  contextTokens: number | null;
+  /** A conta do Claude onde correu da última vez na app; null se a app nunca a correu. */
+  accountId: string | null;
 };

@@ -5,7 +5,7 @@
 | **Estado** | 🚧 Em curso |
 | **Criada** | 2026-11-01 |
 | **Última sessão** | 2026-11-01 |
-| **Passos** | 6 / 10 concluídos |
+| **Passos** | 7 / 10 concluídos |
 
 > Escrita para uma sessão que **não viu a conversa que a originou**. Se algo só faz sentido com contexto
 > externo, falta escrevê-lo.
@@ -284,7 +284,7 @@ Ordem obrigatória. Tiers: `opus` (desenho, não delegar) · `sonnet` (implement
     e o `/login` a abrir um terminal na conta certa. Endpoints chamados de verdade com curl numa instância de teste
     (`scripts/verify/instance.mjs`). [[../api]] atualizado.
 
-- [ ] **7. Tamanho do contexto + conta nas sessões gravadas**
+- [x] **7. Tamanho do contexto + conta nas sessões gravadas**
   - Ficheiro: `backend/src/sessions/claudeSessions.ts` (`contextTokens` a partir do último `usage`),
     `sessions/sessions.routes.ts`, `terminals/terminals.routes.ts` (`GET /:id/context`), testes
   - Skill: — (ler [[../backend-conventions]])
@@ -391,8 +391,20 @@ Ordem obrigatória. Tiers: `opus` (desenho, não delegar) · `sonnet` (implement
   - Backend 505/505, com `test/accounts.routes.test.ts` 8/8.
   - Por HTTP numa instância de teste, 16/16: criar, renomear, ativar e abrir o login, cujo `claude` corre na pasta da conta; remover com um terminal a correr dá 409 `ACCOUNT_004`; depois de fechar o terminal dá 204, a pasta desaparece e a principal fica intacta.
 - Corrigido de passagem: um teste do passo 2 tinha um escape inválido que o lint apanhou (`'C:\Windows'`).
+**Passo 7 feito a 2026-11-01**:
+- O que entrou:
+  - `contextTokensOf` e `ClaudeSessions.contextTokens(cwd, id)`, que lê do fim do ficheiro (256 KB, a dobrar até encontrar uma resposta). Ignora os sidechains e as respostas sintéticas a zero.
+  - `SessionInfo.contextTokens`.
+  - `GET /api/terminals/:id/context` → `{tokens}`.
+  - `/api/sessions` com `contextTokens` e `accountId` (a do terminal aberto, senão a do fechado, senão `null`).
+- Testes:
+  - Num `.jsonl` real de 29.9 MB da principal (só leitura), o resultado é 396216, igual à soma do `usage` da última resposta, e a leitura leva 2-6 ms.
+  - Backend 508/508.
+  - Por HTTP numa instância de teste, 5/5.
+- O frontend espelha os campos novos (`types/session.ts`, `types/terminal.ts`).
+- **O backend da spec está completo (passos 1-7).**
 **Em curso:** —
-**Próxima ação concreta:** passo 7 (tamanho do contexto: `contextTokens` no `claudeSessions.ts` e `GET /api/terminals/:id/context`), em modo NORMAL (confirmar com o dono entre passos).
+**Próxima ação concreta:** passo 8 (frontend: item "Conta: <nome>" por cima de Definições, drawer "Escolher conta", `AccountsContext`; ler o `UsageProvider` que já existe), com `/frontend-design-system` e `/frontend-error-handling`, em modo NORMAL.
 **Desvios ao plano:** —
 **O que uma sessão nova precisa de saber:**
 - **Cada conta nova mostra os diálogos de primeira vez** do Claude Code (no spike: "Claude in Chrome extension

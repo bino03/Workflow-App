@@ -132,7 +132,7 @@ describe('/api/sessions', () => {
   it('lists the saved sessions of a folder, newest first, with openIn and the closed terminal', async () => {
     let sessions = (await get(`/api/sessions?cwd=${q(project)}`)).json();
     expect(sessions.map((s: { id: string }) => s.id)).toEqual([NEW, OLD]);
-    expect(sessions[0]).toMatchObject({ preview: 'Validação de NIF', closed: null, openIn: null });
+    expect(sessions[0]).toMatchObject({ preview: 'Validação de NIF', closed: null, openIn: null, accountId: null });
 
     const created = await app.inject({
       method: 'POST',
@@ -142,12 +142,13 @@ describe('/api/sessions', () => {
     });
     const id = created.json().id;
     sessions = (await get(`/api/sessions?cwd=${q(project)}`)).json();
-    expect(sessions.find((s: { id: string }) => s.id === OLD).openIn).toBe(id);
+    expect(sessions.find((s: { id: string }) => s.id === OLD)).toMatchObject({ openIn: id, accountId: 'primary' });
 
     await app.inject({ method: 'DELETE', url: `/api/terminals/${id}`, headers: { cookie } });
     sessions = (await get(`/api/sessions?cwd=${q(project)}`)).json();
     expect(sessions.find((s: { id: string }) => s.id === OLD)).toMatchObject({
       openIn: null,
+      accountId: 'primary',
       closed: { label: 'antiga', summary: 'Sessão antiga', closedAt: expect.any(String) },
     });
   });

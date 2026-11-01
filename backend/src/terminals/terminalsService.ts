@@ -288,6 +288,18 @@ export class TerminalsService {
     return this.view(saved);
   }
 
+  /** The size of a terminal's conversation in tokens (ADR 0027), before "Continuar noutra conta". */
+  async contextTokens(id: string): Promise<number | null> {
+    const saved = this.saved(id);
+    if (!saved) throw new AppError('TERMINAL_001');
+    return this.deps.sessions.contextTokens(saved.cwd, saved.claudeSessionId);
+  }
+
+  /** A stored account id as the API shows it: one that was removed reads as the primary. */
+  accountOf(id: AccountId): AccountId {
+    return this.resolveAccount(id);
+  }
+
   /** How many terminals of an account are running now (a removal is refused while any is). */
   runningCount(accountId: AccountId): number {
     return this.deps.stateStore
