@@ -89,6 +89,9 @@ Ant Design para componentes, Tailwind para estilo próprio, tokens CSS como font
   janela (`hooks/useShortcuts.ts`) executa-as: um no `TerminalsPage`, um no `AppLayout` para a navegação.
   Nunca `Ctrl+Alt` (AltGr em PT). Um `Esc` da app (voltar à grelha) só conta fora do terminal
   (`event.target.closest('.xterm')`).
+- **Quota**: uma só sondagem de `/api/usage` (60 s), no `UsageProvider` do `AppLayout`. O `useUsage()` lê-a, e
+  nenhum componente sonda por conta própria. Quem a usa: a lateral dos terminais (`QuotaMeter`) e o aviso de
+  limite (`UsageLimitModal`, em qualquer página).
 - Portas: dev server em **7401** com `strictPort` (não colidir com os dev servers dos projetos abertos
   dentro dos terminais).
 
