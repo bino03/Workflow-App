@@ -38,10 +38,12 @@ pasta, a do `.env`.
    movida nem removida. As contas extra vivem em `DATA_DIR/accounts/<uuid>/`. **O caminho deriva do id e nunca vem de
    um pedido HTTP.**
 2. **Partilhado com a principal** (ligações de pasta: `junction` no Windows, symlink no Linux): `projects/`
-   (conversas e memória), `skills/`, `plugins/`, `agents/`, `commands/`. Ficheiros soltos (`settings.json`,
-   `CLAUDE.md`, `keybindings.json`) são **copiados** da principal antes de cada arranque de um terminal dessa conta: a
-   principal é a fonte, e uma alteração feita dentro de uma conta extra perde-se.
-   **Separado**: `.credentials.json`, `.claude.json` (conta, confiança das pastas), `history.jsonl` e o resto.
+   (conversas e memória), `skills/`, `plugins/`, `agents/`, `commands/`, `dev-mods/`. Ficheiros soltos (`settings.json`,
+   `CLAUDE.md`, `keybindings.json`) e a chave `mcpServers` do `.claude.json` (os servidores MCP do utilizador) são
+   **copiados** da principal antes de cada arranque de um terminal dessa conta: a principal é a fonte, e uma alteração
+   feita dentro de uma conta extra perde-se.
+   **Separado**: `.credentials.json`, o resto do `.claude.json` (conta, confiança das pastas), `history.jsonl`,
+   `daemon/` e `sessions/` (cada conta tem o seu supervisor) e o resto.
 3. **O único efeito no filho** é `CLAUDE_CONFIG_DIR=<pasta da conta>` no ambiente. O binário, os argumentos fixos e a
    denylist não mudam.
 4. **Conta ativa** (no `state.json`) = a omissão de tudo o que se cria (terminais, sessões guiadas, importações, bot).

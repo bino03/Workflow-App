@@ -33,8 +33,9 @@ passa a mostrar a quota de B. O login de cada conta fez-se **uma vez** e nunca m
 - Escolher outra conta **por terminal**: ao criar um terminal novo, ao retomar uma conversa gravada, e ao reabrir um
   terminal parado ("Continuar noutra conta"), com aviso do tamanho do contexto.
 - Quota **por conta**. A barra lateral mostra só a da conta ativa e o painel de contas mostra a de todas.
-- Partilhados entre contas: conversas e memória (`projects/`), skills, plugins, agents, commands, `settings.json`,
-  `CLAUDE.md` e `keybindings.json`.
+- Partilhados entre contas: conversas e memória (`projects/`), skills, plugins, agents, commands, mods
+  (`dev-mods/`), `settings.json`, `CLAUDE.md`, `keybindings.json` e os servidores MCP do utilizador (a chave
+  `mcpServers` do `.claude.json`). Os connectors do claude.ai (Gmail, Drive…) são da conta e não entram aqui.
 - Renomear e remover contas extra. A remoção apaga a pasta e o login.
 
 ### ⛔ Fora — não implementar nesta feature
@@ -51,7 +52,8 @@ passa a mostrar a quota de B. O login de cada conta fez-se **uma vez** e nunca m
 - Mover a conta principal para `DATA_DIR/accounts/`.
 
 ### Segunda fase (se houver)
-- Aviso na barra quando a quota da conta ativa passa dos 90%, com um botão "Mudar para <outra conta>".
+- Botão "Mudar para <outra conta>" no aviso dos 90% do limite da sessão (o aviso é um item próprio do
+  [[../../notes/ToDo|ToDo]], que não depende desta spec; aqui só se acrescenta o botão).
 - Escolher a conta no bot do Telegram (`/conta`).
 
 ## 3. Decisões tomadas
@@ -61,7 +63,7 @@ passa a mostrar a quota de B. O login de cada conta fez-se **uma vez** e nunca m
 | Mecanismo | Uma pasta `CLAUDE_CONFIG_DIR` por conta | Login uma vez; contas em simultâneo; o `claude` não precisa de nada especial | Trocar o `.credentials.json`: uma conta por máquina, e os terminais a correr reescrevem o token (ADR 0027) |
 | Onde vivem | Principal = a pasta de hoje (`CLAUDE_CONFIG_DIR` ou `~/.claude`), id `primary`; extra = `DATA_DIR/accounts/<uuid>/` | Não mexer no que já funciona; o caminho deriva do id e nunca vem de um pedido | Mover tudo para `DATA_DIR` |
 | Escolha | Conta ativa (seletor no menu do cabeçalho) + escolha por terminal | Dono: "Conta ativa + troca por terminal" | Só global; só por terminal |
-| Partilha | `projects/`, `skills/`, `plugins/`, `agents/`, `commands/` por junction/symlink; `settings.json`, `CLAUDE.md`, `keybindings.json` copiados da principal antes de cada arranque | Dono: partilhar. Partilhar `projects/` dá uma só lista Retomar, a mesma memória, e torna "continuar noutra conta" um simples reabrir. Ficheiros não se ligam no Windows sem privilégios | Separar e copiar o `.jsonl` ao continuar |
+| Partilha | `projects/`, `skills/`, `plugins/`, `agents/`, `commands/`, `dev-mods/` por junction/symlink; `settings.json`, `CLAUDE.md`, `keybindings.json` e a chave `mcpServers` do `.claude.json` copiados da principal antes de cada arranque | Dono: partilhar. Partilhar `projects/` dá uma só lista Retomar, a mesma memória, e torna "continuar noutra conta" um simples reabrir. Ficheiros não se ligam no Windows sem privilégios | Separar e copiar o `.jsonl` ao continuar |
 | Continuar noutra conta | Sim, com aviso do tamanho | Dono: "sim, com aviso do tamanho". Ao retomar, o `claude` reenvia a conversa inteira, e a cache não passa de uma conta para a outra. Esperar que a quota volte e retomar na mesma conta horas depois custa o mesmo (a cache já expirou) | Não permitir |
 | Tamanho do contexto | `usage` da última resposta do assistente no `.jsonl`: `input_tokens + cache_creation_input_tokens + cache_read_input_tokens` | É o tamanho real do último pedido; não precisa de tokenizar | Estimar pelos bytes do ficheiro |
 | Quota | Um ficheiro por conta. Barra lateral = só a ativa; painel "Escolher conta" (novo item **por cima de Definições** no menu do cabeçalho) = todas | Dono, textualmente | Todas sempre visíveis na barra |
@@ -105,11 +107,18 @@ Um `activeAccountId` ou `accountId` que aponte para uma conta que já não exist
   existente (`sessions/claudeTrust.ts:14`).
 - `extraDir(id) = DATA_DIR/accounts/<id>` (o `id` é validado como UUID antes de entrar no caminho); `.claude.json`
   = `extraDir/.claude.json`.
-- `SHARED_DIRS = ['projects', 'skills', 'plugins', 'agents', 'commands']`: criadas na principal se não existirem, e
+- `SHARED_DIRS = ['projects', 'skills', 'plugins', 'agents', 'commands', 'dev-mods']`: criadas na principal se não existirem, e
   ligadas com `fs.symlink(target, path, 'junction')` (no Linux o tipo é ignorado e fica um symlink).
 - `SYNCED_FILES = ['settings.json', 'CLAUDE.md', 'keybindings.json']`: copiados da principal se existirem
   (`syncSharedFiles(id)`, chamado antes de cada spawn de uma conta extra). Se a principal não tiver o ficheiro, a
   cópia na extra é apagada.
+- **Servidores MCP do utilizador** (`syncMcpServers(id)`, no mesmo momento): os `claude mcp add -s user` vivem na
+  chave `mcpServers` do `.claude.json`, que é **separado** por conta. Antes de cada spawn, copia-se só essa chave do
+  `.claude.json` da principal para o da extra (ler → substituir a chave → escrever por cima com rename atómico); o
+  resto do ficheiro da extra (`oauthAccount`, confiança das pastas) não se toca. Sem `mcpServers` na principal, a chave
+  é apagada na extra.
+- **Separado de propósito**: `daemon/`, `daemon.lock` (o supervisor das sessões em background) e `sessions/` (o
+  registo dos `claude` a correr). Cada conta tem o seu supervisor; partilhá-los punha dois a escrever no mesmo sítio.
 - `loginState(dir)`: `{ loggedIn, email }`. `loggedIn` exige `.credentials.json` **e** `oauthAccount` no
   `.claude.json`; `email = oauthAccount.emailAddress`. Nunca devolve tokens.
 - `removeExtraDir(id)`: primeiro `unlink` de cada ligação de `SHARED_DIRS`, confirmada com `lstat().isSymbolicLink()`
@@ -213,10 +222,14 @@ Ordem obrigatória. Tiers: `opus` (desenho, não delegar) · `sonnet` (implement
   - Aceite quando, registado na §6 com a versão do `claude`: (a) um `claude` com `CLAUDE_CONFIG_DIR=<pasta nova>`
     pede onboarding/login, e depois do `/login` existem `<pasta>/.credentials.json` e `oauthAccount` em
     `<pasta>/.claude.json`; (b) com `projects/` como junction, o `.jsonl` é escrito através dela e um `--resume` de uma
-    conversa da principal funciona na conta nova; (c) as skills e os plugins ligados aparecem na conta nova;
+    conversa da principal funciona na conta nova; (c) as skills, os plugins e os mods ligados aparecem na conta nova, e
+    um servidor MCP copiado para a chave `mcpServers` do `.claude.json` dela aparece no `/mcp` (e a chave sobrevive a
+    uma sessão completa: o `claude` reescreve o `.claude.json` e não a pode perder);
     (d) o `statusline.cjs` vê `CLAUDE_CONFIG_DIR` no seu `process.env` e recebe `rate_limits` da conta nova;
     (e) `claude "/login"` corre o slash command como primeira mensagem (se não correr, o login é escrito pelo dono);
-    (f) `unlink` de uma junction + `fs.rm` da pasta não toca no alvo. Se algum falhar, para-se e revê-se o ADR com o
+    (f) `unlink` de uma junction + `fs.rm` da pasta não toca no alvo; (g) com um `claude` a correr em cada conta, há
+    dois supervisores (`daemon.status.json` em cada pasta) que não se atropelam, e o Remote Control funciona nas duas.
+    Se algum falhar, para-se e revê-se o ADR com o
     dono antes do passo 2. Se tudo passar, o ADR 0027 passa a `aceite` (alterar só o estado).
 
 - [ ] **2. Estado: contas no `state.json`**
@@ -231,8 +244,9 @@ Ordem obrigatória. Tiers: `opus` (desenho, não delegar) · `sonnet` (implement
   - Ficheiro: `backend/src/accounts/accountDirs.ts` (novo), `backend/test/accountDirs.test.ts`
   - Skill: — (ler [[../backend-conventions]])
   - Tier: `opus` (apagar pastas com junctions: um erro apaga as conversas da principal)
-  - Aceite quando: os testes, numa pasta temporária com uma principal falsa, provam que se criam as 5 ligações, que os
-    3 ficheiros se copiam (e se apagam quando a principal os perde), que o `loginState` lê o email sem expor tokens, e
+  - Aceite quando: os testes, numa pasta temporária com uma principal falsa, provam que se criam as 6 ligações, que os
+    3 ficheiros se copiam (e se apagam quando a principal os perde), que a chave `mcpServers` se copia sem mexer no
+    resto do `.claude.json` da extra, que o `loginState` lê o email sem expor tokens, e
     que **remover uma conta deixa intactos `projects/` e `skills/` da principal**. Também provam que uma pasta
     verdadeira no lugar de uma ligação aborta com `ACCOUNT_005` e não apaga nada, e que um id que não é UUID nunca
     entra num caminho.
