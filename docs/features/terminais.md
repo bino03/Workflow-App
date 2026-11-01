@@ -1,11 +1,11 @@
 # Feature: Terminais
 
-| | |
-|---|---|
-| **Estado** | ✅ Concluída (2026-09-28) |
-| **Criada** | 2026-09-28 |
-| **Última sessão** | 2026-09-28 |
-| **Passos** | 17 / 17 concluídos |
+|                   |                          |
+| ----------------- | ------------------------ |
+| **Estado**        | ✅ Concluída (2026-09-28) |
+| **Criada**        | 2026-09-28               |
+| **Última sessão** | 2026-09-28               |
+| **Passos**        | 17 / 17 concluídos       |
 
 > Escrita para uma sessão que **não viu a conversa que a originou**. Se algo só faz sentido com contexto
 > externo, falta escrevê-lo.
