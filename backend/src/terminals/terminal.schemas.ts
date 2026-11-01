@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { accountIdSchema } from '../state/state.schema.js';
 import { colsSchema, rowsSchema } from './protocol.js';
 
 /**
@@ -19,6 +20,8 @@ export const createTerminalSchema = z
     mode: z.enum(['new', 'resume', 'continue']),
     sessionId: z.uuid().optional(),
     label: labelSchema.optional(),
+    // ADR 0027: omitted → the active account.
+    accountId: accountIdSchema.optional(),
     ...sizeSchema,
   })
   .refine((body) => body.mode !== 'resume' || body.sessionId !== undefined, {
@@ -26,6 +29,7 @@ export const createTerminalSchema = z
     path: ['sessionId'],
   });
 
-export const reopenTerminalSchema = z.object(sizeSchema);
+// accountId: "Continuar noutra conta" (ADR 0027); omitted → the terminal's own account.
+export const reopenTerminalSchema = z.object({ ...sizeSchema, accountId: accountIdSchema.optional() });
 
 export const renameTerminalSchema = z.object({ label: labelSchema.nullable() });

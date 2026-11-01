@@ -1,13 +1,15 @@
-import { mkdirSync, mkdtempSync, realpathSync, utimesSync, writeFileSync } from 'node:fs';
+import { existsSync, mkdirSync, mkdtempSync, readFileSync, realpathSync, utimesSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { afterAll, afterEach, beforeEach, describe, expect, it } from 'vitest';
+import { AccountDirs } from '../src/accounts/accountDirs.js';
+import { AccountsService } from '../src/accounts/accountsService.js';
 import { AppError, type ErrorCode } from '../src/common/errors.js';
 import { ClaudeSessions } from '../src/sessions/claudeSessions.js';
 import { StateStore } from '../src/state/stateStore.js';
 import { ClaudeBinError } from '../src/terminals/spawnClaude.js';
 import { TerminalManager } from '../src/terminals/terminalManager.js';
-import { type CreateImportTerminal, TerminalsService } from '../src/terminals/terminalsService.js';
+import { type CreateImportTerminal, type TerminalAccounts, TerminalsService } from '../src/terminals/terminalsService.js';
 import { fakeClaude, waitFor } from './fakeClaude.js';
 import { removeDir } from './helpers.js';
 
@@ -58,7 +60,14 @@ describe('TerminalsService', () => {
   let service: TerminalsService;
   const size = { cols: 100, rows: 30 };
 
-  function build(options: { settingsPath?: string; importSettingsPath?: string; isTrustedFolder?: (cwd: string) => Promise<boolean> } = {}) {
+  function build(
+    options: {
+      settingsPath?: string;
+      importSettingsPath?: string;
+      isTrustedFolder?: (cwd: string, configDir: string | undefined) => Promise<boolean>;
+      accounts?: TerminalAccounts;
+    } = {},
+  ) {
     return new TerminalsService({
       stateStore,
       terminalManager: manager,
@@ -286,6 +295,111 @@ describe('TerminalsService', () => {
       await service.close(view.id);
       expect(stateStore.read().closedTerminals[0]).toMatchObject({ id: view.id, summary: null, summarySource: null });
       await expectAppError(() => service.close(view.id), 'TERMINAL_001');
+    });
+  });
+
+  describe('accounts (ADR 0027)', () => {
+    const EXTRA = '6f1e2d3c-4b5a-4987-8a6b-5c4d3e2f1a0b';
+    const GONE = '1a2b3c4d-5e6f-4a7b-8c9d-0e1f2a3b4c5d';
+    let accountsDir: string;
+    let accounts: AccountsService;
+
+    beforeEach(() => {
+      accountsDir = join(dataDir, 'accounts');
+      mkdirSync(claudeConfig, { recursive: true });
+      writeFileSync(join(claudeConfig, 'settings.json'), '{"theme":"dark"}');
+      const primaryClaudeJson = join(dataDir, 'primary.claude.json');
+      writeFileSync(primaryClaudeJson, JSON.stringify({ mcpServers: { notion: { type: 'http' } } }));
+      accounts = new AccountsService({ stateStore, dirs: new AccountDirs({ primaryDir: claudeConfig, primaryClaudeJson, accountsDir }) });
+      stateStore.update((draft) => {
+        draft.accounts.push({ id: EXTRA, label: 'Trabalho', createdAt: new Date(clock).toISOString() });
+      });
+    });
+
+    const activate = (id: 'primary' | string) => stateStore.update((draft) => void (draft.activeAccountId = id));
+
+    it('without accounts every claude is launched as before: no CLAUDE_CONFIG_DIR of ours, account primary', async () => {
+      const view = await service.create({ cwd: project, mode: 'new', ...size });
+      expect(claude.launches.at(-1)!.configDir).toBeUndefined();
+      expect(view.accountId).toBe('primary');
+      await expectAppError(() => service.create({ cwd: project, mode: 'new', accountId: EXTRA, ...size }), 'ACCOUNT_001');
+    });
+
+    it('the primary active: nothing new reaches the launch', async () => {
+      const view = await build({ accounts }).create({ cwd: project, mode: 'new', ...size });
+      expect(claude.launches.at(-1)!.configDir).toBeUndefined();
+      expect(view.accountId).toBe('primary');
+      expect(existsSync(accountsDir)).toBe(false);
+    });
+
+    it('an extra account active: its folder as CLAUDE_CONFIG_DIR, synced first, and saved with the terminal', async () => {
+      activate(EXTRA);
+      const view = await build({ accounts }).create({ cwd: project, mode: 'new', ...size });
+      const dir = join(accountsDir, EXTRA);
+      expect(claude.launches.at(-1)!.configDir).toBe(dir);
+      expect(readFileSync(join(dir, 'settings.json'), 'utf8')).toBe('{"theme":"dark"}');
+      expect(JSON.parse(readFileSync(join(dir, '.claude.json'), 'utf8'))).toEqual({ mcpServers: { notion: { type: 'http' } } });
+      expect(view.accountId).toBe(EXTRA);
+      expect(stateStore.read().terminals[0]?.accountId).toBe(EXTRA);
+    });
+
+    it('a chosen account wins over the active one; one that does not exist is ACCOUNT_001 and nothing starts', async () => {
+      activate(EXTRA);
+      const terminals = build({ accounts });
+      const view = await terminals.create({ cwd: project, mode: 'new', accountId: 'primary', ...size });
+      expect(claude.launches.at(-1)!.configDir).toBeUndefined();
+      expect(view.accountId).toBe('primary');
+      const launched = claude.launches.length;
+      await expectAppError(() => terminals.create({ cwd: project, mode: 'new', accountId: GONE, ...size }), 'ACCOUNT_001');
+      expect(claude.launches.length).toBe(launched);
+    });
+
+    it('reopen keeps the account; with another accountId it continues the same conversation there and saves it', async () => {
+      const terminals = build({ accounts });
+      const view = await terminals.create({ cwd: project, mode: 'resume', sessionId: SAVED, ...size });
+      await manager.kill(view.id);
+
+      const same = await terminals.reopen(view.id, size);
+      expect(claude.launches.at(-1)!.configDir).toBeUndefined();
+      expect(same.accountId).toBe('primary');
+      await manager.kill(view.id);
+
+      const moved = await terminals.reopen(view.id, { ...size }, { accountId: EXTRA });
+      expect(claude.launches.at(-1)).toMatchObject({ configDir: join(accountsDir, EXTRA), args: expect.arrayContaining(['--resume', SAVED]) });
+      expect(moved.accountId).toBe(EXTRA);
+      expect(stateStore.read().terminals[0]?.accountId).toBe(EXTRA);
+      await manager.kill(view.id);
+
+      await terminals.reopen(view.id, size);
+      expect(claude.launches.at(-1)!.configDir).toBe(join(accountsDir, EXTRA));
+    });
+
+    it('a terminal of an account that was removed reads and reopens as the primary', async () => {
+      const terminals = build({ accounts });
+      const view = await terminals.create({ cwd: project, mode: 'new', accountId: EXTRA, ...size });
+      await manager.kill(view.id);
+      stateStore.update((draft) => void (draft.accounts = []));
+      expect(terminals.get(view.id)?.accountId).toBe('primary');
+      await terminals.reopen(view.id, size);
+      expect(claude.launches.at(-1)!.configDir).toBeUndefined();
+    });
+
+    it('the trust of a launch with nobody at the PTY is read in the account it runs in', async () => {
+      activate(EXTRA);
+      const asked: (string | undefined)[] = [];
+      const trusted = (_cwd: string, configDir: string | undefined) => {
+        asked.push(configDir);
+        return Promise.resolve(configDir === undefined);
+      };
+      const terminals = build({ accounts, isTrustedFolder: trusted, importSettingsPath: join(base, 'data', 'claude-import-settings.json') });
+      await expectAppError(() => terminals.create({ cwd: project, mode: 'new', remoteControl: true, ...size }), 'TERMINAL_007');
+      await expectAppError(
+        () => terminals.createImport({ importId: GONE, cwd: project, requestPath: join(base, 'r.json'), addDirs: [], ...size }),
+        'TERMINAL_007',
+      );
+      expect(asked).toEqual([join(accountsDir, EXTRA), join(accountsDir, EXTRA)]);
+      const view = await terminals.create({ cwd: project, mode: 'new', remoteControl: true, accountId: 'primary', ...size });
+      expect(view).toMatchObject({ remoteControl: true, accountId: 'primary' });
     });
   });
 

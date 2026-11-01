@@ -111,19 +111,35 @@ export type SpawnOptions = {
   cols: number;
   rows: number;
   args?: string[];
+  /**
+   * An extra Claude account's folder (ADR 0027) — always from `AccountDirs`, never from a request. Omitted for
+   * the primary, which keeps the backend's own CLAUDE_CONFIG_DIR (or none).
+   */
+  configDir?: string;
 };
 
 export type SpawnPty = (options: SpawnOptions) => pty.IPty;
 
+/** The child's environment, with an extra account's CLAUDE_CONFIG_DIR in place of the inherited one. */
+export function launchEnv(configDir: string | undefined, env: NodeJS.ProcessEnv = process.env): Record<string, string> {
+  const clean = childEnv(env);
+  if (configDir !== undefined) {
+    // Windows names are case-insensitive: drop any spelling of it before setting ours.
+    for (const name of Object.keys(clean)) if (name.toUpperCase() === 'CLAUDE_CONFIG_DIR') delete clean[name];
+    clean.CLAUDE_CONFIG_DIR = configDir;
+  }
+  return { ...clean, TERM: 'xterm-256color', COLORTERM: 'truecolor' };
+}
+
 /** Spawns the resolved `claude` executable — fixed binary, fixed args, clean environment, never a shell. */
 export function claudeSpawner(claudePath: string): SpawnPty {
-  return ({ cwd, cols, rows, args = [] }) =>
+  return ({ cwd, cols, rows, args = [], configDir }) =>
     pty.spawn(claudePath, args, {
       name: 'xterm-256color',
       cwd,
       cols,
       rows,
-      env: { ...childEnv(), TERM: 'xterm-256color', COLORTERM: 'truecolor' },
+      env: launchEnv(configDir),
     });
 }
 

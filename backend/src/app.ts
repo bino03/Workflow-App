@@ -37,6 +37,8 @@ import { TailscaleCli } from './preview/tailscale.js';
 import { ProjectsService } from './projects/projectsService.js';
 import { ClaudeSessions } from './sessions/claudeSessions.js';
 import { isTrustedFolder } from './sessions/claudeTrust.js';
+import { AccountDirs } from './accounts/accountDirs.js';
+import { AccountsService } from './accounts/accountsService.js';
 import { sessionsRoutes } from './sessions/sessions.routes.js';
 import type { StateStore } from './state/stateStore.js';
 import { terminalsGateway } from './terminals/terminals.gateway.js';
@@ -156,6 +158,7 @@ export async function buildApp({
     app.addHook('onClose', async () => previewService.shutdown());
   }
 
+  const accountsService = new AccountsService({ stateStore, dirs: AccountDirs.fromConfig(config) });
   const terminalsService = new TerminalsService({
     stateStore,
     terminalManager,
@@ -168,7 +171,9 @@ export async function buildApp({
     // A guided session's hidden terminal: the status line, blocking hooks and two narrow permissions (ADR 0020);
     // the hook also allows alone in auto mode or inside a new declared destination, never in the Workflow (ADR 0021).
     guidedSettingsPath: writeGuidedFiles(config.dataDir, config.terminals.allowedRoots, config.workflowPath),
-    isTrustedFolder: (cwd) => isTrustedFolder(cwd, config.terminals.claudeConfigDir),
+    // The trust is per account: an extra one reads its own .claude.json (ADR 0027).
+    isTrustedFolder: (cwd, configDir) => isTrustedFolder(cwd, configDir ?? config.terminals.claudeConfigDir),
+    accounts: accountsService,
     previews: previewService,
   });
   await app.register(terminalsRoutes, { terminalsService });

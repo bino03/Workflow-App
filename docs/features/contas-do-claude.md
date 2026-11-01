@@ -5,7 +5,7 @@
 | **Estado** | 🚧 Em curso |
 | **Criada** | 2026-11-01 |
 | **Última sessão** | 2026-11-01 |
-| **Passos** | 3 / 10 concluídos |
+| **Passos** | 4 / 10 concluídos |
 
 > Escrita para uma sessão que **não viu a conversa que a originou**. Se algo só faz sentido com contexto
 > externo, falta escrevê-lo.
@@ -254,7 +254,7 @@ Ordem obrigatória. Tiers: `opus` (desenho, não delegar) · `sonnet` (implement
     verdadeira no lugar de uma ligação aborta com `ACCOUNT_005` e não apaga nada, e que um id que não é UUID nunca
     entra num caminho.
 
-- [ ] **4. Lançar o `claude` na pasta da conta**
+- [x] **4. Lançar o `claude` na pasta da conta**
   - Ficheiro: `backend/src/terminals/spawnClaude.ts` (`SpawnOptions.configDir`), `terminals/terminalManager.ts:112`,
     `terminals/terminalsService.ts` (`create`, `createImport`, `createGuided`, `reopen`, `spawn` e `assertTrusted` com o
     `.claude.json` da conta), `app.ts:171`, testes `spawnClaude.test.ts` e `terminals.routes.test.ts`
@@ -362,8 +362,19 @@ Ordem obrigatória. Tiers: `opus` (desenho, não delegar) · `sonnet` (implement
   - Um `.claude.json` da conta ilegível nunca é reescrito (`ACCOUNT_005`), porque guarda o login.
   - `syncMcpServers` só escreve quando a chave muda.
 - Testes: `test/accountDirs.test.ts` 11/11. Backend 480/481: a única falha é intermitente e anterior a isto (`guidedHook.test.ts`), e passa 15/15 isolado.
+**Passo 4 feito a 2026-11-01**:
+- O que mudou:
+  - `accounts/accountsService.ts` (ainda mínimo): `resolve`, que lê uma conta guardada que já não existe como `primary`; `activeAccountId`; `require`, que dá `ACCOUNT_001` a uma conta pedida que não existe; e `prepareLaunch`.
+  - O `TerminalsService` escolhe a conta de cada `claude`. `create` usa a ativa ou o `accountId` do pedido; as importações e as guiadas usam a ativa; `reopen` usa a do terminal ou o `accountId` do pedido, e grava-a.
+  - A confiança lê-se no `.claude.json` da conta.
+  - `SpawnOptions.configDir` e `launchEnv()` substituem o `CLAUDE_CONFIG_DIR` herdado, em qualquer capitalização. A principal fica igual a hoje.
+  - `POST /api/terminals` e `/reopen` aceitam `accountId`, e o `TerminalView` traz `accountId`.
+- Desvio: o `prepareForLaunch` passou a **recriar a pasta** de uma conta que a tenha perdido (antes dava `ACCOUNT_005`).
+- Testes:
+  - Backend 491/491, em duas corridas seguidas.
+  - Numa instância de teste, por HTTP: o `claude` de um terminal da conta extra escreveu `backups/` e `sessions/` na pasta dessa conta. Uma conta inexistente dá 404 `ACCOUNT_001`; um id inválido dá 400.
 **Em curso:** —
-**Próxima ação concreta:** passo 4 (lançar o `claude` na pasta da conta), em modo NORMAL (confirmar com o dono entre passos).
+**Próxima ação concreta:** passo 5 (quota por conta: `usage/usageFiles.ts`), em modo NORMAL (confirmar com o dono entre passos).
 **Desvios ao plano:** —
 **O que uma sessão nova precisa de saber:**
 - **Cada conta nova mostra os diálogos de primeira vez** do Claude Code (no spike: "Claude in Chrome extension

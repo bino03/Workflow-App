@@ -105,6 +105,12 @@ ação revalida projeto, conversa e terminal. Para o Telegram e para os logs só
 nunca o conteúdo de um terminal nem o token (o URL da Bot API contém-no: os erros são reescritos sem ele;
 `TELEGRAM_*` fora do ambiente do `claude`). Reforço opcional do lado da Anthropic: *Require trusted devices* no claude.ai.
 
+**Contas do Claude** ([[adr/0027-varias-contas-do-claude]]): um `claude` de uma conta extra recebe o mesmo ambiente
+limpo, com uma única diferença: `CLAUDE_CONFIG_DIR=<DATA_DIR>/accounts/<id>`. O caminho deriva de um id validado
+como UUID e de uma conta que existe no `state.json`; um pedido só escolhe **qual** conta (`accountId`), nunca a pasta.
+Os tokens de cada conta ficam no `.credentials.json` da sua pasta e nenhuma rota os lê. Remover uma conta desfaz
+primeiro as junctions para a principal e só então apaga a pasta (`accounts/accountDirs.ts`).
+
 **As sessões guiadas** ([[adr/0020-sessoes-guiadas]]) acrescentam três superfícies, cada uma estreita:
 - **Uma rota REST que escreve num PTY** (`POST /api/guided/:id/message`). Sessão obrigatória como as outras (o
   cookie `SameSite=Strict` não segue num pedido de outro site); só para terminais de sessões guiadas, só no estado

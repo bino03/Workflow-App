@@ -80,19 +80,19 @@ export class AccountDirs {
 
   /** A new extra account: its folder, the links to the primary, and the synced files. */
   async create(id: string): Promise<void> {
-    const dir = this.extraDir(id);
-    await this.guard(() => mkdir(dir, { recursive: true }));
     await this.prepareForLaunch(id);
   }
 
   /**
-   * Before every launch in an extra account: repairs a missing link, copies the synced files and the user's
-   * MCP servers from the primary. Never touches anything else in the account's `.claude.json` (its login,
-   * the trusted folders).
+   * Before every launch in an extra account: recreates a missing folder (its claude then asks for the login
+   * again instead of not starting), repairs a missing link, copies the synced files and the user's MCP servers
+   * from the primary. Never touches anything else in the account's `.claude.json` (its login, the trusted
+   * folders).
    */
   async prepareForLaunch(id: string): Promise<void> {
     const dir = this.extraDir(id);
     await this.guard(async () => {
+      await mkdir(dir, { recursive: true });
       for (const name of SHARED_DIRS) await this.ensureLink(name, dir);
       for (const name of SYNCED_FILES) await this.syncFile(name, dir);
       await this.syncMcpServers(id);

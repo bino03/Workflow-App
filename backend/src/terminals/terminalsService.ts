@@ -3,7 +3,7 @@ import { AppError } from '../common/errors.js';
 import type { TerminalPreview } from '../preview/previewService.js';
 import { resolveAllowedPath } from '../folders/cwdPolicy.js';
 import type { ClaudeSessions } from '../sessions/claudeSessions.js';
-import type { AppState, SavedTerminal } from '../state/state.schema.js';
+import type { AccountId, AppState, SavedTerminal } from '../state/state.schema.js';
 import type { StateStore } from '../state/stateStore.js';
 import { type ClaudeArgsOptions, type ClaudeLaunch, GUIDED_COMMANDS, type GuidedPurpose, claudeArgs } from './claudeArgs.js';
 import { bracketedPaste } from './paste.js';
@@ -32,6 +32,8 @@ export type TerminalView = {
   /** Started by a guided session (ADR 0020); hidden like an import's until revealed. */
   guidedId: string | null;
   hidden: boolean;
+  /** The Claude account it runs in (ADR 0027). */
+  accountId: AccountId;
 };
 
 /** A hidden terminal that runs `/import <requestPath>` in the Workflow (ADR 0019). Only the imports module calls it. */
@@ -70,6 +72,16 @@ export type CreateTerminal = {
   rows: number;
   /** Only the Telegram bot sets it (ADR 0017); the REST body has no such field. */
   remoteControl?: boolean;
+  /** Omitted → the active account (ADR 0027). Must exist: ACCOUNT_001. */
+  accountId?: AccountId;
+};
+
+/** What the terminals need from the accounts (accounts/accountsService.ts). */
+export type TerminalAccounts = {
+  resolve(id: AccountId): AccountId;
+  activeAccountId(): AccountId;
+  require(id: AccountId): AccountId;
+  prepareLaunch(id: AccountId): Promise<string | undefined>;
 };
 
 export type TerminalsServiceDeps = {
@@ -84,10 +96,13 @@ export type TerminalsServiceDeps = {
   /** DATA_DIR/claude-guided-settings.json (status line + blocking hooks, ADR 0020). Omitted → guided sessions are refused. */
   guidedSettingsPath?: string;
   /**
-   * Whether Claude Code already trusts a folder (`isTrustedFolder`, sessions/claudeTrust.ts). Only Remote
-   * Control launches ask: nobody is at the PTY to answer the trust dialog. Omitted → never trusted.
+   * Whether Claude Code already trusts a folder (`isTrustedFolder`, sessions/claudeTrust.ts), in the account
+   * whose CLAUDE_CONFIG_DIR is given (`undefined` = the primary). Only launches with nobody at the PTY ask.
+   * Omitted → never trusted.
    */
-  isTrustedFolder?: (cwd: string) => Promise<boolean>;
+  isTrustedFolder?: (cwd: string, configDir: string | undefined) => Promise<boolean>;
+  /** The Claude accounts (ADR 0027). Omitted → every terminal runs in the primary, as before. */
+  accounts?: TerminalAccounts;
   /** The previews (ADR 0018); omitted when TAILSCALE_BIN is not set — every terminal shows `preview: null`. */
   previews?: { get(terminalId: string): TerminalPreview | undefined };
   now?: () => Date;
@@ -127,10 +142,12 @@ export class TerminalsService {
   async create(request: CreateTerminal): Promise<TerminalView> {
     const cwd = resolveAllowedPath(request.cwd, this.deps.allowedRoots);
     const remoteControl = request.remoteControl === true;
-    if (remoteControl) await this.assertTrusted(cwd);
+    const accountId = request.accountId === undefined ? this.activeAccount() : this.requireAccount(request.accountId);
+    const configDir = await this.deps.accounts?.prepareLaunch(accountId);
+    if (remoteControl) await this.assertTrusted(cwd, configDir);
     const launch = await this.launchFor(cwd, request);
     const id = randomUUID();
-    this.spawn(id, cwd, launch, request, { remoteControl: remoteControl ? await this.remoteControlFor(cwd, launch) : undefined });
+    this.spawn(id, cwd, launch, request, { remoteControl: remoteControl ? await this.remoteControlFor(cwd, launch) : undefined, configDir });
 
     const at = this.now().toISOString();
     const saved: SavedTerminal = {
@@ -144,7 +161,7 @@ export class TerminalsService {
       remoteControl,
       importId: null,
       guidedId: null,
-      accountId: 'primary',
+      accountId,
       hidden: false,
       addDirs: [],
     };
@@ -161,10 +178,12 @@ export class TerminalsService {
     const settingsPath = this.deps.importSettingsPath;
     if (settingsPath === undefined) throw new Error('imports need importSettingsPath');
     const cwd = resolveAllowedPath(request.cwd, this.deps.allowedRoots);
-    await this.assertTrusted(cwd);
+    const accountId = this.activeAccount();
+    const configDir = await this.deps.accounts?.prepareLaunch(accountId);
+    await this.assertTrusted(cwd, configDir);
     const launch: ClaudeLaunch = { kind: 'import', sessionId: randomUUID(), requestPath: request.requestPath };
     const id = randomUUID();
-    this.spawn(id, cwd, launch, request, { settingsPath, addDirs: request.addDirs });
+    this.spawn(id, cwd, launch, request, { settingsPath, addDirs: request.addDirs, configDir });
 
     const at = this.now().toISOString();
     const saved: SavedTerminal = {
@@ -178,7 +197,7 @@ export class TerminalsService {
       remoteControl: false,
       importId: request.importId,
       guidedId: null,
-      accountId: 'primary',
+      accountId,
       hidden: true,
       addDirs: request.addDirs,
     };
@@ -196,11 +215,13 @@ export class TerminalsService {
     const settingsPath = this.deps.guidedSettingsPath;
     if (settingsPath === undefined) throw new Error('guided sessions need guidedSettingsPath');
     const cwd = resolveAllowedPath(request.cwd, this.deps.allowedRoots);
-    await this.assertTrusted(cwd);
+    const accountId = this.activeAccount();
+    const configDir = await this.deps.accounts?.prepareLaunch(accountId);
+    await this.assertTrusted(cwd, configDir);
     if (this.sessionsInUse().has(request.sessionId)) throw new AppError('TERMINAL_003');
     const launch: ClaudeLaunch = { kind: 'guided', sessionId: request.sessionId, purpose: request.purpose, inputPath: request.inputPath };
     const id = randomUUID();
-    this.spawn(id, cwd, launch, request, { settingsPath, addDirs: request.addDirs, permissionMode: 'default' });
+    this.spawn(id, cwd, launch, request, { settingsPath, addDirs: request.addDirs, permissionMode: 'default', configDir });
 
     const at = this.now().toISOString();
     const saved: SavedTerminal = {
@@ -214,7 +235,7 @@ export class TerminalsService {
       remoteControl: false,
       importId: null,
       guidedId: request.guidedId,
-      accountId: 'primary',
+      accountId,
       hidden: true,
       addDirs: request.addDirs,
     };
@@ -287,11 +308,13 @@ export class TerminalsService {
    * (`freshSession: true`, the UI says so).
    *
    * A terminal saved with Remote Control comes back with it; `remoteControl: true` turns it on (the bot).
+   * It comes back in its own account; `accountId` reopens it in another one ("Continuar noutra conta": the
+   * conversation is shared, ADR 0027) and is saved.
    */
   async reopen(
     id: string,
     size: { cols: number; rows: number },
-    options: { remoteControl?: boolean } = {},
+    options: { remoteControl?: boolean; accountId?: AccountId } = {},
   ): Promise<TerminalView & { freshSession: boolean }> {
     const saved = this.saved(id);
     if (!saved) throw new AppError('TERMINAL_001');
@@ -300,7 +323,9 @@ export class TerminalsService {
     // ALLOWED_ROOTS may have changed since the terminal was opened.
     const cwd = resolveAllowedPath(saved.cwd, this.deps.allowedRoots);
     const remoteControl = options.remoteControl ?? saved.remoteControl;
-    if (remoteControl) await this.assertTrusted(cwd);
+    const accountId = options.accountId === undefined ? this.resolveAccount(saved.accountId) : this.requireAccount(options.accountId);
+    const configDir = await this.deps.accounts?.prepareLaunch(accountId);
+    if (remoteControl) await this.assertTrusted(cwd, configDir);
     const freshSession = !this.deps.sessions.hasSession(cwd, saved.claudeSessionId);
     const launch: ClaudeLaunch = { kind: freshSession ? 'new' : 'resume', sessionId: saved.claudeSessionId };
     const remote = remoteControl ? await this.remoteControlFor(cwd, launch) : undefined;
@@ -313,12 +338,12 @@ export class TerminalsService {
         : saved.guidedId !== null
           ? { settingsPath: this.deps.guidedSettingsPath, addDirs: saved.addDirs, permissionMode: 'default' }
           : {};
-    this.spawn(id, cwd, launch, size, { remoteControl: remote, ...hiddenLaunch });
+    this.spawn(id, cwd, launch, size, { remoteControl: remote, ...hiddenLaunch, configDir });
 
     const at = this.now().toISOString();
     this.deps.stateStore.update((draft) => {
       const terminal = draft.terminals.find((t) => t.id === id);
-      if (terminal) Object.assign(terminal, { cwd, remoteControl, lastOpenedAt: at, updatedAt: at });
+      if (terminal) Object.assign(terminal, { cwd, remoteControl, accountId, lastOpenedAt: at, updatedAt: at });
       if (saved.importId === null && saved.guidedId === null) touchFolder(draft, cwd, at);
     });
     return { ...this.view(this.saved(id)!), freshSession };
@@ -379,9 +404,23 @@ export class TerminalsService {
     return { kind: 'resume', sessionId };
   }
 
-  private async assertTrusted(cwd: string): Promise<void> {
-    const trusted = (await this.deps.isTrustedFolder?.(cwd)) ?? false;
+  private async assertTrusted(cwd: string, configDir: string | undefined): Promise<void> {
+    const trusted = (await this.deps.isTrustedFolder?.(cwd, configDir)) ?? false;
     if (!trusted) throw new AppError('TERMINAL_007');
+  }
+
+  private activeAccount(): AccountId {
+    return this.deps.accounts?.activeAccountId() ?? 'primary';
+  }
+
+  private resolveAccount(id: AccountId): AccountId {
+    return this.deps.accounts?.resolve(id) ?? 'primary';
+  }
+
+  private requireAccount(id: AccountId): AccountId {
+    if (this.deps.accounts) return this.deps.accounts.require(id);
+    if (id !== 'primary') throw new AppError('ACCOUNT_001');
+    return id;
   }
 
   /** A new conversation gets Claude Code's automatic name (it follows the first prompt); a resumed one, "project · title". */
@@ -397,11 +436,17 @@ export class TerminalsService {
     cwd: string,
     launch: ClaudeLaunch,
     size: { cols: number; rows: number },
-    { remoteControl, settingsPath = this.deps.settingsPath, addDirs, permissionMode }: { remoteControl?: { name?: string } } & ClaudeArgsOptions = {},
+    {
+      remoteControl,
+      settingsPath = this.deps.settingsPath,
+      addDirs,
+      permissionMode,
+      configDir,
+    }: { remoteControl?: { name?: string }; configDir?: string } & ClaudeArgsOptions = {},
   ): void {
     const args = claudeArgs(launch, { settingsPath, remoteControl, addDirs, permissionMode });
     try {
-      this.deps.terminalManager.create({ id, cwd, cols: size.cols, rows: size.rows, args });
+      this.deps.terminalManager.create({ id, cwd, cols: size.cols, rows: size.rows, args, configDir });
     } catch (error) {
       if (error instanceof TerminalLimitError) throw new AppError('TERMINAL_002');
       if (error instanceof ClaudeBinError) throw new AppError('TERMINAL_005');
@@ -429,6 +474,7 @@ export class TerminalsService {
       importId: saved.importId,
       guidedId: saved.guidedId,
       hidden: saved.hidden,
+      accountId: this.resolveAccount(saved.accountId),
     };
   }
 }

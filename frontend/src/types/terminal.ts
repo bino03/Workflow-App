@@ -23,6 +23,8 @@ export type TerminalView = {
   /** Lançado por uma importação (ADR 0019). Os escondidos não vêm no GET /terminals até serem revelados. */
   importId: string | null;
   hidden: boolean;
+  /** A conta do Claude em que corre (ADR 0027): 'primary' ou o UUID de uma conta extra. */
+  accountId: string;
 };
 
 // ── Pré-visualização (backend/src/preview/{previewService,listeningPorts}.ts) ─────────────

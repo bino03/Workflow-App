@@ -44,7 +44,9 @@ Nenhum destes ficheiros está no git. Num clone novo, criá-los a partir dos `.e
 **O que o processo `claude` recebe**: o ambiente do backend **sem** `ANTHROPIC_*`, `CLAUDE_CODE_*`,
 `CLAUDECODE`, todas as `CLAUDE_*`, todas as `TELEGRAM_*`, `TAILSCALE_*`, `PREVIEW_*` e sem as variáveis desta tabela (exceto um `CLAUDE_CONFIG_DIR` absoluto) — ver
 [[backend-conventions]] → regra 8 e Armadilhas. Nenhuma variável desta
-app é uma chave da Anthropic, e nunca deve ser.
+app é uma chave da Anthropic, e nunca deve ser. Um terminal de uma conta extra do Claude recebe o mesmo ambiente,
+mais `CLAUDE_CONFIG_DIR=<DATA_DIR>/accounts/<id>`, que substitui o herdado ([[adr/0027-varias-contas-do-claude]]).
+O `CLAUDE_CONFIG_DIR` desta tabela continua a ser a pasta da conta **principal**.
 
 ## Frontend — `frontend/.env`
 

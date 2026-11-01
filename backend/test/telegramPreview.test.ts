@@ -59,6 +59,7 @@ function setup({
     importId: null,
     guidedId: null,
     hidden: false,
+    accountId: 'primary',
   });
   const menus = new MenuStore<BotAction>();
   const actions = new BotActions({

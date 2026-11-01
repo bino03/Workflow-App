@@ -164,6 +164,12 @@ describe('AccountDirs', () => {
     await expectAppError(() => dirs.create('primary'), 'ACCOUNT_005');
   });
 
+  it('a launch in an account whose folder disappeared recreates it, logged out', async () => {
+    await dirs.prepareForLaunch(id);
+    expect((await lstat(join(dirs.dirOf(id), 'projects'))).isSymbolicLink()).toBe(true);
+    expect(await dirs.loginState(id)).toEqual({ loggedIn: false, email: null });
+  });
+
   it('removing an account that has no folder is a no-op', async () => {
     await expect(dirs.remove(randomUUID())).resolves.toBeUndefined();
   });

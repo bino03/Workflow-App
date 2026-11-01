@@ -2,7 +2,7 @@ import { mkdtempSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
-import { ClaudeBinError, childEnv, resolveClaudeBin } from '../src/terminals/spawnClaude.js';
+import { ClaudeBinError, childEnv, launchEnv, resolveClaudeBin } from '../src/terminals/spawnClaude.js';
 
 describe('childEnv', () => {
   it('drops Anthropic credentials, Claude Code session variables and the app config', () => {
@@ -45,6 +45,28 @@ describe('childEnv', () => {
     for (const value of ['', '   ', '.claude', 'relative\\dir']) {
       expect(childEnv({ PATH: 'C:\\bin', CLAUDE_CONFIG_DIR: value })).toEqual({ PATH: 'C:\\bin' });
     }
+  });
+});
+
+describe('launchEnv (ADR 0027)', () => {
+  const env = { PATH: 'C:\\bin', claude_config_dir: 'C:\\Users\\me\\.claude-main', ANTHROPIC_API_KEY: 'sk-x' };
+
+  it('the primary keeps the inherited CLAUDE_CONFIG_DIR, and still never gets an API key', () => {
+    expect(launchEnv(undefined, env)).toEqual({
+      PATH: 'C:\\bin',
+      claude_config_dir: 'C:\\Users\\me\\.claude-main',
+      TERM: 'xterm-256color',
+      COLORTERM: 'truecolor',
+    });
+  });
+
+  it("an extra account replaces it — whatever its case — with the account's folder", () => {
+    expect(launchEnv('D:\\data\\accounts\\x', env)).toEqual({
+      PATH: 'C:\\bin',
+      CLAUDE_CONFIG_DIR: 'D:\\data\\accounts\\x',
+      TERM: 'xterm-256color',
+      COLORTERM: 'truecolor',
+    });
   });
 });
 
