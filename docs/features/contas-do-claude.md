@@ -5,7 +5,7 @@
 | **Estado** | 🚧 Em curso |
 | **Criada** | 2026-11-01 |
 | **Última sessão** | 2026-11-01 |
-| **Passos** | 2 / 10 concluídos |
+| **Passos** | 3 / 10 concluídos |
 
 > Escrita para uma sessão que **não viu a conversa que a originou**. Se algo só faz sentido com contexto
 > externo, falta escrevê-lo.
@@ -243,7 +243,7 @@ Ordem obrigatória. Tiers: `opus` (desenho, não delegar) · `sonnet` (implement
     `primaryAccountLabel: null` e `accountId: 'primary'` em todos os terminais, sem migração. Testes a passar, e
     [[../database]] atualizado.
 
-- [ ] **3. Pastas das contas: criar, sincronizar, ler o login, remover com segurança**
+- [x] **3. Pastas das contas: criar, sincronizar, ler o login, remover com segurança**
   - Ficheiro: `backend/src/accounts/accountDirs.ts` (novo), `backend/test/accountDirs.test.ts`
   - Skill: — (ler [[../backend-conventions]])
   - Tier: `opus` (apagar pastas com junctions: um erro apaga as conversas da principal)
@@ -353,8 +353,17 @@ Ordem obrigatória. Tiers: `opus` (desenho, não delegar) · `sonnet` (implement
 - Até ao passo 4, o `terminalsService` cria todos os terminais com `accountId: 'primary'`. Ao fechar, o terminal leva a sua conta para o histórico.
 - Testes: backend 470/470.
 
+**Passo 3 feito a 2026-11-01**: `backend/src/accounts/accountDirs.ts` (classe `AccountDirs`, `fromConfig`).
+- Interface: `dirOf`, `configDirFor` (`undefined` para a principal), `claudeJsonOf`, `create`, `prepareForLaunch`, `loginState` e `remove`.
+- Os códigos `ACCOUNT_001..005` já estão em `common/errors.ts` e espelhados em `errorMessages.ts` (adiantados do passo 6, porque o 3 usa o `ACCOUNT_005`).
+- Desvios ao desenho da §4.1:
+  - `remove` também procura links **escondidos mais fundo** na pasta. Se encontrar algum, aborta antes de apagar.
+  - A procura usa `lstat` por entrada, não o tipo do `Dirent`.
+  - Um `.claude.json` da conta ilegível nunca é reescrito (`ACCOUNT_005`), porque guarda o login.
+  - `syncMcpServers` só escreve quando a chave muda.
+- Testes: `test/accountDirs.test.ts` 11/11. Backend 480/481: a única falha é intermitente e anterior a isto (`guidedHook.test.ts`), e passa 15/15 isolado.
 **Em curso:** —
-**Próxima ação concreta:** passo 3 (`accounts/accountDirs.ts`, tier opus), em modo NORMAL (confirmar com o dono entre passos).
+**Próxima ação concreta:** passo 4 (lançar o `claude` na pasta da conta), em modo NORMAL (confirmar com o dono entre passos).
 **Desvios ao plano:** —
 **O que uma sessão nova precisa de saber:**
 - **Cada conta nova mostra os diálogos de primeira vez** do Claude Code (no spike: "Claude in Chrome extension

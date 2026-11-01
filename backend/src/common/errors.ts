@@ -71,6 +71,12 @@ export const ErrorCode = {
   UPWORK_005: { status: 409, message: 'The application has no session any more (archived)' },
   UPWORK_006: { status: 404, message: 'Attachment not found' },
   UPWORK_007: { status: 409, message: 'No screenshots to prepare (none listed, none in the portfolio, or no PORTFOLIO_PATH)' },
+  // ACCOUNT (ADR 0027)
+  ACCOUNT_001: { status: 404, message: 'Account not found' },
+  ACCOUNT_002: { status: 409, message: 'Account limit reached (5 in total)' },
+  ACCOUNT_003: { status: 409, message: 'The primary account cannot be removed' },
+  ACCOUNT_004: { status: 409, message: 'The account has running terminals' },
+  ACCOUNT_005: { status: 500, message: 'Could not prepare or clean the account folder; nothing was deleted' },
 } as const satisfies Record<string, { status: number; message: string }>;
 
 export type ErrorCode = keyof typeof ErrorCode;

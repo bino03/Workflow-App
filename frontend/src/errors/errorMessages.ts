@@ -65,6 +65,11 @@ export const ERROR_MESSAGES: Record<string, string> = {
   UPWORK_005: 'A sessão desta candidatura já não existe (arquivada) — não dá para continuar a conversa.',
   UPWORK_006: 'O print não está no portfólio (ou PORTFOLIO_PATH não está definido).',
   UPWORK_007: 'Não há prints para preparar: nenhum está no portfólio, ou falta o PORTFOLIO_PATH no backend.',
+  ACCOUNT_001: 'Essa conta já não existe.',
+  ACCOUNT_002: 'Já tens 5 contas — remove uma antes de acrescentar outra.',
+  ACCOUNT_003: 'A conta principal não se remove.',
+  ACCOUNT_004: 'Esta conta tem terminais a correr — fecha-os ou para-os primeiro.',
+  ACCOUNT_005: 'Não foi possível preparar (ou limpar) a pasta da conta. Nada foi apagado.',
 
   DEFAULT: 'Ocorreu um erro. Tenta outra vez.',
 };
