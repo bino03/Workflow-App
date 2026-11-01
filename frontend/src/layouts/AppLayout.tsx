@@ -4,7 +4,9 @@ import { Dropdown, type MenuProps } from 'antd';
 import { Link, NavLink, Outlet, useNavigate } from 'react-router';
 import { Wordmark } from '@/components/common/Wordmark';
 import { SettingsDrawer } from '@/components/settings/SettingsDrawer';
+import { UsageLimitModal } from '@/components/usage/UsageLimitModal';
 import { KeybindingsProvider } from '@/contexts/KeybindingsContext';
+import { UsageProvider } from '@/contexts/UsageContext';
 import { useAuth } from '@/hooks/useAuth';
 import { useBackendHealth, type BackendHealth } from '@/hooks/useBackendHealth';
 import { useConfirm } from '@/hooks/useConfirm';
@@ -57,8 +59,11 @@ function NavigationShortcuts() {
 export function AppLayout() {
   return (
     <KeybindingsProvider>
-      <NavigationShortcuts />
-      <AppShell />
+      <UsageProvider>
+        <NavigationShortcuts />
+        <AppShell />
+        <UsageLimitModal />
+      </UsageProvider>
     </KeybindingsProvider>
   );
 }

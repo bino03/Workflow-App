@@ -107,6 +107,14 @@ headless) — quando a escolha é uma só, curta (2-5 linhas) e fácil de desfaz
 `disabled` até a resposta chegar. Largura `min(520px, 94vw)`. Com consequências (apagar, sobrescrever), não: aí é
 selecionar + confirmar, como no `ResumeSessionModal`.
 
+**Variante: aviso que só fecha com OK** (`components/usage/UsageLimitModal.tsx`, 2026-11-01, verificado em Chrome
+headless): para um aviso que não pode passar despercebido (o limite da quota). Usa `closable={false}`,
+`mask={{ closable: false }}` e `keyboard={false}`, ou seja, sem ✕, sem clicar fora e sem Esc. O rodapé é um único
+botão primário **OK**, que recebe o foco ao abrir (`afterOpenChange`). Largura 440, como as confirmações. O texto
+explica a consequência e o número vai numa caixa `state-wait-subtle` com borda `state-wait-border` e texto `warning`.
+Enquanto o modal anima a fechar, o conteúdo mostra o último aviso; sem isso, o título ficava vazio durante a animação.
+Nunca usar esta variante numa ação: é só para informar. Para escolher, usa-se `useConfirm()`.
+
 ## Drawer de revisão com diff (2026-10-25)
 
 `components/library/ImportReviewDrawer.tsx` — rever o que uma importação mudou antes de aceitar (verificado em

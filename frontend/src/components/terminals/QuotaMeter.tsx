@@ -1,3 +1,4 @@
+import { resetText } from '@/components/usage/usageLimits';
 import type { UsageView, UsageWindow } from '@/types/usage';
 
 type QuotaMeterProps = { usage: UsageView | null; now: number };
@@ -5,16 +6,6 @@ type QuotaMeterProps = { usage: UsageView | null; now: number };
 const WARN_PCT = 80;
 /** Mais velho do que isto, o valor passa a cinzento com "há X min" — sem atividade não há atualizações. */
 const STALE_MS = 10 * 60_000;
-const WEEKDAYS = ['domingo', 'segunda', 'terça', 'quarta', 'quinta', 'sexta', 'sábado'];
-
-const hhmm = (date: Date) => `${String(date.getHours()).padStart(2, '0')}:${String(date.getMinutes()).padStart(2, '0')}`;
-
-/** "repõe às 14:30" (hoje) · "repõe segunda, 09:00". */
-function resetText(resetsAt: string, now: number): string {
-  const date = new Date(resetsAt);
-  const today = new Date(now);
-  return date.toDateString() === today.toDateString() ? `repõe às ${hhmm(date)}` : `repõe ${WEEKDAYS[date.getDay()]}, ${hhmm(date)}`;
-}
 
 function ago(fetchedAt: string, now: number): string {
   const minutes = Math.max(1, Math.round((now - Date.parse(fetchedAt)) / 60_000));

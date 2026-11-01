@@ -44,6 +44,7 @@ isso há os outros:
 | Sessão (`useAuth`), guarda de rota | `frontend/src/contexts/AuthContext.tsx` · `hooks/useAuth.ts` · `components/PrivateRoute.tsx` · `services/authService.ts` |
 | Login | `frontend/src/pages/login/LoginPage.tsx` |
 | Confirmação (`useConfirm`) | `frontend/src/contexts/ConfirmDialogContext.tsx` · `hooks/useConfirm.ts` |
+| Quota partilhada (`useUsage`) e aviso de limite (90%/100% da janela de 5 h, 90% da semanal) | `frontend/src/contexts/UsageContext.tsx` (a única sondagem de `/api/usage`, no `AppLayout`) · `hooks/useUsage.ts` · `components/usage/{UsageLimitModal.tsx,usageLimits.ts}` · cenário `scripts/verify/usage-warning.mjs` |
 | Atalhos de teclado (ADR 0016) | backend: `keybindings/catalog.ts` (o único catálogo: ações, predefinidos, teclas permitidas, avisos) · `keybindings/keybindingsService.ts` · `keybindings/keybindings.routes.ts` · frontend: `keyboard/shortcuts.ts` (evento → bind → ação, sinónimos, rótulos) · `contexts/KeybindingsContext.tsx` (no `AppLayout`) · `hooks/{useKeybindings,useShortcuts}.ts` · `components/settings/{ShortcutsSection,ShortcutCapture}.tsx` · `services/keybindingService.ts` |
 | Instância HTTP, endereço do backend | `frontend/src/api.ts` · `config/apiBase.ts` |
 | Erros e toasts | `frontend/src/errors/` · `services/general/notificationService.tsx` |

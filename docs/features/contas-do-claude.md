@@ -194,7 +194,10 @@ type AccountsView = { activeAccountId: AccountId; accounts: AccountView[] };
 - **Ficheiros novos**: `services/accountService.ts`, `types/account.ts`, `contexts/AccountsContext.tsx` (o cabeçalho e
   a página dos terminais precisam da ativa; sondagem a 60 s como o `useUsage`), `components/accounts/AccountsDrawer.tsx`,
   `components/terminals/ContextSizeConfirm.tsx`. `useUsage` passa a ler a quota da conta ativa a partir do
-  `AccountsContext`, ou continua no `/api/usage` (que já devolve a ativa). Decide-se no passo 8.
+  `AccountsContext`, ou continua no `/api/usage` (que já devolve a ativa). Decide-se no passo 8. Desde 2026-11-01 a
+  quota já é **uma só sondagem** num `UsageProvider` (`contexts/UsageContext.tsx`, no `AppLayout`), lida pela barra
+  lateral e pelo aviso de limite (`components/usage/UsageLimitModal.tsx`). O botão "Mudar para <outra conta>" da
+  segunda fase entra nesse modal.
 - **Estado vazio**: com uma só conta, nada muda visualmente além do item "Conta: Principal" no menu. Os selos e o
   "Noutra conta" só aparecem com mais de uma conta.
 - **Visibilidade por role**: utilizador único (ADR 0003). Não se aplica.
