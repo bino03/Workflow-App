@@ -178,7 +178,7 @@ type AccountsView = { activeAccountId: AccountId; accounts: AccountView[] };
 - **Menu do cabeçalho** (`frontend/src/layouts/AppLayout.tsx`, `userMenu`): item novo **por cima de "Definições"**,
   `Conta: <label da ativa>` (ícone de pessoa/troca), que abre o drawer **Escolher conta**.
 - **Drawer "Escolher conta"** (`frontend/src/components/accounts/AccountsDrawer.tsx`, Small 540, como o
-  `SettingsDrawer`): uma linha por conta, com o nome, o email, um rádio "ativa", o `QuotaMeter` dessa conta (5 h e
+  `SettingsDrawer`, entretanto substituído pela página `/settings`): uma linha por conta, com o nome, o email, um rádio "ativa", o `QuotaMeter` dessa conta (5 h e
   semanal) e as ações (Renomear, Remover — confirmação perigosa —, **Iniciar sessão** quando `!loggedIn`). Ao fundo,
   **Adicionar conta**: nome → `POST /api/accounts` → `POST /api/accounts/:id/login` → abre o `AccountLoginModal`, uma
   janela por cima da página atual com o terminal. O texto diz "Faz o login no browser com esta conta; é só desta vez". O

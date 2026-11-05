@@ -25,7 +25,7 @@ function subscribe(onChange: () => void) {
   };
 }
 
-/** O modo de layout dos terminais, partilhado entre a página e o drawer Definições. */
+/** O modo de layout dos terminais, partilhado entre a página dos terminais e a das Definições. */
 export function useLayoutMode(): [LayoutMode, (mode: LayoutMode) => void] {
   const mode = useSyncExternalStore(subscribe, read, () => 'focus' as const);
   const setMode = useCallback((next: LayoutMode) => {

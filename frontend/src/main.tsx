@@ -11,6 +11,7 @@ import { AppLayout } from '@/layouts/AppLayout';
 import { LibraryPage } from '@/pages/LibraryPage';
 import { LoginPage } from '@/pages/login/LoginPage';
 import { NewProjectPage } from '@/pages/NewProjectPage';
+import { SettingsPage } from '@/pages/SettingsPage';
 import { TerminalsPage } from '@/pages/TerminalsPage';
 import { UpworkPage } from '@/pages/UpworkPage';
 import { NotificationBridge } from '@/services/general/NotificationBridge';
@@ -49,6 +50,7 @@ createRoot(document.getElementById('root')!).render(
                     <Route path="/library" element={<LibraryPage />} />
                     <Route path="/new-project" element={<NewProjectPage />} />
                     <Route path="/upwork" element={<UpworkPage />} />
+                    <Route path="/settings" element={<SettingsPage />} />
                   </Route>
                   <Route path="*" element={<Navigate to="/terminals" replace />} />
                 </Routes>

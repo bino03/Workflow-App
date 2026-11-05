@@ -4,7 +4,6 @@ import { Dropdown, type MenuProps } from 'antd';
 import { Link, NavLink, Outlet, useNavigate } from 'react-router';
 import { AccountsDrawer } from '@/components/accounts/AccountsDrawer';
 import { Wordmark } from '@/components/common/Wordmark';
-import { SettingsDrawer } from '@/components/settings/SettingsDrawer';
 import { UsageLimitModal } from '@/components/usage/UsageLimitModal';
 import { AccountsProvider } from '@/contexts/AccountsContext';
 import { KeybindingsProvider } from '@/contexts/KeybindingsContext';
@@ -78,7 +77,7 @@ function AppShell() {
   const confirm = useConfirm();
   const health = useBackendHealth();
   const { active } = useAccounts();
-  const [settingsOpen, setSettingsOpen] = useState(false);
+  const navigate = useNavigate();
   const [accountsOpen, setAccountsOpen] = useState(false);
 
   const userMenu: MenuProps['items'] = [
@@ -88,7 +87,7 @@ function AppShell() {
       label: active ? `Conta: ${active.label}` : 'Conta',
       onClick: () => setAccountsOpen(true),
     },
-    { key: 'settings', icon: <SettingOutlined />, label: 'Definições', onClick: () => setSettingsOpen(true) },
+    { key: 'settings', icon: <SettingOutlined />, label: 'Definições', onClick: () => void navigate('/settings') },
     { type: 'divider' },
     {
       key: 'logout',
@@ -157,7 +156,6 @@ function AppShell() {
         <div className="flex-1" />
         <span className="font-mono">v{__APP_VERSION__}</span>
       </footer>
-      <SettingsDrawer open={settingsOpen} onClose={() => setSettingsOpen(false)} />
       <AccountsDrawer open={accountsOpen} onClose={() => setAccountsOpen(false)} />
     </div>
   );

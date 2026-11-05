@@ -11,7 +11,7 @@ import * as passkeyService from '@/services/passkeyService';
 import type { PasskeySummary } from '@/types/auth';
 import { AddPasskeyForm } from './AddPasskeyForm';
 
-/** Secção "Passkeys" das Definições (ADR 0015): registar neste dispositivo, listar, revogar. */
+/** Secção "Passkeys" das Definições (ADR 0015): registar neste dispositivo, listar, revogar. O título é da página. */
 export function PasskeysSection() {
   const { logout } = useAuth();
   const confirm = useConfirm();
@@ -41,15 +41,13 @@ export function PasskeysSection() {
 
   return (
     <div className="flex flex-col gap-2.5">
-      <div className="flex items-center gap-2">
-        <span className="text-[13px] font-semibold">Passkeys</span>
-        <span className="flex-1" />
-        {supported && !adding && (
+      {supported && !adding && (
+        <div className="flex justify-end">
           <Button size="small" icon={<PlusOutlined />} onClick={() => setAdding(true)}>
             Adicionar
           </Button>
-        )}
-      </div>
+        </div>
+      )}
       <span className="text-[12.5px] text-text-3">
         Entrar sem password, com o Face ID, Touch ID ou Windows Hello. A password continua a funcionar.
       </span>

@@ -265,7 +265,7 @@ sessão acabada de abrir (sem pedidos) **não** tem `rate_limits` — tem `sessi
     (ver passo 13, abaixo).
   - `components/terminals/QuotaMeter.tsx` — só a lateral (barras 5 px), aviso "▲ Perto do limite" ≥ 80 %.
     A variante do cabeçalho (96 px, só no modo Grelha) foi removida em 2026-10-20 — duplicava a lateral.
-  - `components/settings/SettingsDrawer.tsx` (540) — aberto do menu de utilizador no `AppLayout`.
+  - `components/settings/SettingsDrawer.tsx` (540) — aberto do menu de utilizador no `AppLayout`. (Histórico: a 2026-11-05 passou a página `/settings`, ver [[../code-map]].)
   - `services/{terminalService,sessionService,folderService,usageService}.ts`, `types/{terminal,session,folder,usage}.ts`.
 - **Estado vazio**: sem terminais → no lugar do painel, "Nenhum terminal aberto" + botão **Novo terminal
   Alt+N**; a lateral mostra só o botão.

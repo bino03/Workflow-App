@@ -17,7 +17,7 @@ const GROUPS: { group: ShortcutGroup; title: string }[] = [
 const isDefault = (action: ShortcutView) =>
   action.binding === null ? action.default === null : sameBinding(action.binding, action.default);
 
-/** Secção "Atalhos" das Definições (ADR 0016): mudar, remover e repor as binds, guardadas no servidor. */
+/** Secção "Atalhos" das Definições (ADR 0016): mudar, remover e repor as binds, guardadas no servidor. O título é da página. */
 export function ShortcutsSection() {
   const { view, setBinding, resetBinding, resetAll } = useKeybindings();
   const confirm = useConfirm();
@@ -44,15 +44,13 @@ export function ShortcutsSection() {
 
   return (
     <div className="flex flex-col gap-2.5">
-      <div className="flex items-center gap-2">
-        <span className="text-[13px] font-semibold">Atalhos</span>
-        <span className="flex-1" />
-        {changed && (
+      {changed && (
+        <div className="flex justify-end">
           <Button size="small" onClick={confirmResetAll}>
             Repor predefinidos
           </Button>
-        )}
-      </div>
+        </div>
+      )}
       <span className="text-[12.5px] text-text-3">
         Alt com uma letra, um número ou pontuação; AltGr só com o ponto. Uma combinação com atalho deixa de chegar
         ao terminal.

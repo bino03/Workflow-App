@@ -119,7 +119,7 @@ tem a mecânica das teclas (sinónimos de código, rótulos) em `frontend/src/ke
 
 ### 4.4 Interface
 
-- **Onde vive**: Definições (`components/settings/SettingsDrawer.tsx`), nova secção "Atalhos" entre o
+- **Onde vive**: Definições (`components/settings/SettingsDrawer.tsx` na altura; desde 2026-11-05 é a página `/settings`, e a secção está em `ShortcutsSection.tsx`), nova secção "Atalhos" entre o
   layout e as passkeys.
 - **Como se chega lá**: ⚙ Definições na lateral (já existe).
 - **Ficheiros**: `components/settings/ShortcutsSection.tsx` (novo), `components/settings/ShortcutCapture.tsx`

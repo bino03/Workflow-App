@@ -51,7 +51,7 @@ Um `Dropdown` cujo gatilho é o cartão de perfil (avatar + nome + tag de role):
 
 | Item | Faz |
 |---|---|
-| Definições | ✅ Abre o drawer `SettingsDrawer` (Small, 540): **layout dos terminais** (foco dividido / grelha), **atalhos** ([[../../../features/atalhos-editaveis|atalhos-editaveis]]) e **passkeys**. Separado de "Terminar sessão" por um divisor |
+| Definições | ✅ Navega para a página `/settings` (`SettingsPage`, já não é um drawer): um índice fixo à esquerda e as secções seguidas — **layout dos terminais** (foco dividido / grelha), **atalhos** ([[../../../features/atalhos-editaveis|atalhos-editaveis]]) e **passkeys**. As secções saem de uma só lista (`settingsSections.ts`): cada definição nova traz o seu título e a sua entrada no índice. Sair de `/terminals` perde os separadores abertos e o foco/divisão em memória (como a Biblioteca); os terminais continuam a correr. Separado de "Terminar sessão" por um divisor |
 | Terminar sessão | `useConfirm()` (`title` "Terminar sessão?", `actionLabel` "Sair", `danger: false`) → logout |
 
 Sem "Minha conta" (um só utilizador, sem perfil) e sem idioma (só pt-PT). O gatilho é o avatar (26 px,

@@ -130,6 +130,7 @@ node scripts/verify/usage-warning.mjs                     # o aviso de limite da
 node scripts/verify/accounts.mjs                          # o drawer "Escolher conta" (adicionar, ativa, renomear, remover; instância nova)
 node scripts/verify/accounts-terminals.mjs                # a conta de cada terminal (selo, "Noutra conta", "Continuar noutra conta", Retomar; instância nova)
 node scripts/verify/terminal-menu.mjs                     # o menu de contexto dos terminais, no foco dividido e na grelha (instância nova)
+node scripts/verify/settings.mjs                          # a página de Definições: índice, salto, scroll, layout, captura de atalho (instância nova)
 node scripts/verify/instance.mjs stop --clean             # mata a árvore pelo PID da porta e apaga a pasta
 ```
 
@@ -138,6 +139,11 @@ node scripts/verify/instance.mjs stop --clean             # mata a árvore pelo 
   O sintoma é `Cannot read properties of null (reading 'focus')` no login, ou `fetch failed`. A 2026-11-05 aconteceu
   também **na mesma chamada**, três vezes em cerca de quinze arranques (pelo Bash e pelo PowerShell), sem nada no log e com
   causa por apurar. O `instance.mjs stop` a dizer só "port free", sem "stopped", confirma que já tinha morrido. Com este sintoma, repetir o cenário numa instância nova antes de procurar um bug na app.
+- **`settings.mjs`** — a página `/settings`: o item do menu navega (sem drawer), uma secção e uma entrada de índice por
+  definição, o clique salta e a marca (`aria-current`) acompanha o scroll do `<main>`, o layout fica no `localStorage`
+  e a captura de um atalho chega ao servidor (`Alt+Y`, reposto no fim). Espera que as secções desapareçam ao sair
+  (`pathname` sozinho não chega: a página ainda está montada) antes de voltar, e confirma que o `<main>`, partilhado por
+  todas as rotas, volta a 0.
 - **`accounts-terminals.mjs`** — a conta de cada terminal ([[features/contas-do-claude|contas-do-claude]] passo 9). Escreve à
   mão um login falso e as conversas, por isso nada chega ao modelo. Termina um terminal com Ctrl+C e reinicia a própria
   instância (`instance.mjs stop` + `start`) para ter um terminal parado. Confirma o `--resume` na linha de comando do
