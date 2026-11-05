@@ -85,6 +85,38 @@ try {
   await page.waitFor(`!${button('Gerar')}.disabled`);
   await click(button('Gerar'));
   check('Gerar opens the new application', await page.waitFor(`${list}?.querySelector('button[aria-current="true"]')?.innerText.includes('React dashboard')`, 20000));
+  // Esconder a lista: o botão, o atalho, a escolha guardada neste browser, à parte da lateral dos Terminais.
+  const listSel = 'section[aria-label="Lista de candidaturas"]';
+  const detailSel = '[aria-label="Candidatura aberta"]';
+  const width = (sel) => page.evaluate(`document.querySelector(${q(sel)})?.getBoundingClientRect().width ?? 0`);
+  const stored = (key) => page.evaluate(`localStorage.getItem(${q(key)})`);
+  const altGr = () => page.evaluate(`window.dispatchEvent(new KeyboardEvent('keydown', { code: 'Period', key: '.', ctrlKey: true, altKey: true, modifierAltGraph: true, bubbles: true }))`);
+  const detailBefore = await width(detailSel);
+  check('the list is 380 px wide', Math.round(await width(listSel)) === 380);
+  await click(`document.querySelector('button[aria-label="Esconder lista de candidaturas"]')`);
+  check('Esconder: only a thin bar is left', await page.waitFor(`!document.querySelector(${q(listSel)}) && !!document.querySelector('[data-upwork-list-collapsed]')`));
+  check('the bar is 44 px', Math.round(await width('[data-upwork-list-collapsed]')) === 44);
+  check('the open application got the room', (await width(detailSel)) > detailBefore + 300, `${detailBefore} -> ${await width(detailSel)}`);
+  check('the choice is saved under its own key', (await stored('workflow-app.upwork-list-collapsed')) === '1' && (await stored('workflow-app.sidebar-collapsed')) === null);
+  await page.navigate(`${instance.base}/upwork`);
+  check('it stays hidden after a reload', await page.waitFor(`!!document.querySelector('[data-upwork-list-collapsed]') && !document.querySelector(${q(listSel)})`));
+  await click(`document.querySelector('button[aria-label="Mostrar lista de candidaturas"]')`);
+  check('Mostrar: the list is back', await page.waitFor(`!!document.querySelector(${q(listSel)})`) && Math.round(await width(listSel)) === 380);
+  check('saved as visible', (await stored('workflow-app.upwork-list-collapsed')) === '0');
+  await altGr();
+  check('AltGr+. hides it', await page.waitFor(`!document.querySelector(${q(listSel)})`));
+  await altGr();
+  check('AltGr+. shows it again', await page.waitFor(`!!document.querySelector(${q(listSel)})`));
+  await click(button('Perfil', `document.querySelector('main')`));
+  await page.waitFor(`${drawerTitles} === 'Perfil'`);
+  await altGr();
+  await sleep(300);
+  check('with a drawer open the shortcut does nothing', await page.evaluate(`!!document.querySelector(${q(listSel)})`));
+  await page.key('Escape', 'Escape', 0, 27);
+  check('the drawer closes', await page.waitFor(`!document.querySelector('.ant-drawer-open')`));
+  await click(`${list}.querySelector('button')`);
+  check('opening an application does not hide the list', await page.evaluate(`!!document.querySelector(${q(listSel)})`));
+
   const app = (await page.api('GET', '/upwork/applications')).body[0];
   const gid = app.guidedId;
   const job = readFileSync(join(guidedDir(gid), 'job.md'), 'utf8');

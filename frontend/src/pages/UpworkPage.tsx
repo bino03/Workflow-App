@@ -1,14 +1,26 @@
 import { useCallback, useMemo, useState } from 'react';
 import { Alert, Button, Empty, Select, Spin } from 'antd';
-import { PlusOutlined, UserOutlined } from '@ant-design/icons';
+import { MenuFoldOutlined, MenuUnfoldOutlined, PlusOutlined, UserOutlined } from '@ant-design/icons';
 import { ApplicationDetail } from '@/components/upwork/ApplicationDetail';
 import { ApplicationList } from '@/components/upwork/ApplicationList';
 import { CreateProjectModal } from '@/components/upwork/CreateProjectModal';
 import { NewApplicationDrawer } from '@/components/upwork/NewApplicationDrawer';
 import { ProfileDrawer } from '@/components/upwork/ProfileDrawer';
 import { APPLICATION_STATUSES, STATUS_TAG } from '@/components/upwork/upworkFormat';
+import { useShortcuts } from '@/hooks/useShortcuts';
 import { useUpworkApplications } from '@/hooks/useUpworkApplications';
 import type { ApplicationStatus, ApplicationView } from '@/types/upwork';
+
+// À parte de workflow-app.sidebar-collapsed, a lateral dos Terminais: esconder uma não esconde a outra.
+const LIST_COLLAPSE_KEY = 'workflow-app.upwork-list-collapsed';
+
+function readListCollapsed(): boolean {
+  try {
+    return localStorage.getItem(LIST_COLLAPSE_KEY) === '1';
+  } catch {
+    return false;
+  }
+}
 
 const STATUS_OPTIONS = APPLICATION_STATUSES.map((status) => ({ value: status, label: STATUS_TAG[status].label }));
 
@@ -26,7 +38,27 @@ export function UpworkPage() {
   const [projectFor, setProjectFor] = useState<string | null>(null);
   /** Uma ação do menu sobre a candidatura aberta: o detalhe relê-a (guarda a sua cópia). */
   const [detailSignal, setDetailSignal] = useState(0);
+  const [listCollapsed, setListCollapsed] = useState(readListCollapsed);
   const upwork = useUpworkApplications(archived);
+
+  const toggleList = useCallback(() => {
+    setListCollapsed((current) => {
+      const next = !current;
+      try {
+        localStorage.setItem(LIST_COLLAPSE_KEY, next ? '1' : '0');
+      } catch {
+        // Sem localStorage a escolha vale só até recarregar.
+      }
+      return next;
+    });
+  }, []);
+
+  // O atalho da lateral dos Terminais (toggleSidebar) vale também aqui; com um drawer aberto fica quieto.
+  useShortcuts((actionId) => {
+    if (actionId !== 'toggleSidebar') return false;
+    toggleList();
+    return true;
+  }, !profileOpen && !creating);
 
   const shown = useMemo(
     () => upwork.applications.filter((application) => status === null || application.status === status),
@@ -141,6 +173,18 @@ export function UpworkPage() {
       </div>
 
       <div className="mt-[22px] flex-1 min-h-0 flex gap-6">
+        {listCollapsed ? (
+          <aside className="w-11 flex-none flex flex-col items-center pt-1" data-upwork-list-collapsed>
+            <Button
+              type="text"
+              size="small"
+              icon={<MenuUnfoldOutlined />}
+              aria-label="Mostrar lista de candidaturas"
+              title="Mostrar a lista (AltGr+.)"
+              onClick={toggleList}
+            />
+          </aside>
+        ) : (
         <section className="w-[380px] flex-none flex flex-col gap-3 min-h-0" aria-label="Lista de candidaturas">
           <div className="flex items-center gap-2">
             <Select
@@ -155,6 +199,14 @@ export function UpworkPage() {
             <button type="button" className="filter-chip" aria-pressed={archived} onClick={toggleArchived}>
               Arquivadas
             </button>
+            <Button
+              type="text"
+              size="small"
+              icon={<MenuFoldOutlined />}
+              aria-label="Esconder lista de candidaturas"
+              title="Esconder a lista (AltGr+.)"
+              onClick={toggleList}
+            />
           </div>
           <div className="flex-1 min-h-0 overflow-auto">{renderList()}</div>
           {!upwork.error && upwork.applications.length > 0 && (
@@ -164,6 +216,7 @@ export function UpworkPage() {
             </p>
           )}
         </section>
+        )}
 
         <section className="flex-1 min-w-0 min-h-0 overflow-auto border-l border-border pl-6 pr-1" aria-label="Candidatura aberta">
           {selectedId ? (

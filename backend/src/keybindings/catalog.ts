@@ -27,7 +27,7 @@ export const SHORTCUT_ACTIONS: readonly ShortcutAction[] = [
   { id: 'zoomIn', label: 'Aumentar a letra do terminal', group: 'terminals', default: alt('Equal') },
   { id: 'zoomOut', label: 'Diminuir a letra do terminal', group: 'terminals', default: alt('Minus') },
   { id: 'zoomReset', label: 'Repor o tamanho da letra', group: 'terminals', default: alt('Digit0') },
-  { id: 'toggleSidebar', label: 'Esconder / mostrar a lateral', group: 'terminals', default: { modifier: 'altGraph', code: 'Period' } },
+  { id: 'toggleSidebar', label: 'Esconder / mostrar a lateral (Terminais e Upwork)', group: 'terminals', default: { modifier: 'altGraph', code: 'Period' } },
   { id: 'terminalNext', label: 'Terminal seguinte', group: 'terminals', default: null },
   { id: 'terminalPrev', label: 'Terminal anterior', group: 'terminals', default: null },
   ...JUMPS,

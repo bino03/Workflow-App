@@ -18,6 +18,8 @@
 | Passkeys (só a parte pública: id, chave pública, contador, nome, datas) | `DATA_DIR/passkeys.json` — `{version: 1, passkeys: []}`, máx. 20, escrito só pelo `PasskeyStore` (`backend/src/auth/passkeyStore.ts`), escrita atómica, e **só fica em memória depois de estar no disco**. À parte do `state.json` de propósito: credenciais não se misturam com estado de terminais ([[adr/0015-passkeys-webauthn]]). Inválido → o backend não arranca | ✅ |
 | Challenges WebAuthn por usar | memória do backend (uso único, 5 min, máx. 100) | ❌ — um reinício só obriga a recomeçar a cerimónia |
 | Modo de layout (foco dividido / grelha) | `localStorage` do browser | ✅ por dispositivo |
+| Lateral dos Terminais escondida | `localStorage` do browser, chave `workflow-app.sidebar-collapsed`: `'1'` escondida, `'0'` visível (`pages/TerminalsPage.tsx`) | ✅ por dispositivo |
+| Lista de candidaturas da Upwork escondida | `localStorage` do browser, chave `workflow-app.upwork-list-collapsed`: `'1'` escondida, `'0'` visível (`pages/UpworkPage.tsx`). À parte da dos Terminais: esconder uma não esconde a outra; ambas respondem ao `AltGr+.` na sua página | ✅ por dispositivo |
 | Avisos de limite da quota já vistos | `localStorage` do browser, chave `workflow-app.usage-warnings`: `{fiveHour90?, fiveHour100?, weekly90?}`. Cada um guarda o `resetsAt` (ISO) da janela em que levou OK e vale até essa hora passar (`components/usage/usageLimits.ts`) | ✅ por dispositivo: cada browser avisa uma vez por janela |
 | Sessões gravadas (`ClaudeSession`) | `~/.claude/projects/` — do Claude Code, **só leitura** | apagadas pelo Claude Code ao fim de 30 dias (`cleanupPeriodDays`) |
 | Biblioteca (`LibraryEntry`) | `WORKFLOW_PATH/library` — só leitura ([[adr/0019-importar-pelas-skills-do-workflow]]) | — |

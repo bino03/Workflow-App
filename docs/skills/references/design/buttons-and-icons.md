@@ -54,7 +54,7 @@ A app usa **`Alt+…`**: Ctrl+… pertence ao Claude Code e ao browser, e Ctrl+A
 | `Alt+R` | Renomear |
 | `Alt+=` / `Alt+-` | Zoom só no terminal focado (nunca a página) |
 | `Alt+0` | Repor o zoom do terminal |
-| `AltGr+.` | Esconder / mostrar a lateral |
+| `AltGr+.` | Esconder / mostrar a lateral dos Terminais e a lista da Upwork |
 
 Estes são os **predefinidos** (desde 2026-10-20 editáveis nas Definições, mais ações novas sem bind —
 [[../../../features/atalhos-editaveis|atalhos-editaveis]]). Numa lista de atalhos editáveis, a bind aparece
