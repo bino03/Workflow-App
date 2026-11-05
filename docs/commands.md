@@ -135,16 +135,17 @@ node scripts/verify/instance.mjs stop --clean             # mata a árvore pelo 
 - ⚠️ **A partir de uma sessão do Claude Code, arrancar a instância e correr o cenário na mesma chamada da ferramenta.** Visto
   a 2026-11-03: a instância arrancada numa chamada já não respondia na seguinte, sem nada no log, apesar de `detached`.
   O sintoma é `Cannot read properties of null (reading 'focus')` no login, ou `fetch failed`. A 2026-11-05 aconteceu
-  também **na mesma chamada**, duas vezes em oito arranques (uma pelo Bash, outra pelo PowerShell), sem nada no log e com
-  causa por apurar. Com este sintoma, repetir o cenário numa instância nova antes de procurar um bug na app.
+  também **na mesma chamada**, três vezes em cerca de quinze arranques (pelo Bash e pelo PowerShell), sem nada no log e com
+  causa por apurar. O `instance.mjs stop` a dizer só "port free", sem "stopped", confirma que já tinha morrido. Com este sintoma, repetir o cenário numa instância nova antes de procurar um bug na app.
 - **`accounts-terminals.mjs`** — a conta de cada terminal ([[features/contas-do-claude|contas-do-claude]] passo 9). Escreve à
   mão um login falso e as conversas, por isso nada chega ao modelo. Termina um terminal com Ctrl+C e reinicia a própria
   instância (`instance.mjs stop` + `start`) para ter um terminal parado. Confirma o `--resume` na linha de comando do
   processo. Um Modal do antd fechado fica no DOM com o último conteúdo: filtrar com `checkVisibility()`.
 - **`accounts.mjs`** — o drawer "Escolher conta" ([[features/contas-do-claude|contas-do-claude]] passo 8): o item por cima de
-  Definições, adicionar com `/terminals` já aberto e a partir de `/library` (a faixa de login só aparece com o terminal à
-  vista, por isso prova o foco), a quota da lateral a acompanhar a ativa, renomear, remover com um terminal a correr
-  (`ACCOUNT_004` real) e sem ele (a pasta desaparece). Escreve os `usage*.json` à mão. Precisa de uma instância nova.
+  Definições, o login numa janela por cima da página (sem separador novo, com `/terminals` e com `/library` abertos), o
+  Esc que não a fecha, Cancelar com confirmação, o Concluir que acorda com o login, um terminal de login esquecido que não
+  impede remover, a quota da lateral a acompanhar a ativa, renomear, remover com um terminal a correr (`ACCOUNT_004` real)
+  e sem ele (a pasta desaparece). Escreve os `usage*.json` e o login à mão. Precisa de uma instância nova.
 
 - **`upwork-attachments.mjs`** — o cartão "Prints a anexar" ([[adr/0024-prints-do-portfolio-nas-candidaturas]]): a
   instância arranca com `--portfolio <caminho>` (o `PORTFOLIO_PATH`, só lido; sem a opção fica vazio, mesmo que o

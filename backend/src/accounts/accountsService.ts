@@ -11,6 +11,7 @@ import type { AccountView, AccountsView } from './accounts.schemas.js';
 export type AccountTerminals = {
   runningCount(accountId: AccountId): number;
   createLogin(request: { accountId: AccountId; cwd: string; label: string; cols: number; rows: number }): Promise<TerminalView>;
+  closeLogins(accountId: AccountId): Promise<void>;
 };
 
 export type AccountsServiceDeps = {
@@ -108,6 +109,7 @@ export class AccountsService {
     if (id === 'primary') throw new AppError('ACCOUNT_003');
     this.require(id);
     if ((this.deps.terminals?.().runningCount(id) ?? 0) > 0) throw new AppError('ACCOUNT_004');
+    await this.deps.terminals?.().closeLogins(id);
     await this.deps.dirs.remove(id);
     this.deps.stateStore.update((draft) => {
       draft.accounts = draft.accounts.filter((account) => account.id !== id);

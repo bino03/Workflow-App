@@ -1,13 +1,13 @@
-// The "Escolher conta" drawer (spec contas-do-claude, step 8): the header menu item, adding an account and landing on
-// its login terminal (also with /terminals already open), the sidebar quota following the active account, renaming,
-// and removing with and without a running terminal. Each action is confirmed on the API, not only on screen. The
-// instance's `claude` has no login, so the quota files are written by hand, the way the status line would.
+// The "Escolher conta" drawer (spec contas-do-claude, step 8): the header menu item, adding an account and doing its
+// login in a window over the page (never a project tab), the sidebar quota following the active account, renaming, and
+// removing with and without a running terminal. Each action is confirmed on the API, not only on screen. The instance's
+// `claude` has no login, so the quota files and the login are written by hand.
 //
 //   cd frontend && npm run build && cd ..
 //   node scripts/verify/instance.mjs start --fresh
 //   node scripts/verify/accounts.mjs [run dir]
 //   node scripts/verify/instance.mjs stop --clean
-import { existsSync, writeFileSync } from 'node:fs';
+import { existsSync, readFileSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { checker, login, openBrowser, readInstance, sleep } from './cdp.mjs';
 
@@ -92,18 +92,61 @@ try {
   check('an invalid name is refused in the form', await page.waitFor(`document.querySelector('[data-account-form] button[type="submit"]').disabled && /Só letras/.test(document.querySelector('[data-account-form]').innerText)`));
   await page.evaluate(clickText('[data-account-form] button', 'Cancelar'));
 
-  // Add with /terminals already open: the page does not mount again, and it must still focus the new terminal.
+  // Add: a window over the page. A login is not a project, so no tab, no sidebar entry, no navigation.
+  const tabsBefore = await page.evaluate(`document.querySelectorAll('[role="tab"]').length`);
   await addAccount('Trabalho');
-  check('adding lands on /terminals with the drawer closed', await page.waitFor(`!(${drawerOpen}) && location.pathname === '/terminals'`));
-  // The banner only renders while its terminal is in view, so this also proves the focus.
-  check('the login terminal is in view, with the banner naming the account', await page.waitFor(`/conta Trabalho/.test(document.querySelector('[data-login-banner]')?.innerText ?? '')`));
+  check('adding opens the login window with the drawer closed', await page.waitFor(`!(${drawerOpen}) && !!document.querySelector('[data-account-login] [data-terminal-id]')`));
+  check('the terminal has the keyboard', await page.waitFor(`!!document.activeElement?.closest('[data-account-login] .xterm')`), await page.evaluate(`document.activeElement?.className ?? ''`));
+  check('its title names the account', /Trabalho/.test(await page.evaluate(`document.querySelector('[data-account-login]').closest('.ant-modal-container').innerText`)));
+  check('the page stays where it was', (await page.evaluate(`location.pathname`)) === '/terminals');
+  check('no new project tab', (await page.evaluate(`document.querySelectorAll('[role="tab"]').length`)) === tabsBefore);
   let view = await accounts();
   const extra = view.accounts.find((a) => a.label === 'Trabalho');
   check('the account exists, with no login, and is not active', extra && !extra.loggedIn && view.activeAccountId === 'primary');
-  const terminalsList = (await page.api('GET', '/terminals')).body;
-  const loginTerminal = terminalsList.find((t) => t.accountId === extra?.id);
-  check('its login terminal runs in that account', loginTerminal?.label === 'Login — Trabalho', loginTerminal?.label);
-  check('the navigation state was cleared', (await page.evaluate(`history.state?.usr ?? null`)) === null);
+  check('its terminal is not in the terminals list', (await page.api('GET', '/terminals')).body.length === 0);
+  const loginTerminalId = await page.evaluate(`document.querySelector('[data-account-login] [data-terminal-id]').dataset.terminalId`);
+  check('but it exists', (await page.api('GET', `/terminals/${loginTerminalId}/context`)).status === 200);
+  const loginFooter = `document.querySelector('[data-account-login]').closest('.ant-modal-container').querySelector('.ant-modal-footer')`;
+  const loginButton = (label) => `[...${loginFooter}.querySelectorAll('button')].find((b) => b.textContent.trim() === ${JSON.stringify(label)})`;
+  check('Concluir waits for the login', await page.evaluate(`${loginButton('Concluir')}.disabled`));
+  check('Esc belongs to the terminal: the window stays', await (async () => {
+    await page.key('Escape', 'Escape', 0, 27);
+    await sleep(400);
+    return page.evaluate(`!!document.querySelector('[data-account-login]')?.checkVisibility()`);
+  })());
+
+  // Cancelar asks first; the terminal ends and the account stays, ready for "Iniciar sessão".
+  await page.evaluate(`${loginButton('Cancelar')}.click()`);
+  const confirmButton = (label) => `[...document.querySelectorAll('.ant-modal-container button')].find((b) => b.textContent.trim() === ${JSON.stringify(label)} && b.checkVisibility())`;
+  check('Cancelar asks first', await page.waitFor(`!!${confirmButton('Fechar')}`));
+  const hit = await page.evaluate(`(() => { const b = ${confirmButton('Fechar')}.getBoundingClientRect(); const e = document.elementFromPoint(b.x + b.width / 2, b.y + b.height / 2); return !!e?.closest('button')?.textContent.includes('Fechar'); })()`);
+  check('the question is on top of the window', hit);
+  await page.evaluate(`${confirmButton('Fechar')}.click()`);
+  check('the window closes', await page.waitFor(`!document.querySelector('[data-account-login]')?.checkVisibility()`));
+  check('its terminal is gone', await page.waitFor(`fetch('/api/terminals/${loginTerminalId}/context').then((r) => r.status === 404)`));
+  check('the account stays', (await accounts()).accounts.some((a) => a.id === extra?.id));
+
+  // "Iniciar sessão" again, from the row: when the login lands, the window wakes up by itself.
+  await openDrawer();
+  await page.waitFor(`!!${row(extra.id)}`);
+  await page.evaluate(`[...${row(extra.id)}.querySelectorAll('button')].find((b) => b.textContent.trim() === 'Iniciar sessão').click()`);
+  check('"Iniciar sessão" opens the window again', await page.waitFor(`!!document.querySelector('[data-account-login] [data-terminal-id]')`));
+  const accountDirForLogin = join(instance.dataDir, 'accounts', extra.id);
+  writeFileSync(join(accountDirForLogin, '.credentials.json'), '{}');
+  await page.waitFor(`document.querySelector('[data-login-status]')?.dataset.loginStatus === 'waiting'`);
+  const claudeJson = join(accountDirForLogin, '.claude.json');
+  const current = existsSync(claudeJson) ? JSON.parse(readFileSync(claudeJson, 'utf8')) : {};
+  writeFileSync(claudeJson, JSON.stringify({ ...current, oauthAccount: { emailAddress: 'trabalho@example.com' } }));
+  check('the window sees the login by itself', await page.waitFor(`document.querySelector('[data-login-status]')?.dataset.loginStatus === 'done' && /trabalho@example.com/.test(document.querySelector('[data-login-status]').innerText)`, 8000));
+  await page.evaluate(`${loginButton('Concluir')}.click()`);
+  check('Concluir closes it', await page.waitFor(`!document.querySelector('[data-account-login]')?.checkVisibility()`));
+  check('and says the account is ready', await page.waitFor(`/Conta pronta/.test(${toast})`));
+  await page.waitFor(`!document.querySelector('.ant-notification-notice')`, 8000);
+
+  // A real terminal of that account, for the removal below.
+  const created = await page.api('POST', '/terminals', { cwd: instance.projects.Alfa, mode: 'new', accountId: extra.id, cols: 80, rows: 24 });
+  const loginTerminal = created.body;
+  check('a terminal in that account', created.status === 201 && loginTerminal.accountId === extra.id, String(created.status));
 
   // The active account drives the sidebar quota.
   writeUsage(`usage-${extra.id}.json`, 7, 3);
@@ -111,7 +154,7 @@ try {
   await openDrawer();
   await page.waitFor(`/7%/.test(${row(extra.id)}?.innerText ?? '')`);
   check('each account shows its own quota', /7%/.test(await page.evaluate(`${row(extra.id)}.innerText`)) && /44%/.test(await page.evaluate(`${row('primary')}.innerText`)));
-  check('the extra says it has no login', /Sem sessão iniciada/.test(await page.evaluate(`${row(extra.id)}.innerText`)));
+  check('the extra shows its email', /trabalho@example.com/.test(await page.evaluate(`${row(extra.id)}.innerText`)));
   await page.evaluate(`${row(extra.id)}.querySelector('[role="radio"]').click()`);
   check('choosing it checks its radio', await page.waitFor(`${row(extra.id)}.querySelector('[role="radio"]').getAttribute('aria-checked') === 'true'`));
   check('the API has it as active', (await accounts()).activeAccountId === extra.id);
@@ -155,14 +198,19 @@ try {
   await sleep(200);
   check('one account again: no name over the quota', !(await page.evaluate(`!!document.querySelector('[data-quota-account]')`)));
 
-  // From another page: the page mounts with the state (the original path of focusTerminalId).
+  // From another page: the window opens there, and a reload leaves the login terminal behind. It must not block removing.
   await page.navigate(`${instance.base}/library`);
   await openDrawer();
   await addAccount('Outra');
-  check('adding from /library lands on /terminals', await page.waitFor(`location.pathname === '/terminals'`));
-  check('with the login banner', await page.waitFor(`/conta Outra/.test(document.querySelector('[data-login-banner]')?.innerText ?? '')`));
-  await page.evaluate(clickText('[data-login-banner] button', 'Fechar'));
-  check('the banner closes', await page.waitFor(`!document.querySelector('[data-login-banner]')`));
+  check('adding from /library opens the window there', await page.waitFor(`!!document.querySelector('[data-account-login] [data-terminal-id]') && location.pathname === '/library'`));
+  await page.navigate(`${instance.base}/library`);
+  await openDrawer();
+  const outra = (await accounts()).accounts.find((a) => a.label === 'Outra');
+  await page.waitFor(`!!${row(outra.id)}`);
+  check('a login left behind does not count as a running terminal', /0 terminais a correr/.test(await page.evaluate(`${row(outra.id)}.innerText`)));
+  await removeThroughConfirm(outra.id);
+  check('nor does it block removing the account', await page.waitFor(`!${row(outra.id)}`));
+  check('whose folder is gone', !existsSync(join(instance.dataDir, 'accounts', outra.id)));
 
   check('no console errors', page.errors.filter((e) => !/409/.test(e)).length === 0, page.errors.join(' | '));
 } catch (error) {

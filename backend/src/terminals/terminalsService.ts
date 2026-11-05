@@ -36,6 +36,11 @@ export type TerminalView = {
   accountId: AccountId;
 };
 
+/** Hidden without being an import's or a guided session's: only createLogin starts those. */
+function isLoginTerminal(saved: SavedTerminal): boolean {
+  return saved.hidden && saved.importId === null && saved.guidedId === null;
+}
+
 /** A hidden terminal that runs `/import <requestPath>` in the Workflow (ADR 0019). Only the imports module calls it. */
 export type CreateImportTerminal = {
   importId: string;
@@ -255,13 +260,15 @@ export class TerminalsService {
   }
 
   /**
-   * Starts an account's login terminal (ADR 0027): a normal, visible terminal in that account whose first message
-   * is `/login`. It stays open after the login, so the account's first-run dialogs are answered there once — a
-   * guided session or an import started later has nobody at its PTY.
+   * Starts an account's login terminal (ADR 0027), whose first message is `/login`. It is hidden: a login is not a
+   * project, so it never shows in the grid, and the app shows it in a window of its own. The owner closes it after
+   * also answering the account's first-run dialogs — a guided session or an import started later has nobody at its
+   * PTY. One left behind (the browser closed mid-login) is replaced here, or goes with the account.
    */
   async createLogin(request: CreateLoginTerminal): Promise<TerminalView> {
     const cwd = resolveAllowedPath(request.cwd, this.deps.allowedRoots);
     const accountId = this.requireAccount(request.accountId);
+    await this.closeLogins(accountId);
     const configDir = await this.deps.accounts?.prepareLaunch(accountId);
     const launch: ClaudeLaunch = { kind: 'login', sessionId: randomUUID() };
     const id = randomUUID();
@@ -280,12 +287,18 @@ export class TerminalsService {
       importId: null,
       guidedId: null,
       accountId,
-      hidden: false,
+      hidden: true,
       addDirs: [],
     };
     // Not a recent folder: the owner never picked it for this terminal.
     await this.save(saved, { touch: false });
     return this.view(saved);
+  }
+
+  /** Ends an account's login terminals, running or not. */
+  async closeLogins(accountId: AccountId): Promise<void> {
+    const logins = this.deps.stateStore.read().terminals.filter((saved) => isLoginTerminal(saved) && this.resolveAccount(saved.accountId) === accountId);
+    for (const saved of logins) await this.close(saved.id);
   }
 
   /** The size of a terminal's conversation in tokens (ADR 0027), before "Continuar noutra conta". */
@@ -300,12 +313,16 @@ export class TerminalsService {
     return this.resolveAccount(id);
   }
 
-  /** How many terminals of an account are running now (a removal is refused while any is). */
+  /**
+   * How many terminals of an account are running now (a removal is refused while any is). A login terminal does not
+   * count: the owner cannot see it, so it could block a removal with nothing to close.
+   */
   runningCount(accountId: AccountId): number {
     return this.deps.stateStore
       .read()
-      .terminals.filter((saved) => this.resolveAccount(saved.accountId) === accountId && this.deps.terminalManager.get(saved.id)?.status === 'running')
-      .length;
+      .terminals.filter(
+        (saved) => !isLoginTerminal(saved) && this.resolveAccount(saved.accountId) === accountId && this.deps.terminalManager.get(saved.id)?.status === 'running',
+      ).length;
   }
 
   /**
@@ -434,11 +451,17 @@ export class TerminalsService {
     return this.view(this.saved(id)!);
   }
 
-  /** Kills the process tree and moves the terminal to the history, with a summary from its .jsonl. */
+  /** Kills the process tree and moves the terminal to the history, with a summary from its .jsonl. A login leaves no history. */
   async close(id: string): Promise<void> {
     const saved = this.saved(id);
     if (!saved) throw new AppError('TERMINAL_001');
     await this.deps.terminalManager.kill(id);
+    if (isLoginTerminal(saved)) {
+      this.deps.stateStore.update((draft) => {
+        draft.terminals = draft.terminals.filter((t) => t.id !== id);
+      });
+      return;
+    }
     // readSummary never throws: a missing or odd .jsonl leaves the history entry without a summary.
     const { summary, summarySource } = await this.deps.sessions.readSummary(saved.cwd, saved.claudeSessionId);
     const closedAt = this.now().toISOString();

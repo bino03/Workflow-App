@@ -115,6 +115,13 @@ explica a consequência e o número vai numa caixa `state-wait-subtle` com borda
 Enquanto o modal anima a fechar, o conteúdo mostra o último aviso; sem isso, o título ficava vazio durante a animação.
 Nunca usar esta variante numa ação: é só para informar. Para escolher, usa-se `useConfirm()`.
 
+**Variante: terminal numa janela** (`components/accounts/AccountLoginModal.tsx`, 2026-11-05, verificado em Chrome headless):
+um terminal que não pertence a nenhum projeto, para um gesto único. Largura `min(1000px, 94vw)`, terminal com `h-[60vh]`.
+`keyboard={false}` e `mask={{ closable: false }}`, porque o Esc pertence ao `claude`. O `TerminalView` só monta depois do
+`afterOpenChange`, senão a janela tira-lhe o foco ao abrir, e leva `autoFocus`, porque o `focused` chega antes de o xterm.js existir. `stopPropagation` no `onKeyDown` à volta dele, para os atalhos
+da app não atuarem na página por trás. `zIndex={900}`, para ficar por baixo do `useConfirm()`, cujo portal pode já existir
+antes dela no `<body>`. Rodapé com o estado à esquerda (caption `text-3`) e a ação à direita.
+
 ## Drawer com uma lista de escolha única e ações por linha (2026-11-03)
 
 `components/accounts/AccountsDrawer.tsx`, verificado em Chrome headless. Parte do rádio das Definições, mas cada linha

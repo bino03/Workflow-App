@@ -16,6 +16,8 @@ type TerminalViewProps = {
   /** Tem o teclado: recebe o foco quando isto passa a true. */
   focused: boolean;
   compact?: boolean;
+  /** Fica com o foco logo que existe. O `focused` não chega ao montar: o xterm.js só nasce depois de a fonte carregar. */
+  autoFocus?: boolean;
   /** Zoom só deste terminal (Alt+=/Alt+-/Alt+0), em px acima/abaixo do tamanho base — nunca a página toda. */
   fontDelta?: number;
   onFocus?: () => void;
@@ -31,13 +33,13 @@ const RECONNECT_DELAYS_MS = [500, 1000, 2000, 5000];
  * Context nem em estado de React (frontend-conventions → Terminais). Para reabrir, a página remonta-o
  * (key com o lastOpenedAt).
  */
-export function TerminalView({ terminalId, visible, focused, compact = false, fontDelta = 0, onFocus, onExit, onGone }: TerminalViewProps) {
+export function TerminalView({ terminalId, visible, focused, compact = false, autoFocus = false, fontDelta = 0, onFocus, onExit, onGone }: TerminalViewProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const termRef = useRef<Terminal | null>(null);
   const fitRef = useRef<FitAddon | null>(null);
-  const callbacks = useRef({ onFocus, onExit, onGone });
+  const callbacks = useRef({ onFocus, onExit, onGone, autoFocus });
   useEffect(() => {
-    callbacks.current = { onFocus, onExit, onGone };
+    callbacks.current = { onFocus, onExit, onGone, autoFocus };
   });
   const { indexRef } = useKeybindings();
   const font = compact ? TERMINAL_FONT.grid : TERMINAL_FONT.focus;
@@ -135,6 +137,7 @@ export function TerminalView({ terminalId, visible, focused, compact = false, fo
       cleanups.push(() => observer.disconnect());
 
       if (container.clientWidth > 0) fit.fit();
+      if (callbacks.current.autoFocus) term.focus();
       connect(term);
     });
 

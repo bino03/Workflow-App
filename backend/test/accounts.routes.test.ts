@@ -152,15 +152,50 @@ describe('/api/accounts (ADR 0027)', () => {
     expect([unknown.statusCode, unknown.json().errorCode]).toEqual([404, 'ACCOUNT_001']);
   });
 
-  it('the login route opens a visible terminal in that account, in DEFAULT_CWD, whose first message is /login', async () => {
+  it('the login route opens a hidden terminal in that account, in DEFAULT_CWD, whose first message is /login', async () => {
     const id = await add('Trabalho');
     const res = await call('POST', `/api/accounts/${id}/login`, size);
     expect(res.statusCode).toBe(201);
-    expect(res.json()).toMatchObject({ accountId: id, cwd: project, label: 'Login — Trabalho', hidden: false, status: 'running' });
+    expect(res.json()).toMatchObject({ accountId: id, cwd: project, label: 'Login — Trabalho', hidden: true, status: 'running' });
     expect(claude.launches.at(-1)).toMatchObject({ cwd: project, configDir: join(dataDir, 'accounts', id) });
     expect(claude.launches.at(-1)!.args!.at(-1)).toBe('/login');
-    expect((await call('GET', '/api/accounts')).json().accounts[1].runningTerminals).toBe(1);
+    // A login is not a project: nothing in the grid, nothing that counts as a running terminal.
+    expect((await call('GET', '/api/terminals')).json()).toEqual([]);
+    expect((await call('GET', '/api/accounts')).json().accounts[1].runningTerminals).toBe(0);
     expect((await call('POST', `/api/accounts/${UNKNOWN}/login`, size)).json().errorCode).toBe('ACCOUNT_001');
+  });
+
+  it('closing a login terminal leaves no history, and a new login replaces one left behind', async () => {
+    const id = await add('Trabalho');
+    const first = (await call('POST', `/api/accounts/${id}/login`, size)).json();
+    const second = (await call('POST', `/api/accounts/${id}/login`, size)).json();
+    expect(stateStore.read().terminals.map((t) => t.id)).toEqual([second.id]);
+    expect(terminalManager.get(first.id)).toBeUndefined();
+
+    expect((await call('DELETE', `/api/terminals/${second.id}`)).statusCode).toBe(204);
+    expect(terminalManager.get(second.id)).toBeUndefined();
+    const state = stateStore.read();
+    expect(state.terminals).toEqual([]);
+    expect(state.closedTerminals).toEqual([]);
+  });
+
+  it('a login terminal left behind does not block removing its account, and ends with it', async () => {
+    const id = await add('Trabalho');
+    const login = (await call('POST', `/api/accounts/${id}/login`, size)).json();
+    expect((await call('DELETE', `/api/accounts/${id}`)).statusCode).toBe(204);
+    expect(terminalManager.get(login.id)).toBeUndefined();
+    expect(stateStore.read().terminals).toEqual([]);
+    expect(existsSync(join(dataDir, 'accounts', id))).toBe(false);
+  });
+
+  it('a new login replaces only login terminals: a normal terminal of the account keeps running', async () => {
+    const id = await add('Trabalho');
+    const normal = (await call('POST', '/api/terminals', { cwd: project, mode: 'new', accountId: id, ...size })).json();
+    await call('POST', `/api/accounts/${id}/login`, size);
+    const login = (await call('POST', `/api/accounts/${id}/login`, size)).json();
+    await call('DELETE', `/api/terminals/${login.id}`);
+    expect(terminalManager.get(normal.id)?.status).toBe('running');
+    expect((await call('GET', '/api/terminals')).json().map((t: { id: string }) => t.id)).toEqual([normal.id]);
   });
 
   it('removing: never the primary; refused with a running terminal; then the terminals move to the primary', async () => {

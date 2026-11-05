@@ -1,7 +1,6 @@
 import { PlusOutlined } from '@ant-design/icons';
 import { Button, Drawer, Spin } from 'antd';
 import { useState } from 'react';
-import { useNavigate } from 'react-router';
 import { DRAWER_WIDTH } from '@/config/drawer';
 import { ErrorHandler } from '@/errors/errorHandler';
 import { useAccounts } from '@/hooks/useAccounts';
@@ -9,6 +8,7 @@ import { useConfirm } from '@/hooks/useConfirm';
 import { useUsage } from '@/hooks/useUsage';
 import { createAccount, openAccountLogin, removeAccount, renameAccount } from '@/services/accountService';
 import { MAX_ACCOUNTS, type AccountView } from '@/types/account';
+import { AccountLoginModal, type AccountLogin } from './AccountLoginModal';
 import { AccountNameForm } from './AccountNameForm';
 import { AccountQuota } from './AccountQuota';
 
@@ -19,16 +19,16 @@ const LOGIN_TERMINAL_SIZE = { cols: 120, rows: 40 };
 
 /**
  * Drawer "Escolher conta" (Small, 540; ADR 0027): a conta ativa, a quota de cada conta, e adicionar, renomear e
- * remover contas. O login de uma conta faz-se uma vez, no terminal que a app abre para isso.
+ * remover contas. O login de uma conta faz-se uma vez, numa janela por cima da página (`AccountLoginModal`).
  */
 export function AccountsDrawer({ open, onClose }: AccountsDrawerProps) {
-  const navigate = useNavigate();
   const confirm = useConfirm();
   const { now } = useUsage();
   const { view, refresh, setActive } = useAccounts();
   const [adding, setAdding] = useState(false);
   const [renamingId, setRenamingId] = useState<string | null>(null);
   const [busyId, setBusyId] = useState<string | null>(null);
+  const [login, setLogin] = useState<AccountLogin | null>(null);
 
   const close = () => {
     setAdding(false);
@@ -43,7 +43,7 @@ export function AccountsDrawer({ open, onClose }: AccountsDrawerProps) {
     try {
       const terminal = await openAccountLogin(account.id, LOGIN_TERMINAL_SIZE);
       close();
-      void navigate('/terminals', { state: { focusTerminalId: terminal.id, loginAccountLabel: account.label } });
+      setLogin({ terminalId: terminal.id, accountId: account.id, accountLabel: account.label });
     } catch (e) {
       // Na adição, a conta já existe: fica na lista com "Iniciar sessão" para tentar outra vez.
       ErrorHandler.handle(e);
@@ -96,6 +96,8 @@ export function AccountsDrawer({ open, onClose }: AccountsDrawerProps) {
   const atLimit = accounts.length >= MAX_ACCOUNTS;
 
   return (
+    <>
+    <AccountLoginModal login={login} onClose={() => setLogin(null)} />
     <Drawer
       open={open}
       onClose={close}
@@ -193,7 +195,7 @@ export function AccountsDrawer({ open, onClose }: AccountsDrawerProps) {
           {adding ? (
             <AccountNameForm
               submitLabel="Adicionar"
-              hint="A seguir abre um terminal para o login."
+              hint="A seguir abre uma janela para o login."
               onSubmit={add}
               onCancel={() => setAdding(false)}
             />
@@ -208,5 +210,6 @@ export function AccountsDrawer({ open, onClose }: AccountsDrawerProps) {
         </div>
       )}
     </Drawer>
+    </>
   );
 }

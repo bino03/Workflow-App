@@ -67,7 +67,7 @@ passa a mostrar a quota de B. O login de cada conta fez-se **uma vez** e nunca m
 | Continuar noutra conta | Sim, com aviso do tamanho | Dono: "sim, com aviso do tamanho". Ao retomar, o `claude` reenvia a conversa inteira, e a cache não passa de uma conta para a outra. Esperar que a quota volte e retomar na mesma conta horas depois custa o mesmo (a cache já expirou) | Não permitir |
 | Tamanho do contexto | `usage` da última resposta do assistente no `.jsonl`: `input_tokens + cache_creation_input_tokens + cache_read_input_tokens` | É o tamanho real do último pedido; não precisa de tokenizar | Estimar pelos bytes do ficheiro |
 | Quota | Um ficheiro por conta. Barra lateral = só a ativa; painel "Escolher conta" (novo item **por cima de Definições** no menu do cabeçalho) = todas | Dono, textualmente | Todas sempre visíveis na barra |
-| Adicionar | Pela app: cria a pasta e as ligações e abre um terminal da conta para o `/login` | Dono: "Pela app" | Linha no `.env` com reinício |
+| Adicionar | Pela app: cria a pasta e as ligações e abre uma janela por cima da página com um terminal escondido para o `/login` (revisto 2026-11-05) | Dono: "Pela app". Um login não é um projeto: como terminal normal, abria um separador chamado "projetos" (o nome da pasta de `DEFAULT_CWD`) | Linha no `.env` com reinício; terminal normal na grelha (o desenho original); página própria (uma rota para um gesto único) |
 | Remover | Apaga a pasta e o login, **desfazendo as ligações primeiro**. Recusado com terminais a correr. Os terminais parados dessa conta passam para a principal | Dono: "Apaga a pasta e o login" | Só tirar da lista |
 | Limite | 5 contas no total (principal incluída) | Um painel legível; a pasta de cada uma é pequena | Sem limite |
 
@@ -180,8 +180,9 @@ type AccountsView = { activeAccountId: AccountId; accounts: AccountView[] };
 - **Drawer "Escolher conta"** (`frontend/src/components/accounts/AccountsDrawer.tsx`, Small 540, como o
   `SettingsDrawer`): uma linha por conta, com o nome, o email, um rádio "ativa", o `QuotaMeter` dessa conta (5 h e
   semanal) e as ações (Renomear, Remover — confirmação perigosa —, **Iniciar sessão** quando `!loggedIn`). Ao fundo,
-  **Adicionar conta**: nome → `POST /api/accounts` → `POST /api/accounts/:id/login` → navega para `/terminals` com
-  esse terminal em foco e uma faixa a dizer "Faz o login no browser com a conta <nome>; é só desta vez".
+  **Adicionar conta**: nome → `POST /api/accounts` → `POST /api/accounts/:id/login` → abre o `AccountLoginModal`, uma
+  janela por cima da página atual com o terminal. O texto diz "Faz o login no browser com esta conta; é só desta vez". O
+  **Concluir** só fica ativo com a sessão iniciada e fecha o terminal; o Cancelar pede confirmação (revisto 2026-11-05).
 - **Barra lateral dos terminais** (`TerminalsPage.tsx:694`, `QuotaMeter`): só a conta ativa. Com mais de uma conta,
   o nome dela aparece por cima do medidor.
 - **Terminais** (`TerminalSidebar.tsx`, `TerminalPane.tsx`): com mais de uma conta, um selo com o nome da conta em
@@ -433,8 +434,14 @@ Ordem obrigatória. Tiers: `opus` (desenho, não delegar) · `sonnet` (implement
 - **Bug do passo 4 corrigido**: `POST /api/terminals/:id/reopen` aceitava o `accountId` mas não o passava ao serviço, e a conversa reabria na conta antiga. O teste só chamava o serviço diretamente; agora há um teste da rota em `accounts.routes.test.ts`.
 - Testes: `tsc -b` e lint limpos. `scripts/verify/accounts-terminals.mjs` 41/41 em Chrome headless, com o processo real lançado com `--resume` e a conta confirmada na API. Sem regressões: `accounts` 37/37, `smoke` 6/6. Backend 509/509.
 - O que não foi testado: o `claude` com um login real, porque o cenário escreve um login falso à mão e nada chega ao modelo (fica para o passo 10). O `usage-warning` e o `upwork` não voltaram a correr, porque o passo não lhes toca.
-**Em curso:** —
-**Próxima ação concreta:** passo 10, **com o dono**: `/run` na app real, adicionar a 2.ª conta e fazer o login uma vez, e seguir o critério de aceitação do passo.
+**Revisto a 2026-11-05, a meio do passo 10** (pedido do dono, ao adicionar a conta na app real): o terminal de login abria um separador chamado "projetos", como se fosse um projeto.
+- Agora é um terminal escondido, mostrado no `accounts/AccountLoginModal.tsx`, por cima da página e sem navegar. A faixa do `TerminalsPage` saiu.
+- O terminal **deixa de ficar aberto** depois do login, ao contrário da decisão de 2026-11-01: fecha-se no Concluir, depois de responder aos diálogos de primeira vez, que continuam a ser respondidos ali.
+- Sem histórico ao fechar. Um terminal de login esquecido (o browser fechado a meio) é substituído no login seguinte e termina ao remover a conta. Não conta como terminal a correr, porque o dono não o vê e não o podia fechar para remover a conta.
+- Depois de um reinício do backend, um terminal de login esquecido fica parado no `state.json` até ao login seguinte ou até remover a conta. Não aparece em lado nenhum.
+- Testes: `accounts.mjs` 53/53 (reescrito para a janela), `accounts-terminals.mjs` 41/41, `smoke` 6/6, backend 512/512.
+**Em curso:** passo 10, com o dono.
+**Próxima ação concreta:** continuar o passo 10: adicionar a 2.ª conta na janela nova, fazer o login uma vez, e seguir o critério de aceitação do passo.
 **Desvios ao plano:** ver "Decisão ao implementar" no passo 9.
 **O que uma sessão nova precisa de saber:**
 - ❓ **A confirmar no passo 10:** na instância de teste, sem `settings.json` na principal, o terminal de login de uma conta nova abriu no ecrã de escolha de tema ("Let's get started"), antes do login. O spike (e) registou que não havia nada antes do login. A faixa já diz para responder lá aos diálogos, mas pode ser preciso ajustar o texto.
@@ -461,7 +468,7 @@ Ordem obrigatória. Tiers: `opus` (desenho, não delegar) · `sonnet` (implement
 |---|---|---|
 | ~~`claude "/login"` corre o login como primeira mensagem?~~ | — | ✅ Spike (e), 2026-11-01: sim. A rota `/login` usa-o |
 | ~~As junctions de `plugins/` funcionam com os caminhos absolutos do `known_marketplaces.json`?~~ | — | ✅ Spike (c), 2026-11-01: os plugins aparecem na conta nova |
-| ~~Como evitar que um `claude` sem ninguém no PTY fique parado num diálogo de primeira vez de uma conta extra?~~ | — | ✅ Dono, 2026-11-01: **o terminal de login fica aberto** depois do `/login`, e a faixa diz para responder lá aos diálogos de primeira vez. Não se copiam flags internas do `.claude.json` (mudam entre versões). Entra no passo 6 (rota `/login`) e no passo 8 (texto da faixa) |
+| ~~Como evitar que um `claude` sem ninguém no PTY fique parado num diálogo de primeira vez de uma conta extra?~~ | — | ✅ Dono, 2026-11-01: os diálogos de primeira vez respondem-se no terminal de login. Não se copiam flags internas do `.claude.json` (mudam entre versões). Revisto a 2026-11-05: respondem-se na janela de login, antes do Concluir, e o terminal não fica aberto depois |
 | ~~O `QuotaMeter` do drawer usa o mesmo componente da barra lateral ou uma versão compacta?~~ | — | ✅ Passo 8, 2026-11-03: versão compacta (`AccountQuota`), com a mesma leitura (`readQuota`) |
 
 ## Relacionado

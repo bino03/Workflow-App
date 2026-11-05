@@ -64,6 +64,8 @@ const allFilter = `([...document.querySelectorAll('.filter-chip')].find((c) => c
 async function pickFromOpenMenu(label) {
   await page.waitFor(`${openMenuItems}.some((e) => e.textContent.trim().startsWith(${JSON.stringify(label)}))`);
   await page.evaluate(`${openMenuItems}.find((e) => e.textContent.trim().startsWith(${JSON.stringify(label)})).click()`);
+  // A menu still closing counts as open: the next pick would land on this one, not on the one it just opened.
+  await page.waitFor(`${openMenuItems}.length === 0`);
 }
 
 /** Sends Ctrl+C until the terminal's claude exits, over its own WebSocket. */
