@@ -2,6 +2,7 @@ import type { KeyboardEvent, ReactElement } from 'react';
 import { Dropdown, type DropdownProps, type MenuProps } from 'antd';
 import { ErrorHandler } from '@/errors/errorHandler';
 import { useAccounts } from '@/hooks/useAccounts';
+import { accountMenuItems } from './accountLabel';
 
 type AccountPickerProps = {
   /** A conta que não faz sentido escolher. Por omissão, a ativa. */
@@ -14,21 +15,12 @@ type AccountPickerProps = {
   children: ReactElement;
 };
 
-/**
- * A lista das outras contas, para abrir um terminal numa delas. Com uma só conta não aparece. Uma conta sem login fica
- * desativada: o terminal só pediria o login, com a conversa à espera. O login faz-se no drawer "Escolher conta".
- */
+/** A lista das outras contas, para abrir um terminal numa delas. Com uma só conta não aparece. */
 export function AccountPicker({ excludeId, title, placement, onPick, children }: AccountPickerProps) {
   const { view, refresh } = useAccounts();
   if (!view || view.accounts.length < 2) return null;
 
-  const accounts: MenuProps['items'] = view.accounts
-    .filter((account) => account.id !== (excludeId ?? view.activeAccountId))
-    .map((account) => ({
-      key: account.id,
-      disabled: !account.loggedIn,
-      label: account.loggedIn ? account.label : `${account.label} · sem sessão iniciada`,
-    }));
+  const accounts: MenuProps['items'] = accountMenuItems(view, excludeId ?? view.activeAccountId);
 
   // Os eventos do React atravessam o portal do menu: sem isto, escolher uma conta também ativava o cabeçalho do projeto
   // na lateral, que num projeto vazio abre um terminal. Só Enter e Espaço: o Esc tem de chegar à window, onde o menu o lê.

@@ -31,6 +31,8 @@ Desenhados no `/choose-design` (2026-09-27) — protótipos em
 - O dono **escreve** num terminal (mensagens, `/skills`, atalhos de teclado) e vê a resposta em tempo real.
 - O dono **acompanha várias sessões** em paralelo e percebe qual está a trabalhar, qual espera por ele e qual terminou.
 - O dono **fecha** um terminal; a sessão fica gravada pelo Claude Code e pode ser retomada.
+- O dono **age sobre um terminal com o botão direito**, na lateral ou no cabeçalho dele: renomear, dividir ou ampliar,
+  pré-visualizar, reabrir, continuar noutra conta, fechar.
 - O dono **navega entre projetos** pelos separadores tipo browser; esconder um separador não mata os
   terminais desse projeto — reabre-se clicando o projeto na lateral.
 - O dono **vê quanto da quota** da subscrição já gastou antes de abrir mais sessões — a quota é da conta, não do terminal.

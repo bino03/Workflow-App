@@ -1,10 +1,11 @@
 import { useState } from 'react';
 import { CloseOutlined, DownOutlined, LinkOutlined } from '@ant-design/icons';
-import { Button, Input, Tooltip } from 'antd';
+import { Button, Input, Tooltip, type MenuProps } from 'antd';
 import { z } from 'zod';
 import { AccountPicker } from '@/components/accounts/AccountPicker';
 import { AccountTag } from '@/components/accounts/AccountTag';
 import type { TerminalView as TerminalInfo, TerminalPreview } from '@/types/terminal';
+import { TerminalContextMenu } from './TerminalContextMenu';
 import { STATUS_META, statusDetail } from './terminalDisplay';
 import { TerminalView } from './TerminalView';
 
@@ -112,14 +113,16 @@ type TerminalPaneProps = {
   onGone: () => void;
   /** O ✕ da etiqueta de pré-visualização. */
   onPreviewStop: () => void;
+  /** O menu de contexto, no cabeçalho. */
+  menu: MenuProps;
   /** tile = mosaico da grelha (protótipo 1i): cabeçalho compacto, sem ações até ser ampliado. */
   variant?: 'pane' | 'tile';
   enlarged?: boolean;
 };
 
 /** Um terminal no ecrã: cabeçalho (protótipo 1g/1h), o xterm.js, e o banner de terminado/parado. Sem
- * botões de ação no cabeçalho — Renomear/Dividir/Fechar/Voltar à grelha são só `Alt+R`/`Alt+\`/`Alt+W`/`Esc`
- * (2026-09-29: o dono já sabe os atalhos, o cabeçalho fica limpo). */
+ * botões de ação no cabeçalho, que fica limpo (2026-09-29): Renomear/Dividir/Fechar/Voltar à grelha são
+ * `Alt+R`/`Alt+\`/`Alt+W`/`Esc` e o menu de contexto do cabeçalho (2026-11-05). */
 export function TerminalPane(props: TerminalPaneProps) {
   const { terminal, visible, focused, renaming, reopening, variant = 'pane', enlarged = false } = props;
   const tile = variant === 'tile';
@@ -136,6 +139,7 @@ export function TerminalPane(props: TerminalPaneProps) {
       onMouseDown={props.onActivate}
       onDoubleClick={compactHeader ? props.onEnlarge : undefined}
     >
+      <TerminalContextMenu menu={props.menu} disabled={renaming}>
       <header
         className={`${compactHeader ? 'h-10 pl-3 pr-3' : 'h-11 pl-4 pr-3'} flex-none flex items-center gap-2.5 border-b border-border min-w-0 ${
           focused && !compactHeader ? 'bg-surface-2' : 'bg-surface-1'
@@ -164,6 +168,7 @@ export function TerminalPane(props: TerminalPaneProps) {
         <div className="flex-1 min-w-0" />
         {compactHeader && <span className={meta.tag}>{meta.label}</span>}
       </header>
+      </TerminalContextMenu>
 
       {terminal.status === 'stopped' ? (
         <div className="flex-1 flex flex-col items-center justify-center gap-3 text-center px-6">

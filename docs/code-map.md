@@ -59,7 +59,7 @@ isso há os outros:
 | Camada | Ficheiros |
 |---|---|
 | **Entrada** | rota `/terminals` → `frontend/src/pages/TerminalsPage.tsx` (foco dividido / grelha, atalhos, reabrir) |
-| **Frontend** | `components/terminals/` — `TerminalView.tsx` (xterm.js + WS) · `TerminalPane.tsx` (cabeçalho, banner; variante `tile`) · `TerminalSidebar.tsx` (por projetos) · `TerminalGrid.tsx` · `QuotaMeter.tsx` · `projects.ts` · `new/` (drawer Novo terminal) |
+| **Frontend** | `components/terminals/` — `TerminalView.tsx` (xterm.js + WS) · `TerminalPane.tsx` (cabeçalho, banner; variante `tile`) · `TerminalSidebar.tsx` (por projetos) · `TerminalContextMenu.tsx` + `terminalMenu.ts` (o botão direito na lateral e no cabeçalho) · `TerminalGrid.tsx` · `QuotaMeter.tsx` · `projects.ts` · `new/` (drawer Novo terminal) |
 | | `components/settings/SettingsDrawer.tsx` · `hooks/{useTerminals,useLayoutMode,useUsage}.ts` · `services/{terminal,session,folder,usage}Service.ts` · `types/{terminal,session,folder,usage}.ts` · `terminal/terminalSize.ts` |
 | **Backend** | `backend/src/terminals/` — `terminals.routes.ts` · `terminals.gateway.ts` (WS) · `terminalsService.ts` (ciclo de vida) · `terminalManager.ts` (PTYs) · `claudeArgs.ts` · `terminal.schemas.ts` |
 | | `backend/src/sessions/` (`.jsonl` do Claude Code) · `backend/src/folders/` (política de pastas, favoritas, browse) · `backend/src/usage/` (quota) · `backend/src/accounts/` — `accounts.routes.ts` (`/api/accounts`) · `accountsService.ts` (conta ativa, criar/renomear/remover, terminal de login, preparar um lançamento) · `accountDirs.ts` (pastas das contas do Claude: junctions, sincronização, login, remoção segura) · `accounts.schemas.ts`; ADR 0027, 🚧 spec contas-do-claude |

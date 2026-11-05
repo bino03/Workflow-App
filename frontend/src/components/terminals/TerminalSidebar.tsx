@@ -1,10 +1,11 @@
 import { useState, type ReactNode } from 'react';
 import { DownOutlined, HistoryOutlined, MenuFoldOutlined, MenuUnfoldOutlined, PlusOutlined, StarFilled, StarOutlined } from '@ant-design/icons';
-import { Button, Tooltip } from 'antd';
+import { Button, Tooltip, type MenuProps } from 'antd';
 import { AccountPicker } from '@/components/accounts/AccountPicker';
 import { AccountTag } from '@/components/accounts/AccountTag';
-import type { TerminalStatus } from '@/types/terminal';
+import type { TerminalStatus, TerminalView } from '@/types/terminal';
 import type { Project } from './projects';
+import { TerminalContextMenu } from './TerminalContextMenu';
 import { STATUS_META, statusDetail } from './terminalDisplay';
 
 type TerminalSidebarProps = {
@@ -20,6 +21,8 @@ type TerminalSidebarProps = {
   onSelectProject: (path: string) => void;
   /** Clicar um terminal: abre/foca o separador do projeto dele e seleciona-o. */
   onSelectTerminal: (id: string) => void;
+  /** O menu de contexto de cada terminal. */
+  menuFor: (terminal: TerminalView) => MenuProps;
   /** `accountId` omitido: a conta ativa. */
   onNewInProject: (path: string, accountId?: string) => void;
   onResumeInProject: (path: string) => void;
@@ -187,8 +190,8 @@ export function TerminalSidebar(props: TerminalSidebarProps) {
                     const shown = active && visibleIds.includes(terminal.id);
                     const index = active ? (shortcutIndex.get(terminal.id) ?? 99) : 99;
                     return (
+                      <TerminalContextMenu key={terminal.id} menu={props.menuFor(terminal)}>
                       <button
-                        key={terminal.id}
                         type="button"
                         data-terminal-item={terminal.id}
                         aria-current={shown ? 'true' : undefined}
@@ -213,6 +216,7 @@ export function TerminalSidebar(props: TerminalSidebarProps) {
                           <AccountTag accountId={terminal.accountId} className="h-[18px] px-1.5 text-[11px] max-w-[110px]" />
                         </span>
                       </button>
+                      </TerminalContextMenu>
                     );
                   })}
                 </div>

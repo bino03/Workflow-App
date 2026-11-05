@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router';
-import { Alert, Button, Spin } from 'antd';
+import { Alert, Button, Spin, type MenuProps } from 'antd';
 import { accountLabelOf } from '@/components/accounts/accountLabel';
 import { ContextSizeNotice } from '@/components/terminals/ContextSizeNotice';
 import { ResumeSessionModal } from '@/components/terminals/new/ResumeSessionModal';
@@ -10,6 +10,7 @@ import { GridStylePicker } from '@/components/terminals/GridStylePicker';
 import { displayNames, type Project, joinProjects, projectsWithTerminals } from '@/components/terminals/projects';
 import { QuotaMeter } from '@/components/terminals/QuotaMeter';
 import { TerminalGrid } from '@/components/terminals/TerminalGrid';
+import { parseTerminalMenuKey, terminalMenuItems, type TerminalViewAction } from '@/components/terminals/terminalMenu';
 import { PreviewPortsModal } from '@/components/terminals/PreviewPortsModal';
 import { TerminalPane } from '@/components/terminals/TerminalPane';
 import { TerminalSidebar } from '@/components/terminals/TerminalSidebar';
@@ -26,7 +27,7 @@ import { getFolders, setFavoriteFolder } from '@/services/folderService';
 import { notificationService } from '@/services/general/notificationService';
 import { getTerminalContext } from '@/services/terminalService';
 import { estimateTerminalSize } from '@/terminal/terminalSize';
-import type { CreateTerminalBody, DevPort, TerminalSize } from '@/types/terminal';
+import type { CreateTerminalBody, DevPort, TerminalSize, TerminalView } from '@/types/terminal';
 
 const PANE_HEADER_HEIGHT = 44;
 const FONT_DELTA_LIMITS = { min: -4, max: 16 };
@@ -482,18 +483,94 @@ export function TerminalsPage() {
     [names, confirm, close],
   );
 
-  const toggleSplit = () => {
-    if (!activePath) return;
-    if (secondaryId) {
-      updateLayout(activePath, { splitId: null, activeId: primaryId });
+  /** Quem está no ecrã de um projeto, no foco dividido — a mesma regra do projeto ativo, para qualquer projeto. */
+  const splitStateOf = (project: Project) => {
+    const current = layoutFor(project.path);
+    const inProject = (id: string | null) => !!id && project.terminals.some((t) => t.id === id);
+    const primary = inProject(current.selectedId) ? current.selectedId : (project.terminals[0]?.id ?? null);
+    const secondary = inProject(current.splitId) && current.splitId !== primary ? current.splitId : null;
+    return { current, inProject, primary, secondary };
+  };
+
+  /**
+   * Dividir a partir de um terminal: se já está no ecrã dividido, junta; o principal divide com o anterior (ou o
+   * primeiro que houver); qualquer outro fica ao lado do principal. Abre o separador do projeto dele, se preciso.
+   */
+  const toggleSplitFor = (id: string) => {
+    const project = projects.find((p) => p.terminals.some((t) => t.id === id));
+    if (!project) return;
+    const { current, inProject, primary, secondary } = splitStateOf(project);
+    setOpenPaths((prev) => (prev.includes(project.path) ? prev : [...prev, project.path]));
+    setActivePath(project.path);
+    if (secondary && (id === primary || id === secondary)) {
+      updateLayout(project.path, { splitId: null, activeId: primary });
       return;
     }
     const candidate =
-      (existsInActive(activeLayout.previousId) && activeLayout.previousId !== primaryId ? activeLayout.previousId : null) ??
-      activeTerminals.find((t) => t.id !== primaryId)?.id ??
-      null;
-    if (candidate) updateLayout(activePath, { splitId: candidate, activeId: candidate });
+      id !== primary
+        ? id
+        : ((inProject(current.previousId) && current.previousId !== primary ? current.previousId : null) ??
+          project.terminals.find((t) => t.id !== primary)?.id ??
+          null);
+    if (candidate) updateLayout(project.path, { splitId: candidate, activeId: candidate });
   };
+
+  const toggleSplit = () => {
+    if (primaryId) toggleSplitFor(primaryId);
+  };
+
+  /** O texto da ação de vista do menu: na grelha amplia ou volta; no foco dividido junta, divide, ou põe ao lado. */
+  const viewActionFor = (terminal: TerminalView): TerminalViewAction => {
+    if (grid) return { label: terminal.id === enlarged ? 'Voltar à grelha' : 'Ampliar' };
+    const project = projects.find((p) => p.terminals.some((t) => t.id === terminal.id));
+    if (!project) return { label: 'Ver lado a lado', disabled: true };
+    const { primary, secondary } = splitStateOf(project);
+    if (secondary && (terminal.id === primary || terminal.id === secondary)) return { label: 'Juntar' };
+    if (terminal.id === primary) return { label: 'Dividir', disabled: project.terminals.length < 2 };
+    return { label: 'Ver lado a lado' };
+  };
+
+  /** Traz um terminal para o ecrã. Na grelha, com outro ampliado no projeto dele, o clique normal não chegava: amplia-o. */
+  const bringIntoView = (terminal: TerminalView) => {
+    const otherEnlarged = layoutFor(terminal.cwd).enlargedId;
+    if (grid && otherEnlarged && otherEnlarged !== terminal.id) focusTerminal(terminal.cwd, terminal.id);
+    else selectTerminal(terminal.id);
+  };
+
+  const runTerminalAction = (terminal: TerminalView, key: string) => {
+    const action = parseTerminalMenuKey(key);
+    switch (action.type) {
+      case 'reopen':
+        bringIntoView(terminal);
+        void handleReopen(terminal.id);
+        break;
+      case 'continue':
+        bringIntoView(terminal);
+        void handleContinueIn(terminal.id, action.accountId);
+        break;
+      case 'rename':
+        bringIntoView(terminal);
+        // Na volta seguinte: trazê-lo para o ecrã foca o xterm.js, que tirava o foco ao campo do nome e o fechava.
+        window.setTimeout(() => setRenamingId(terminal.id), 0);
+        break;
+      case 'view':
+        if (!grid) toggleSplitFor(terminal.id);
+        else if (terminal.id === enlarged) exitEnlarge();
+        else focusTerminal(terminal.cwd, terminal.id);
+        break;
+      case 'preview':
+        void togglePreview(terminal.id);
+        break;
+      case 'close':
+        requestClose(terminal.id);
+        break;
+    }
+  };
+
+  const menuFor = (terminal: TerminalView): MenuProps => ({
+    items: terminalMenuItems(terminal, viewActionFor(terminal), accountsView),
+    onClick: ({ key }) => runTerminalAction(terminal, key),
+  });
 
   /**
    * Saltar para um terminal do projeto ativo. Na grelha, o salto por número amplia (e, no já ampliado,
@@ -682,6 +759,7 @@ export function TerminalsPage() {
       onExit={(code) => handleExit(terminal.id, code)}
       onGone={refresh}
       onPreviewStop={() => void togglePreview(terminal.id)}
+      menu={menuFor(terminal)}
     />
   );
 
@@ -718,6 +796,7 @@ export function TerminalsPage() {
       visibleIds={visibleIds}
       onSelectProject={(path) => void handleSelectProject(path)}
       onSelectTerminal={selectTerminal}
+      menuFor={menuFor}
       onNewInProject={(path, accountId) => void handleNewInProject(path, accountId)}
       onResumeInProject={(path) => setResumePath(path)}
       onToggleFavorite={(path, favorite) => void handleToggleFavorite(path, favorite)}

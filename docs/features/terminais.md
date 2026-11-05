@@ -69,6 +69,10 @@ resumo.
   todos editáveis nas Definições, com ações novas ([[atalhos-editaveis]]). **Revisto 2026-09-29**: o cabeçalho do painel deixou de
   mostrar botões e atalhos (sem "⌨ TECLADO AQUI", sem `.kbd` junto de Renomear/Dividir/Fechar/Voltar à
   grelha) — o dono já sabe os atalhos de cor; ver [[../skills/references/design/buttons-and-icons]].
+- **Menu de contexto** (pedido do dono, 2026-11-05): botão direito, ou Shift+F10, num terminal da lateral ou no cabeçalho
+  dele. Renomear · Dividir/Ver lado a lado/Juntar (na grelha, Ampliar/Voltar à grelha) · Pré-visualizar · Fechar; num
+  terminal parado ou terminado, também Reabrir e Continuar noutra conta. A área de texto fica de fora. Só ações que já
+  existiam: o dono recusou, por agora, Copiar caminho, Copiar comando de retomar, Parar sem fechar e Abrir pasta.
 - **Quota** (se o spike do passo 1 a confirmar): janela de 5 h e semanal, com hora de reposição.
 
 ### ⛔ Fora — não implementar nesta feature

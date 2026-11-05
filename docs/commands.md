@@ -129,6 +129,7 @@ node scripts/verify/upwork-attachments.mjs                # os prints a anexar (
 node scripts/verify/usage-warning.mjs                     # o aviso de limite da quota (escreve o usage.json da instância à mão)
 node scripts/verify/accounts.mjs                          # o drawer "Escolher conta" (adicionar, ativa, renomear, remover; instância nova)
 node scripts/verify/accounts-terminals.mjs                # a conta de cada terminal (selo, "Noutra conta", "Continuar noutra conta", Retomar; instância nova)
+node scripts/verify/terminal-menu.mjs                     # o menu de contexto dos terminais, no foco dividido e na grelha (instância nova)
 node scripts/verify/instance.mjs stop --clean             # mata a árvore pelo PID da porta e apaga a pasta
 ```
 
@@ -196,7 +197,7 @@ node scripts/verify/instance.mjs stop --clean             # mata a árvore pelo 
 | Backend | Spike manual da status line (`scripts/statusline-spike.ts`): `--session-id`, `--settings`, `rate_limits` no JSON, caminho do `.jsonl` | o `claude` real (`--prompt` gasta uma mensagem) | ✅ a 2026-09-28: `rate_limits` só depois da 1.ª resposta |
 | Frontend | `npx tsc -b` + lint | — | ✅ limpos a 2026-09-28 |
 | Frontend | Testes automáticos | — | **nenhum** (omissão da stack) — verificação no browser (DOM + rede); a `/_tokens` (só dev) mostra tokens e componentes comuns montados |
-| App inteira | `scripts/verify/` — cenários por CDP contra uma instância de teste (secção acima) | o backend real numa porta à parte, Chrome headless | ✅ `smoke.mjs` 6/6 a 2026-10-23, 2026-10-26, 2026-10-27 e 2026-11-01 · `upwork.mjs` 34/34 a 2026-10-26 e 2026-10-27 · `upwork-menu.mjs` 26/26 a 2026-10-27 · `usage-warning.mjs` 27/27 a 2026-11-01 e 2026-11-03 · `accounts.mjs` 37/37 a 2026-11-03 e 2026-11-05 · `smoke.mjs` 6/6 e `upwork.mjs` 34/34 a 2026-11-03 · `accounts-terminals.mjs` 41/41 e `smoke.mjs` 6/6 a 2026-11-05. Os cenários das specs antigas não foram portados |
+| App inteira | `scripts/verify/` — cenários por CDP contra uma instância de teste (secção acima) | o backend real numa porta à parte, Chrome headless | ✅ `smoke.mjs` 6/6 a 2026-10-23, 2026-10-26, 2026-10-27 e 2026-11-01 · `upwork.mjs` 34/34 a 2026-10-26 e 2026-10-27 · `upwork-menu.mjs` 26/26 a 2026-10-27 · `usage-warning.mjs` 27/27 a 2026-11-01 e 2026-11-03 · `terminal-menu.mjs` 42/42, `accounts.mjs` 53/53, `accounts-terminals.mjs` 41/41 e `smoke.mjs` 6/6 a 2026-11-05 · `upwork.mjs` 34/34 a 2026-11-03. Os cenários das specs antigas não foram portados |
 
 **O que não está coberto, sem suavizar**: ninguém testa automaticamente o Claude Code a correr dentro
 do PTY (depende do login real e gasta quota); a renderização do terminal (canvas do xterm.js) só se

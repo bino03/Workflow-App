@@ -128,6 +128,12 @@ botão direito abre-o junto ao rato; **Shift+F10 / tecla de menu** num card foca
   para "Copiado".
 - O que destrói (`Apagar`) vai em último, com `danger: true`.
 
+**Num terminal** (`components/terminals/{TerminalContextMenu.tsx,terminalMenu.ts}`, 2026-11-05, Chrome headless 42/42): na
+lateral e no cabeçalho, **nunca na área de texto**, onde o botão direito continua a ser o do browser, para copiar e colar.
+Desliga-se enquanto se edita o nome, pela mesma razão. Age sobre o terminal clicado, não sobre o que tem o foco. Ao contrário
+do card, um terminal fora do ecrã **vem para o ecrã** quando a ação precisa dele (Renomear, Reabrir), porque o campo ou o
+terminal vivem no painel.
+
 ## Drift encontrado — não copiar
 
 _Nenhum ainda._ Vigiar: ações horizontais só-ícone; estilos de botão repetidos por ficheiro; `padding` a duplicar o do layout.
