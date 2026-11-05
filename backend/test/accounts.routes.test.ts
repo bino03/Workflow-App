@@ -132,6 +132,26 @@ describe('/api/accounts (ADR 0027)', () => {
     expect((await call('PUT', '/api/accounts/active', { accountId: 'qualquer' })).statusCode).toBe(400);
   });
 
+  it('POST /reopen with an accountId moves the terminal there; without one it keeps its account', async () => {
+    const id = await add('Trabalho');
+    const terminal = (await call('POST', '/api/terminals', { cwd: project, mode: 'new', ...size })).json();
+    expect(terminal.accountId).toBe('primary');
+    await terminalManager.kill(terminal.id);
+
+    const moved = await call('POST', `/api/terminals/${terminal.id}/reopen`, { ...size, accountId: id });
+    expect(moved.statusCode).toBe(200);
+    expect(moved.json().accountId).toBe(id);
+    expect(claude.launches.at(-1)!.configDir).toBe(join(dataDir, 'accounts', id));
+    await terminalManager.kill(terminal.id);
+
+    const kept = await call('POST', `/api/terminals/${terminal.id}/reopen`, size);
+    expect(kept.json().accountId).toBe(id);
+    await terminalManager.kill(terminal.id);
+
+    const unknown = await call('POST', `/api/terminals/${terminal.id}/reopen`, { ...size, accountId: UNKNOWN });
+    expect([unknown.statusCode, unknown.json().errorCode]).toEqual([404, 'ACCOUNT_001']);
+  });
+
   it('the login route opens a visible terminal in that account, in DEFAULT_CWD, whose first message is /login', async () => {
     const id = await add('Trabalho');
     const res = await call('POST', `/api/accounts/${id}/login`, size);

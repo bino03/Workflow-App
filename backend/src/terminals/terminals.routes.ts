@@ -30,7 +30,8 @@ export async function terminalsRoutes(app: FastifyInstance, { terminalsService }
 
   app.post<IdParams>('/api/terminals/:id/reopen', async (request) => {
     const id = terminalId(request.params.id);
-    const view = await terminalsService.reopen(id, parseWith(reopenTerminalSchema, request.body));
+    const { accountId, ...size } = parseWith(reopenTerminalSchema, request.body);
+    const view = await terminalsService.reopen(id, size, { accountId });
     request.log.info({ terminalId: id }, 'terminal reopened');
     return view;
   });
