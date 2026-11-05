@@ -6,6 +6,8 @@ export type UsageContextValue = {
   usage: UsageView | null;
   /** Avança com cada sondagem — para o "há X min" e para saber se uma janela já repôs. */
   now: number;
+  /** Relê já, sem esperar pela sondagem (a conta ativa mudou). */
+  refresh: () => void;
 };
 
 export const UsageContext = createContext<UsageContextValue | null>(null);

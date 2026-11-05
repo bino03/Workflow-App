@@ -127,8 +127,17 @@ node scripts/verify/upwork.mjs                            # a secção Upwork de
 node scripts/verify/upwork-menu.mjs                       # o menu de contexto da lista Upwork (mesma instância, nova)
 node scripts/verify/upwork-attachments.mjs                # os prints a anexar (instância nova com --portfolio "<portfólio>")
 node scripts/verify/usage-warning.mjs                     # o aviso de limite da quota (escreve o usage.json da instância à mão)
+node scripts/verify/accounts.mjs                          # o drawer "Escolher conta" (adicionar, ativa, renomear, remover; instância nova)
 node scripts/verify/instance.mjs stop --clean             # mata a árvore pelo PID da porta e apaga a pasta
 ```
+
+- ⚠️ **A partir de uma sessão do Claude Code, arrancar a instância e correr o cenário na mesma chamada da ferramenta.** Visto
+  a 2026-11-03: a instância arrancada numa chamada já não respondia na seguinte, sem nada no log, apesar de `detached`.
+  O sintoma é `Cannot read properties of null (reading 'focus')` no login, ou `fetch failed`.
+- **`accounts.mjs`** — o drawer "Escolher conta" ([[features/contas-do-claude|contas-do-claude]] passo 8): o item por cima de
+  Definições, adicionar com `/terminals` já aberto e a partir de `/library` (a faixa de login só aparece com o terminal à
+  vista, por isso prova o foco), a quota da lateral a acompanhar a ativa, renomear, remover com um terminal a correr
+  (`ACCOUNT_004` real) e sem ele (a pasta desaparece). Escreve os `usage*.json` à mão. Precisa de uma instância nova.
 
 - **`upwork-attachments.mjs`** — o cartão "Prints a anexar" ([[adr/0024-prints-do-portfolio-nas-candidaturas]]): a
   instância arranca com `--portfolio <caminho>` (o `PORTFOLIO_PATH`, só lido; sem a opção fica vazio, mesmo que o
@@ -179,7 +188,7 @@ node scripts/verify/instance.mjs stop --clean             # mata a árvore pelo 
 | Backend | Spike manual da status line (`scripts/statusline-spike.ts`): `--session-id`, `--settings`, `rate_limits` no JSON, caminho do `.jsonl` | o `claude` real (`--prompt` gasta uma mensagem) | ✅ a 2026-09-28: `rate_limits` só depois da 1.ª resposta |
 | Frontend | `npx tsc -b` + lint | — | ✅ limpos a 2026-09-28 |
 | Frontend | Testes automáticos | — | **nenhum** (omissão da stack) — verificação no browser (DOM + rede); a `/_tokens` (só dev) mostra tokens e componentes comuns montados |
-| App inteira | `scripts/verify/` — cenários por CDP contra uma instância de teste (secção acima) | o backend real numa porta à parte, Chrome headless | ✅ `smoke.mjs` 6/6 a 2026-10-23, 2026-10-26, 2026-10-27 e 2026-11-01 · `upwork.mjs` 34/34 a 2026-10-26 e 2026-10-27 · `upwork-menu.mjs` 26/26 a 2026-10-27 · `usage-warning.mjs` 27/27 a 2026-11-01. Os cenários das specs antigas não foram portados |
+| App inteira | `scripts/verify/` — cenários por CDP contra uma instância de teste (secção acima) | o backend real numa porta à parte, Chrome headless | ✅ `smoke.mjs` 6/6 a 2026-10-23, 2026-10-26, 2026-10-27 e 2026-11-01 · `upwork.mjs` 34/34 a 2026-10-26 e 2026-10-27 · `upwork-menu.mjs` 26/26 a 2026-10-27 · `usage-warning.mjs` 27/27 a 2026-11-01 e 2026-11-03 · `accounts.mjs` 37/37 a 2026-11-03 · `smoke.mjs` 6/6 e `upwork.mjs` 34/34 a 2026-11-03. Os cenários das specs antigas não foram portados |
 
 **O que não está coberto, sem suavizar**: ninguém testa automaticamente o Claude Code a correr dentro
 do PTY (depende do login real e gasta quota); a renderização do terminal (canvas do xterm.js) só se

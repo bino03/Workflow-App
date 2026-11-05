@@ -4,8 +4,8 @@
 |---|---|
 | **Estado** | 🚧 Em curso |
 | **Criada** | 2026-11-01 |
-| **Última sessão** | 2026-11-01 |
-| **Passos** | 7 / 10 concluídos |
+| **Última sessão** | 2026-11-03 |
+| **Passos** | 8 / 10 concluídos |
 
 > Escrita para uma sessão que **não viu a conversa que a originou**. Se algo só faz sentido com contexto
 > externo, falta escrevê-lo.
@@ -293,7 +293,7 @@ Ordem obrigatória. Tiers: `opus` (desenho, não delegar) · `sonnet` (implement
     respostas dá `null`. A rota responde em menos de 200 ms numa conversa de mais de 5 MB (lê do fim). Testes a
     passar, e [[../api]] atualizado.
 
-- [ ] **8. Frontend: menu do cabeçalho, drawer "Escolher conta", quota da ativa**
+- [x] **8. Frontend: menu do cabeçalho, drawer "Escolher conta", quota da ativa**
   - Ficheiro: `frontend/src/layouts/AppLayout.tsx`, `components/accounts/AccountsDrawer.tsx`,
     `contexts/AccountsContext.tsx`, `services/accountService.ts`, `types/account.ts`, `errors/errorMessages.ts`,
     `hooks/useUsage.ts`, `pages/TerminalsPage.tsx:694`
@@ -403,10 +403,26 @@ Ordem obrigatória. Tiers: `opus` (desenho, não delegar) · `sonnet` (implement
   - Por HTTP numa instância de teste, 5/5.
 - O frontend espelha os campos novos (`types/session.ts`, `types/terminal.ts`).
 - **O backend da spec está completo (passos 1-7).**
+**Passo 8 feito a 2026-11-03**:
+- O que entrou:
+  - `types/account.ts`, `services/accountService.ts`, `contexts/AccountsContext.tsx` (sondagem a 60 s) e `hooks/useAccounts.ts`.
+  - `components/accounts/`: `AccountsDrawer`, `AccountQuota`, `AccountNameForm` e `accountFormSchema.ts`.
+  - O item "Conta: <nome>" por cima de Definições, e o nome da ativa por cima do `QuotaMeter` com mais de uma conta.
+- Decisões:
+  - O `useUsage` continua no `/api/usage`. O `UsageProvider` ganhou `refresh()`, que o `AccountsProvider` chama sempre que a ativa muda, seja por que via for.
+  - A quota do drawer é compacta (duas barras finas), e não o `QuotaMeter`. Os dois leem a mesma função, `readQuota` (`usage/usageLimits.ts`).
+  - Uma leitura que saiu antes de uma mudança é ignorada quando chega depois, nas contas e na quota.
+- Desvios:
+  - O `TerminalsPage` passou a tratar o `focusTerminalId` num só sítio, também com a página já aberta. O drawer vive no cabeçalho, e em `/terminals` a página não monta de novo; antes, o pedido só era lido ao montar.
+  - "Adicionar conta" fica desativado com 5 contas, além do `ACCOUNT_002` do backend.
+- Testes: `tsc -b` e lint limpos. `scripts/verify/accounts.mjs` 37/37 em Chrome headless, com o `ACCOUNT_004` real. Sem regressões: `smoke` 6/6, `usage-warning` 27/27, `upwork` 34/34.
+- O que não foi testado: o `ACCOUNT_002` pela interface, e um login real (fica para o passo 10).
 **Em curso:** —
-**Próxima ação concreta:** passo 8 (frontend: item "Conta: <nome>" por cima de Definições, drawer "Escolher conta", `AccountsContext`; ler o `UsageProvider` que já existe), com `/frontend-design-system` e `/frontend-error-handling`, em modo NORMAL.
+**Próxima ação concreta:** passo 9 (selo da conta em cada terminal, "Noutra conta", "Continuar noutra conta" com `ContextSizeConfirm`, seletor no `ResumeSessionModal`), com `/frontend-design-system` e `/frontend-error-handling`, em modo NORMAL.
 **Desvios ao plano:** —
 **O que uma sessão nova precisa de saber:**
+- ❓ **A confirmar no passo 10:** na instância de teste, sem `settings.json` na principal, o terminal de login de uma conta nova abriu no ecrã de escolha de tema ("Let's get started"), antes do login. O spike (e) registou que não havia nada antes do login. A faixa já diz para responder lá aos diálogos, mas pode ser preciso ajustar o texto.
+- O aviso de limite ainda não distingue contas: ver a entrada em [[../../notes/ToDo|ToDo]] → Manutenção.
 - **Cada conta nova mostra os diálogos de primeira vez** do Claude Code (no spike: "Claude in Chrome extension
   detected"), porque o `.claude.json` dela começa só com `mcpServers`. A confiança das pastas também é por conta. Um
   `claude` sem ninguém no PTY (sessões guiadas, importações, Upwork, Remote Control pelo bot) pode ficar parado num
@@ -430,7 +446,7 @@ Ordem obrigatória. Tiers: `opus` (desenho, não delegar) · `sonnet` (implement
 | ~~`claude "/login"` corre o login como primeira mensagem?~~ | — | ✅ Spike (e), 2026-11-01: sim. A rota `/login` usa-o |
 | ~~As junctions de `plugins/` funcionam com os caminhos absolutos do `known_marketplaces.json`?~~ | — | ✅ Spike (c), 2026-11-01: os plugins aparecem na conta nova |
 | ~~Como evitar que um `claude` sem ninguém no PTY fique parado num diálogo de primeira vez de uma conta extra?~~ | — | ✅ Dono, 2026-11-01: **o terminal de login fica aberto** depois do `/login`, e a faixa diz para responder lá aos diálogos de primeira vez. Não se copiam flags internas do `.claude.json` (mudam entre versões). Entra no passo 6 (rota `/login`) e no passo 8 (texto da faixa) |
-| O `QuotaMeter` do drawer usa o mesmo componente da barra lateral ou uma versão compacta? | Passo 8 | Decidir no passo, com [[../skills/references/frontend-visual-consistency]] |
+| ~~O `QuotaMeter` do drawer usa o mesmo componente da barra lateral ou uma versão compacta?~~ | — | ✅ Passo 8, 2026-11-03: versão compacta (`AccountQuota`), com a mesma leitura (`readQuota`) |
 
 ## Relacionado
 

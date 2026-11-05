@@ -11,6 +11,46 @@ export function resetText(resetsAt: string, now: number): string {
   return date.toDateString() === today.toDateString() ? `repõe às ${hhmm(date)}` : `repõe ${WEEKDAYS[date.getDay()]}, ${hhmm(date)}`;
 }
 
+const WARN_PCT = 80;
+/** Mais velho do que isto, o valor passa a cinzento com "há X min": sem atividade não há atualizações. */
+const STALE_MS = 10 * 60_000;
+
+function agoText(fetchedAt: string, now: number): string {
+  const minutes = Math.max(1, Math.round((now - Date.parse(fetchedAt)) / 60_000));
+  if (minutes < 60) return `há ${minutes} min`;
+  if (minutes < 24 * 60) return `há ${Math.round(minutes / 60)} h`;
+  const days = Math.floor(minutes / (24 * 60));
+  return `há ${days} ${days === 1 ? 'dia' : 'dias'}`;
+}
+
+export type QuotaCell = { label: string; short: string; window: UsageWindow | null; pct: number | null; warn: boolean };
+
+export type QuotaReading = {
+  /** A status line ainda não viu nenhuma resposta desta conta. */
+  empty: boolean;
+  /** Preenchido só quando o valor já é velho: "há 2 h". */
+  staleAgo: string | null;
+  cells: QuotaCell[];
+};
+
+/** O que os medidores da quota mostram: a lateral (`QuotaMeter`) e cada conta no drawer (`AccountQuota`). */
+export function readQuota(usage: UsageView | null, now: number): QuotaReading {
+  const fetchedAt = usage?.fetchedAt ?? null;
+  const stale = fetchedAt !== null && now - Date.parse(fetchedAt) > STALE_MS;
+  const rows = [
+    { label: 'Janela de 5 h', short: '5 h', window: usage?.fiveHour ?? null },
+    { label: 'Semanal', short: 'Semana', window: usage?.weekly ?? null },
+  ];
+  const cells = rows.map((row) => {
+    // Depois da hora de reposição, o valor guardado já não diz nada: "—".
+    const expired = row.window !== null && Date.parse(row.window.resetsAt) <= now;
+    const window = expired ? null : row.window;
+    const pct = window ? Math.round(window.usedPct) : null;
+    return { ...row, window, pct, warn: pct !== null && pct >= WARN_PCT && !stale };
+  });
+  return { empty: fetchedAt === null, staleAgo: stale && fetchedAt ? agoText(fetchedAt, now) : null, cells };
+}
+
 export type LimitWarningKey = 'fiveHour100' | 'fiveHour90' | 'weekly90';
 
 type LimitRule = { key: LimitWarningKey; field: 'fiveHour' | 'weekly'; threshold: number; label: string };

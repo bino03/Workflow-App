@@ -91,7 +91,10 @@ Ant Design para componentes, Tailwind para estilo próprio, tokens CSS como font
   (`event.target.closest('.xterm')`).
 - **Quota**: uma só sondagem de `/api/usage` (60 s), no `UsageProvider` do `AppLayout`. O `useUsage()` lê-a, e
   nenhum componente sonda por conta própria. Quem a usa: a lateral dos terminais (`QuotaMeter`) e o aviso de
-  limite (`UsageLimitModal`, em qualquer página).
+  limite (`UsageLimitModal`, em qualquer página). A quota é a da conta ativa: o `AccountsProvider` chama o `refresh()`
+  do `useUsage()` sempre que a ativa muda, e uma leitura que saiu antes da mudança é ignorada.
+- **Foco num terminal vindo de outro sítio**: `navigate('/terminals', { state: { focusTerminalId } })`, também com a
+  página já aberta. O `TerminalsPage` foca-o assim que está na lista, relê a lista se ainda lá não estiver, e limpa o estado.
 - Portas: dev server em **7401** com `strictPort` (não colidir com os dev servers dos projetos abertos
   dentro dos terminais).
 

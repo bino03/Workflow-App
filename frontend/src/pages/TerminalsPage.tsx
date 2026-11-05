@@ -18,6 +18,7 @@ import { useLayoutMode } from '@/hooks/useLayoutMode';
 import { useProjects } from '@/hooks/useProjects';
 import { useShortcuts } from '@/hooks/useShortcuts';
 import { useTerminals } from '@/hooks/useTerminals';
+import { useAccounts } from '@/hooks/useAccounts';
 import { useUsage } from '@/hooks/useUsage';
 import { getFolders, setFavoriteFolder } from '@/services/folderService';
 import { notificationService } from '@/services/general/notificationService';
@@ -114,6 +115,7 @@ export function TerminalsPage() {
   const [favoritesVersion, setFavoritesVersion] = useState(0);
   const [layout] = useLayoutMode();
   const { usage, now } = useUsage();
+  const { view: accountsView, active: activeAccount } = useAccounts();
 
   const [openPaths, setOpenPaths] = useState<string[]>([]);
   const [activePath, setActivePath] = useState<string | null>(null);
@@ -130,6 +132,8 @@ export function TerminalsPage() {
   const [creatingIn, setCreatingIn] = useState<string | null>(null);
   const [fontDelta, setFontDelta] = useState(0);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(readSidebarCollapsed);
+  /** O terminal de login de uma conta nova (ADR 0027): a faixa fica enquanto ele estiver à vista. */
+  const [loginBanner, setLoginBanner] = useState<{ terminalId: string; accountLabel: string } | null>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -148,24 +152,20 @@ export function TerminalsPage() {
   // "Ver terminal" de uma importação (ADR 0019) chega com o id no estado da navegação — a página monta de novo.
   const location = useLocation();
   const navigate = useNavigate();
-  const focusFromNavigation = (location.state as { focusTerminalId?: string } | null)?.focusTerminalId;
+  const navigationState = location.state as { focusTerminalId?: string; loginAccountLabel?: string } | null;
+  const focusFromNavigation = navigationState?.focusTerminalId;
+  const loginAccountLabel = navigationState?.loginAccountLabel;
+  const [handledFocusId, setHandledFocusId] = useState<string | null>(null);
 
-  // Ao carregar: um separador por cada projeto que já tem terminais (spec §3) — só uma vez. Um terminal pedido
-  // pela navegação abre o seu separador com o foco, e o estado limpa-se para um "voltar" não o repetir.
+  // Ao carregar: um separador por cada projeto que já tem terminais (spec §3) — só uma vez. Um terminal pedido pela
+  // navegação (mais abaixo) pode já ter aberto o seu separador: junta-se a estes e fica o ativo.
   useEffect(() => {
     if (seeded.current || terminalsLoading || registryLoading) return;
     seeded.current = true;
-    const withTerminals = projectsWithTerminals(projects).map((p) => p.path);
-    const target = focusFromNavigation ? terminals.find((t) => t.id === focusFromNavigation) : undefined;
-    const paths = target && !withTerminals.includes(target.cwd) ? [...withTerminals, target.cwd] : withTerminals;
-    const nextLayouts = target
-      ? { ...layouts, [target.cwd]: focusedLayout(layouts[target.cwd] ?? defaultLayoutFor(target.cwd), target.id, grid) }
-      : layouts;
-    setOpenPaths(paths);
-    setActivePath(target?.cwd ?? paths[0] ?? null);
-    setLayouts(nextLayouts);
-    if (focusFromNavigation) void navigate(location.pathname, { replace: true, state: null });
-  }, [terminalsLoading, registryLoading, projects, terminals, focusFromNavigation, grid, navigate, location.pathname, layouts]);
+    const paths = projectsWithTerminals(projects).map((p) => p.path);
+    setOpenPaths((prev) => [...paths, ...prev.filter((path) => !paths.includes(path))]);
+    setActivePath((prev) => prev ?? paths[0] ?? null);
+  }, [terminalsLoading, registryLoading, projects]);
 
   const openProjects = useMemo(
     () => openPaths.map((path) => projects.find((p) => p.path === path)).filter((p): p is Project => !!p),
@@ -233,6 +233,22 @@ export function TerminalsPage() {
     },
     [grid],
   );
+
+  // Um terminal pedido pela navegação ganha o foco assim que está na lista. O drawer das contas vive no cabeçalho e
+  // pode pedi-lo com esta página já aberta: aí ela não monta de novo, e o terminal novo ainda não está na lista.
+  const focusTarget = focusFromNavigation ? terminals.find((t) => t.id === focusFromNavigation) : undefined;
+  if (focusTarget && handledFocusId !== focusTarget.id) {
+    setHandledFocusId(focusTarget.id);
+    focusTerminal(focusTarget.cwd, focusTarget.id);
+    if (loginAccountLabel) setLoginBanner({ terminalId: focusTarget.id, accountLabel: loginAccountLabel });
+  }
+
+  useEffect(() => {
+    if (!focusFromNavigation) return;
+    // O estado limpa-se para um "voltar" (ou recarregar) não repetir o pedido.
+    if (handledFocusId === focusFromNavigation) void navigate(location.pathname, { replace: true, state: null });
+    else if (!terminalsLoading && !focusTarget) refresh();
+  }, [focusFromNavigation, handledFocusId, terminalsLoading, focusTarget, refresh, navigate, location.pathname]);
 
   /**
    * Clicar um terminal (lateral, mosaico, ou painel): abre/foca o separador do projeto dele e dá-lhe o
@@ -691,7 +707,7 @@ export function TerminalsPage() {
       creatingIn={creatingIn}
       onReopenAll={() => void handleReopenAll()}
       reopeningAll={reopeningAll}
-      footer={<QuotaMeter usage={usage} now={now} />}
+      footer={<QuotaMeter usage={usage} now={now} accountLabel={(accountsView?.accounts.length ?? 0) > 1 ? activeAccount?.label : undefined} />}
       collapsed={sidebarCollapsed}
       onToggleCollapsed={toggleSidebarCollapsed}
     />
@@ -702,6 +718,17 @@ export function TerminalsPage() {
       {sidebar}
       <div className="flex-1 min-w-0 flex flex-col">
         <ProjectTabs projects={openProjects} activePath={activePath} onSelect={setActivePath} onClose={closeTab} />
+        {loginBanner && visibleIds.includes(loginBanner.terminalId) && (
+          <div className="status-banner is-wait flex flex-none items-center gap-3 px-4 py-2.5" role="status" data-login-banner>
+            <span className="state-icon is-wait" aria-hidden />
+            <span className="flex-1 text-[13.5px] leading-[20px]">
+              Faz o login no browser com a conta {loginBanner.accountLabel}; é só desta vez. Depois, responde aqui aos diálogos de primeira vez da conta.
+            </span>
+            <Button size="small" onClick={() => setLoginBanner(null)}>
+              Fechar
+            </Button>
+          </div>
+        )}
         {errorState}
         {!error && grid && (
           <TerminalGrid

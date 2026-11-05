@@ -1,12 +1,15 @@
 import { useState } from 'react';
-import { DownOutlined, LogoutOutlined, SettingOutlined, UserOutlined } from '@ant-design/icons';
+import { DownOutlined, LogoutOutlined, SettingOutlined, UserOutlined, UserSwitchOutlined } from '@ant-design/icons';
 import { Dropdown, type MenuProps } from 'antd';
 import { Link, NavLink, Outlet, useNavigate } from 'react-router';
+import { AccountsDrawer } from '@/components/accounts/AccountsDrawer';
 import { Wordmark } from '@/components/common/Wordmark';
 import { SettingsDrawer } from '@/components/settings/SettingsDrawer';
 import { UsageLimitModal } from '@/components/usage/UsageLimitModal';
+import { AccountsProvider } from '@/contexts/AccountsContext';
 import { KeybindingsProvider } from '@/contexts/KeybindingsContext';
 import { UsageProvider } from '@/contexts/UsageContext';
+import { useAccounts } from '@/hooks/useAccounts';
 import { useAuth } from '@/hooks/useAuth';
 import { useBackendHealth, type BackendHealth } from '@/hooks/useBackendHealth';
 import { useConfirm } from '@/hooks/useConfirm';
@@ -60,9 +63,11 @@ export function AppLayout() {
   return (
     <KeybindingsProvider>
       <UsageProvider>
-        <NavigationShortcuts />
-        <AppShell />
-        <UsageLimitModal />
+        <AccountsProvider>
+          <NavigationShortcuts />
+          <AppShell />
+          <UsageLimitModal />
+        </AccountsProvider>
       </UsageProvider>
     </KeybindingsProvider>
   );
@@ -72,9 +77,17 @@ function AppShell() {
   const { logout, username } = useAuth();
   const confirm = useConfirm();
   const health = useBackendHealth();
+  const { active } = useAccounts();
   const [settingsOpen, setSettingsOpen] = useState(false);
+  const [accountsOpen, setAccountsOpen] = useState(false);
 
   const userMenu: MenuProps['items'] = [
+    {
+      key: 'accounts',
+      icon: <UserSwitchOutlined />,
+      label: active ? `Conta: ${active.label}` : 'Conta',
+      onClick: () => setAccountsOpen(true),
+    },
     { key: 'settings', icon: <SettingOutlined />, label: 'Definições', onClick: () => setSettingsOpen(true) },
     { type: 'divider' },
     {
@@ -145,6 +158,7 @@ function AppShell() {
         <span className="font-mono">v{__APP_VERSION__}</span>
       </footer>
       <SettingsDrawer open={settingsOpen} onClose={() => setSettingsOpen(false)} />
+      <AccountsDrawer open={accountsOpen} onClose={() => setAccountsOpen(false)} />
     </div>
   );
 }

@@ -115,6 +115,13 @@ explica a consequência e o número vai numa caixa `state-wait-subtle` com borda
 Enquanto o modal anima a fechar, o conteúdo mostra o último aviso; sem isso, o título ficava vazio durante a animação.
 Nunca usar esta variante numa ação: é só para informar. Para escolher, usa-se `useConfirm()`.
 
+## Drawer com uma lista de escolha única e ações por linha (2026-11-03)
+
+`components/accounts/AccountsDrawer.tsx`, verificado em Chrome headless. Parte do rádio das Definições, mas cada linha
+também tem dados e ações, e um `<button>` não pode conter outros. Por isso a linha é um `<div>` com a moldura
+(`border-accent-border bg-accent-subtle` quando selecionada), e só o cabeçalho dela é o `<button role="radio">`. Os dados
+e as ações (`type="text" size="small"`) ficam por baixo. Renomear troca as ações pelo formulário, dentro da linha.
+
 ## Drawer de revisão com diff (2026-10-25)
 
 `components/library/ImportReviewDrawer.tsx` — rever o que uma importação mudou antes de aceitar (verificado em
