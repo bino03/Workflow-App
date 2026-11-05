@@ -9,8 +9,14 @@ export async function createTerminal(body: CreateTerminalBody): Promise<Terminal
   return (await api.post<TerminalView>('/terminals', body)).data;
 }
 
-export async function reopenTerminal(id: string, size: TerminalSize): Promise<ReopenedTerminal> {
-  return (await api.post<ReopenedTerminal>(`/terminals/${id}/reopen`, size)).data;
+/** `accountId` omitido: reabre na conta do próprio terminal. */
+export async function reopenTerminal(id: string, size: TerminalSize, accountId?: string): Promise<ReopenedTerminal> {
+  return (await api.post<ReopenedTerminal>(`/terminals/${id}/reopen`, { ...size, accountId })).data;
+}
+
+/** O tamanho do contexto da conversa, em tokens; `null` sem resposta do assistente gravada. */
+export async function getTerminalContext(id: string): Promise<{ tokens: number | null }> {
+  return (await api.get<{ tokens: number | null }>(`/terminals/${id}/context`)).data;
 }
 
 export async function renameTerminal(id: string, label: string | null): Promise<TerminalView> {

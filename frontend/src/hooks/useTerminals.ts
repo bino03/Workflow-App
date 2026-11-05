@@ -74,8 +74,8 @@ export function useTerminals() {
     return view;
   }, []);
 
-  const reopen = useCallback(async (id: string, size: TerminalSize) => {
-    const { freshSession, ...view } = await terminalService.reopenTerminal(id, size);
+  const reopen = useCallback(async (id: string, size: TerminalSize, accountId?: string) => {
+    const { freshSession, ...view } = await terminalService.reopenTerminal(id, size, accountId);
     replace(view);
     return { ...view, freshSession };
   }, []);

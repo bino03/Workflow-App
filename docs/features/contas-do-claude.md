@@ -4,8 +4,8 @@
 |---|---|
 | **Estado** | 🚧 Em curso |
 | **Criada** | 2026-11-01 |
-| **Última sessão** | 2026-11-03 |
-| **Passos** | 8 / 10 concluídos |
+| **Última sessão** | 2026-11-05 |
+| **Passos** | 9 / 10 concluídos |
 
 > Escrita para uma sessão que **não viu a conversa que a originou**. Se algo só faz sentido com contexto
 > externo, falta escrevê-lo.
@@ -303,7 +303,7 @@ Ordem obrigatória. Tiers: `opus` (desenho, não delegar) · `sonnet` (implement
     abre o drawer. Adicionar uma conta cria-a e abre o terminal de login. Mudar a ativa muda a quota da barra lateral.
     Remover pede confirmação, e com um terminal a correr mostra a mensagem do `ACCOUNT_004`. O `tsc -b` está limpo.
 
-- [ ] **9. Frontend: conta por terminal e "Continuar noutra conta"**
+- [x] **9. Frontend: conta por terminal e "Continuar noutra conta"**
   - Ficheiro: `components/terminals/TerminalSidebar.tsx`, `TerminalPane.tsx`, `terminalDisplay.ts`,
     `components/terminals/new/ResumeSessionModal.tsx`, `components/terminals/ContextSizeConfirm.tsx` (novo),
     `services/terminalService.ts`, `types/terminal.ts`
@@ -312,6 +312,9 @@ Ordem obrigatória. Tiers: `opus` (desenho, não delegar) · `sonnet` (implement
   - Aceite quando, no browser: com 2 contas, cada terminal mostra o selo. "Noutra conta" cria o terminal na conta
     escolhida (confirmado pelo `accountId` no `GET /api/terminals`). "Continuar noutra conta" mostra o tamanho e
     reabre com `--resume` na outra conta. Com uma só conta, nada disto aparece.
+  - Decisão ao implementar (2026-11-05): sem `ContextSizeConfirm.tsx`. A confirmação é o `useConfirm()`, que já traz o
+    teclado e o estado de loading, e o texto do tamanho fica em `ContextSizeNotice.tsx`, usado também no
+    `ResumeSessionModal`. A lista das contas é o `accounts/AccountPicker.tsx`.
 
 - [ ] **10. Verificação a sério com o dono + documentação final**
   - Ficheiro: [[../architecture]], [[../code-map]], [[terminais]] (§ conta do terminal), `notes/whatIveDone.md`
@@ -417,9 +420,22 @@ Ordem obrigatória. Tiers: `opus` (desenho, não delegar) · `sonnet` (implement
   - "Adicionar conta" fica desativado com 5 contas, além do `ACCOUNT_002` do backend.
 - Testes: `tsc -b` e lint limpos. `scripts/verify/accounts.mjs` 37/37 em Chrome headless, com o `ACCOUNT_004` real. Sem regressões: `smoke` 6/6, `usage-warning` 27/27, `upwork` 34/34.
 - O que não foi testado: o `ACCOUNT_002` pela interface, e um login real (fica para o passo 10).
+**Passo 9 feito a 2026-11-05**:
+- O que entrou:
+  - `accounts/AccountTag.tsx` (o selo, na lateral e no cabeçalho do terminal), `accounts/AccountPicker.tsx` (a lista das outras contas) e `accounts/accountLabel.ts`.
+  - `terminals/ContextSizeNotice.tsx`: o custo em tokens, em destaque a partir de 50 mil, com a sugestão do `/compact`.
+  - Uma setinha ao lado do "+" na lateral ("Noutra conta"), "Continuar noutra conta" ao lado de Reabrir (terminal parado e terminado), e o seletor de conta no `ResumeSessionModal`.
+- Decisões:
+  - Dono: uma conta sem login **aparece desativada** nas listas, com "sem sessão iniciada". O login faz-se no drawer.
+  - Abrir a lista relê as contas, para quem acabou de fazer o login não esperar pela sondagem de 60 s.
+  - Em Retomar, uma conversa que a app nunca correu conta como sendo da principal: foi feita fora da app, e aí o `claude` usa a pasta da principal.
+  - O botão dividido da spec ficou só no "+" da lateral. O "+" de um lugar vazio da grelha e o "Novo terminal aqui" continuam na conta ativa.
+- **Bug do passo 4 corrigido**: `POST /api/terminals/:id/reopen` aceitava o `accountId` mas não o passava ao serviço, e a conversa reabria na conta antiga. O teste só chamava o serviço diretamente; agora há um teste da rota em `accounts.routes.test.ts`.
+- Testes: `tsc -b` e lint limpos. `scripts/verify/accounts-terminals.mjs` 41/41 em Chrome headless, com o processo real lançado com `--resume` e a conta confirmada na API. Sem regressões: `accounts` 37/37, `smoke` 6/6. Backend 509/509.
+- O que não foi testado: o `claude` com um login real, porque o cenário escreve um login falso à mão e nada chega ao modelo (fica para o passo 10). O `usage-warning` e o `upwork` não voltaram a correr, porque o passo não lhes toca.
 **Em curso:** —
-**Próxima ação concreta:** passo 9 (selo da conta em cada terminal, "Noutra conta", "Continuar noutra conta" com `ContextSizeConfirm`, seletor no `ResumeSessionModal`), com `/frontend-design-system` e `/frontend-error-handling`, em modo NORMAL.
-**Desvios ao plano:** —
+**Próxima ação concreta:** passo 10, **com o dono**: `/run` na app real, adicionar a 2.ª conta e fazer o login uma vez, e seguir o critério de aceitação do passo.
+**Desvios ao plano:** ver "Decisão ao implementar" no passo 9.
 **O que uma sessão nova precisa de saber:**
 - ❓ **A confirmar no passo 10:** na instância de teste, sem `settings.json` na principal, o terminal de login de uma conta nova abriu no ecrã de escolha de tema ("Let's get started"), antes do login. O spike (e) registou que não havia nada antes do login. A faixa já diz para responder lá aos diálogos, mas pode ser preciso ajustar o texto.
 - O aviso de limite ainda não distingue contas: ver a entrada em [[../../notes/ToDo|ToDo]] → Manutenção.

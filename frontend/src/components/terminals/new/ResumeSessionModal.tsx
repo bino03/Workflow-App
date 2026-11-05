@@ -1,16 +1,19 @@
 import { useEffect, useState } from 'react';
-import { Alert, Button, Modal, Spin } from 'antd';
+import { Alert, Button, Modal, Select, Spin } from 'antd';
+import { accountLabelOf } from '@/components/accounts/accountLabel';
 import { ErrorHandler } from '@/errors/errorHandler';
+import { useAccounts } from '@/hooks/useAccounts';
 import { getSessions } from '@/services/sessionService';
 import type { SavedSession } from '@/types/session';
+import { ContextSizeNotice } from '../ContextSizeNotice';
 import { folderName, formatSessionDate } from '../terminalDisplay';
 
 type ResumeSessionModalProps = {
   /** `null` = fechado. O caminho já é conhecido (clicou "Retomar" nesse projeto) — nada de escolher pasta. */
   path: string | null;
   onClose: () => void;
-  /** Cria o terminal a retomar essa sessão. Lança o erro para ser mostrado aqui, sem fechar o modal. */
-  onResume: (sessionId: string) => Promise<void>;
+  /** Cria o terminal a retomar essa sessão (`accountId` omitido: a conta ativa). Lança o erro para ser mostrado aqui, sem fechar o modal. */
+  onResume: (sessionId: string, accountId?: string) => Promise<void>;
 };
 
 /** O que a sessão mostra na lista: o rótulo e o resumo do terminal fechado, senão o preview do Claude Code. */
@@ -32,6 +35,14 @@ export function ResumeSessionModal({ path, onClose, onResume }: ResumeSessionMod
   const [selected, setSelected] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
+  const { view: accounts } = useAccounts();
+  /** `null` até se escolher: fica na conta ativa, mesmo que ela mude com o modal aberto. */
+  const [pickedAccountId, setPickedAccountId] = useState<string | null>(null);
+  const manyAccounts = !!accounts && accounts.accounts.length > 1;
+  const chosenAccountId = pickedAccountId ?? accounts?.activeAccountId ?? 'primary';
+  const selectedSession = sessions?.find((session) => session.id === selected);
+  // Uma conversa que a app nunca correu foi feita fora dela, e aí o `claude` usa a pasta da principal.
+  const changesAccount = manyAccounts && !!selectedSession && (selectedSession.accountId ?? 'primary') !== chosenAccountId;
 
   // A pasta muda (ou o modal fecha): o cleanup do efeito anterior repõe o estado antes do próximo pedido —
   // nunca um setState direto no corpo do efeito (o React Compiler deste projeto avisa disso).
@@ -49,6 +60,7 @@ export function ResumeSessionModal({ path, onClose, onResume }: ResumeSessionMod
       setSessions(null);
       setSelected(null);
       setSubmitError(null);
+      setPickedAccountId(null);
     };
   }, [path]);
 
@@ -57,7 +69,7 @@ export function ResumeSessionModal({ path, onClose, onResume }: ResumeSessionMod
     setSubmitting(true);
     setSubmitError(null);
     try {
-      await onResume(selected);
+      await onResume(selected, pickedAccountId ?? undefined);
       onClose();
     } catch (e) {
       ErrorHandler.handle(e, { showNotification: false });
@@ -89,6 +101,24 @@ export function ResumeSessionModal({ path, onClose, onResume }: ResumeSessionMod
         </div>
       }
     >
+      {manyAccounts && (
+        <div className="mb-3 flex items-center gap-2.5 text-[13px] text-text-2">
+          <span id="resume-account-label">Retomar na conta</span>
+          <Select
+            size="small"
+            className="min-w-[220px]"
+            aria-labelledby="resume-account-label"
+            data-resume-account
+            value={chosenAccountId}
+            onChange={setPickedAccountId}
+            options={accounts.accounts.map((account) => ({
+              value: account.id,
+              disabled: !account.loggedIn,
+              label: account.loggedIn ? account.label : `${account.label} · sem sessão iniciada`,
+            }))}
+          />
+        </div>
+      )}
       {sessions === null && (
         <div className="py-6 flex justify-center">
           <Spin />
@@ -125,6 +155,11 @@ export function ResumeSessionModal({ path, onClose, onResume }: ResumeSessionMod
               </button>
             );
           })}
+        </div>
+      )}
+      {changesAccount && selectedSession.contextTokens !== null && (
+        <div className="mt-3 text-[13px]">
+          <ContextSizeNotice tokens={selectedSession.contextTokens} accountLabel={accountLabelOf(accounts, chosenAccountId)} />
         </div>
       )}
     </Modal>

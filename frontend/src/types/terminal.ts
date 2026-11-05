@@ -44,6 +44,8 @@ export type CreateTerminalBody = TerminalSize & {
   mode: 'new' | 'resume' | 'continue';
   sessionId?: string;
   label?: string;
+  /** Omitido: a conta ativa (ADR 0027). */
+  accountId?: string;
 };
 
 // ── WebSocket (/api/terminals/:id/ws) ─────────────────────────────────

@@ -152,6 +152,11 @@ título "Fechar `<nome>`?" 18/24; o texto explica a consequência ("A conversa f
 retomá-la…"); um aviso de contexto opcional em caixa `state-*-subtle` ("Está a trabalhar agora — o
 passo em curso é interrompido"); botões Cancelar (contornado) + ação real (`danger`).
 
+**Confirmação com um custo, não um perigo (2026-11-05)**: `useConfirm()` com `danger: false` e um componente em `message`.
+`ContextSizeNotice.tsx` é o exemplo ("Continuar noutra conta", verificado em Chrome headless): frase simples em `text-2`
+abaixo dos 50 mil tokens; acima, numa caixa `state-wait-subtle` com borda `state-wait-border` e texto `warning`, como no
+aviso de limite. Os dados pedem-se **antes** de abrir o diálogo, para ele nunca aparecer vazio.
+
 **Navegação por teclado (2026-09-29)**: ao abrir, o foco vai para "Cancelar" (a ação mais segura); `←`/`→`
 trocam o foco entre os dois botões; `Enter` ativa o que estiver focado (comportamento nativo do
 `<button>`, sem código extra). Implementado em `ConfirmDialogContext.tsx` com `afterOpenChange` + `refs`

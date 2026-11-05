@@ -1,6 +1,8 @@
 import { useState, type ReactNode } from 'react';
-import { HistoryOutlined, MenuFoldOutlined, MenuUnfoldOutlined, PlusOutlined, StarFilled, StarOutlined } from '@ant-design/icons';
+import { DownOutlined, HistoryOutlined, MenuFoldOutlined, MenuUnfoldOutlined, PlusOutlined, StarFilled, StarOutlined } from '@ant-design/icons';
 import { Button, Tooltip } from 'antd';
+import { AccountPicker } from '@/components/accounts/AccountPicker';
+import { AccountTag } from '@/components/accounts/AccountTag';
 import type { TerminalStatus } from '@/types/terminal';
 import type { Project } from './projects';
 import { STATUS_META, statusDetail } from './terminalDisplay';
@@ -18,7 +20,8 @@ type TerminalSidebarProps = {
   onSelectProject: (path: string) => void;
   /** Clicar um terminal: abre/foca o separador do projeto dele e seleciona-o. */
   onSelectTerminal: (id: string) => void;
-  onNewInProject: (path: string) => void;
+  /** `accountId` omitido: a conta ativa. */
+  onNewInProject: (path: string, accountId?: string) => void;
   onResumeInProject: (path: string) => void;
   onToggleFavorite: (path: string, favorite: boolean) => void;
   creatingIn: string | null;
@@ -164,6 +167,17 @@ export function TerminalSidebar(props: TerminalSidebarProps) {
                 <IconButton label={`Novo terminal em ${project.name}`} onClick={() => props.onNewInProject(project.path)} loading={props.creatingIn === project.path}>
                   <PlusOutlined />
                 </IconButton>
+                <AccountPicker title="Noutra conta" placement="bottomRight" onPick={(accountId) => props.onNewInProject(project.path, accountId)}>
+                  <button
+                    type="button"
+                    aria-label={`Novo terminal em ${project.name} noutra conta`}
+                    title="Novo terminal noutra conta"
+                    disabled={props.creatingIn === project.path}
+                    className="w-4 h-6 flex items-center justify-center bg-transparent border-0 rounded-sm text-text-3 cursor-pointer hover:bg-surface-3 hover:text-text-1 disabled:opacity-40"
+                  >
+                    <DownOutlined style={{ fontSize: 9 }} />
+                  </button>
+                </AccountPicker>
               </header>
 
               {!empty && (
@@ -192,9 +206,11 @@ export function TerminalSidebar(props: TerminalSidebarProps) {
                           </span>
                           {index < 9 && <span className="font-mono text-[10.5px] text-text-3">Alt+{index + 1}</span>}
                         </span>
-                        <span className="pl-6 text-[12px] leading-[17px] flex gap-1.5">
+                        <span className="pl-6 text-[12px] leading-[17px] flex items-center gap-1.5">
                           <span className={terminal.status === 'running' ? 'text-accent' : 'text-[var(--wfa-state-stop)]'}>{meta.label}</span>
                           {terminal.status !== 'running' && <span className="text-text-3">· {statusDetail(terminal)}</span>}
+                          <span className="flex-1" />
+                          <AccountTag accountId={terminal.accountId} className="h-[18px] px-1.5 text-[11px] max-w-[110px]" />
                         </span>
                       </button>
                     );

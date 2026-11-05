@@ -1,7 +1,9 @@
 import { useState } from 'react';
-import { CloseOutlined, LinkOutlined } from '@ant-design/icons';
+import { CloseOutlined, DownOutlined, LinkOutlined } from '@ant-design/icons';
 import { Button, Input, Tooltip } from 'antd';
 import { z } from 'zod';
+import { AccountPicker } from '@/components/accounts/AccountPicker';
+import { AccountTag } from '@/components/accounts/AccountTag';
 import type { TerminalView as TerminalInfo, TerminalPreview } from '@/types/terminal';
 import { STATUS_META, statusDetail } from './terminalDisplay';
 import { TerminalView } from './TerminalView';
@@ -104,6 +106,8 @@ type TerminalPaneProps = {
   onEnlarge?: () => void;
   onRenameEnd: (label: string | null | undefined) => void;
   onReopen: () => void;
+  /** "Continuar noutra conta": a página mostra o tamanho do contexto antes de reabrir. */
+  onContinueIn: (accountId: string) => void;
   onExit: (code: number) => void;
   onGone: () => void;
   /** O ✕ da etiqueta de pré-visualização. */
@@ -146,6 +150,7 @@ export function TerminalPane(props: TerminalPaneProps) {
           </Tooltip>
         )}
         {!compactHeader && <span className={meta.tag}>{meta.label}</span>}
+        <AccountTag accountId={terminal.accountId} className="max-w-[160px]" />
         {terminal.remoteControl && (
           <Tooltip title="Remote Control — também no app Claude" mouseEnterDelay={0.4}>
             <span className="tag" data-remote-control>
@@ -168,9 +173,16 @@ export function TerminalPane(props: TerminalPaneProps) {
             O processo terminou (o backend reiniciou, ou foi parado pelo bot). A conversa está gravada — reabrir
             retoma-a onde ficou.
           </p>
-          <Button type="primary" loading={reopening} onClick={props.onReopen}>
-            Reabrir
-          </Button>
+          <div className="flex flex-wrap justify-center gap-2">
+            <Button type="primary" loading={reopening} onClick={props.onReopen}>
+              Reabrir
+            </Button>
+            <AccountPicker excludeId={terminal.accountId} onPick={props.onContinueIn}>
+              <Button disabled={reopening} data-continue-elsewhere>
+                Continuar noutra conta <DownOutlined style={{ fontSize: 9 }} />
+              </Button>
+            </AccountPicker>
+          </div>
         </div>
       ) : (
         <div className="flex-1 min-h-0">
@@ -191,6 +203,11 @@ export function TerminalPane(props: TerminalPaneProps) {
         <div className="flex-none h-10 flex items-center gap-2.5 px-3 border-t border-[var(--wfa-state-stop-border)] bg-[var(--wfa-state-stop-subtle)] text-[12.5px] text-text-1">
           <span>Sessão terminada · {statusDetail(terminal)} · gravada</span>
           <span className="flex-1" />
+          <AccountPicker excludeId={terminal.accountId} placement="topRight" onPick={props.onContinueIn}>
+            <Button size="small" disabled={reopening} data-continue-elsewhere>
+              Continuar noutra conta <DownOutlined style={{ fontSize: 9 }} />
+            </Button>
+          </AccountPicker>
           <Button size="small" loading={reopening} onClick={props.onReopen}>
             Reabrir
           </Button>

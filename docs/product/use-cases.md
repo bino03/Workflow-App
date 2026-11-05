@@ -34,6 +34,8 @@ Desenhados no `/choose-design` (2026-09-27) — protótipos em
 - O dono **navega entre projetos** pelos separadores tipo browser; esconder um separador não mata os
   terminais desse projeto — reabre-se clicando o projeto na lateral.
 - O dono **vê quanto da quota** da subscrição já gastou antes de abrir mais sessões — a quota é da conta, não do terminal.
+- Com mais de uma conta do Claude, o dono **vê em que conta corre cada terminal**, abre um terminal noutra conta, e
+  **continua noutra conta** uma conversa parada, depois de ver quantos tokens isso vai custar na quota dela.
 - O dono **escolhe nas Definições** se vê os terminais em foco dividido (um de cada vez, ou dois lado a lado) ou em grelha (todos à vista).
 - O dono **escolhe o arranjo da grelha** por projeto (3×2 · colunas · 2×2 · principal + laterais); um
   lugar sem terminal mostra um "+" para abrir um ali mesmo, e um terminal a mais do que lugares continua

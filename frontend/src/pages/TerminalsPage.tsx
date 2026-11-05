@@ -1,6 +1,8 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router';
 import { Alert, Button, Spin } from 'antd';
+import { accountLabelOf } from '@/components/accounts/accountLabel';
+import { ContextSizeNotice } from '@/components/terminals/ContextSizeNotice';
 import { ResumeSessionModal } from '@/components/terminals/new/ResumeSessionModal';
 import { ProjectTabs } from '@/components/terminals/ProjectTabs';
 import { DEFAULT_GRID_STYLE, type GridStyle, initialSlotIds, slotPlacement } from '@/components/terminals/gridStyle';
@@ -22,6 +24,7 @@ import { useAccounts } from '@/hooks/useAccounts';
 import { useUsage } from '@/hooks/useUsage';
 import { getFolders, setFavoriteFolder } from '@/services/folderService';
 import { notificationService } from '@/services/general/notificationService';
+import { getTerminalContext } from '@/services/terminalService';
 import { estimateTerminalSize } from '@/terminal/terminalSize';
 import type { CreateTerminalBody, DevPort, TerminalSize } from '@/types/terminal';
 
@@ -350,16 +353,16 @@ export function TerminalsPage() {
   };
 
   /** `ResumeSessionModal`: cria um terminal a retomar a sessão escolhida na pasta já conhecida. */
-  const handleResumeSession = async (sessionId: string) => {
+  const handleResumeSession = async (sessionId: string, accountId?: string) => {
     if (!resumePath) return;
-    await handleCreate({ cwd: resumePath, mode: 'resume', sessionId });
+    await handleCreate({ cwd: resumePath, mode: 'resume', sessionId, accountId });
   };
 
-  /** O "+" de um projeto (lateral, cabeçalho da grelha): mais um terminal, sessão nova, sem drawer. */
-  const handleNewInProject = async (path: string) => {
+  /** O "+" de um projeto (lateral, cabeçalho da grelha): mais um terminal, sessão nova, sem drawer. "Noutra conta" traz o `accountId`. */
+  const handleNewInProject = async (path: string, accountId?: string) => {
     setCreatingIn(path);
     try {
-      await handleCreate({ cwd: path, mode: 'new' });
+      await handleCreate({ cwd: path, mode: 'new', accountId });
     } catch (e) {
       ErrorHandler.handle(e);
     } finally {
@@ -400,8 +403,8 @@ export function TerminalsPage() {
     }
   };
 
-  const reopenOne = async (id: string) => {
-    const view = await reopen(id, paneSize(false));
+  const reopenOne = async (id: string, accountId?: string) => {
+    const view = await reopen(id, paneSize(false), accountId);
     if (view.freshSession) {
       notificationService.info('Conversa nova', `${names.get(id) ?? 'O terminal'} não tinha conversa gravada — começou uma sessão nova.`);
     }
@@ -410,10 +413,10 @@ export function TerminalsPage() {
   /** "Já está a correr": outro cliente (o bot de Telegram) reabriu-o entretanto — o que se queria já aconteceu. */
   const alreadyRunning = (e: unknown) => getApiErrorResponse(e)?.errorCode === 'TERMINAL_006';
 
-  const handleReopen = async (id: string) => {
+  const handleReopen = async (id: string, accountId?: string) => {
     setReopening((set) => new Set(set).add(id));
     try {
-      await reopenOne(id);
+      await reopenOne(id, accountId);
     } catch (e) {
       if (alreadyRunning(e)) {
         ErrorHandler.handle(e, { showNotification: false });
@@ -427,6 +430,23 @@ export function TerminalsPage() {
         next.delete(id);
         return next;
       });
+    }
+  };
+
+  /** "Continuar noutra conta": primeiro o que vai custar, porque a conversa é reenviada inteira na conta nova (ADR 0027). */
+  const handleContinueIn = async (id: string, accountId: string) => {
+    try {
+      const { tokens } = await getTerminalContext(id);
+      const accountLabel = accountsView ? accountLabelOf(accountsView, accountId) : '';
+      confirm({
+        title: `Continuar ${names.get(id)} em ${accountLabel}?`,
+        actionLabel: 'Continuar nesta conta',
+        danger: false,
+        message: <ContextSizeNotice tokens={tokens} accountLabel={accountLabel} />,
+        onConfirm: () => handleReopen(id, accountId),
+      });
+    } catch (e) {
+      ErrorHandler.handle(e);
     }
   };
 
@@ -662,6 +682,7 @@ export function TerminalsPage() {
       onEnlarge={() => enlargeTerminal(terminal.id)}
       onRenameEnd={(label) => void handleRenameEnd(terminal.id, label)}
       onReopen={() => void handleReopen(terminal.id)}
+      onContinueIn={(accountId) => void handleContinueIn(terminal.id, accountId)}
       onExit={(code) => handleExit(terminal.id, code)}
       onGone={refresh}
       onPreviewStop={() => void togglePreview(terminal.id)}
@@ -701,7 +722,7 @@ export function TerminalsPage() {
       visibleIds={visibleIds}
       onSelectProject={(path) => void handleSelectProject(path)}
       onSelectTerminal={selectTerminal}
-      onNewInProject={(path) => void handleNewInProject(path)}
+      onNewInProject={(path, accountId) => void handleNewInProject(path, accountId)}
       onResumeInProject={(path) => setResumePath(path)}
       onToggleFavorite={(path, favorite) => void handleToggleFavorite(path, favorite)}
       creatingIn={creatingIn}
