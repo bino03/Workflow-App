@@ -111,6 +111,13 @@ DELETE /api/terminals/:id → lista os descendentes → Ctrl+C ×2 (o claude sai
 Backend pára → kill de todos; ao voltar, os gravados aparecem como "parados"
 ```
 
+**Conta de cada terminal** (✅, [[adr/0027-varias-contas-do-claude|ADR 0027]]): cada `claude` corre com
+`CLAUDE_CONFIG_DIR=<DATA_DIR>/accounts/<id>` (a principal usa a pasta de sempre). A pasta de uma conta extra tem
+o seu login e liga ao resto da principal por junctions (`projects`, `skills`, `plugins`, `agents`, `commands`,
+`dev-mods`), por isso as conversas, skills e plugins são partilhados; remover uma conta desfaz as junctions, nunca
+o conteúdo. O login faz-se uma vez, num terminal escondido, e sobrevive a reinícios do backend. Continuar noutra conta
+= `reopen` com outro `accountId`, a mesma sessão. Detalhe: [[features/contas-do-claude]].
+
 ## Frontend — `react-vite-antd` (✅) + xterm.js
 
 React 19 · Vite 7 · antd 6 · Tailwind 4 · TypeScript 6 (versões e porquê: [[frontend-conventions]] →

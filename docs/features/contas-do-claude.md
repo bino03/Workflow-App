@@ -2,10 +2,10 @@
 
 | | |
 |---|---|
-| **Estado** | 🚧 Em curso |
+| **Estado** | ✅ Concluída |
 | **Criada** | 2026-11-01 |
-| **Última sessão** | 2026-11-05 |
-| **Passos** | 9 / 10 concluídos |
+| **Última sessão** | 2026-11-07 |
+| **Passos** | 10 / 10 concluídos |
 
 > Escrita para uma sessão que **não viu a conversa que a originou**. Se algo só faz sentido com contexto
 > externo, falta escrevê-lo.
@@ -317,7 +317,7 @@ Ordem obrigatória. Tiers: `opus` (desenho, não delegar) · `sonnet` (implement
     teclado e o estado de loading, e o texto do tamanho fica em `ContextSizeNotice.tsx`, usado também no
     `ResumeSessionModal`. A lista das contas é o `accounts/AccountPicker.tsx`.
 
-- [ ] **10. Verificação a sério com o dono + documentação final**
+- [x] **10. Verificação a sério com o dono + documentação final** — ✅ 2026-11-07
   - Ficheiro: [[../architecture]], [[../code-map]], [[terminais]] (§ conta do terminal), `notes/whatIveDone.md`
   - Skill: `run`
   - Tier: `sonnet` (inline, com a extensão do Chrome; nunca num subagente)
@@ -440,8 +440,16 @@ Ordem obrigatória. Tiers: `opus` (desenho, não delegar) · `sonnet` (implement
 - Sem histórico ao fechar. Um terminal de login esquecido (o browser fechado a meio) é substituído no login seguinte e termina ao remover a conta. Não conta como terminal a correr, porque o dono não o vê e não o podia fechar para remover a conta.
 - Depois de um reinício do backend, um terminal de login esquecido fica parado no `state.json` até ao login seguinte ou até remover a conta. Não aparece em lado nenhum.
 - Testes: `accounts.mjs` 53/53 (reescrito para a janela), `accounts-terminals.mjs` 41/41, `smoke` 6/6, backend 512/512.
-**Em curso:** passo 10, com o dono.
-**Próxima ação concreta:** continuar o passo 10: adicionar a 2.ª conta na janela nova, fazer o login uma vez, e seguir o critério de aceitação do passo.
+**Passo 10 feito a 2026-11-07**, na app real (Chrome, com o dono a fazer o login da app; backend e frontend arrancados pelo `/run`):
+- `/status` num terminal de cada conta, na mesma pasta descartável: Principal `jlalvescarvalho5@gmail.com`, Secundária `jlalvescarvalho53@gmail.com`. Os Session IDs são os da API.
+- `/api/accounts`: quotas separadas (Principal 44%/17%, valor guardado de 2026-11-05, porque a quota só se atualiza com um `claude` a correr nessa conta; Secundária 1%/1%). A lateral mostra a da conta ativa.
+- Continuar noutra conta: uma conversa real da Principal ("ok") continuada na Secundária. Mesmo Session ID `f98b88d5…`, conta passa a Secundária, a conversa abre inteira, e o aviso "~46 mil tokens" aparece antes. A lista só oferece as *outras* contas.
+- Reinício do backend: as duas contas continuam com `loggedIn: true` e os mesmos emails, sem pedir login do Claude. A sessão da **app** (cookie) é que cai com o reinício, o que é comportamento esperado.
+- Remover uma conta de teste (criada sem login, com as 6 junctions): 204, pasta apagada, Secundária intacta. `~/.claude/projects` com 133 `.jsonl` antes e depois; `skills` 440, `plugins` 684 e `dev-mods` 10 iguais.
+- Não observado: o ecrã de tema ("Let's get started") antes do login numa conta nova, porque o login da Secundária já estava feito. O texto da janela de login fica como está até alguém ver o caso.
+- Os `.jsonl` eram 146 no início e 132 antes de qualquer teste; a queda não veio da app (não removeu nada) e é provavelmente a limpeza automática do próprio `claude`.
+- A Secundária tem 2 servidores MCP "failed" e 7 "need auth" no `/status` (a Principal: 1 a pedir autenticação). Não investigado; entrou no [[../../notes/ToDo|ToDo]].
+**Desvios ao plano:** ver "Decisão ao implementar" no passo 9. **Nada em curso: a feature está concluída.**
 **Desvios ao plano:** ver "Decisão ao implementar" no passo 9.
 **O que uma sessão nova precisa de saber:**
 - ❓ **A confirmar no passo 10:** na instância de teste, sem `settings.json` na principal, o terminal de login de uma conta nova abriu no ecrã de escolha de tema ("Let's get started"), antes do login. O spike (e) registou que não havia nada antes do login. A faixa já diz para responder lá aos diálogos, mas pode ser preciso ajustar o texto.

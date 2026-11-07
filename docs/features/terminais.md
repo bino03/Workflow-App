@@ -136,6 +136,10 @@ Nada novo no schema — `terminals`, `closedTerminals` e `folders` já estão em
 `backend/src/state/state.schema.ts` (v1) e descritos em [[../database]]. O `StateStore`
 (`backend/src/state/stateStore.ts`) já valida, aplica limites (200 fechados, 10 recentes) e escreve em fila.
 
+**Conta do terminal** (✅ 2026-11-07, [[contas-do-claude]]): cada `SavedTerminal` e `ClosedTerminal` guarda o `accountId`
+(`primary` por omissão). `POST /api/terminals` e `/reopen` aceitam um `accountId`; sem ele, um terminal novo usa a conta
+ativa e um reaberto usa a sua. O `/reopen` com outra conta é o "Continuar noutra conta": a mesma sessão, outra quota.
+
 Estado **em memória** (não persistido): o `TerminalManager` (`backend/src/terminals/terminalManager.ts`) —
 PTY, `status: 'running' | 'exited'`, `exitCode`, scrollback. O **estado visível** calcula-se ao listar:
 
