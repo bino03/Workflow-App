@@ -36,7 +36,8 @@ function runHook(input: object, hook = hookPath): { child: ChildProcess; done: P
 }
 
 const event = (dir: string) => (JSON.parse(readFileSync(join(dir, 'event.json'), 'utf8')) as { event: string }).event;
-const pendingFiles = (dir: string) => readdirSync(dir).filter((name) => name.startsWith('pending-'));
+// Só o ficheiro final: o hook escreve `pending-<id>.json.<pid>.tmp` e faz rename, e ler esse temporário a meio dava ENOENT.
+const pendingFiles = (dir: string) => readdirSync(dir).filter((name) => /^pending-.+\.json$/.test(name));
 
 describe('guided --settings', () => {
   it('permission rule paths: // + POSIX, the drive as /c', () => {
