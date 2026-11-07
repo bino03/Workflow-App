@@ -90,8 +90,10 @@ Ant Design para componentes, Tailwind para estilo próprio, tokens CSS como font
   Nunca `Ctrl+Alt` (AltGr em PT). Um `Esc` da app (voltar à grelha) só conta fora do terminal
   (`event.target.closest('.xterm')`).
 - **Quota**: uma só sondagem de `/api/usage` (60 s), no `UsageProvider` do `AppLayout`. O `useUsage()` lê-a, e
-  nenhum componente sonda por conta própria. Quem a usa: a lateral dos terminais (`QuotaMeter`) e o aviso de
-  limite (`UsageLimitModal`, em qualquer página). A quota é a da conta ativa: o `AccountsProvider` chama o `refresh()`
+  nenhum componente sonda por conta própria. Quem a usa: a lateral dos terminais (`QuotaMeter`). O aviso de limite
+  (`UsageLimitModal`, em qualquer página) lê a conta ativa **e** a quota dela do `useAccounts().active` (a mesma resposta,
+  sem um instante com a conta nova e a quota velha), guarda o OK por conta e não avisa enquanto não há conta ativa; só o
+  `now` vem do `useUsage()`. A quota é a da conta ativa: o `AccountsProvider` chama o `refresh()`
   do `useUsage()` sempre que a ativa muda, e uma leitura que saiu antes da mudança é ignorada.
 - **Foco num terminal vindo de outro sítio**: `navigate('/terminals', { state: { focusTerminalId } })`, também com a
   página já aberta. O `TerminalsPage` foca-o assim que está na lista, relê a lista se ainda lá não estiver, e limpa o estado.

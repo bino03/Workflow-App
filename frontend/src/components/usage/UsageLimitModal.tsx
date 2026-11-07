@@ -1,15 +1,15 @@
 import { Button, Modal } from 'antd';
 import { useRef, useState } from 'react';
+import { useAccounts } from '@/hooks/useAccounts';
 import { useUsage } from '@/hooks/useUsage';
-import { acknowledge, pendingWarning, resetText, type AcknowledgedWarnings, type LimitWarning } from './usageLimits';
+import { acknowledgeForAccount, parseAcknowledged, pendingWarning, resetText, type LimitWarning } from './usageLimits';
 
-// Preferência do dispositivo, no localStorage (docs/database.md): cada browser avisa uma vez por janela.
+// Preferência do dispositivo, no localStorage (docs/database.md): cada browser avisa uma vez por janela e por conta.
 const KEY = 'workflow-app.usage-warnings';
 
-function readAcknowledged(): AcknowledgedWarnings {
+function readAcknowledged() {
   try {
-    const parsed: unknown = JSON.parse(localStorage.getItem(KEY) ?? '{}');
-    return parsed && typeof parsed === 'object' ? (parsed as AcknowledgedWarnings) : {};
+    return parseAcknowledged(localStorage.getItem(KEY));
   } catch {
     return {};
   }
@@ -20,17 +20,20 @@ function readAcknowledged(): AcknowledgedWarnings {
  * com OK — sem ✕, sem clicar fora, sem Esc — para não passar despercebido a meio de uma conversa.
  */
 export function UsageLimitModal() {
-  const { usage, now } = useUsage();
+  const { now } = useUsage();
+  // A conta e a quota vêm da mesma resposta (`/api/accounts`): com `useUsage().usage` haveria um instante com a
+  // conta nova e a quota da antiga. Sem conta ainda (`active` nulo), não se avisa.
+  const { active } = useAccounts();
   const [acknowledged, setAcknowledged] = useState(readAcknowledged);
   const okRef = useRef<HTMLButtonElement>(null);
-  const warning = pendingWarning(usage, acknowledged, now);
+  const warning = active ? pendingWarning(active.usage, acknowledged[active.id] ?? {}, now) : null;
   // O que se mostra fica igual durante a animação de fecho, depois do OK (aí `warning` já é null).
   const [shown, setShown] = useState<LimitWarning | null>(null);
   if (warning && (warning.key !== shown?.key || warning.window !== shown.window)) setShown(warning);
 
   const handleOk = () => {
-    if (!warning) return;
-    const next = acknowledge(acknowledged, warning);
+    if (!warning || !active) return;
+    const next = acknowledgeForAccount(acknowledged, active.id, warning, now);
     setAcknowledged(next);
     try {
       localStorage.setItem(KEY, JSON.stringify(next));

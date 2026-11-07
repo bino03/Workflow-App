@@ -1,6 +1,8 @@
 // The quota limit warning (5 h at 90% and 100%, weekly at 90%): the instance's usage.json is written by hand,
 // the way the status line would, and each page load reads it. Proves by DOM + localStorage that the modal only
-// closes with OK, comes back neither after a reload nor on another page, and that a reset window never warns.
+// closes with OK, comes back neither after a reload nor on another page, and that a reset window never warns. The OK
+// is kept per account (ADR 0027): an OK on one account does not silence the other, the old format (no account) is read
+// as the primary's, and expired OKs — of removed accounts too — are pruned when a new one is stored.
 //
 //   node scripts/verify/instance.mjs start --fresh
 //   node scripts/verify/usage-warning.mjs [run dir]
@@ -17,7 +19,8 @@ const inHours = (hours) => Math.floor(Date.now() / 1000 + hours * 3600);
 const fiveHourReset = inHours(2);
 const weeklyReset = inHours(72);
 
-function writeUsage(fiveHourPct, weeklyPct, fiveHourResetsAt = fiveHourReset) {
+// The quota file of an account: `usage.json` for the primary, `usage-<id>.json` for the others.
+function writeUsage(fiveHourPct, weeklyPct, fiveHourResetsAt = fiveHourReset, fileName = 'usage.json') {
   const data = {
     rate_limits: {
       five_hour: { used_percentage: fiveHourPct, resets_at: fiveHourResetsAt },
@@ -25,9 +28,11 @@ function writeUsage(fiveHourPct, weeklyPct, fiveHourResetsAt = fiveHourReset) {
     },
     fetchedAt: new Date().toISOString(),
   };
-  writeFileSync(join(instance.dataDir, 'usage.json'), JSON.stringify(data));
+  writeFileSync(join(instance.dataDir, fileName), JSON.stringify(data));
 }
 
+const KEY = 'workflow-app.usage-warnings';
+const stored = async () => JSON.parse((await page.evaluate(`localStorage.getItem('${KEY}')`)) ?? '{}');
 const warningKey = `document.querySelector('[data-usage-warning]')?.getAttribute('data-usage-warning') ?? null`;
 // The body stays in the DOM after closing (hidden): visible = no display:none ancestor.
 const modalOpen = `document.querySelector('[data-usage-warning]')?.offsetParent != null`;
@@ -70,8 +75,8 @@ try {
   check('a click outside does not close it', await page.evaluate(modalOpen));
 
   check('OK closes it', await clickOk());
-  const stored = JSON.parse((await page.evaluate(`localStorage.getItem('workflow-app.usage-warnings')`)) ?? '{}');
-  check('the OK is stored with the window reset', stored.fiveHour90 === new Date(fiveHourReset * 1000).toISOString(), JSON.stringify(stored));
+  const afterOk = await stored();
+  check('the OK is stored under the account, with the window reset', afterOk.primary?.fiveHour90 === new Date(fiveHourReset * 1000).toISOString(), JSON.stringify(afterOk));
 
   await load();
   check('same window after a reload: no warning', !(await page.evaluate(modalOpen)));
@@ -99,7 +104,7 @@ try {
 
   // The next 5 h window: the stored OK belonged to a reset that has passed.
   await page.evaluate(
-    `localStorage.setItem('workflow-app.usage-warnings', JSON.stringify({ ...JSON.parse(localStorage.getItem('workflow-app.usage-warnings')), fiveHour90: new Date(Date.now() - 60000).toISOString(), fiveHour100: new Date(Date.now() - 60000).toISOString() }))`,
+    `localStorage.setItem('workflow-app.usage-warnings', JSON.stringify({ primary: { ...JSON.parse(localStorage.getItem('workflow-app.usage-warnings')).primary, fiveHour90: new Date(Date.now() - 60000).toISOString(), fiveHour100: new Date(Date.now() - 60000).toISOString() } }))`,
   );
   writeUsage(91, 93);
   await load();
@@ -107,7 +112,50 @@ try {
   check('the 5 h 90% warning again', (await page.evaluate(warningKey)) === 'fiveHour90');
   await clickOk();
 
-  await page.evaluate(`localStorage.removeItem('workflow-app.usage-warnings')`);
+  // The old format (before accounts): the top-level keys are the primary's, so a window already acknowledged stays so.
+  await page.evaluate(`localStorage.setItem('${KEY}', JSON.stringify({ fiveHour90: '${new Date(fiveHourReset * 1000).toISOString()}' }))`);
+  writeUsage(92, 40);
+  await load();
+  check('old format: read as the one of the primary, no warning', !(await page.evaluate(modalOpen)));
+
+  // Two accounts: an OK on one does not silence the other.
+  await page.evaluate(`localStorage.removeItem('${KEY}')`);
+  const extra = (await page.api('POST', '/accounts', { label: 'Conta B' })).body;
+  check('the second account is created', typeof extra?.id === 'string', JSON.stringify(extra));
+  writeUsage(92, 40);
+  await load();
+  check('primary at 92%: warns', await page.waitFor(modalOpen));
+  check('OK closes it', await clickOk());
+
+  writeUsage(92, 40, fiveHourReset, `usage-${extra.id}.json`);
+  const activated = await page.api('PUT', '/accounts/active', { accountId: extra.id });
+  check('the second account is now active', activated.body?.activeAccountId === extra.id, JSON.stringify(activated.body));
+  await load();
+  check('same 92% on the other account: warns again', await page.waitFor(modalOpen));
+  check('OK closes it', await clickOk());
+  const both = await stored();
+  check('both accounts have their OK', Boolean(both.primary?.fiveHour90 && both[extra.id]?.fiveHour90), JSON.stringify(both));
+  await load();
+  check('the second account, acknowledged: no warning after a reload', !(await page.evaluate(modalOpen)));
+
+  await page.api('PUT', '/accounts/active', { accountId: 'primary' });
+  await load();
+  check('back on the primary: its own OK still holds, no warning', !(await page.evaluate(modalOpen)));
+
+  // An expired OK — of an account that no longer exists — is pruned when the next one is stored.
+  await page.api('PUT', '/accounts/active', { accountId: extra.id });
+  await page.evaluate(
+    `localStorage.setItem('${KEY}', JSON.stringify({ ...JSON.parse(localStorage.getItem('${KEY}')), gone: { fiveHour90: new Date(Date.now() - 60000).toISOString() } }))`,
+  );
+  writeUsage(92, 93, fiveHourReset, `usage-${extra.id}.json`);
+  await load();
+  check('weekly 93% on the second account: warns', await page.waitFor(modalOpen));
+  check('OK closes it', await clickOk());
+  const pruned = await stored();
+  check('the expired OK of a missing account is pruned', !('gone' in pruned) && Boolean(pruned.primary), JSON.stringify(pruned));
+
+  await page.api('PUT', '/accounts/active', { accountId: 'primary' });
+  await page.evaluate(`localStorage.removeItem('${KEY}')`);
   writeUsage(99, 50, inHours(-1));
   await load();
   check('a window already reset never warns', !(await page.evaluate(modalOpen)));

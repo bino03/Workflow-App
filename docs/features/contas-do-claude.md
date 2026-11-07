@@ -453,7 +453,7 @@ Ordem obrigatória. Tiers: `opus` (desenho, não delegar) · `sonnet` (implement
 **Desvios ao plano:** ver "Decisão ao implementar" no passo 9.
 **O que uma sessão nova precisa de saber:**
 - ❓ **A confirmar no passo 10:** na instância de teste, sem `settings.json` na principal, o terminal de login de uma conta nova abriu no ecrã de escolha de tema ("Let's get started"), antes do login. O spike (e) registou que não havia nada antes do login. A faixa já diz para responder lá aos diálogos, mas pode ser preciso ajustar o texto.
-- O aviso de limite ainda não distingue contas: ver a entrada em [[../../notes/ToDo|ToDo]] → Manutenção.
+- O aviso de limite distingue contas desde 2026-11-07: o OK guarda-se por conta e a quota vem do `useAccounts().active` ([[../database]] → avisos de limite).
 - **Cada conta nova mostra os diálogos de primeira vez** do Claude Code (no spike: "Claude in Chrome extension
   detected"), porque o `.claude.json` dela começa só com `mcpServers`. A confiança das pastas também é por conta. Um
   `claude` sem ninguém no PTY (sessões guiadas, importações, Upwork, Remote Control pelo bot) pode ficar parado num
