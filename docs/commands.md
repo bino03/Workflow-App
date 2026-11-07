@@ -131,6 +131,7 @@ node scripts/verify/accounts.mjs                          # o drawer "Escolher c
 node scripts/verify/accounts-terminals.mjs                # a conta de cada terminal (selo, "Noutra conta", "Continuar noutra conta", Retomar; instância nova)
 node scripts/verify/terminal-menu.mjs                     # o menu de contexto dos terminais, no foco dividido e na grelha (instância nova)
 node scripts/verify/settings.mjs                          # a página de Definições: índice, salto, scroll, layout, captura de atalho (instância nova)
+node scripts/verify/sidebar-empty-project.mjs              # os ícones do cabeçalho de um projeto vazio na lateral não abrem terminais (instância nova)
 node scripts/verify/instance.mjs stop --clean             # mata a árvore pelo PID da porta e apaga a pasta
 ```
 

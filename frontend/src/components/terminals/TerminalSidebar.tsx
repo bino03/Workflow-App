@@ -39,6 +39,10 @@ type TerminalSidebarProps = {
 
 const COUNT_LABELS: Record<TerminalStatus, string> = { running: 'a correr', exited: 'terminados', stopped: 'parados' };
 
+/**
+ * Dentro do cabeçalho de um projeto (que é um botão: ativa o projeto e, se está vazio, abre-lhe um terminal), o clique
+ * e o Enter/Espaço de um ícone não podem chegar ao cabeçalho. Só Enter e Espaço: o Esc tem de continuar a subir.
+ */
 function IconButton({ label, onClick, children, loading }: { label: string; onClick: () => void; children: ReactNode; loading?: boolean }) {
   return (
     <Tooltip title={label} mouseEnterDelay={0.4}>
@@ -46,7 +50,13 @@ function IconButton({ label, onClick, children, loading }: { label: string; onCl
         type="button"
         aria-label={label}
         disabled={loading}
-        onClick={onClick}
+        onClick={(event) => {
+          event.stopPropagation();
+          onClick();
+        }}
+        onKeyDown={(event) => {
+          if (event.key === 'Enter' || event.key === ' ') event.stopPropagation();
+        }}
         className="w-6 h-6 flex items-center justify-center bg-transparent border-0 rounded-sm text-text-3 cursor-pointer hover:bg-surface-3 hover:text-text-1 disabled:opacity-40"
       >
         {children}
