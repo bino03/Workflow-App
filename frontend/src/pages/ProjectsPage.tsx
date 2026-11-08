@@ -1,7 +1,9 @@
 import { useMemo, useState } from 'react';
 import { SearchOutlined } from '@ant-design/icons';
 import { Alert, Button, Empty, Input, Spin } from 'antd';
+import { useLocation } from 'react-router';
 import { ProjectCard } from '@/components/projects/ProjectCard';
+import { ProjectInfoDrawer } from '@/components/projects/ProjectInfoDrawer';
 import { LIFECYCLES, lifecycleLabel } from '@/components/projects/projectInfoFormat';
 import { useProjectInfos } from '@/hooks/useProjectInfos';
 import { useProjects } from '@/hooks/useProjects';
@@ -15,6 +17,15 @@ export function ProjectsPage() {
   const infos = useProjectInfos();
   const [filter, setFilter] = useState<LifecycleFilter>('all');
   const [search, setSearch] = useState('');
+
+  // Um projeto pré-aberto por `location.state.projectPath` (o ícone ⓘ dos separadores, numa segunda fase).
+  const requestedPath = (useLocation().state as { projectPath?: string } | null)?.projectPath ?? null;
+  // `drawerPath` não se limpa ao fechar (o conteúdo fica durante a animação); `session` muda a cada abertura,
+  // para o drawer recomeçar em modo de leitura (ou de edição) com o formulário limpo.
+  const [drawer, setDrawer] = useState({ path: requestedPath, open: requestedPath !== null, edit: false, session: 0 });
+  const openDrawer = (path: string, options?: { edit: boolean }) =>
+    setDrawer((current) => ({ path, open: true, edit: options?.edit ?? false, session: current.session + 1 }));
+  const drawerProject = projects.projects.find((project) => project.path === drawer.path) ?? null;
 
   const infoByPath = useMemo(() => new Map(infos.infos.map((info) => [info.projectPath, info])), [infos.infos]);
 
@@ -95,10 +106,22 @@ export function ProjectsPage() {
       ) : (
         <div className="grid grid-cols-[repeat(auto-fill,minmax(320px,1fr))] gap-4">
           {shown.map((project) => (
-            <ProjectCard key={project.path} project={project} info={infoByPath.get(project.path)} />
+            <ProjectCard key={project.path} project={project} info={infoByPath.get(project.path)} onOpen={openDrawer} />
           ))}
         </div>
       )}
+
+      <ProjectInfoDrawer
+        key={drawer.session}
+        open={drawer.open && drawerProject !== null}
+        project={drawerProject}
+        info={drawer.path ? infoByPath.get(drawer.path) : undefined}
+        infos={infos.infos}
+        startEditing={drawer.edit}
+        onClose={() => setDrawer((current) => ({ ...current, open: false }))}
+        onSave={infos.save}
+        onRemove={infos.remove}
+      />
     </div>
   );
 }

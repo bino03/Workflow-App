@@ -1,4 +1,11 @@
-import type { Deploy, Environment, Lifecycle, ProjectInfo } from '@/types/projectInfo';
+import type { Deploy, Environment, EnvironmentKind, Lifecycle, ProjectInfo } from '@/types/projectInfo';
+
+export const ENVIRONMENT_KIND_LABEL: Record<EnvironmentKind, string> = {
+  production: 'Produção',
+  staging: 'Staging',
+  development: 'Desenvolvimento',
+  other: 'Outro',
+};
 
 export const LIFECYCLES: readonly Lifecycle[] = ['development', 'production', 'maintenance', 'paused', 'archived'];
 

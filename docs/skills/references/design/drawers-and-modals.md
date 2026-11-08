@@ -129,6 +129,28 @@ também tem dados e ações, e um `<button>` não pode conter outros. Por isso a
 (`border-accent-border bg-accent-subtle` quando selecionada), e só o cabeçalho dela é o `<button role="radio">`. Os dados
 e as ações (`type="text" size="small"`) ficam por baixo. Renomear troca as ações pelo formulário, dentro da linha.
 
+## Drawer de ficha: leitura e edição no mesmo drawer (2026-11-08)
+
+`components/projects/ProjectInfoDrawer.tsx` (a ficha de um projeto, spec informacao-dos-projetos), verificado em Chrome
+headless (`scripts/verify/project-drawer.mjs`, 33/33). **Large** (900): a ficha tem ambientes com muitos campos. Um
+registo que se lê muitas vezes e se edita poucas não precisa de dois drawers:
+
+- **Leitura por omissão**, rodapé **Apagar ficha** (`type="text" danger`, com `useConfirm()`) à esquerda e Fechar ·
+  **Editar** (`primary`) à direita. **Editar** troca o corpo pelo formulário *no mesmo drawer*; o rodapé passa a Cancelar ·
+  **Guardar**, com a nota "Fica só nesta máquina…" à esquerda. Cancelar volta à leitura sem fechar.
+- O `useForm` vive **no drawer**, não no formulário: o rodapé precisa do `handleSubmit`, do `isValid` e do `isDirty`. O formulário
+  recebe o `form` e só desenha campos. `values` mantém-no igual à ficha gravada (sem efeito nenhum); ao gravar, a ficha nova entra e o
+  formulário limpa-se sozinho. **Guardar** desativado enquanto nada mudou.
+- Quem abre decide o modo: o pai muda a `key` do drawer a cada abertura (recomeça em leitura, ou em edição com `startEditing` —
+  o botão **Adicionar informação** do cartão) e guarda o caminho do projeto sem o limpar ao fechar, para o conteúdo não esvaziar
+  durante a animação.
+- Secções com `h3` 16/600 e hairline por baixo; um grupo repetido (ambiente) é uma `fieldset` em `surface-2` com borda `border`.
+- O `useFieldArray` usa `id` como chave: um campo de dados que se chama `id` colide — chamou-se `envId` no formulário e volta a `id`
+  na conversão para o corpo do pedido.
+- Um **cartão que abre um drawer** (`ProjectCard.tsx`): o cartão inteiro tem `onClick` (rato), mas o nome é um `<button>` — é por
+  ele que o teclado chega lá, porque um cartão com links e botões lá dentro não pode ser ele próprio um botão. Os links e botões
+  internos fazem `stopPropagation`.
+
 ## Drawer de revisão com diff (2026-10-25)
 
 `components/library/ImportReviewDrawer.tsx` — rever o que uma importação mudou antes de aceitar (verificado em

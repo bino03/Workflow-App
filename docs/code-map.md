@@ -73,7 +73,7 @@ isso há os outros:
 | Camada | Ficheiros |
 |---|---|
 | **Entrada** | rota `/projects` → `frontend/src/pages/ProjectsPage.tsx` (cartões, chips de ciclo de vida, pesquisa) · item "Projetos" em `layouts/AppLayout.tsx` · ação `goProjects` (sem tecla) |
-| **Frontend** | `components/projects/` (`ProjectCard.tsx`, `projectInfoFormat.ts` — último deploy, "há 3 dias", etiquetas —, `hosting.ts`) · `hooks/useProjectInfos.ts` · `services/projectInfoService.ts` · `types/projectInfo.ts` · cenário `scripts/verify/projects-page.mjs` |
+| **Frontend** | `components/projects/` (`ProjectCard.tsx`, `projectInfoFormat.ts` — último deploy, "há 3 dias", etiquetas —, `hosting.ts`; o drawer: `ProjectInfoDrawer.tsx` — leitura e edição no mesmo drawer —, `ProjectInfoDetails.tsx`, `ProjectInfoForm.tsx`, `EnvironmentFields.tsx`, `FormField.tsx`, `projectInfoFormSchema.ts` — Zod + conversões form ↔ API) · `hooks/useProjectInfos.ts` · `services/projectInfoService.ts` · `types/projectInfo.ts` · cenários `scripts/verify/{projects-page,project-drawer}.mjs` |
 | **Backend** | `backend/src/projectInfo/` (ver "Terminais", linha do backend) |
 | **Detalhe** | [[api]] → "Informação dos projetos" · [[database]] → `projectInfos` · spec [[features/informacao-dos-projetos]] · [[adr/0028-informacao-de-deploy-por-projeto]] |
 
