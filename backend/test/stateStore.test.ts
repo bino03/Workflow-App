@@ -64,7 +64,7 @@ describe('StateStore', () => {
 
   it('missing file → empty state, and nothing written until the first change', async () => {
     const store = await StateStore.load(dataDir);
-    expect(store.read()).toEqual({ version: 2, terminals: [], closedTerminals: [], folders: [], keybindings: {}, accounts: [], activeAccountId: 'primary', primaryAccountLabel: null });
+    expect(store.read()).toEqual({ version: 2, terminals: [], closedTerminals: [], folders: [], keybindings: {}, accounts: [], activeAccountId: 'primary', primaryAccountLabel: null, projectInfos: [] });
     await store.flush();
     expect(existsSync(file)).toBe(false);
   });
@@ -169,6 +169,60 @@ describe('StateStore', () => {
       await writeFile(file, JSON.stringify(bad));
       await expect(StateStore.load(dataDir)).rejects.toBeInstanceOf(StateFileError);
     }
+  });
+
+  describe('projectInfos (ADR 0028)', () => {
+    const base = { version: 2, terminals: [], closedTerminals: [], folders: [], keybindings: {} };
+    const deploy = () => ({ id: randomUUID(), at: at(0) });
+    const environment = (overrides: Record<string, unknown> = {}) => ({
+      id: randomUUID(),
+      kind: 'production',
+      name: 'Produção',
+      ...overrides,
+    });
+    const info = (overrides: Record<string, unknown> = {}) => ({
+      projectPath: 'C:\\projetos\\worksite',
+      updatedAt: at(0),
+      ...overrides,
+    });
+
+    it('a file saved before project infos existed loads with none, without a migration or a rewrite', async () => {
+      const content = JSON.stringify(base);
+      await writeFile(file, content);
+      const state = (await StateStore.load(dataDir)).read();
+      expect(state.version).toBe(2);
+      expect(state.projectInfos).toEqual([]);
+      expect(await readFile(file, 'utf8')).toBe(content);
+    });
+
+    it('fills the defaults of a minimal info and keeps a full one', async () => {
+      await writeFile(file, JSON.stringify({ ...base, projectInfos: [info({ environments: [environment({ deploys: [deploy()] })] })] }));
+      const [loaded] = (await StateStore.load(dataDir)).read().projectInfos;
+      expect(loaded).toMatchObject({ lifecycle: null, client: null, repoUrl: null, domain: null, links: [], notes: '' });
+      expect(loaded?.environments[0]).toMatchObject({ url: null, hosting: null, healthUrl: null, monthlyCostEur: null });
+      expect(loaded?.environments[0]?.deploys).toHaveLength(1);
+    });
+
+    it('refuses a non-http(s) URL, 21 deploys, 6 environments and a repeated project path', async () => {
+      const deploys = (count: number) => Array.from({ length: count }, deploy);
+      for (const bad of [
+        { ...base, projectInfos: [info({ repoUrl: 'javascript:alert(1)' })] },
+        { ...base, projectInfos: [info({ environments: [environment({ url: 'file:///etc/passwd' })] })] },
+        { ...base, projectInfos: [info({ links: [{ label: 'x', url: 'javascript:alert(1)' }] })] },
+        { ...base, projectInfos: [info({ environments: [environment({ deploys: deploys(21) })] })] },
+        { ...base, projectInfos: [info({ environments: Array.from({ length: 6 }, () => environment()) })] },
+        { ...base, projectInfos: [info(), info()] },
+      ]) {
+        await writeFile(file, JSON.stringify(bad));
+        await expect(StateStore.load(dataDir)).rejects.toBeInstanceOf(StateFileError);
+      }
+    });
+
+    it('accepts 20 deploys and 5 environments', async () => {
+      const full = info({ environments: Array.from({ length: 5 }, () => environment({ deploys: Array.from({ length: 20 }, deploy) })) });
+      await writeFile(file, JSON.stringify({ ...base, projectInfos: [full] }));
+      expect((await StateStore.load(dataDir)).read().projectInfos[0]?.environments).toHaveLength(5);
+    });
   });
 
   it('a v1 file loads as v2 with no shortcut changes, and is only rewritten on the next change', async () => {

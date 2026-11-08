@@ -2,10 +2,10 @@
 
 | | |
 |---|---|
-| **Estado** | 📋 Planeada |
+| **Estado** | 🚧 Em curso |
 | **Criada** | 2026-11-08 |
 | **Última sessão** | 2026-11-08 |
-| **Passos** | 0 / 7 concluídos |
+| **Passos** | 2 / 7 concluídos |
 
 > Escrita para uma sessão que **não viu a conversa que a originou**. Se algo só faz sentido com contexto
 > externo, falta escrevê-lo.
@@ -206,13 +206,13 @@ frontend junta `ProjectEntry` (já existe) com a `ProjectInfo | undefined` pelo 
 Ordem obrigatória. Tiers: `opus` (desenho, não delegar) · `sonnet` (implementação) · `haiku` (mecânico).
 **Regra 8 do `CLAUDE.md`**: nunca editar o backend a partir de um terminal servido por ele em `npm run dev`.
 
-- [ ] **1. Schema da coleção `projectInfos`**
+- [x] **1. Schema da coleção `projectInfos`**
   - Ficheiro: `backend/src/state/state.schema.ts`, `backend/test/stateStore.test.ts`
   - Skill: — (seguir [[../backend-conventions]] e [[../skills/references/code-best-practices]])
   - Tier: `sonnet`
   - Aceite quando: os schemas da §4.1 existem e `stateSchema` tem `projectInfos` com `.default([])` **sem** subir `STATE_VERSION`; um `state.json` v2 antigo (sem o campo) lê-se como `projectInfos: []`; testes: URL `javascript:` rejeitado, 21 deploys rejeitados, 6 ambientes rejeitados, `projectPath` duplicado rejeitado.
 
-- [ ] **2. Serviço, rotas, erros e docs de dados**
+- [x] **2. Serviço, rotas, erros e docs de dados**
   - Ficheiro: `backend/src/projectInfo/{projectInfo.schemas.ts,projectInfoService.ts,projectInfo.routes.ts}`, `backend/src/common/errors.ts` (`PROJECT_001-003`), `backend/src/app.ts` (montar), `backend/test/projectInfo.routes.test.ts`; `docs/api.md` (secção "Informação dos projetos"), `docs/code-map.md` (linha "Informação dos projetos"), `docs/database.md` (coleção `projectInfos` + linha na tabela "O que vive onde" + ER)
   - Skill: — (seguir [[../backend-conventions]], [[../api]] e o padrão de `backend/src/accounts/`)
   - Tier: `sonnet`
@@ -252,12 +252,19 @@ Ordem obrigatória. Tiers: `opus` (desenho, não delegar) · `sonnet` (implement
 
 > ⚠️ **Atualizar SEMPRE no fim de cada sessão.** É a secção que torna esta spec retomável.
 
-**Feito:** entrevista e desenho (2026-11-08); ADR 0028. Nenhum passo de código.
+**Feito:** entrevista e desenho (2026-11-08); ADR 0028; passo 1 (schema `projectInfos` em
+`state.schema.ts`, 4 testes novos em `stateStore.test.ts`); passo 2 (`backend/src/projectInfo/`, `PROJECT_001-003`,
+montado em `app.ts`, 11 testes em `test/projectInfo.routes.test.ts`, suite inteira 527/527; `docs/api.md`,
+`docs/database.md` e `docs/code-map.md` atualizados). Rotas verificadas só com `app.inject` — a chamada HTTP real
+fica para o passo 7.
 **Em curso:** —
-**Próxima ação concreta:** passo 1 — abrir `backend/src/state/state.schema.ts` (o `stateSchema` está a
-partir da linha ~86; os `accounts` com `.default([])` na ~94 são o modelo a copiar) e acrescentar os schemas
-da §4.1.
-**Desvios ao plano:** —
+**Próxima ação concreta:** passo 3 — frontend: `types/projectInfo.ts` (espelho à mão do `ProjectInfo`),
+`services/projectInfoService.ts`, `hooks/useProjectInfos.ts` e `PROJECT_001-003` em `errors/errorMessages.ts`
+(1:1 com `backend/src/common/errors.ts`); ver `services/accountService.ts` e `hooks/useAccounts.ts` como modelo.
+O corpo do `PUT` é `{projectPath, info}` com `info` sem `deploys`/`projectPath`/`updatedAt`; os ambientes novos vão sem `id`.
+**Desvios ao plano:** `emptyState()` ganhou `projectInfos: []` (o teste do estado vazio foi ajustado). O
+`tsc --noEmit` do backend já tinha 1 erro anterior em `test/auth.test.ts:40` (tipos do WebSocket), não
+relacionado.
 **O que uma sessão nova precisa de saber:**
 - O dono quer, no futuro, um ícone ⓘ em cada separador de projeto (`ProjectTabs`) que abre esta ficha
   **na mesma página de Projetos**. Fica de fora desta feature (§2) mas a página deve aceitar

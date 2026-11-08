@@ -77,6 +77,10 @@ export const ErrorCode = {
   ACCOUNT_003: { status: 409, message: 'The primary account cannot be removed' },
   ACCOUNT_004: { status: 409, message: 'The account has running terminals' },
   ACCOUNT_005: { status: 500, message: 'Could not prepare or clean the account folder; nothing was deleted' },
+  // PROJECT (ADR 0028)
+  PROJECT_001: { status: 404, message: 'Project is not in the Workflow registry any more' },
+  PROJECT_002: { status: 404, message: 'Environment not found' },
+  PROJECT_003: { status: 404, message: 'Deploy not found' },
 } as const satisfies Record<string, { status: number; message: string }>;
 
 export type ErrorCode = keyof typeof ErrorCode;

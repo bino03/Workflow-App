@@ -79,6 +79,64 @@ export const keyBindingSchema = z.object({
 /** Only the user's changes: a missing action keeps its default, `null` = no binding. */
 export const keyBindingsSchema = z.record(z.string().min(1).max(64), keyBindingSchema.nullable());
 
+/** Limits of the per-project info (ADR 0028). */
+export const MAX_ENVIRONMENTS = 5;
+export const MAX_DEPLOYS = 20;
+export const MAX_PROJECT_LINKS = 10;
+
+/** A clickable URL: http(s) only, so `javascript:` and `file:` never reach an `href`. */
+const httpUrl = z
+  .url()
+  .refine((url) => /^https?:\/\//i.test(url), 'http(s) only')
+  .refine((url) => url.length <= 500, 'at most 500 characters');
+
+const optionalText = (max: number) => z.string().trim().min(1).max(max).nullable().default(null);
+
+/** A manual deploy record; the date is never read from git or the host. */
+export const deploySchema = z.object({
+  id: z.uuid(),
+  at: instant,
+  version: optionalText(80),
+  note: optionalText(280),
+});
+
+export const environmentSchema = z.object({
+  id: z.uuid(),
+  kind: z.enum(['production', 'staging', 'development', 'other']),
+  name: z.string().trim().min(1).max(40),
+  url: httpUrl.nullable().default(null),
+  hosting: optionalText(80),
+  version: optionalText(80),
+  dashboardUrl: httpUrl.nullable().default(null),
+  logsUrl: httpUrl.nullable().default(null),
+  // Stored only, never requested (ADR 0028: no ping, SSRF).
+  healthUrl: httpUrl.nullable().default(null),
+  monthlyCostEur: z.number().min(0).max(100000).nullable().default(null),
+  // Newest first.
+  deploys: z.array(deploySchema).max(MAX_DEPLOYS).default([]),
+});
+
+export const projectInfoSchema = z.object({
+  projectPath: z.string().min(1),
+  lifecycle: z.enum(['development', 'production', 'maintenance', 'paused', 'archived']).nullable().default(null),
+  client: optionalText(80),
+  environments: z.array(environmentSchema).max(MAX_ENVIRONMENTS).default([]),
+  repoUrl: httpUrl.nullable().default(null),
+  database: optionalText(120),
+  ci: optionalText(120),
+  domain: z
+    .object({
+      name: z.string().trim().min(1).max(120),
+      registrar: optionalText(80),
+      renewsAt: z.iso.date().nullable().default(null),
+    })
+    .nullable()
+    .default(null),
+  links: z.array(z.object({ label: z.string().trim().min(1).max(60), url: httpUrl })).max(MAX_PROJECT_LINKS).default([]),
+  notes: z.string().max(4000).default(''),
+  updatedAt: instant,
+});
+
 function uniqueBy<T>(items: T[], key: (item: T) => string): boolean {
   return new Set(items.map(key)).size === items.length;
 }
@@ -94,6 +152,8 @@ export const stateSchema = z
     accounts: z.array(accountSchema).max(MAX_EXTRA_ACCOUNTS).default([]),
     activeAccountId: accountIdSchema.default('primary'),
     primaryAccountLabel: z.string().trim().min(1).max(40).nullable().default(null),
+    // ADR 0028. Older files → no project info, no migration (STATE_VERSION stays 2).
+    projectInfos: z.array(projectInfoSchema).default([]),
   })
   .refine((state) => uniqueBy(state.terminals, (terminal) => terminal.id), {
     message: 'terminal ids must be unique',
@@ -106,6 +166,10 @@ export const stateSchema = z
   .refine((state) => uniqueBy(state.accounts, (account) => account.id), {
     message: 'account ids must be unique',
     path: ['accounts'],
+  })
+  .refine((state) => uniqueBy(state.projectInfos, (info) => info.projectPath), {
+    message: 'project paths must be unique',
+    path: ['projectInfos'],
   });
 
 export type SavedTerminal = z.infer<typeof savedTerminalSchema>;
@@ -114,7 +178,10 @@ export type Folder = z.infer<typeof folderSchema>;
 export type KeyBinding = z.infer<typeof keyBindingSchema>;
 export type AccountId = z.infer<typeof accountIdSchema>;
 export type Account = z.infer<typeof accountSchema>;
-export type AppState = z.infer<typeof stateSchema>;
+export type Deploy = z.infer<typeof deploySchema>;
+export type Environment = z.infer<typeof environmentSchema>;
+export type ProjectInfo = z.infer<typeof projectInfoSchema>;
+export type AppState =z.infer<typeof stateSchema>;
 
 export function emptyState(): AppState {
   return {
@@ -126,6 +193,7 @@ export function emptyState(): AppState {
     accounts: [],
     activeAccountId: 'primary',
     primaryAccountLabel: null,
+    projectInfos: [],
   };
 }
 

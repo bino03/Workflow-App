@@ -61,6 +61,9 @@ próprio Fastify (JSON mal formado, content-type errado → `COMMON_001`) e as r
 | `UPWORK_003` | 409 | Criar projeto a partir de uma candidatura que não está `won` |
 | `UPWORK_004` | 409 | Alterar uma candidatura arquivada |
 | `UPWORK_005` | 409 | Escrever na conversa de uma candidatura sem sessão (arquivada) |
+| `PROJECT_001` | 404 | O `projectPath` não está na lista de `GET /api/projects` (saiu do registo, foi descartado ou está fora de `ALLOWED_ROOTS`) |
+| `PROJECT_002` | 404 | O ambiente não existe na ficha (ou o projeto ainda não tem ficha) |
+| `PROJECT_003` | 404 | O deploy não existe nesse ambiente |
 
 O frontend espelha esta tabela em `frontend/src/errors/errorMessages.ts`, pela mesma ordem — os dois
 mudam no mesmo commit.
@@ -356,6 +359,26 @@ projeto (ou a lista toda) sai, nunca 500.
 - `projects/INDEX.md` é uma tabela Markdown para humanos, sem frontmatter — ao contrário dos manifestos
   da Biblioteca, é a única fonte que existe para o registo de projetos; o parser
   (`backend/src/projects/projectIndexParser.ts`) tolera linhas mal formadas, saltando-as.
+
+## Informação dos projetos (`projectInfo/`, `/api/project-infos`) — 🚧
+
+A ficha de cada projeto do registo: ciclo de vida, ambientes (URL, hosting, deploys registados à mão), código e
+infra, notas ([[adr/0028-informacao-de-deploy-por-projeto]], [[features/informacao-dos-projetos]]). Guardada no
+`state.json` (`projectInfos`, [[database]]). Todos os URLs são `http(s)` e **só guardados**: o backend nunca os
+chama. Todas as rotas exigem sessão (`AUTH_002`) e um `projectPath` que esteja em `GET /api/projects`
+(senão `PROJECT_001`), igual ao que essa rota devolve.
+
+| Método | Rota | Corpo / query | Resposta | Erros |
+|---|---|---|---|---|
+| GET | `/api/project-infos` | — | `ProjectInfo[]` — só as fichas dos projetos hoje visíveis no registo (a de um projeto escondido fica no ficheiro) | `AUTH_002` |
+| PUT | `/api/project-infos` | `{projectPath, info}` — `info` é a ficha **sem** `deploys`/`projectPath`/`updatedAt`; um ambiente sem `id` ganha um | `200 ProjectInfo`. Substitui a ficha mas **preserva os deploys** dos ambientes cujo `id` se mantém; um ambiente que desaparece leva os deploys consigo. Idempotente; uma ficha vazia grava na mesma | `COMMON_001` · `PROJECT_001` |
+| DELETE | `/api/project-infos` | query `projectPath` | `204`. Apaga a ficha inteira (também `204` se não havia) | `COMMON_001` · `PROJECT_001` |
+| POST | `/api/project-infos/deploys` | `{projectPath, environmentId, at?, version?, note?}` — `at` (ISO) omitido = agora | `200 ProjectInfo`. Mais recente primeiro; o 21.º deploy faz sair o mais antigo | `COMMON_001` · `PROJECT_001` · `PROJECT_002` |
+| DELETE | `/api/project-infos/deploys` | query `projectPath`, `environmentId`, `deployId` | `200 ProjectInfo` | `COMMON_001` · `PROJECT_001` · `PROJECT_002` · `PROJECT_003` |
+
+- Limites: 5 ambientes, 20 deploys por ambiente, 10 links, notas ≤ 4000. Validação falhada (URL que não
+  `http(s)`, texto longo) → `COMMON_001` com erro por campo.
+- O "último deploy" não existe na resposta: deriva-se no frontend do `at` mais recente.
 
 ## Contas do Claude (`accounts/`, `/api/accounts`) — 🚧
 

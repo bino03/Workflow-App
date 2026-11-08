@@ -10,7 +10,7 @@
 
 | Dado | Onde | Sobrevive a um reinício? |
 |---|---|---|
-| Terminais abertos (para reabrir), histórico de fechados, pastas recentes/favoritas, atalhos alterados | `state.json` em `DATA_DIR` | ✅ |
+| Terminais abertos (para reabrir), histórico de fechados, pastas recentes/favoritas, atalhos alterados, ficha de cada projeto (hosting, URLs, deploys) | `state.json` em `DATA_DIR` | ✅ |
 | Terminal a correr (PTY, estado, código de saída) | memória do backend (`TerminalManager`) | ❌ — o processo morre com o backend |
 | Pré-visualização de um terminal (porta de dev, porta HTTPS, link) | memória do backend (`PreviewService`, [[adr/0018-pre-visualizacao-por-tailscale-serve]]) — o `serve` em si fica no daemon do Tailscale | ❌ — e no arranque o backend desliga as portas da gama `PREVIEW_HTTPS_PORTS` que tenham ficado servidas |
 | Scrollback | memória do backend | ❌ — de propósito: é conteúdo sensível, e a conversa já está no `.jsonl` do Claude Code |
@@ -52,7 +52,8 @@
   "keybindings": {},
   "accounts": [],
   "activeAccountId": "primary",
-  "primaryAccountLabel": null
+  "primaryAccountLabel": null,
+  "projectInfos": []
 }
 ```
 
@@ -70,6 +71,9 @@ erDiagram
   FOLDER
   ACCOUNT ||..o{ SAVED_TERMINAL : "accountId (omissão primary)"
   ACCOUNT ||..o{ CLOSED_TERMINAL : "accountId"
+  PROJECT_INFO ||--o{ ENVIRONMENT : "contém (até 5)"
+  ENVIRONMENT ||--o{ DEPLOY : "contém (até 20)"
+  PROJECT_INFO }o..o| PROJECT_ENTRY : "projectPath (registo do Workflow)"
 ```
 
 ## Coleções
@@ -155,6 +159,26 @@ O que representa: as contas do Claude além da principal, e a que está ativa ([
 | `accounts` | `{id: uuid, label: texto 1-40, createdAt}[]`, **máx. 4**, `id` único | Só as extra. A principal é implícita (id `primary`, a pasta de hoje). A pasta de cada extra é `DATA_DIR/accounts/<id>` e deriva só do id |
 | `activeAccountId` | `'primary'` \| UUID | A omissão de tudo o que se cria. Um id que já não existe lê-se como `primary` |
 | `primaryAccountLabel` | texto 1-40 \| `null` | `null` → a UI mostra "Principal" |
+
+### Informação dos projetos — `projectInfos`
+
+O que representa: a ficha de cada projeto do registo — ciclo de vida, ambientes com os seus deploys, código e infra,
+notas ([[adr/0028-informacao-de-deploy-por-projeto]], [[features/informacao-dos-projetos]]). Chegou com
+`.default([])`, sem subir o `STATE_VERSION`: um ficheiro anterior lê-se com `projectInfos: []`. Schemas em
+`backend/src/state/state.schema.ts` (`projectInfoSchema`, `environmentSchema`, `deploySchema`).
+
+| Campo | Tipo | Nota |
+|---|---|---|
+| `projectPath` | texto, **único** | O `path` do `ProjectEntry` do registo (referência fraca: um projeto que sai do registo deixa a ficha no ficheiro, escondida) |
+| `lifecycle` | `development` \| `production` \| `maintenance` \| `paused` \| `archived` \| `null` | |
+| `client`, `database`, `ci` | texto ≤ 80/120/120 \| `null` | |
+| `environments` | `Environment[]`, **máx. 5** | `{id: uuid, kind: production/staging/development/other, name ≤ 40, url, hosting ≤ 80, version ≤ 80, dashboardUrl, logsUrl, healthUrl, monthlyCostEur 0-100000, deploys}`; os URLs são `http(s)` ≤ 500 ou `null` (`healthUrl` só guardado, nunca chamado) |
+| `environments[].deploys` | `{id: uuid, at: ISO, version ≤ 80 \| null, note ≤ 280 \| null}[]`, **máx. 20** | Mais recente primeiro; ao exceder sai o mais antigo. O "último deploy" deriva-se, não se guarda |
+| `repoUrl` | URL `http(s)` \| `null` | |
+| `domain` | `{name ≤ 120, registrar ≤ 80 \| null, renewsAt: data \| null}` \| `null` | |
+| `links` | `{label ≤ 60, url}[]`, **máx. 10** | |
+| `notes` | texto ≤ 4000 | Nunca segredos (a UI avisa) |
+| `updatedAt` | ISO | |
 
 ## Relações
 
