@@ -5,7 +5,7 @@
 | **Estado** | 🚧 Em curso |
 | **Criada** | 2026-11-08 |
 | **Última sessão** | 2026-11-08 |
-| **Passos** | 2 / 7 concluídos |
+| **Passos** | 3 / 7 concluídos |
 
 > Escrita para uma sessão que **não viu a conversa que a originou**. Se algo só faz sentido com contexto
 > externo, falta escrevê-lo.
@@ -218,7 +218,7 @@ Ordem obrigatória. Tiers: `opus` (desenho, não delegar) · `sonnet` (implement
   - Tier: `sonnet`
   - Aceite quando: as 5 rotas da §4.2 passam com `app.inject` — incluindo `PROJECT_001` para um caminho fora do registo, `PUT` que preserva os deploys dos ambientes com o mesmo `id` e descarta os do ambiente removido, `POST` de deploy com `at` omitido usa agora e ordena o mais recente primeiro, o 21.º deploy empurra o mais antigo, `DELETE` ficha remove tudo; sem sessão → `AUTH_002`; `docs/` atualizados no mesmo commit.
 
-- [ ] **3. Frontend: tipos, serviço, hook, erros**
+- [x] **3. Frontend: tipos, serviço, hook, erros**
   - Ficheiro: `frontend/src/types/projectInfo.ts`, `services/projectInfoService.ts`, `hooks/useProjectInfos.ts`, `errors/errorMessages.ts`
   - Skill: `frontend-design-system`, `frontend-error-handling`
   - Tier: `sonnet`
@@ -256,12 +256,14 @@ Ordem obrigatória. Tiers: `opus` (desenho, não delegar) · `sonnet` (implement
 `state.schema.ts`, 4 testes novos em `stateStore.test.ts`); passo 2 (`backend/src/projectInfo/`, `PROJECT_001-003`,
 montado em `app.ts`, 11 testes em `test/projectInfo.routes.test.ts`, suite inteira 527/527; `docs/api.md`,
 `docs/database.md` e `docs/code-map.md` atualizados). Rotas verificadas só com `app.inject` — a chamada HTTP real
-fica para o passo 7.
+fica para o passo 7. Passo 3 (`types/projectInfo.ts`, `services/projectInfoService.ts`,
+`hooks/useProjectInfos.ts`, `PROJECT_001-003` em `errorMessages.ts`; `tsc -b` e `eslint .` com 0 erros).
 **Em curso:** —
-**Próxima ação concreta:** passo 3 — frontend: `types/projectInfo.ts` (espelho à mão do `ProjectInfo`),
-`services/projectInfoService.ts`, `hooks/useProjectInfos.ts` e `PROJECT_001-003` em `errors/errorMessages.ts`
-(1:1 com `backend/src/common/errors.ts`); ver `services/accountService.ts` e `hooks/useAccounts.ts` como modelo.
-O corpo do `PUT` é `{projectPath, info}` com `info` sem `deploys`/`projectPath`/`updatedAt`; os ambientes novos vão sem `id`.
+**Próxima ação concreta:** passo 4 — `pages/ProjectsPage.tsx` + `components/projects/{ProjectCard,projectInfoFormat,hosting}.ts(x)`,
+rota em `main.tsx`, item em `NAV_ITEMS` (`layouts/AppLayout.tsx`) e `goProjects` em `backend/src/keybindings/catalog.ts`.
+Usar `useProjects()` (registo) + `useProjectInfos()` (fichas, juntas por `path`). O hook já devolve `save`, `remove`,
+`registerDeploy`, `removeDeploy` (devolvem a ficha nova, ou `null`/`false` se falharam — já notificaram o erro).
+Invocar `frontend-design-system` e ler `frontend-visual-consistency` antes de escrever UI.
 **Desvios ao plano:** `emptyState()` ganhou `projectInfos: []` (o teste do estado vazio foi ajustado). O
 `tsc --noEmit` do backend já tinha 1 erro anterior em `test/auth.test.ts:40` (tipos do WebSocket), não
 relacionado.

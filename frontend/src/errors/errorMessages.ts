@@ -70,8 +70,11 @@ export const ERROR_MESSAGES: Record<string, string> = {
   ACCOUNT_003: 'A conta principal não se remove.',
   ACCOUNT_004: 'Esta conta tem terminais a correr — fecha-os ou para-os primeiro.',
   ACCOUNT_005: 'Não foi possível preparar (ou limpar) a pasta da conta. Nada foi apagado.',
+  PROJECT_001: 'Este projeto já não está no registo do Workflow.',
+  PROJECT_002: 'Esse ambiente já não existe — recarrega a página.',
+  PROJECT_003: 'Esse deploy já não existe.',
 
-  DEFAULT: 'Ocorreu um erro. Tenta outra vez.',
+  DEFAULT:'Ocorreu um erro. Tenta outra vez.',
 };
 
 /** Pedido sem resposta (backend parado, rede em baixo) — não é um código do backend. */
