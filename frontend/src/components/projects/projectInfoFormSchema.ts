@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import type { EnvironmentKind, ProjectInfo, ProjectInfoInput } from '@/types/projectInfo';
+import type { DeployInput, EnvironmentKind, ProjectInfo, ProjectInfoInput } from '@/types/projectInfo';
 import { ENVIRONMENT_KIND_LABEL } from './projectInfoFormat';
 
 export const MAX_ENVIRONMENTS = 5;
@@ -135,6 +135,29 @@ export function toProjectInfoInput(values: ProjectInfoFormValues): ProjectInfoIn
     links: values.links.map((link) => ({ label: link.label, url: link.url })),
     notes: values.notes,
   };
+}
+
+/** O formulário "Registar deploy": data e hora (de um `datetime-local`), versão e nota opcionais. */
+export const deployFormSchema = z.object({
+  at: z
+    .string()
+    .min(1, 'Indica a data e a hora.')
+    .refine((value) => !Number.isNaN(Date.parse(value)), 'Uma data e hora válidas.'),
+  version: text(80),
+  note: text(280),
+});
+
+export type DeployFormValues = z.infer<typeof deployFormSchema>;
+
+/** "Agora" no formato do `datetime-local` (hora local, ao minuto): `2026-11-08T21:30`. */
+export function nowForInput(now: Date = new Date()): string {
+  const pad = (value: number) => String(value).padStart(2, '0');
+  return `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}T${pad(now.getHours())}:${pad(now.getMinutes())}`;
+}
+
+/** Os valores do formulário (já validados) como corpo do `POST` de um deploy: a hora local passa a ISO (UTC). */
+export function toDeployInput(values: DeployFormValues): DeployInput {
+  return { at: new Date(values.at).toISOString(), version: nullIfEmpty(values.version), note: nullIfEmpty(values.note) };
 }
 
 /** Um ambiente novo: produção se ainda não há, senão staging. */

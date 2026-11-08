@@ -121,6 +121,8 @@ export function ProjectsPage() {
         onClose={() => setDrawer((current) => ({ ...current, open: false }))}
         onSave={infos.save}
         onRemove={infos.remove}
+        onRegisterDeploy={infos.registerDeploy}
+        onRemoveDeploy={infos.removeDeploy}
       />
     </div>
   );

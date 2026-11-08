@@ -5,7 +5,7 @@
 | **Estado** | 🚧 Em curso |
 | **Criada** | 2026-11-08 |
 | **Última sessão** | 2026-11-08 |
-| **Passos** | 5 / 7 concluídos |
+| **Passos** | 6 / 7 concluídos |
 
 > Escrita para uma sessão que **não viu a conversa que a originou**. Se algo só faz sentido com contexto
 > externo, falta escrevê-lo.
@@ -236,7 +236,7 @@ Ordem obrigatória. Tiers: `opus` (desenho, não delegar) · `sonnet` (implement
   - Tier: `sonnet`
   - Aceite quando: clicar num cartão abre o drawer (modo ver) com ciclo de vida, ambientes (URL, hosting, painel, logs, health, custo), código/infra, domínio, links e notas; **Editar** abre o formulário com os mesmos campos; ambientes adicionam-se/removem-se (máx. 5); URLs não `http(s)` dão erro por campo; hosting é `AutoComplete` com as sugestões da §4.4; **Guardar** chama `PUT` e atualiza o cartão sem recarregar; aviso "Não guardes passwords nem tokens aqui" junto às notas; a página aceita `location.state.projectPath` para abrir o drawer desse projeto (usado na 2ª fase).
 
-- [ ] **6. Registar e apagar deploys**
+- [x] **6. Registar e apagar deploys**
   - Ficheiro: `frontend/src/components/projects/{DeployList,RegisterDeployModal}.tsx`, ligação em `ProjectInfoDrawer.tsx`
   - Skill: `frontend-design-system`, `frontend-error-handling`
   - Tier: `sonnet`
@@ -263,15 +263,20 @@ fica para o passo 7. Passo 3 (`types/projectInfo.ts`, `services/projectInfoServi
 numa instância descartável). Passo 5 (`components/projects/{ProjectInfoDrawer,ProjectInfoDetails,ProjectInfoForm,
 EnvironmentFields,FormField,projectInfoFormSchema}`; cartão clicável, "Adicionar informação", `location.state.projectPath`,
 Apagar ficha com confirmação; `tsc -b` e `eslint src` limpos; `scripts/verify/project-drawer.mjs` 33/33 no browser, com
-cada coisa lida de volta na API).
+cada coisa lida de volta na API). Passo 6 (`components/projects/{DeployList,RegisterDeployModal}.tsx` ligados no
+`ProjectInfoDetails`/`ProjectInfoDrawer`; modal por cima do drawer com "agora" pré-preenchido e editável, versão e nota
+opcionais, apagar com confirmação, o 21.º deploy empurra o mais antigo; `scripts/verify/project-deploys.mjs` 30/30, e os
+cenários dos passos 4 e 5 continuam 27/27 e 33/33).
 **Em curso:** —
-**Próxima ação concreta:** passo 6 — `components/projects/{DeployList,RegisterDeployModal}.tsx`, ligados em
-`ProjectInfoDrawer.tsx`/`ProjectInfoDetails.tsx` (o `EnvironmentView` é onde cada ambiente mostra os deploys; os ambientes
-só existem em leitura nessa vista). Usar `useProjectInfos().registerDeploy/removeDeploy` (a página passa `onSave`/`onRemove`;
-falta passar estes dois ao drawer). Registar deploy = modal (utilitário curto, `min(640px, 94vw)`, ver
-`design/drawers-and-modals.md` → "utilitário de um campo") com data/hora de agora editável (`at` ISO), versão e nota
-opcionais; apagar um deploy com `useConfirm()`. Atenção: o `RegisterDeployModal` e o drawer são sobrepostos — o modal
-fica por cima. Verificar com um cenário novo em `scripts/verify/` (`npm run build`, `instance.mjs start --fresh`).
+**Próxima ação concreta:** passo 7 (o último) — verificação ponta a ponta e fecho. (1) Backend real com `DATA_DIR` de teste
+(`instance.mjs start --fresh`): criar a ficha do **Worksite**-like com produção + staging e dois deploys, recarregar e ver tudo,
+editar, apagar, `javascript:` recusado — a maior parte já está coberta pelos três cenários `scripts/verify/projects-page|
+project-drawer|project-deploys.mjs`, falta o fluxo único descrito no critério (produção **e** staging, recarga completa) e
+uma chamada HTTP real às rotas (`curl` com sessão, o passo 2 só usou `app.inject`). (2) Os testes do backend, `tsc -b` e
+`eslint .` do frontend verdes. (3) Docs: `docs/product/use-cases.md` (ecrã Projetos), `design/*` se houver padrão novo (o do
+drawer de ficha já está em `drawers-and-modals.md`; falta, no máximo, uma nota em `forms-and-validation.md` sobre
+`useFieldArray` + `envId` e sobre `datetime-local`), esta spec marcada ✅ e o estado do `docs/api.md`/`database.md`/
+`code-map.md` de 🚧 para ✅. (4) `notes/ToDo.md` (tirar o item) e `notes/whatIveDone.md`; arquivar nada (a spec é de `docs/`).
 **Desvios ao plano:** `emptyState()` ganhou `projectInfos: []` (o teste do estado vazio foi ajustado). O
 `tsc --noEmit` do backend já tinha 1 erro anterior em `test/auth.test.ts:40` (tipos do WebSocket), não
 relacionado. O passo 4 não corre testes unitários dos helpers (`lastDeploy`, `primaryEnvironment`, `relativeDeploy`):
@@ -280,7 +285,9 @@ Os chips de ciclo de vida mostram contagens, e o ciclo de vida usa a etiqueta ne
 porque as cores de estado são dos terminais). O passo 5 acrescentou `ProjectInfoDetails.tsx` e `FormField.tsx` (não
 listados na spec) para a vista de leitura e para os campos repetidos; o campo `id` do ambiente chama-se `envId` no
 formulário (colidia com a chave do `useFieldArray`). Não invoquei a skill `frontend-error-handling`: os `PROJECT_00x`
-já estavam espelhados no passo 3 e as escritas usam o `ErrorHandler.handle` do hook.
+já estavam espelhados no passo 3 e as escritas usam o `ErrorHandler.handle` do hook. No passo 6, as datas dos deploys
+vão ao minuto (`datetime-local`): dois deploys no mesmo minuto empatam e o que já lá estava fica primeiro. O CDP não
+consegue escrever num `datetime-local` (é segmentado): o cenário põe o valor pelo setter nativo + evento `input`.
 **O que uma sessão nova precisa de saber:**
 - O dono quer, no futuro, um ícone ⓘ em cada separador de projeto (`ProjectTabs`) que abre esta ficha
   **na mesma página de Projetos**. Fica de fora desta feature (§2) mas a página deve aceitar

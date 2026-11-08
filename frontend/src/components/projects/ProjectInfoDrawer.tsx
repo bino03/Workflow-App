@@ -5,8 +5,10 @@ import { useForm } from 'react-hook-form';
 import { DRAWER_WIDTH } from '@/config/drawer';
 import { useConfirm } from '@/hooks/useConfirm';
 import type { ProjectEntry } from '@/types/project';
-import type { ProjectInfo, ProjectInfoInput } from '@/types/projectInfo';
+import type { Deploy, DeployInput, Environment, ProjectInfo, ProjectInfoInput } from '@/types/projectInfo';
 import { hostingOptions } from './hosting';
+import { formatDeployDate } from './projectInfoFormat';
+import { RegisterDeployModal } from './RegisterDeployModal';
 import { ProjectInfoDetails } from './ProjectInfoDetails';
 import { ProjectInfoForm } from './ProjectInfoForm';
 import { projectInfoFormSchema, toFormValues, toProjectInfoInput, type ProjectInfoFormValues } from './projectInfoFormSchema';
@@ -24,15 +26,20 @@ type ProjectInfoDrawerProps = {
   /** A ficha nova, ou `null` se falhou (o erro já foi notificado). */
   onSave: (projectPath: string, input: ProjectInfoInput) => Promise<ProjectInfo | null>;
   onRemove: (projectPath: string) => Promise<boolean>;
+  /** A ficha nova, ou `null` se falhou (o erro já foi notificado). */
+  onRegisterDeploy: (projectPath: string, environmentId: string, deploy: DeployInput) => Promise<ProjectInfo | null>;
+  onRemoveDeploy: (projectPath: string, environmentId: string, deployId: string) => Promise<ProjectInfo | null>;
 };
 
 /**
  * A ficha de um projeto: leitura, e **Editar** troca-a pelo formulário no mesmo drawer. O `useForm` vive aqui
  * (segue a ficha por `values`, sem efeitos) para o rodapé poder gravar; o que não se gravou perde-se ao fechar.
  */
-export function ProjectInfoDrawer({ open, project, info, infos, startEditing, onClose, onSave, onRemove }: ProjectInfoDrawerProps) {
+export function ProjectInfoDrawer({ open, project, info, infos, startEditing, onClose, onSave, onRemove, onRegisterDeploy, onRemoveDeploy }: ProjectInfoDrawerProps) {
   const confirm = useConfirm();
   const [editing, setEditing] = useState(startEditing);
+  // O ambiente a que se está a registar um deploy (o modal monta-se a cada abertura).
+  const [deployTarget, setDeployTarget] = useState<Environment | null>(null);
   const saved = useMemo(() => toFormValues(info), [info]);
   const hostings = useMemo(() => hostingOptions(infos), [infos]);
   const form = useForm<ProjectInfoFormValues>({ resolver: zodResolver(projectInfoFormSchema), mode: 'onChange', values: saved });
@@ -68,6 +75,18 @@ export function ProjectInfoDrawer({ open, project, info, infos, startEditing, on
       message: 'Apaga o ciclo de vida, os ambientes, os deploys e as notas deste projeto. O projeto em si não é tocado.',
       onConfirm: async () => {
         if (await onRemove(project.path)) close();
+      },
+    });
+  };
+
+  const removeDeploy = (environment: Environment, deploy: Deploy) => {
+    if (!project) return;
+    confirm({
+      title: 'Apagar o deploy?',
+      actionLabel: 'Apagar deploy',
+      message: `O deploy de ${formatDeployDate(deploy.at)}${deploy.version ? ` (${deploy.version})` : ''} sai do histórico de ${environment.name}.`,
+      onConfirm: async () => {
+        await onRemoveDeploy(project.path, environment.id, deploy.id);
       },
     });
   };
@@ -117,7 +136,20 @@ export function ProjectInfoDrawer({ open, project, info, infos, startEditing, on
         )
       }
     >
-      {editing ? <ProjectInfoForm form={form} hostingSuggestions={hostings} disabled={isSubmitting} /> : <ProjectInfoDetails info={info} />}
+      {editing ? (
+        <ProjectInfoForm form={form} hostingSuggestions={hostings} disabled={isSubmitting} />
+      ) : (
+        <ProjectInfoDetails info={info} onRegisterDeploy={setDeployTarget} onRemoveDeploy={removeDeploy} />
+      )}
+      {deployTarget && project && (
+        // O modal faz portal para o <body>; vive aqui para desaparecer com o drawer.
+        <RegisterDeployModal
+          environmentName={deployTarget.name}
+          deployCount={info?.environments.find((environment) => environment.id === deployTarget.id)?.deploys.length ?? 0}
+          onClose={() => setDeployTarget(null)}
+          onRegister={async (deploy) => (await onRegisterDeploy(project.path, deployTarget.id, deploy)) !== null}
+        />
+      )}
     </Drawer>
   );
 }

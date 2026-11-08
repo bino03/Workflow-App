@@ -1,5 +1,6 @@
 import type { ReactNode } from 'react';
-import type { Environment, ProjectInfo } from '@/types/projectInfo';
+import type { Deploy, Environment, ProjectInfo } from '@/types/projectInfo';
+import { DeployList } from './DeployList';
 import { ENVIRONMENT_KIND_LABEL, displayUrl, lifecycleLabel, lifecycleTagClass } from './projectInfoFormat';
 
 const DASH = <span className="text-text-3">—</span>;
@@ -38,7 +39,12 @@ function Section({ title, children }: { title: string; children: ReactNode }) {
 
 const money = new Intl.NumberFormat('pt-PT', { style: 'currency', currency: 'EUR' });
 
-function EnvironmentView({ environment }: { environment: Environment }) {
+type DeployHandlers = {
+  onRegisterDeploy: (environment: Environment) => void;
+  onRemoveDeploy: (environment: Environment, deploy: Deploy) => void;
+};
+
+function EnvironmentView({ environment, onRegisterDeploy, onRemoveDeploy }: { environment: Environment } & DeployHandlers) {
   return (
     <div className="p-4 border border-border rounded-md bg-surface-2 flex flex-col gap-3">
       <div className="flex items-center gap-2">
@@ -56,12 +62,13 @@ function EnvironmentView({ environment }: { environment: Environment }) {
           { label: 'Custo mensal', value: environment.monthlyCostEur === null ? DASH : money.format(environment.monthlyCostEur) },
         ]}
       />
+      <DeployList environment={environment} onRegister={onRegisterDeploy} onRemove={onRemoveDeploy} />
     </div>
   );
 }
 
 /** A ficha de um projeto em modo de leitura. Sem ficha (`info` indefinido), só o convite a preenchê-la. */
-export function ProjectInfoDetails({ info }: { info: ProjectInfo | undefined }) {
+export function ProjectInfoDetails({ info, onRegisterDeploy, onRemoveDeploy }: { info: ProjectInfo | undefined } & DeployHandlers) {
   if (!info) {
     return <p className="m-0 text-[13.5px] text-text-2">Ainda não há informação sobre este projeto. Carrega em Editar para a preencher.</p>;
   }
@@ -77,7 +84,7 @@ export function ProjectInfoDetails({ info }: { info: ProjectInfo | undefined }) 
       </Section>
 
       <Section title="Ambientes">
-        {info.environments.length === 0 ? <p className="m-0 text-[13px] text-text-3">Nenhum ambiente.</p> : info.environments.map((environment) => <EnvironmentView key={environment.id} environment={environment} />)}
+        {info.environments.length === 0 ? <p className="m-0 text-[13px] text-text-3">Nenhum ambiente.</p> : info.environments.map((environment) => <EnvironmentView key={environment.id} environment={environment} onRegisterDeploy={onRegisterDeploy} onRemoveDeploy={onRemoveDeploy} />)}
       </Section>
 
       <Section title="Código e infra">

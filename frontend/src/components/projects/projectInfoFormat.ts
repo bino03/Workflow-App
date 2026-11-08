@@ -1,5 +1,8 @@
 import type { Deploy, Environment, EnvironmentKind, Lifecycle, ProjectInfo } from '@/types/projectInfo';
 
+/** O backend guarda no máximo 20 deploys por ambiente; ao 21.º sai o mais antigo. */
+export const MAX_DEPLOYS_PER_ENVIRONMENT = 20;
+
 export const ENVIRONMENT_KIND_LABEL: Record<EnvironmentKind, string> = {
   production: 'Produção',
   staging: 'Staging',
@@ -77,6 +80,11 @@ export function relativeDeploy(at: string, now: number = Date.now()): string {
   }
   const years = Math.floor(elapsed / (365 * DAY));
   return years === 1 ? 'há 1 ano' : `há ${years} anos`;
+}
+
+/** "8 nov 2026, 21:30" — a hora local do deploy. */
+export function formatDeployDate(at: string): string {
+  return new Date(at).toLocaleString('pt-PT', { dateStyle: 'medium', timeStyle: 'short' });
 }
 
 /** O endereço sem o protocolo, para caber no cartão: `https://app.exemplo.pt/x` → `app.exemplo.pt/x`. */
