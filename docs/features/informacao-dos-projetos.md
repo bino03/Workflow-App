@@ -5,7 +5,7 @@
 | **Estado** | 🚧 Em curso |
 | **Criada** | 2026-11-08 |
 | **Última sessão** | 2026-11-08 |
-| **Passos** | 3 / 7 concluídos |
+| **Passos** | 4 / 7 concluídos |
 
 > Escrita para uma sessão que **não viu a conversa que a originou**. Se algo só faz sentido com contexto
 > externo, falta escrevê-lo.
@@ -224,7 +224,7 @@ Ordem obrigatória. Tiers: `opus` (desenho, não delegar) · `sonnet` (implement
   - Tier: `sonnet`
   - Aceite quando: `useProjectInfos` busca uma vez e expõe `save`, `remove`, `registerDeploy`, `removeDeploy`, `refresh`; cada catch usa `ErrorHandler.handle`; `PROJECT_001-003` espelhados; `npx tsc -b` e lint limpos.
 
-- [ ] **4. Página `/projects` com cartões, filtros e navegação**
+- [x] **4. Página `/projects` com cartões, filtros e navegação**
   - Ficheiro: `frontend/src/pages/ProjectsPage.tsx`, `components/projects/{ProjectCard,projectInfoFormat,hosting}.ts(x)`, `main.tsx`, `layouts/AppLayout.tsx`, `backend/src/keybindings/catalog.ts` (`goProjects`, sem tecla) e o `NAV_ITEMS` de `layouts/AppLayout.tsx` (onde o frontend trata `goLibrary`)
   - Skill: `frontend-design-system`, [[../skills/references/frontend-visual-consistency]]
   - Tier: `sonnet`
@@ -257,16 +257,24 @@ Ordem obrigatória. Tiers: `opus` (desenho, não delegar) · `sonnet` (implement
 montado em `app.ts`, 11 testes em `test/projectInfo.routes.test.ts`, suite inteira 527/527; `docs/api.md`,
 `docs/database.md` e `docs/code-map.md` atualizados). Rotas verificadas só com `app.inject` — a chamada HTTP real
 fica para o passo 7. Passo 3 (`types/projectInfo.ts`, `services/projectInfoService.ts`,
-`hooks/useProjectInfos.ts`, `PROJECT_001-003` em `errorMessages.ts`; `tsc -b` e `eslint .` com 0 erros).
+`hooks/useProjectInfos.ts`, `PROJECT_001-003` em `errorMessages.ts`; `tsc -b` e `eslint .` com 0 erros). Passo 4
+(`pages/ProjectsPage.tsx`, `components/projects/{ProjectCard,projectInfoFormat,hosting}`, rota `/projects`, item
+"Projetos" na nav, `goProjects` no catálogo; verificado no browser com `scripts/verify/projects-page.mjs`, 27/27,
+numa instância descartável).
 **Em curso:** —
-**Próxima ação concreta:** passo 4 — `pages/ProjectsPage.tsx` + `components/projects/{ProjectCard,projectInfoFormat,hosting}.ts(x)`,
-rota em `main.tsx`, item em `NAV_ITEMS` (`layouts/AppLayout.tsx`) e `goProjects` em `backend/src/keybindings/catalog.ts`.
-Usar `useProjects()` (registo) + `useProjectInfos()` (fichas, juntas por `path`). O hook já devolve `save`, `remove`,
-`registerDeploy`, `removeDeploy` (devolvem a ficha nova, ou `null`/`false` se falharam — já notificaram o erro).
-Invocar `frontend-design-system` e ler `frontend-visual-consistency` antes de escrever UI.
+**Próxima ação concreta:** passo 5 — `components/projects/{ProjectInfoDrawer,ProjectInfoForm,EnvironmentFields,projectInfoFormSchema}`.
+Fazer o cartão clicável (hoje não é: `ProjectCard` só mostra) e a página abrir o drawer; ela já tem de aceitar
+`location.state.projectPath`. Falta também o botão **Adicionar informação** no cartão "Sem informação". `hosting.ts` já
+tem `hostingOptions(infos)` para o `AutoComplete`; `useProjectInfos` devolve `save`/`remove`/`registerDeploy`/`removeDeploy`
+(a ficha nova, ou `null`/`false` se falharam — o erro já foi notificado). Ler `design/drawers-and-modals.md` e
+`design/forms-and-validation.md`; invocar `frontend-design-system` e `frontend-error-handling`. Para verificar, o mesmo
+processo: `npm run build` no frontend, `node scripts/verify/instance.mjs start --fresh`, um cenário novo em `scripts/verify/`.
 **Desvios ao plano:** `emptyState()` ganhou `projectInfos: []` (o teste do estado vazio foi ajustado). O
 `tsc --noEmit` do backend já tinha 1 erro anterior em `test/auth.test.ts:40` (tipos do WebSocket), não
-relacionado.
+relacionado. O passo 4 não corre testes unitários dos helpers (`lastDeploy`, `primaryEnvironment`, `relativeDeploy`):
+o frontend não tem runner; ficam cobertos pelo cenário do browser ("há 3 dias", último deploy, ambiente primário).
+Os chips de ciclo de vida mostram contagens, e o ciclo de vida usa a etiqueta neutra (só "Em produção" leva o acento,
+porque as cores de estado são dos terminais).
 **O que uma sessão nova precisa de saber:**
 - O dono quer, no futuro, um ícone ⓘ em cada separador de projeto (`ProjectTabs`) que abre esta ficha
   **na mesma página de Projetos**. Fica de fora desta feature (§2) mas a página deve aceitar

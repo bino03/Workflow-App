@@ -15,6 +15,7 @@
 |---|---|
 | `/login` | `pages/login/LoginPage.tsx` — pública; com sessão, volta para a rota de onde veio |
 | `/terminals` | `pages/TerminalsPage.tsx` — 🚧 estado vazio até à feature Terminais |
+| `/projects` | `pages/ProjectsPage.tsx` — a ficha de cada projeto do registo ([[../../../features/informacao-dos-projetos]]) |
 | `/library` | `pages/LibraryPage.tsx` — 🚧 estado vazio até à feature Biblioteca |
 | `/new-project` | `pages/NewProjectPage.tsx` — criar um projeto pelo `/create` do Workflow ([[../../../features/novo-projeto-guiado]]) |
 | `/_tokens` | `pages/dev/TokenPreviewPage.tsx` — **só em dev** (fora do bundle de produção), pública |
@@ -31,7 +32,7 @@ Segmentos novos sempre em inglês.
 
 - **Header de 48 px** (protótipo [[../../../design/handoff-2026-09-27/README|handoff 2026-09-27]]):
   wordmark "WORKFLOW" à esquerda (losango contornado em `accent` + display 13/600, maiúsculas,
-  `letter-spacing: .18em`, link para `/terminals`), `<nav>` logo a seguir (Terminais · Biblioteca;
+  `letter-spacing: .18em`, link para `/terminals`), `<nav>` logo a seguir (Terminais · Projetos · Biblioteca;
   ativo com sublinhado interior de 2 px em `accent`), espaço, e à direita **Upwork** · **Novo projeto** (`ACTION_ITEMS`; mesmo estilo de item, são ações e não sítios — a Upwork à esquerda porque uma candidatura ganha acaba no Novo projeto), a **quota** (quando a
   lateral não a mostra) e o menu de utilizador. Borda de baixo `border`.
 - Se um terminal escondido está à espera, o item "Terminais" da nav ganha um losango `state-wait`.

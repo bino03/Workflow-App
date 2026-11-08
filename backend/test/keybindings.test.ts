@@ -48,7 +48,7 @@ describe('/api/keybindings', () => {
     expect(bindingOf(view, 'newTerminal')).toEqual({ modifier: 'alt', code: 'KeyN' });
     expect(bindingOf(view, 'toggleSidebar')).toEqual({ modifier: 'altGraph', code: 'Period' });
     expect(bindingOf(view, 'jump9')).toEqual({ modifier: 'alt', code: 'Digit9' });
-    for (const id of ['projectNext', 'projectPrev', 'projectClose', 'terminalNext', 'terminalPrev', 'goTerminals', 'goLibrary']) {
+    for (const id of ['projectNext', 'projectPrev', 'projectClose', 'terminalNext', 'terminalPrev', 'goTerminals', 'goProjects', 'goLibrary']) {
       expect(bindingOf(view, id)).toBeNull();
     }
     expect(view.actions.filter((a) => a.group === 'jump')).toHaveLength(9);

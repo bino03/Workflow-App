@@ -68,6 +68,15 @@ isso há os outros:
 | **Dados** | `DATA_DIR/state.json` (`terminals`, `closedTerminals`, `folders`) · `DATA_DIR/usage.json` · `~/.claude/projects/` (só leitura) |
 | **Detalhe** | [[api]] → "Terminais", "Sessões gravadas e pastas", "Quota" · spec [[features/terminais]] |
 
+## Informação dos projetos — 🚧
+
+| Camada | Ficheiros |
+|---|---|
+| **Entrada** | rota `/projects` → `frontend/src/pages/ProjectsPage.tsx` (cartões, chips de ciclo de vida, pesquisa) · item "Projetos" em `layouts/AppLayout.tsx` · ação `goProjects` (sem tecla) |
+| **Frontend** | `components/projects/` (`ProjectCard.tsx`, `projectInfoFormat.ts` — último deploy, "há 3 dias", etiquetas —, `hosting.ts`) · `hooks/useProjectInfos.ts` · `services/projectInfoService.ts` · `types/projectInfo.ts` · cenário `scripts/verify/projects-page.mjs` |
+| **Backend** | `backend/src/projectInfo/` (ver "Terminais", linha do backend) |
+| **Detalhe** | [[api]] → "Informação dos projetos" · [[database]] → `projectInfos` · spec [[features/informacao-dos-projetos]] · [[adr/0028-informacao-de-deploy-por-projeto]] |
+
 ## Biblioteca — ✅
 
 | Camada | Ficheiros |

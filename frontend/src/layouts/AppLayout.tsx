@@ -17,6 +17,7 @@ import { useShortcuts } from '@/hooks/useShortcuts';
 // Única fonte de verdade da navegação persistente (app-shell-and-auth.md §2).
 const NAV_ITEMS = [
   { to: '/terminals', label: 'Terminais' },
+  { to: '/projects', label: 'Projetos' },
   { to: '/library', label: 'Biblioteca' },
 ];
 
@@ -44,9 +45,9 @@ const HEALTH_DOT: Record<BackendHealth, string> = {
   offline: 'bg-error',
 };
 
-const NAV_SHORTCUTS: Record<string, string> = { goTerminals: '/terminals', goLibrary: '/library' };
+const NAV_SHORTCUTS: Record<string, string> = { goTerminals: '/terminals', goProjects: '/projects', goLibrary: '/library' };
 
-/** "Ir para Terminais/Biblioteca" (ADR 0016): no layout, para funcionarem em qualquer página. */
+/** "Ir para Terminais/Projetos/Biblioteca" (ADR 0016): no layout, para funcionarem em qualquer página. */
 function NavigationShortcuts() {
   const navigate = useNavigate();
   useShortcuts((actionId) => {

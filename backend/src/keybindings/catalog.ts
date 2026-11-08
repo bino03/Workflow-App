@@ -35,6 +35,7 @@ export const SHORTCUT_ACTIONS: readonly ShortcutAction[] = [
   { id: 'projectPrev', label: 'Projeto anterior', group: 'projects', default: null },
   { id: 'projectClose', label: 'Fechar o projeto ativo', group: 'projects', default: null },
   { id: 'goTerminals', label: 'Ir para Terminais', group: 'navigation', default: null },
+  { id: 'goProjects', label: 'Ir para Projetos', group: 'navigation', default: null },
   { id: 'goLibrary', label: 'Ir para Biblioteca', group: 'navigation', default: null },
 ];
 

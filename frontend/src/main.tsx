@@ -11,6 +11,7 @@ import { AppLayout } from '@/layouts/AppLayout';
 import { LibraryPage } from '@/pages/LibraryPage';
 import { LoginPage } from '@/pages/login/LoginPage';
 import { NewProjectPage } from '@/pages/NewProjectPage';
+import { ProjectsPage } from '@/pages/ProjectsPage';
 import { SettingsPage } from '@/pages/SettingsPage';
 import { TerminalsPage } from '@/pages/TerminalsPage';
 import { UpworkPage } from '@/pages/UpworkPage';
@@ -47,6 +48,7 @@ createRoot(document.getElementById('root')!).render(
                     }
                   >
                     <Route path="/terminals" element={<TerminalsPage />} />
+                    <Route path="/projects" element={<ProjectsPage />} />
                     <Route path="/library" element={<LibraryPage />} />
                     <Route path="/new-project" element={<NewProjectPage />} />
                     <Route path="/upwork" element={<UpworkPage />} />
