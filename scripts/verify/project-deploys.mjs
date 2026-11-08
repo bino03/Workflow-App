@@ -8,10 +8,12 @@
 //   node scripts/verify/project-deploys.mjs [run dir]
 //   node scripts/verify/instance.mjs stop --clean
 import { checker, login, openBrowser, readInstance, sleep } from './cdp.mjs';
+import { formDriver } from './formDriver.mjs';
 
 const instance = readInstance(process.argv[2] || undefined);
 const { check, finish } = checker();
 const page = await openBrowser();
+const { fill, setDateTime } = formDriver(page);
 
 const alfa = instance.projects.Alfa;
 const cards = `[...document.querySelectorAll('article[aria-label]')]`;
@@ -23,19 +25,6 @@ const modalOpen = `!![...document.querySelectorAll('.ant-modal')].find((m) => m.
 const drawerButton = (label) => `[...document.querySelectorAll('.ant-drawer-open .ant-drawer-body button')].find((b) => b.textContent.trim() === ${JSON.stringify(label)})`;
 const modalButton = (label) => `[...document.querySelectorAll('.ant-modal button')].find((b) => b.textContent.trim() === ${JSON.stringify(label)})`;
 const listItems = `document.querySelectorAll('.ant-drawer-open ul[aria-label^="Deploys de"] li').length`;
-
-async function fill(selector, text) {
-  await page.evaluate(`(() => { const el = document.querySelector(${JSON.stringify(selector)}); el.focus(); el.select(); })()`);
-  await page.send('Input.insertText', { text });
-}
-
-/**
- * A datetime-local is segmented: Input.insertText cannot type into it. This sets the value the way the browser ends
- * up with it after a user picks a date (the native setter + an input event, which is what React listens to).
- */
-async function setDateTime(selector, value) {
-  await page.evaluate(`(() => { const el = document.querySelector(${JSON.stringify(selector)}); Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value').set.call(el, ${JSON.stringify(value)}); el.dispatchEvent(new Event('input', { bubbles: true })); })()`);
-}
 
 const waitUntil = async (fn, ms = 4000) => {
   const end = Date.now() + ms;

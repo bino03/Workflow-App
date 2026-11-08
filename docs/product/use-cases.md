@@ -20,6 +20,7 @@ Desenhados no `/choose-design` (2026-09-27) — protótipos em
 |---|---|---|
 | Terminais | Navegação **por projeto** (lateral lista projetos do registo do Workflow, um separador tipo browser por projeto aberto — [[../features/separadores-de-projetos]]); dentro de um separador, sessões abertas com estado de cada uma, "+" cria logo um terminal novo nesse projeto (sem drawer), "Retomar" abre um modal só com as sessões gravadas dessa pasta (sem escolher pasta nem nome), fechar (confirmação), quota à vista. Dois modos: **foco dividido** (por omissão) e **grelha** — na grelha, quatro arranjos à escolha por projeto (3×2 · colunas · 2×2 · principal + laterais — [[../features/estilos-de-grelha]]) | ✅ desenhado |
 | Biblioteca | Stacks · Designs · Skills, pesquisa, filtro por maturidade, drawer de detalhe com o manifesto, upload de uma skill para uma stack | ✅ desenhado |
+| Projetos | Um cartão por projeto do registo do Workflow (nome, ciclo de vida, URL de produção, hosting, último deploy relativo), chips de ciclo de vida com contagens, pesquisa por nome; clicar num cartão abre a **ficha** num drawer — ambientes com URL, hosting e deploys registados à mão, código e infra, domínio, links, notas — com Editar no mesmo drawer ([[../features/informacao-dos-projetos]]) | ✅ decidido (sem protótipo — segue a Biblioteca e o drawer de detalhe) |
 | Login | Entrar (um só utilizador) | ✅ desenhado |
 | Upwork | Candidaturas: lista com estado (filtro, arquivadas) à esquerda, a candidatura aberta à direita — Pacote (análise, carta, triagem, plano, perguntas, cada um com Copiar), Conversa (a do Novo projeto, sem terminal), Dados (estado com histórico, cliente, Connects, link, notas); drawers Perfil e Nova candidatura ([[../features/upwork]]) | ✅ decidido (sem protótipo — segue o Novo projeto e o mestre-detalhe) |
 | Definições | Drawer no menu de utilizador: escolher o modo de layout dos terminais; mudar, remover e repor os atalhos de teclado ([[../features/atalhos-editaveis]]); passkeys | ✅ decidido (sem protótipo — segue o drawer do Novo terminal) |
@@ -48,6 +49,9 @@ Desenhados no `/choose-design` (2026-09-27) — protótipos em
   lateral** (`AltGr+.`) para ganhar espaço, sem perder nenhum terminal.
 - O dono **ajusta o zoom de um terminal** sem afetar o resto da página — nunca precisa do zoom do browser.
 - O dono **consulta a biblioteca** do Workflow (que stacks e designs existem, quão maduros são, que skills há) sem abrir o Obsidian.
+- O dono **vê, de relance, o estado de todas as suas aplicações** na página Projetos — em produção ou em
+  desenvolvimento, em que URL e hosting, e há quanto tempo foi o último deploy — e **regista um deploy** à mão
+  quando o dá (a data é a que indica; a app não a lê do git nem do hosting, nem chama os URLs guardados).
 - O dono **importa para a biblioteca** uma skill, um design ou uma stack (de qualquer camada) a partir de
   ficheiros, uma pasta, um URL, um projeto local ou uma descrição: **Importar** na Biblioteca, escolhe o quê e de
   onde, responde (ou não) às perguntas desse tipo. A skill `/import` do Workflow faz a triagem e escreve, num

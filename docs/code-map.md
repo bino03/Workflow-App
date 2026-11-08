@@ -64,11 +64,11 @@ isso há os outros:
 | | `hooks/{useTerminals,useLayoutMode,useUsage}.ts` · `services/{terminal,session,folder,usage}Service.ts` · `types/{terminal,session,folder,usage}.ts` · `terminal/terminalSize.ts` |
 | **Backend** | `backend/src/terminals/` — `terminals.routes.ts` · `terminals.gateway.ts` (WS) · `terminalsService.ts` (ciclo de vida) · `terminalManager.ts` (PTYs) · `claudeArgs.ts` · `terminal.schemas.ts` |
 | | `backend/src/sessions/` (`.jsonl` do Claude Code) · `backend/src/folders/` (política de pastas, favoritas, browse) · `backend/src/usage/` (quota) · `backend/src/accounts/` — `accounts.routes.ts` (`/api/accounts`) · `accountsService.ts` (conta ativa, criar/renomear/remover, terminal de login, preparar um lançamento) · `accountDirs.ts` (pastas das contas do Claude: junctions, sincronização, login, remoção segura) · `accounts.schemas.ts`; ADR 0027, ✅ spec contas-do-claude |
-| | `backend/src/projectInfo/` — `projectInfo.routes.ts` (`/api/project-infos`) · `projectInfoService.ts` (ficha por projeto do registo e deploys; guarda no `state.json`) · `projectInfo.schemas.ts` (corpos dos pedidos); schemas da coleção em `state/state.schema.ts`; ADR 0028, 🚧 spec informacao-dos-projetos |
+| | `backend/src/projectInfo/` — `projectInfo.routes.ts` (`/api/project-infos`) · `projectInfoService.ts` (ficha por projeto do registo e deploys; guarda no `state.json`) · `projectInfo.schemas.ts` (corpos dos pedidos); schemas da coleção em `state/state.schema.ts`; ADR 0028, ✅ spec informacao-dos-projetos |
 | **Dados** | `DATA_DIR/state.json` (`terminals`, `closedTerminals`, `folders`) · `DATA_DIR/usage.json` · `~/.claude/projects/` (só leitura) |
 | **Detalhe** | [[api]] → "Terminais", "Sessões gravadas e pastas", "Quota" · spec [[features/terminais]] |
 
-## Informação dos projetos — 🚧
+## Informação dos projetos — ✅
 
 | Camada | Ficheiros |
 |---|---|

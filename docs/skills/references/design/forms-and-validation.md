@@ -118,6 +118,24 @@ Base: `components/upwork/{NewApplicationDrawer,ProfileDrawer}.tsx`, verificados 
 - Um erro do backend que **pede outro drawer** (`UPWORK_002`, sem perfil): `showNotification: false`, e o outro
   abre **por cima** — o que se colou no primeiro fica.
 
+## 4.3 Listas de campos, URLs e datas (2026-11-08)
+
+Base: `components/projects/{ProjectInfoForm,EnvironmentFields,FormField,projectInfoFormSchema,RegisterDeployModal}.tsx`,
+verificados em Chrome headless (`scripts/verify/project-drawer.mjs`, `project-deploys.mjs`).
+
+- **Um grupo repetido** (os ambientes de uma ficha, os links) é um `useFieldArray`, com o limite do backend também no cliente
+  (botão "Adicionar" desativado no máximo, "2 de 5" ao lado). O `useFieldArray` usa `id` como chave: um campo de dados que
+  se chame `id` colide — no formulário chamou-se `envId` (vazio = ambiente novo) e a conversão para o corpo do pedido volta a `id`.
+- **Valores do formulário em texto**, `null` do backend → `''`: `toFormValues(ficha)` à ida e `toProjectInfoInput(valores)` à volta
+  (vazio → `null`, `"12,5"` → `12.5`), as duas puras e no ficheiro do schema.
+- **URL opcional**: vazio ou `http(s)` (`new URL` + protocolo) — o backend recusa `javascript:` e `file:`. Um link clicável guardado
+  tem sempre `target="_blank" rel="noopener noreferrer"`.
+- **Campo que sugere mas aceita tudo** (hosting): `AutoComplete` do antd com `options` + `filterOption`, nunca um `Select`.
+- **Data e hora**: `Input type="datetime-local"`, valor em hora local ao minuto (`2026-11-08T21:30`); `new Date(valor).toISOString()`
+  ao enviar. Dois registos no mesmo minuto empatam. Um browser automatizado não consegue escrever nele (é segmentado):
+  nos cenários `scripts/verify/formDriver.mjs → setDateTime`.
+- Um erro por campo num caminho aninhado (`environments.0.url`) lê-se com `get(errors, name)` do RHF, não com `errors[name]`.
+
 ## 5. Criar e editar partilham secções
 
 Quando os campos são os mesmos, o editar reutiliza as secções do criar dentro de um `FormProvider`

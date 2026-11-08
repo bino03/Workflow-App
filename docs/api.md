@@ -360,7 +360,7 @@ projeto (ou a lista toda) sai, nunca 500.
   da Biblioteca, é a única fonte que existe para o registo de projetos; o parser
   (`backend/src/projects/projectIndexParser.ts`) tolera linhas mal formadas, saltando-as.
 
-## Informação dos projetos (`projectInfo/`, `/api/project-infos`) — 🚧
+## Informação dos projetos (`projectInfo/`, `/api/project-infos`) — ✅
 
 A ficha de cada projeto do registo: ciclo de vida, ambientes (URL, hosting, deploys registados à mão), código e
 infra, notas ([[adr/0028-informacao-de-deploy-por-projeto]], [[features/informacao-dos-projetos]]). Guardada no

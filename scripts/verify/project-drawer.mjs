@@ -9,11 +9,13 @@
 //   node scripts/verify/instance.mjs stop --clean
 import { writeFileSync } from 'node:fs';
 import { checker, login, openBrowser, readInstance, sleep } from './cdp.mjs';
+import { formDriver } from './formDriver.mjs';
 
 const instance = readInstance(process.argv[2] || undefined);
 const screenshotPath = process.argv[3];
 const { check, finish } = checker();
 const page = await openBrowser();
+const { fill, choose } = formDriver(page);
 
 const gama = instance.projects.Gama;
 const cards = `[...document.querySelectorAll('article[aria-label]')]`;
@@ -25,20 +27,6 @@ const gamaSheet = async () => (await sheets()).find((s) => s.projectPath === gam
 const footerButton = (label) => `[...document.querySelectorAll('.ant-drawer-open .ant-drawer-footer button')].find((b) => b.textContent.trim() === ${JSON.stringify(label)})`;
 const clickFooter = (label) => page.evaluate(`${footerButton(label)}.click()`);
 const buttonDisabled = (label) => page.evaluate(`${footerButton(label)}?.disabled ?? null`);
-
-/** Replaces the content of a field like a user: focus, select everything, type over it. */
-async function fill(selector, text) {
-  await page.evaluate(`(() => { const el = document.querySelector(${JSON.stringify(selector)}); el.focus(); el.select(); })()`);
-  await page.send('Input.insertText', { text });
-}
-
-/** Picks an option of an antd Select (opened by a mousedown on its root). */
-async function choose(selectId, optionTitle) {
-  await page.evaluate(`document.querySelector('#${selectId}').closest('.ant-select').dispatchEvent(new MouseEvent('mousedown', { bubbles: true }))`);
-  const found = await page.waitFor(`!![...document.querySelectorAll('.ant-select-item-option')].find((o) => o.getAttribute('title') === ${JSON.stringify(optionTitle)})`);
-  if (!found) throw new Error(`option ${optionTitle} not offered`);
-  await page.evaluate(`[...document.querySelectorAll('.ant-select-item-option')].find((o) => o.getAttribute('title') === ${JSON.stringify(optionTitle)}).click()`);
-}
 
 try {
   check('login', await login(page, instance));

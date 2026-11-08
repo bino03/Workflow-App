@@ -2,10 +2,10 @@
 
 | | |
 |---|---|
-| **Estado** | 🚧 Em curso |
+| **Estado** | ✅ Concluída |
 | **Criada** | 2026-11-08 |
 | **Última sessão** | 2026-11-08 |
-| **Passos** | 6 / 7 concluídos |
+| **Passos** | 7 / 7 concluídos |
 
 > Escrita para uma sessão que **não viu a conversa que a originou**. Se algo só faz sentido com contexto
 > externo, falta escrevê-lo.
@@ -242,7 +242,7 @@ Ordem obrigatória. Tiers: `opus` (desenho, não delegar) · `sonnet` (implement
   - Tier: `sonnet`
   - Aceite quando: cada ambiente no drawer mostra os seus deploys (data/hora, versão, nota; mais recente primeiro); **Registar deploy** abre um modal com data/hora de agora (editável), versão e nota opcionais; ao confirmar, a lista e o "último deploy" do cartão atualizam; apagar um deploy pede confirmação (`useConfirm`); o 21.º deploy faz sair o mais antigo.
 
-- [ ] **7. Verificação ponta a ponta e fecho**
+- [x] **7. Verificação ponta a ponta e fecho**
   - Ficheiro: `docs/product/use-cases.md` (ecrã Projetos), `docs/skills/references/design/*` (se houver padrão visual novo), este ficheiro (§6), `notes/ToDo.md`, `notes/whatIveDone.md`
   - Skill: `run` · [[../skills/references/testing-and-verification]]
   - Tier: `sonnet`
@@ -266,17 +266,16 @@ Apagar ficha com confirmação; `tsc -b` e `eslint src` limpos; `scripts/verify/
 cada coisa lida de volta na API). Passo 6 (`components/projects/{DeployList,RegisterDeployModal}.tsx` ligados no
 `ProjectInfoDetails`/`ProjectInfoDrawer`; modal por cima do drawer com "agora" pré-preenchido e editável, versão e nota
 opcionais, apagar com confirmação, o 21.º deploy empurra o mais antigo; `scripts/verify/project-deploys.mjs` 30/30, e os
-cenários dos passos 4 e 5 continuam 27/27 e 33/33).
+cenários dos passos 4 e 5 continuam 27/27 e 33/33). Passo 7: as rotas por HTTP real com sessão
+(`scripts/verify/project-info-http.mjs`, 20/20, sem `app.inject`) e o fluxo pela UI com o `DATA_DIR` de teste
+(`scripts/verify/project-info-e2e.mjs`, 21/21: ficha com produção + staging, dois deploys, recarga, edição com `javascript:`
+recusado, apagar, sem erros na consola); os cinco cenários re-corridos depois de extrair o `formDriver.mjs`; backend 527/527,
+`tsc -b` e `eslint .` do frontend a 0 erros; `docs/product/use-cases.md`, `forms-and-validation.md` (§4.3),
+`drawers-and-modals.md`, `api.md`/`code-map.md` a ✅.
 **Em curso:** —
-**Próxima ação concreta:** passo 7 (o último) — verificação ponta a ponta e fecho. (1) Backend real com `DATA_DIR` de teste
-(`instance.mjs start --fresh`): criar a ficha do **Worksite**-like com produção + staging e dois deploys, recarregar e ver tudo,
-editar, apagar, `javascript:` recusado — a maior parte já está coberta pelos três cenários `scripts/verify/projects-page|
-project-drawer|project-deploys.mjs`, falta o fluxo único descrito no critério (produção **e** staging, recarga completa) e
-uma chamada HTTP real às rotas (`curl` com sessão, o passo 2 só usou `app.inject`). (2) Os testes do backend, `tsc -b` e
-`eslint .` do frontend verdes. (3) Docs: `docs/product/use-cases.md` (ecrã Projetos), `design/*` se houver padrão novo (o do
-drawer de ficha já está em `drawers-and-modals.md`; falta, no máximo, uma nota em `forms-and-validation.md` sobre
-`useFieldArray` + `envId` e sobre `datetime-local`), esta spec marcada ✅ e o estado do `docs/api.md`/`database.md`/
-`code-map.md` de 🚧 para ✅. (4) `notes/ToDo.md` (tirar o item) e `notes/whatIveDone.md`; arquivar nada (a spec é de `docs/`).
+**Próxima ação concreta:** nenhuma — a feature está **concluída**. O que fica para a segunda fase (§2) continua de fora: o ícone ⓘ
+nos separadores dos Terminais (a página já aceita `location.state.projectPath`, ver `ProjectsPage.tsx`), o ping de estado dos URLs
+(ADR de segurança primeiro), o aviso de renovação do domínio e exportar um resumo para o vault do projeto.
 **Desvios ao plano:** `emptyState()` ganhou `projectInfos: []` (o teste do estado vazio foi ajustado). O
 `tsc --noEmit` do backend já tinha 1 erro anterior em `test/auth.test.ts:40` (tipos do WebSocket), não
 relacionado. O passo 4 não corre testes unitários dos helpers (`lastDeploy`, `primaryEnvironment`, `relativeDeploy`):
@@ -287,7 +286,10 @@ listados na spec) para a vista de leitura e para os campos repetidos; o campo `i
 formulário (colidia com a chave do `useFieldArray`). Não invoquei a skill `frontend-error-handling`: os `PROJECT_00x`
 já estavam espelhados no passo 3 e as escritas usam o `ErrorHandler.handle` do hook. No passo 6, as datas dos deploys
 vão ao minuto (`datetime-local`): dois deploys no mesmo minuto empatam e o que já lá estava fica primeiro. O CDP não
-consegue escrever num `datetime-local` (é segmentado): o cenário põe o valor pelo setter nativo + evento `input`.
+consegue escrever num `datetime-local` (é segmentado): o cenário põe o valor pelo setter nativo + evento `input`. O
+passo 7 extraiu `scripts/verify/formDriver.mjs` (`fill`, `choose`, `setDateTime`), que os cenários de Projetos partilham,
+e acrescentou `project-info-http.mjs` (HTTP real, sem browser) e `project-info-e2e.mjs`. O critério "Worksite" correu com o
+projeto Alfa da instância descartável (a app não tem como apontar ao projeto real sem `DATA_DIR` do dono: dados de teste só).
 **O que uma sessão nova precisa de saber:**
 - O dono quer, no futuro, um ícone ⓘ em cada separador de projeto (`ProjectTabs`) que abre esta ficha
   **na mesma página de Projetos**. Fica de fora desta feature (§2) mas a página deve aceitar
