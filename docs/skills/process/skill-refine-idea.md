@@ -99,16 +99,24 @@ mais vale lá ficar já.
 passando o que o Step 1 e o Step 2 já apuraram (para não perguntar duas vezes). Mais tarde → entrada em
 `ideas.md` com contexto e "precisa de spec (`/plan-feature`)".
 
+**Tier de modelo** (só para o que vai para o `ToDo.md`): `opus` ou `sonnet`, pelos critérios de
+[[ai-workflow]] → "Tiers de modelo". `haiku` nunca, e na dúvida sobe-se. A razão vai numa frase,
+para se poder rever mais tarde.
+
+- **Item misto** (uma decisão e muito trabalho que vem depois dela) → **dois bullets**: o `opus` que
+  decide e, por baixo, o `sonnet` que implementa a partir da decisão.
+- Uma entrada em `ideas.md` **não leva tier**: ainda não se sabe o que é.
+
 ## Step 4: Mostrar, confirmar, escrever
 
-Mostrar **o texto exato** e o sítio (ficheiro + secção), e perguntar: **Gravar** · **Ajustar o texto**
-· **Mudar de destino** (ToDo ↔ ideas). Se há uma contradição entre respostas, dizê-la antes do texto, com a síntese proposta, e juntar a opção **Reabrir a decisão X** — o confirmar serve também para a fechar.
+Mostrar **o texto exato**, com o tier e a razão, e o sítio (ficheiro + secção), e perguntar: **Gravar**
+· **Ajustar o texto** (inclui mudar o tier) · **Mudar de destino** (ToDo ↔ ideas). Se há uma contradição entre respostas, dizê-la antes do texto, com a síntese proposta, e juntar a opção **Reabrir a decisão X** — o confirmar serve também para a fechar.
 
 **No `ToDo.md`** — na secção temática que **existe** e encaixa (criar uma só se nenhuma encaixa):
 
 ```markdown
-- [ ] <verbo + o quê, na linguagem do utilizador> — <porquê, numa frase>
-  > Decidido (via refine-idea, AAAA-MM-DD): <respostas do Step 2 que importam para implementar>; ⚠️ <o que falta, se falta>
+- [ ] `<tier>` <verbo + o quê, na linguagem do utilizador> — <porquê, numa frase>
+  > Decidido (via refine-idea, AAAA-MM-DD): <respostas do Step 2 que importam para implementar>; tier: <razão numa frase>; ⚠️ <o que falta, se falta>
 ```
 
 **No `ideas.md`**:
@@ -145,6 +153,7 @@ Não há commit: `notes/` é git-ignored. Se o Step 2 disse "precisa de ADR", le
 | A mesma ideia em `ideas.md` e no ToDo | Os dois divergem; um deles fica a mentir |
 | Decisão estrutural escondida no bullet | O porquê perde-se; sem ADR, volta a discutir-se |
 | Começar a implementar no fim | Salta o planeamento, a priorização e o bookkeeping do `/implement-todo` |
+| Tier por baixo "para poupar", ou um item misto inteiro em `opus` | No primeiro caso o modelo adivinha uma decisão e há retrabalho; no segundo paga-se o modelo caro pelo trabalho mecânico |
 
 ## Final Checklist
 
@@ -153,6 +162,7 @@ Não há commit: `notes/` é git-ignored. Se o Step 2 disse "precisa de ADR", le
 - [ ] Duplicados, "já feito" e conflitos com ADRs detetados e ditos ao utilizador
 - [ ] Perguntas em bloco, com defaults, só o que faltava; "não sei" registado, nunca inventado
 - [ ] Destino decidido pelo teste "o que / onde / como se verifica"
+- [ ] Item do ToDo com tier e razão (`opus`/`sonnet`, nunca `haiku`); item misto partido em dois
 - [ ] Texto exato mostrado e confirmado antes de escrever
 - [ ] Edição pontual; a ideia vive num só sítio (saiu de `ideas.md` se foi promovida)
 - [ ] Nada implementado; próximo passo dito

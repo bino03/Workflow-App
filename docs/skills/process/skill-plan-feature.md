@@ -66,6 +66,10 @@ passo tem, sem exceção:
 
 Passos **sequenciais** — tocam nos mesmos ficheiros. Paralelismo só na investigação.
 
+Tiers pelos critérios de [[ai-workflow]] → "Tiers de modelo". `haiku` só aqui, dentro da spec, e nunca no
+item do ToDo que aponta para ela. Passos do mesmo tier **seguidos** sempre que as dependências o
+permitam: a spec diz em que modelo abrir cada sessão (linha **Sessões** da secção 5 do template).
+
 ## Passo 5 — Escrever a spec
 
 Copiar `docs/features/_TEMPLATE.md` para `docs/features/<slug-kebab>.md` e preencher.
@@ -75,18 +79,19 @@ Copiar `docs/features/_TEMPLATE.md` para `docs/features/<slug-kebab>.md` e preen
 - [ ] Decisões registadas **com o porquê** e a alternativa rejeitada
 - [ ] "Fora" preenchido
 - [ ] Cada passo com ficheiro, skill, tier e critério
+- [ ] Linha **Sessões** preenchida (que passos em que modelo)
 - [ ] Secção 6 "Estado atual" inicializada (nada feito, próxima ação = passo 1)
 - [ ] Perguntas sem resposta na secção 7, não esquecidas
 
 ## Passo 6 — Ligar ao resto
 
-- [ ] Item no ToDo a apontar para a spec
+- [ ] Item no ToDo a apontar para a spec, com o tier do próximo passo a fazer (`opus` ou `sonnet`; um passo `haiku` sobe a `sonnet`)
 - [ ] ADRs novos para as decisões estruturais
 - [ ] Commit `docs: spec da feature <nome>` ([[skill-git-commits]]) — a spec é **versionada**
 
 ## Passo 7 — Entregar (e parar)
 
-Três linhas: onde ficou a spec; quantos passos e o tier de cada; como arrancar
+Três linhas: onde ficou a spec; quantos passos e em que modelo abrir cada sessão; como arrancar
 (`/implement-todo` → "Implementar a partir de uma spec"). **Não começar a implementar.**
 
 ## Erros comuns

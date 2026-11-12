@@ -37,7 +37,8 @@ Fase 7  Fecho                                               ← resumo, backlog,
 Ler `notes/ToDo.md` **no momento da invocação** (o utilizador edita-o livremente). Depois, a baixo
 custo (leituras e greps, sem subagentes):
 
-1. **Contagem por tema** — itens `- [ ]` por secção do ToDo. Nenhum item → guardar esse facto.
+1. **Contagem por tema e por tier** — itens `- [ ]` por secção do ToDo e, dentro dela, quantos são
+   `` `opus` ``, `` `sonnet` `` e sem marca. Nenhum item → guardar esse facto.
 2. **Planos por retomar** — `notes/roadmap/plans/*.md` com `**Estado**: em curso`.
 3. **Ideias com contexto** — grep a `notes/ideas.md` por `> Contexto (via ` (deixadas por esta skill ou
    pelo [[skill-refine-idea]]).
@@ -60,15 +61,17 @@ ToDo vazio e nada por retomar → dizê-lo e parar.
 **Retomar**: ler o plano (perguntar qual se há vários), mostrar âmbito, ordem, o que está feito e o
 "Próximo passo", confirmar, e **saltar para a Fase 5** nesse ponto — os esclarecimentos já estão gravados.
 
-**Ver estado**: contagem por tema, planos e próximo passo, ideias com contexto (uma a uma, e
+**Ver estado**: contagem por tema e por tier, planos e próximo passo, ideias com contexto (uma a uma, e
 perguntar se alguma já pode voltar ao ToDo — se sim, movê-la com edição pontual), últimas entradas do
 log. Depois perguntar em texto simples se quer implementar, planear ou parar.
 
 ### 1.1 Âmbito
 
-**Tudo** · **Só um tema** · **Só um item específico**.
+**Tudo** · **Só um tema** · **Só um item específico** · **Só um tier** (ex.: só os `sonnet`, para uma
+sessão barata).
 - Tema: usar as secções que **existem** no ToDo lido (agrupar em 2 perguntas multiSelect se forem mais de 4).
-- Item: imprimir o ToDo numerado e perguntar por intervalos.
+- Item: imprimir o ToDo numerado, com o tier de cada um, e perguntar por intervalos.
+- Tier: os itens sem marca não entram. Ainda não se sabe o tier deles, e só a Fase 2 o diz.
 
 Guardar os bullets exatos (verbatim), **com o bloco `> Decidido (via refine-idea, …)`** se o tiverem —
 é esclarecimento já obtido, entra no plano e nas Fases 2-3. Nada fora do âmbito é tocado.
@@ -78,6 +81,21 @@ Guardar os bullets exatos (verbatim), **com o bloco `> Decidido (via refine-idea
 **Sem limite (recomendado)** · **Pouco tempo/tokens — otimizar para fechar em segurança**. "Pouco" não
 muda as Fases 2-3 (a ambiguidade não desaparece), muda a ordenação (curtas primeiro) e a Fase 5 (parar
 entre tarefas, nunca a meio).
+
+### 1.3 Modelo da sessão (aviso, uma vez)
+
+Comparar o modelo em que esta sessão corre (o Claude sabe-o pelo ambiente) com o **tier mais alto** dos
+itens em âmbito ([[ai-workflow]] → "Tiers de modelo"). A skill não muda de modelo sozinha. Avisa uma
+vez, em texto, e segue com o modelo que estiver:
+
+| Sessão | Âmbito | Aviso |
+|---|---|---|
+| Opus | Só `sonnet` | "O âmbito é todo `sonnet`: `/model` para Sonnet poupa tokens sem perder o contexto desta sessão." |
+| Sonnet | Tem itens `opus` | "Há itens `opus`: `/model` para Opus antes deles, ou reduzir o âmbito aos `sonnet` e deixá-los para uma sessão Opus." |
+| Haiku | Qualquer | "Esta skill orquestra (investiga, pergunta, encadeia skills) e não deve correr em Haiku: `/model` para Sonnet ou Opus." |
+
+Itens sem marca não contam para o aviso; a Fase 4 volta a comparar, já com os tiers confirmados. O aviso
+nunca bloqueia: o utilizador pode ter razões para ficar no modelo em que está.
 
 ## Fase 2: Investigação paralela, por tema
 
@@ -101,6 +119,12 @@ O que o código não resolve (sem inventar requisitos), com 2-4 hipóteses quand
 Bullets do ToDo (verbatim) que têm de vir ANTES deste tema.
 ### Effort Estimate
 S/M/L + 1 linha.
+### Tier
+Por bullet: opus | sonnet + 1 linha de razão, pelos critérios abaixo. Se o bullet já tem tier, confirma-o
+ou contesta-o com o que o código mostrou. Um bullet com uma decisão e muito trabalho mecânico → diz
+"misto" e propõe a divisão.
+Critérios: opus = decisão em aberto, contrato partilhado, schema, segurança, efeito largo;
+sonnet = o quê/onde/como se verifica já se sabem. Nunca haiku. Na dúvida, opus.
 ```
 
 Quem orquestra **não lê código diretamente** — só os relatórios. Se uma investigação anterior (ex.: o `/refine-idea` de há minutos) já apurou parte, o prompt leva-a como **hipótese a confirmar, não como dado** (com `ficheiro:linha`) e aponta o agente às lacunas — é o que apanha o erro de quem orquestra. Se o projeto ganhar roadmaps técnicos
@@ -129,9 +153,18 @@ Remover o bullet do ToDo (edição pontual). Não é tarefa concluída — é ta
 1. **Dependências duras primeiro** (ordenação topológica pelas `Dependencies`).
 2. **Agrupar por "hot file"** — ficheiros que aparecem em mais do que um tema (enum de erros,
    configuração de segurança, router, entidades partilhadas) → tarefas adjacentes.
-3. **Desempate**: esforço (S antes de L), depois impacto. Com orçamento "pouco", o esforço passa a critério principal.
+3. **Agrupar por tier**, dentro do que as dependências deixam: os `opus` juntos, e de preferência antes
+   dos `sonnet` que deles dependem (as decisões desbloqueiam a implementação). Assim uma sessão pode
+   mudar de modelo uma só vez, ou parar no fim do bloco `opus` e retomar o resto noutra sessão.
+4. **Desempate**: esforço (S antes de L), depois impacto. Com orçamento "pouco", o esforço passa a critério principal.
 
-Mostrar a lista numerada com 1 linha de razão por item. Perguntar: **Confirmar** · **Reordenar** ·
+**Tiers**: cada tarefa leva o tier confirmado pela Fase 2. Quando o tier difere do que o bullet tinha,
+dizê-lo na linha da tarefa ("era `sonnet`, passa a `opus`: o código mostrou que falta decidir X"). Um
+item "misto" → propor a divisão em dois bullets (o `opus` que decide e o `sonnet` que implementa) e,
+se o utilizador aceitar, reescrever o bullet no ToDo (edição pontual) antes de gravar o plano. Se os
+tiers confirmados mudaram o quadro da 1.3, repetir o aviso de modelo, uma vez.
+
+Mostrar a lista numerada com o tier e 1 linha de razão por item. Perguntar: **Confirmar** · **Reordenar** ·
 **Remover um item**. Repetir até confirmar.
 
 **Gravar** em `notes/roadmap/plans/AAAA-MM-DD-<slug>.md`:
@@ -142,13 +175,14 @@ Mostrar a lista numerada com 1 linha de razão por item. Perguntar: **Confirmar*
 **Estado**: em curso
 **Âmbito escolhido**: <descrição>
 **Orçamento da sessão**: sem limite | pouco
+**Modelo**: tarefas 1-2 `opus` · 3-5 `sonnet` (mudar com `/model` entre os blocos, ou retomar noutra sessão)
 
 ## Esclarecimentos já obtidos
 - <pergunta> → <resposta>
 
 ## Ordem confirmada
-1. [ ] <tarefa> — por começar
-2. [ ] <tarefa> — por começar
+1. [ ] `opus` <tarefa> — por começar
+2. [ ] `sonnet` <tarefa> — por começar
 
 ## Próximo passo
 Começar a tarefa 1.
@@ -174,6 +208,9 @@ Começar a tarefa 1.
 8. **Checkpoint "concluída"** (`[x]`).
 9. Ambiguidade que só o código revelou → **parar e perguntar**.
 10. Orçamento "pouco": antes da próxima tarefa, avaliar se cabe com folga; na dúvida, parar **entre** tarefas.
+11. **Na fronteira entre blocos de tier** (o plano passa de `opus` a `sonnet`, ou o contrário), lembrar
+    uma vez a linha **Modelo** do plano. Uma tarefa `sonnet` que afinal esconde uma decisão de desenho é
+    o caso do passo 9: parar, dizê-lo, e decidir com o utilizador se se decide já ou noutra sessão.
 
 ## Fase 6: Bookkeeping por tarefa
 
@@ -233,7 +270,8 @@ Para features multi-sessão planeadas com [[skill-plan-feature]]:
 - [ ] Âmbito e orçamento escolhidos pelo utilizador; temas = secções reais do ToDo
 - [ ] Investigação paralela, por tema, via subagentes (código não lido diretamente)
 - [ ] Perguntas todas em bloco, antes da Fase 5; itens sem resposta movidos para `ideas.md` com contexto
-- [ ] Ordem por dependências + hot files + esforço, confirmada; plano gravado antes de implementar
+- [ ] Ordem por dependências + hot files + tier + esforço, confirmada; plano gravado antes de implementar
+- [ ] Tier de cada tarefa confirmado pela investigação, mudanças ditas, itens mistos partidos; aviso de modelo dado (1.3 e, se mudou, Fase 4)
 - [ ] Execução sequencial com checkpoints antes/depois de cada tarefa
 - [ ] Cada tarefa testada (ou verificação registada como pendente) antes do bookkeeping
 - [ ] Final Checklist das skills invocadas fechado, incluindo documentação

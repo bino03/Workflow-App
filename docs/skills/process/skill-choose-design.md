@@ -153,7 +153,8 @@ espaçamento, movimento) + protótipos `.html`/`.css`/`.jsx`. Então:
 6. `docs/product/design-brief.md` §7 → o design escolhido, com link para o ADR.
 7. `CLAUDE.md` e `00-INDEX.md`: remover o aviso ⛔ de design pendente.
 8. `notes/ToDo.md`: remover a tarefa "⛔ Escolher o design"; `notes/whatIveDone.md`: entrada nova.
-9. Se já havia ecrãs feitos sobre os tokens provisórios → item em `notes/ToDo.md` para os rever.
+9. Se já havia ecrãs feitos sobre os tokens provisórios → item `sonnet` em `notes/ToDo.md` para os rever
+   (os tokens já estão decididos; [[ai-workflow]] → "Tiers de modelo").
 
 ## Step 5: Devolver ao Workflow (opcional)
 

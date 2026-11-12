@@ -37,6 +37,7 @@ no relatório seguinte (`--from <commit>` para o rever).
 |---|---|---|
 | 2026-09-27 | `6d8aaff` | Geração inicial |
 | 2026-10-09 | `eff6838` | **Aplicado (13)**: regra do Zod/RHF só com validação no cliente (skill `frontend-design-system` e `forms-and-validation`, com a exceção «escolha + ficheiro»); tirado o i18n que este projeto não tem (skill, `drawers-and-modals`, checklist); `refine-idea` (Step 0 em texto, rondas extra só para contradições, destino «módulo inteiro», «reabrir a decisão X»); `implement-todo` Fase 2 (hipótese, não dado); links do `ai-workflow` e do `security-baseline`. **Fora**: `skill-design-database` ×2 (este projeto não tem BD — `state.json`); `docs/commands.md` e `docs/operations.md` (só redação do molde); os ⚠️ (`CLAUDE.md` regra 3, `database.md`, `operations.md`, `tables-and-lists` — editados de propósito por este projeto). |
+| 2026-11-12 | `15c58e8` | **Aplicado (26)**: tier de modelo por item do ToDo — `ai-workflow` (secção "Tiers de modelo"), `implement-todo` (contagem e âmbito por tier, aviso 1.3, tier na investigação, plano agrupado por tier), `refine-idea`, `plan-feature` + template da spec (linha **Sessões**), `design-database`, `choose-design`; legenda no `notes/ToDo.md` · nada de fora |
 
 ## Relacionado
 

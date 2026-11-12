@@ -60,7 +60,9 @@
 
 ## 5. Passos
 
-Ordem obrigatória. Tiers: `opus` (desenho, não delegar) · `sonnet` (implementação) · `haiku` (mecânico).
+Ordem obrigatória. Tiers: `opus` (desenho, não delegar) · `sonnet` (implementação) · `haiku` (mecânico, só com ficheiro e conteúdo exatos).
+
+**Sessões**: passos <1-2> em `opus` · <3-7> em `sonnet` — abrir cada sessão no modelo do bloco que vai fazer.
 
 - [ ] **1. <título>**
   - Ficheiro: `<caminho concreto>`

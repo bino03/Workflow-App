@@ -1,7 +1,7 @@
 # Trabalhar com o Claude neste ecossistema
 
 **When to use**: ao criar ou manter skills, ao decidir se algo é skill ou referência, ao planear
-trabalho que atravessa sessões.
+trabalho que atravessa sessões, ao escrever um item no ToDo (o tier de modelo).
 
 ---
 
@@ -60,7 +60,39 @@ O contexto morre entre sessões. O que sobrevive é o que está escrito:
   checkboxes mentem quando uma sessão morre a meio de um passo.
 - **Work log** com o texto verbatim do item do ToDo — preserva o que foi realmente decidido.
 
-## Agentes e tiers de modelo (flag `agents`)
+## Tiers de modelo — em que modelo corre cada trabalho
+
+Cada item de `notes/ToDo.md` e cada passo de uma spec leva um **tier**: o modelo **mínimo** que o faz
+bem. O tier serve para escolher o modelo em que se abre a sessão, que é onde se gasta quase tudo
+(orquestração, leitura do vault, perguntas). Com a flag `agents`, serve também para decidir para que
+subagente vai cada passo (ver abaixo).
+
+| Tier | Quando | Exemplo |
+|---|---|---|
+| `opus` | Há uma decisão em aberto; contrato partilhado, schema, segurança; código ou texto com efeito largo (gerador, molde, configuração central); um ⚠️ que é de desenho | Escolher entre auth própria e um provedor externo |
+| `sonnet` | Sabe-se **o quê, onde e como se verifica**; os ficheiros são conhecidos; a correção está descrita ou há uma verificação automática que a fecha | Corrigir links partidos já listados, com o auditor a confirmar |
+| `haiku` | **Só passos dentro de uma spec ou de um plano**, com ficheiro e conteúdo exatos. **Nunca um item do ToDo**: uma sessão sobre um item é orquestração (investigar, perguntar, encadear skills), e o Haiku a errar aí custa mais do que poupou | Renomear um campo nos três ficheiros que o passo lista |
+
+- **Na dúvida, sobe-se um tier.** Um tier errado para baixo dá retrabalho, que custa mais do que o que
+  se poupou.
+- **Um item misto parte-se em dois.** Quando um item tem uma decisão e muito trabalho mecânico, fica
+  assim: um `opus` que decide e grava a decisão (bloco `> Decidido` ou ADR), e por baixo um `sonnet` que
+  implementa a partir dela e depende do primeiro. Sem a divisão, o item inteiro corre no modelo caro por
+  causa de uma fração de desenho.
+- **Marca no início do bullet**, em minúsculas e entre crases: `` - [ ] `sonnet` Corrigir … ``. Todas
+  as skills que escrevem no ToDo a põem.
+- **Sem marca, o tier está por decidir** — não é um erro. O [[skill-implement-todo]] propõe-no depois de
+  investigar o código.
+- **Nomes de tier, não versões** (`opus`, não o número da geração), para o ToDo não envelhecer quando
+  sai um modelo novo.
+- **Quem escreve e quem confirma**: o [[skill-refine-idea]] escreve o tier quando grava o item, que é
+  quando melhor o conhece sem ter lido código. O [[skill-implement-todo]] confirma-o depois de investigar
+  e avisa quando a sessão corre num modelo diferente do que o âmbito precisa.
+- 🚧 **Por provar**: o tier por item é uma convenção nova (2026-11). Ainda nenhum projeto a usou o
+  bastante para saber se os critérios acertam. Um tier que se revelou errado é uma lição para
+  `notes/learning.md`.
+
+### Agentes (flag `agents`)
 
 | Agente | Modelo | Para quê |
 |---|---|---|
@@ -73,8 +105,8 @@ O contexto morre entre sessões. O que sobrevive é o que está escrito:
   Opus, um passo de desenho corre nela (tem o contexto); se não é, vai para o `architect`.
 - **Paralelismo só para investigação só-leitura.** Passos de implementação são sequenciais —
   tocam nos mesmos ficheiros.
-- Na dúvida sobre se um passo é mecânico, sobe-se um tier. Um passo mal especificado entregue ao
-  Haiku custa mais a corrigir do que o que poupou.
+- Um passo mal especificado entregue ao `mechanical` custa mais a corrigir do que o que poupou: na
+  dúvida, vai para o `implementer`.
 - **A verificação no browser corre inline, nunca num subagente** — a extensão pertence à sessão
   principal.
 

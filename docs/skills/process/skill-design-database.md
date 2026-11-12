@@ -136,8 +136,11 @@ Mostrar:
    tabela própria porque pode haver vários"; "soft-delete em clientes por histórico") com as alternativas.
 3. **`notes/ToDo.md`**: remover "⛔ Desenhar o modelo de dados"; criar uma secção **"Modelo de dados"**
    com uma tarefa por tabela, **pela ordem das migrações**:
-   `- [ ] Tabela <table> — ver docs/database.md → <Entidade> · /add-database-table` (⚠️ se tem pergunta em aberto).
-   Depois, por entidade do MVP, a tarefa de API: `- [ ] CRUD de <Entidade> · /add-backend-feature`.
+   `` - [ ] `sonnet` Tabela <table> — ver docs/database.md → <Entidade> · /add-database-table `` (⚠️ se tem pergunta em aberto, e
+   então `opus`: a pergunta é de desenho).
+   Depois, por entidade do MVP, a tarefa de API: `` - [ ] `sonnet` CRUD de <Entidade> · /add-backend-feature ``.
+   O desenho ficou feito aqui, por isso as tarefas são `sonnet` ([[ai-workflow]] → "Tiers de modelo"). Uma
+   tabela com regras de acesso ou de segurança por decidir é `opus`.
 4. **`docs/product/domain-brief.md`**: acrescentar no fim "✅ Modelo desenhado a AAAA-MM-DD — ver
    [[database]]" (o brief fica como registo do ponto de partida; não se reescreve).
 5. **`docs/skills/references/project-vocabulary.md`**: nomes finais.
