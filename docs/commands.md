@@ -25,8 +25,8 @@ npx tsx scripts/statusline-spike.ts [cwd] [--prompt]  # spike manual: JSON da st
 
 ### Armadilhas dos comandos
 
-- **`npm install` e o `node-pty`** — é um módulo nativo. No Windows x64 o 1.1.0 traz binário
-  pré-compilado (confirmado: instala sem Build Tools nem Python). Sem prebuild (Linux, outra versão),
+- **`npm install` e o `node-pty`** — é um módulo nativo. No Windows x64 o 1.2.0-beta.18 (a 1.1.0 tinha
+  segfault, [[adr/0029-node-pty-beta-1-2]]) traz binário pré-compilado (instala sem Build Tools nem Python). Sem prebuild (Linux, outra versão),
   compila com `node-gyp` e pede um compilador C++ e Python. Versão fixada exata no `package.json`.
 - **Mudar a versão do Node parte o `node-pty`** (`NODE_MODULE_VERSION` diferente) → `npm rebuild node-pty`.
 - 🚨 **`npm test` → `Cannot find native binding` / "An Application Control policy has blocked this

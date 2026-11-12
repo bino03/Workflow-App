@@ -51,13 +51,16 @@ describe('TerminalManager (fake process)', () => {
     const t = open();
     await waitFor(() => /grandchild=\d+/.test(t.output()));
     const grandchild = Number(/grandchild=(\d+)/.exec(t.output())![1]);
-    expect(isAlive(t.info.pid)).toBe(true);
+    // node-pty 1.2 reports pid 0 right after the spawn: read it once the process is up (create()'s snapshot is stale).
+    const pid = manager.get(t.info.id)!.pid;
+    expect(pid).toBeGreaterThan(0);
+    expect(isAlive(pid)).toBe(true);
     expect(isAlive(grandchild)).toBe(true);
 
     expect(await manager.kill(t.info.id)).toBe(true);
     expect(t.exits).toEqual([130]); // it exited by itself — not killed
     // The fake's clean exit orphans the grandchild; closing must end it anyway.
-    await waitFor(() => !isAlive(t.info.pid) && !isAlive(grandchild));
+    await waitFor(() => !isAlive(pid) && !isAlive(grandchild));
     expect(manager.get(t.info.id)).toBeUndefined();
   });
 
@@ -69,10 +72,12 @@ describe('TerminalManager (fake process)', () => {
     stubborn.attach(info.id, { onData: (d) => (output += d), onExit: (c) => exits.push(c) });
     await waitFor(() => /grandchild=\d+/.test(output));
     const grandchild = Number(/grandchild=(\d+)/.exec(output)![1]);
+    const pid = stubborn.get(info.id)!.pid; // read once it is up: node-pty 1.2 reports 0 right after the spawn
+    expect(pid).toBeGreaterThan(0);
 
     await stubborn.kill(info.id);
     expect(exits).not.toContain(130);
-    await waitFor(() => !isAlive(info.pid) && !isAlive(grandchild));
+    await waitFor(() => !isAlive(pid) && !isAlive(grandchild));
   });
 
   it('enforces MAX_TERMINALS', async () => {

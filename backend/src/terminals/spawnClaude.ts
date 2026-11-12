@@ -173,6 +173,7 @@ export async function killProcessTree(ptyProcess: pty.IPty): Promise<void> {
 }
 
 function isAlive(pid: number): boolean {
+  if (!Number.isInteger(pid) || pid <= 0) return false; // kill(0, 0) signals our own process group: always "alive"
   try {
     process.kill(pid, 0);
     return true;
@@ -201,7 +202,8 @@ export async function closeGracefully(ptyProcess: pty.IPty, { graceMs }: { grace
       resolve();
     });
   });
-  const tree = await listDescendants(ptyProcess.pid);
+  // pid 0 = already exited (node-pty 1.2): its "descendants" would be everything the system started.
+  const tree = ptyProcess.pid > 0 ? await listDescendants(ptyProcess.pid) : [];
   try {
     ptyProcess.write('\x03');
     await Promise.race([done, new Promise((r) => setTimeout(r, 250))]);

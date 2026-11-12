@@ -45,6 +45,11 @@ class Terminal {
   status: TerminalStatus = 'running';
   exitCode: number | null = null;
   readonly startedAt = new Date().toISOString();
+  /**
+   * node-pty 1.2 reports `pty.pid` as 0 until the process is up and again after it exits; 0 would mean "my own
+   * process group" to anything that signals it. So the last real pid is kept (see `currentPid`).
+   */
+  private lastPid = 0;
   private readonly subscriptions: IDisposable[];
 
   constructor(
@@ -53,8 +58,10 @@ class Terminal {
     readonly pty: IPty,
     readonly scrollback: Scrollback,
   ) {
+    this.currentPid();
     this.subscriptions = [
       pty.onData((data) => {
+        this.currentPid(); // remember the pid while it is known
         scrollback.push(data);
         for (const listener of this.listeners) listener.onData(data);
       }),
@@ -72,11 +79,16 @@ class Terminal {
     this.listeners.clear();
   }
 
+  private currentPid(): number {
+    if (this.pty.pid > 0) this.lastPid = this.pty.pid;
+    return this.lastPid;
+  }
+
   info(): TerminalInfo {
     return {
       id: this.id,
       cwd: this.cwd,
-      pid: this.pty.pid,
+      pid: this.currentPid(),
       status: this.status,
       exitCode: this.exitCode,
       startedAt: this.startedAt,

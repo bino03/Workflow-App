@@ -11,7 +11,7 @@
 | Node | 24.x (LTS) | `.nvmrc` = `24`, `engines: ">=24 <25"`; `@types/node` na mesma major |
 | TypeScript | 6.x, `strict: true` + `noUncheckedIndexedAccess` | ESM (`"type": "module"`, `NodeNext`) |
 | Fastify | 5.x | + `@fastify/websocket` 11, `@fastify/cookie` 11, `@fastify/cors` 11, `@fastify/rate-limit` 11 |
-| node-pty | **1.1.0 exata** (`--save-exact`) | ConPTY no Windows; N-API |
+| node-pty | **1.2.0-beta.18 exata** (`--save-exact`) | ConPTY no Windows; N-API. A 1.1.0 faz segfault em Node 24 / Windows — [[adr/0029-node-pty-beta-1-2]] |
 | zod | 4.x | Configuração e corpos dos pedidos |
 | argon2 | 0.45.x | Hash da password (argon2id) |
 | @simplewebauthn/server | 14.x | Passkeys ([[adr/0015-passkeys-webauthn]]); `@simplewebauthn/browser` 14.x no frontend. Só JS |
@@ -131,6 +131,14 @@ Ver [[security]] → "Fluxo de autenticação" e [[adr/0003-auth-utilizador-unic
   consola). Por isso `killProcessTree` só cai no `kill()` se o processo **ainda está vivo** (teste em
   `terminalManager.test.ts` → `killProcessTree`; visto a 2026-10-25). O mesmo atraso faz cada fecho custar
   ~1,6 s mesmo quando o `claude` sai logo: encurtar a graça não acelera os testes.
+- ✅ **`pty.pid` é 0 na 1.2 do node-pty** — logo a seguir ao `spawn` (o processo sobe de forma assíncrona) e
+  depois da saída (visto a 2026-11-12). `process.kill(0, 0)` sinaliza o próprio grupo de processos, por isso
+  "está vivo" dava sempre `true`; e os "descendentes" do pid 0 seriam tudo o que o sistema lançou. O
+  `Terminal` guarda o último pid real, `isAlive` recusa `pid <= 0`, e o `pid` que o `create` devolve pode ser 0
+  — ler `get(id)` quando o terminal já produziu saída. Nunca usar `pty.pid` diretamente fora do `Terminal`.
+- ✅ **A 1.1.0 faz segfault nativo (ConPTY) em Node v24.16 / Windows** — exit 139 em 4 de 8 corridas da suite
+  em `--pool=threads`; era a causa do "Worker exited unexpectedly" e do `error code: 87`. Ver
+  [[adr/0029-node-pty-beta-1-2]].
 - ✅ **Sair do `claude` pelo teclado**: dois `\x03` (Ctrl+C) seguidos → sai com código 0.
 - **Pasta ainda não *trusted*** — na primeira vez numa pasta o `claude` mostra o diálogo de confiança
   antes do prompt; o spike deteta-o e falha com essa razão. No produto, o diálogo aparece no terminal e

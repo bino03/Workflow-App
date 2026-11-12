@@ -37,6 +37,7 @@ export function fakeClaude({ stubborn = false }: { stubborn?: boolean } = {}) {
 export const fakeSpawn: SpawnPty = fakeClaude().spawn;
 
 export function isAlive(pid: number): boolean {
+  if (!Number.isInteger(pid) || pid <= 0) return false; // kill(0, 0) is our own process group
   try {
     process.kill(pid, 0);
     return true;
