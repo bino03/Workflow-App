@@ -1,6 +1,6 @@
 # Plano — 2026-11-08 teste-worker-intermitente
 
-**Estado**: em curso (investigação feita; correção à espera de decisão sobre o node-pty)
+**Estado**: concluído (2026-11-12 — fechar e vigiar; o residual ficou no ToDo como "Vigiar o node-pty")
 **Âmbito escolhido**: só o tema Manutenção (teste intermitente "Worker exited unexpectedly")
 **Orçamento da sessão**: sem limite
 
@@ -9,7 +9,7 @@
 - Quantas corridas → ~10 isoladas do `terminalsService.test.ts` + ~5 da suite inteira, em background
 
 ## Ordem confirmada
-1. [ ] Teste intermitente no backend: "Worker exited unexpectedly" do pool de forks — em curso
+1. [x] Teste intermitente no backend: "Worker exited unexpectedly" do pool de forks — concluída (beta.18 + guard do pid 0; residual a vigiar)
 
 ## Medições (2026-11-08)
 - `terminalsService.test.ts` isolado ×10: worker nunca morreu; 2/10 com `Cannot create process, error code: 87` (ConPTY) em testes diferentes.
@@ -30,5 +30,19 @@ Utilizador escolheu **A: adaptar à node-pty 1.2.0-beta.18** (com ADR). Downside
 - `--pool=threads` ×8: 7/8 passam; **1/8 morreu com exit 134 (SIGABRT)**, saída filtrada, causa por apurar. Melhorou (1.1.0: 4/8 com exit 139) mas **não está eliminado**.
 - tsc --noEmit: 1 erro, igual antes e depois (typing do WebSocket).
 
+## Medições — exit 134 apanhado com saída completa (2026-11-12, 2.ª sessão)
+- `--pool=threads` ×8 (beta.18): 7/8 limpas (527/527); **1/8 exit 134** — total da beta em threads: **22/24**.
+- A saída completa mostra que o SIGABRT **não tem frames do node-pty**: é uma asserção do Node em
+  `node::fs::ReadFileUtf8` (`src\node_file.cc:2770`, `Assertion failed: (0) == (uv_fs_close(...))`), num
+  `readFileSync` do loader CJS a carregar `@fastify/cookie/index.js`. Ou seja, o `close` de um ficheiro acabado
+  de abrir falhou — típico de **outro código no mesmo processo ter fechado esse handle** (fecho duplo, com o
+  número do handle já reutilizado). Em threads todos os ficheiros partilham o processo; em forks (omissão) não.
+- Suspeito natural: o código nativo do ConPTY. Lido o `src/win/conpty.cc` da beta.18: os `CloseHandle` estão
+  sob mutex e os handles passam a `nullptr` — **sem fecho duplo evidente**. Hipótese não provada.
+- Node v24.16.0; node-pty `latest` continua 1.1.0 (nada além da beta.18). Backend 7400 parado: uso real não
+  verificável nesta sessão. O Event Log do Windows não tem crashes do `node.exe` em 21 dias — nem os dos testes
+  de 2026-11-08, por isso não é prova de nada.
+- Log: `threads-1.log` no scratchpad da sessão (não versionado).
+
 ## Próximo passo
-Apurar o exit 134 (repetir `--pool=threads` com a saída completa), depois decidir se se fecha. Docs/ADR 0029 (`proposto`) já escritos; falta ToDo, whatIveDone, commit. Antes (tarefa 1 em curso): parar o backend de dev, instalar node-pty@1.2.0-beta.18, adaptar os 2 testes do `terminalManager` (Ctrl+C duplo; kill após a graça), medir ×8 em `--pool=threads`, escrever o ADR, atualizar docs.
+Nenhum — plano concluído. O que falta (1.2 estável, uso real) está no ToDo → Manutenção.

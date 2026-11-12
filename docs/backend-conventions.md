@@ -139,6 +139,12 @@ Ver [[security]] → "Fluxo de autenticação" e [[adr/0003-auth-utilizador-unic
 - ✅ **A 1.1.0 faz segfault nativo (ConPTY) em Node v24.16 / Windows** — exit 139 em 4 de 8 corridas da suite
   em `--pool=threads`; era a causa do "Worker exited unexpectedly" e do `error code: 87`. Ver
   [[adr/0029-node-pty-beta-1-2]].
+- ⚠️ **Com a beta.18 resta um SIGABRT raro (exit 134) em `--pool=threads`** — 2 em 24 corridas (2026-11-12);
+  por omissão (forks) 4/4 limpas. Não tem frames do node-pty: é uma asserção do Node em `fs.readFileSync`
+  (`node_file.cc`, `uv_fs_close` falhou num ficheiro acabado de abrir), o sinal típico de outro código no mesmo
+  processo ter fechado esse handle. A origem não está provada (o `conpty.cc` da beta não mostra fecho duplo).
+  Como o backend real é um só processo com PTYs e `fs`, **se o backend morrer sem erro JS, procurar esta
+  asserção no stderr primeiro**.
 - ✅ **Sair do `claude` pelo teclado**: dois `\x03` (Ctrl+C) seguidos → sai com código 0.
 - **Pasta ainda não *trusted*** — na primeira vez numa pasta o `claude` mostra o diálogo de confiança
   antes do prompt; o spike deteta-o e falha com essa razão. No produto, o diálogo aparece no terminal e

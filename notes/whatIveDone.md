@@ -820,3 +820,9 @@ Guardar o verbatim importa: vários bullets são vagos, e o log preserva o que f
 - Parcial, a pedido do dono (parou a meio): o terminal escondido que corre o `/run` de um projeto (`appRun` no estado, arranque `run`, `createAppRun`, `dropAppRuns`, códigos `APPRUN_001-003`). Falta o `AppRunService`, as rotas e tudo o resto; retoma-se pela secção 6 da spec. Passos 1-2 (`opus`) por fazer.
 - Files: backend/src/{common/errors,state/state.schema,terminals/claudeArgs,terminals/terminalsService}.ts, backend/test/{stateStore,telegramPreview,terminalsService}.test.ts, docs/features/correr-a-app.md
 - Item original do ToDo: "Spec correr e parar a app (8 passos, 0 feitos — 2026-11-12) — botões Correr/Parar no cabeçalho comum da página Terminais…" (mantido no ToDo)
+
+## 2026-11-12 — Teste intermitente fechado: o exit 134 é uma asserção do Node, não do node-pty
+
+- Repetida a suite ×8 em `--pool=threads` com a saída completa: 7/8 limpas (527/527), 1 exit 134 (total da beta.18: 22/24). O SIGABRT é `Assertion failed: uv_fs_close` em `fs.readFileSync` (`node_file.cc`), sem frames do node-pty: outro código no processo fechou o handle que o `fs` tinha aberto. A origem não está provada (o `conpty.cc` da beta não mostra fecho duplo); como em forks passa 4/4, o dono escolheu fechar e vigiar. O item do ToDo passou a "Vigiar o node-pty" (1.2 estável → ADR 0029 `aceite`; uso real). A 1.2 estável ainda não saiu (`latest` = 1.1.0).
+- Files: docs/backend-conventions.md, notes/ToDo.md, notes/roadmap/plans/archive/2026-11-08-teste-worker-intermitente.md, notes/roadmap/backlog.md
+- Item original do ToDo: "Teste intermitente no backend: um "Worker exited unexpectedly" do pool de forks (`[vitest-pool]: Worker forks emitted error`) — … **Resta**: 1 corrida em threads com exit 134 (SIGABRT) nunca reproduzida em 8 corridas seguintes com saída completa — vigiar; quando sair a 1.2 estável, subir e passar o ADR a `aceite`; confirmar no uso real (dias) que o backend não crasha. …"
