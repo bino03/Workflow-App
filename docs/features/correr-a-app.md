@@ -83,7 +83,7 @@ passa a "A arrancar…" e depois a "● A correr · 0 min · :5173" (a porta é 
 | Quando está "a correr" | Há portas em escuta abaixo do terminal; tempo desde a primeira porta | Reutiliza `devPortsOf` da pré-visualização; não depende de ler o ecrã | Ler a resposta do Claude no `.jsonl` |
 | Atualização | Pelas sondagens (o frontend lê o estado a cada poucos segundos) | O canal de eventos ainda não existe | Esperar pelo `/api/events` |
 
-**ADRs gerados:** app **0029** e Workflow **0013** (passo 1). Reabre o "Fora" de [[pre-visualizacao]]
+**ADRs gerados:** app **0030** e Workflow **0013** (passo 1). Reabre o "Fora" de [[pre-visualizacao]]
 ("Arrancar o servidor de dev pela app") — a spec da pré-visualização não se edita no "Fora"; acrescenta-se um
 link para esta.
 
@@ -160,11 +160,11 @@ contra o `ErrorCodes` do backend no passo 3.
 Ordem obrigatória. Tiers: `opus` (desenho, não delegar) · `sonnet` (implementação) · `haiku` (mecânico).
 
 - [ ] **1. ADRs**
-  - Ficheiro: `docs/adr/0029-correr-e-parar-a-app-de-um-projeto.md` (+ linha em `docs/adr/README.md`);
+  - Ficheiro: `docs/adr/0030-correr-e-parar-a-app-de-um-projeto.md` (+ linha em `docs/adr/README.md`);
     no Workflow, `C:\Users\jlalv\Desktop\Workflow\Workflow\docs\adr\0013-skill-stop-obrigatoria.md`
   - Skill: `engineering:architecture`
   - Tier: `opus`
-  - Aceite quando: o 0029 regista as decisões da §3 (terceiro tipo de terminal escondido, `/run` como primeira
+  - Aceite quando: o 0030 regista as decisões da §3 (terceiro tipo de terminal escondido, `/run` como primeira
     mensagem, `/stop` escrito no PTY, rede de 20 s, limite de 3 min, recusar a própria app) e referencia
     0002/0004/0018/0020; o 0013 do Workflow regista o `/stop` "sempre"; [[pre-visualizacao]] ganha um link
     no "Fora" para esta spec.
@@ -240,7 +240,7 @@ Ordem obrigatória. Tiers: `opus` (desenho, não delegar) · `sonnet` (implement
 
 **Feito:** nada — spec escrita a 2026-11-12.
 **Em curso:** —
-**Próxima ação concreta:** passo 1 — escrever `docs/adr/0029-correr-e-parar-a-app-de-um-projeto.md`.
+**Próxima ação concreta:** passo 1 — escrever `docs/adr/0030-correr-e-parar-a-app-de-um-projeto.md`.
 **Desvios ao plano:** —
 **O que uma sessão nova precisa de saber:** o passo 2 é **noutro repositório** (o Workflow, em `WORKFLOW_PATH`)
 e é o que torna o `/stop` obrigatório; sem ele, o passo 7 não tem o que copiar. O terminal do `/run` é o terceiro

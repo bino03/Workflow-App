@@ -17,10 +17,12 @@ type ReplyBoxProps = {
   /** Devolve true se foi enviada — só então a caixa se limpa. */
   onSend: (text: string) => Promise<boolean>;
   placeholder?: string;
+  /** Altura máxima da caixa antes de ganhar scroll próprio — mais baixa quando está presa ao fundo. */
+  maxRows?: number;
 };
 
 /** A caixa de resposta quando o Claude terminou o turno à espera de texto. `Ctrl+Enter` envia. */
-export function ReplyBox({ busy, onSend, placeholder = 'Responde ao Claude…' }: ReplyBoxProps) {
+export function ReplyBox({ busy, onSend, placeholder = 'Responde ao Claude…', maxRows = 12 }: ReplyBoxProps) {
   const form = useForm<ReplyValues>({ resolver: zodResolver(replySchema), defaultValues: { text: '' } });
   const submit = form.handleSubmit(async ({ text }) => {
     if (await onSend(text)) form.reset({ text: '' });
@@ -37,7 +39,7 @@ export function ReplyBox({ busy, onSend, placeholder = 'Responde ao Claude…' }
             id="guided-reply"
             autoFocus
             aria-label="A tua resposta"
-            autoSize={{ minRows: 3, maxRows: 12 }}
+            autoSize={{ minRows: 3, maxRows }}
             maxLength={8000}
             disabled={busy}
             placeholder={placeholder}

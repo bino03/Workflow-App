@@ -36,9 +36,12 @@ export type TerminalView = {
   accountId: AccountId;
 };
 
-/** Hidden without being an import's or a guided session's: only createLogin starts those. */
+/**
+ * Hidden without being an import's, a guided session's or an app run's: only createLogin starts those. An app run
+ * that was revealed has `hidden: false`, like any other, but stays `appRun`.
+ */
 function isLoginTerminal(saved: SavedTerminal): boolean {
-  return saved.hidden && saved.importId === null && saved.guidedId === null;
+  return saved.hidden && saved.importId === null && saved.guidedId === null && !saved.appRun;
 }
 
 /** A hidden terminal that runs `/import <requestPath>` in the Workflow (ADR 0019). Only the imports module calls it. */
@@ -72,6 +75,15 @@ export type CreateGuidedTerminal = {
 export type CreateLoginTerminal = {
   accountId: AccountId;
   /** DEFAULT_CWD: inside ALLOWED_ROOTS. */
+  cwd: string;
+  label: string;
+  cols: number;
+  rows: number;
+};
+
+/** A project's app run (spec correr-a-app): hidden, first message `/run`, in the project's folder. Only appRuns calls it. */
+export type CreateAppRunTerminal = {
+  /** The project folder, inside ALLOWED_ROOTS and already trusted by Claude Code. */
   cwd: string;
   label: string;
   cols: number;
@@ -179,6 +191,7 @@ export class TerminalsService {
       accountId,
       hidden: false,
       addDirs: [],
+      appRun: false,
     };
     await this.save(saved, { touch: true });
     return this.view(saved);
@@ -215,6 +228,7 @@ export class TerminalsService {
       accountId,
       hidden: true,
       addDirs: request.addDirs,
+      appRun: false,
     };
     // Not a recent folder: the user never picked the Workflow for this terminal.
     await this.save(saved, { touch: false });
@@ -253,6 +267,7 @@ export class TerminalsService {
       accountId,
       hidden: true,
       addDirs: request.addDirs,
+      appRun: false,
     };
     // Not a recent folder: the user never picked the Workflow for this terminal.
     await this.save(saved, { touch: false });
@@ -289,10 +304,56 @@ export class TerminalsService {
       accountId,
       hidden: true,
       addDirs: [],
+      appRun: false,
     };
     // Not a recent folder: the owner never picked it for this terminal.
     await this.save(saved, { touch: false });
     return this.view(saved);
+  }
+
+  /**
+   * Starts a project's app-run terminal: a new conversation in the active account whose first message is `/run`.
+   * Like an import, nobody is at the PTY, so the folder must already be trusted. It is not a recent folder, and
+   * it never reaches the history when closed (an app run is not a conversation to resume).
+   */
+  async createAppRun(request: CreateAppRunTerminal): Promise<TerminalView> {
+    const cwd = resolveAllowedPath(request.cwd, this.deps.allowedRoots);
+    const accountId = this.activeAccount();
+    const configDir = await this.deps.accounts?.prepareLaunch(accountId);
+    await this.assertTrusted(cwd, configDir);
+    const launch: ClaudeLaunch = { kind: 'run', sessionId: randomUUID() };
+    const id = randomUUID();
+    this.spawn(id, cwd, launch, request, { configDir });
+
+    const at = this.now().toISOString();
+    const saved: SavedTerminal = {
+      id,
+      label: request.label,
+      cwd,
+      claudeSessionId: launch.sessionId,
+      createdAt: at,
+      updatedAt: at,
+      lastOpenedAt: at,
+      remoteControl: false,
+      importId: null,
+      guidedId: null,
+      accountId,
+      hidden: true,
+      addDirs: [],
+      appRun: true,
+    };
+    await this.save(saved, { touch: false });
+    return this.view(saved);
+  }
+
+  /**
+   * At startup: the app runs of a previous backend are gone with their PTYs, so their saved terminals go too
+   * (they would show as `stopped` terminals nobody asked for).
+   */
+  dropAppRuns(): void {
+    this.deps.stateStore.update((draft) => {
+      draft.terminals = draft.terminals.filter((terminal) => !terminal.appRun);
+    });
   }
 
   /** Ends an account's login terminals, running or not. */
@@ -425,7 +486,7 @@ export class TerminalsService {
     this.deps.stateStore.update((draft) => {
       const terminal = draft.terminals.find((t) => t.id === id);
       if (terminal) Object.assign(terminal, { cwd, remoteControl, accountId, lastOpenedAt: at, updatedAt: at });
-      if (saved.importId === null && saved.guidedId === null) touchFolder(draft, cwd, at);
+      if (saved.importId === null && saved.guidedId === null && !saved.appRun) touchFolder(draft, cwd, at);
     });
     return { ...this.view(this.saved(id)!), freshSession };
   }
@@ -456,7 +517,7 @@ export class TerminalsService {
     const saved = this.saved(id);
     if (!saved) throw new AppError('TERMINAL_001');
     await this.deps.terminalManager.kill(id);
-    if (isLoginTerminal(saved)) {
+    if (isLoginTerminal(saved) || saved.appRun) {
       this.deps.stateStore.update((draft) => {
         draft.terminals = draft.terminals.filter((t) => t.id !== id);
       });

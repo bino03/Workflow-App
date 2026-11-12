@@ -40,6 +40,10 @@ export const ErrorCode = {
   PREVIEW_005: { status: 503, message: 'Tailscale did not answer' },
   PREVIEW_006: { status: 404, message: 'Previews are off (TAILSCALE_BIN)' },
   PREVIEW_007: { status: 503, message: 'Tailscale Serve is not enabled on the tailnet' },
+  // APPRUN (spec correr-a-app)
+  APPRUN_001: { status: 409, message: 'The app of this project is already running' },
+  APPRUN_002: { status: 422, message: 'This project has no /run and /stop skills' },
+  APPRUN_003: { status: 404, message: 'The app of this project is not running' },
   // FOLDER
   FOLDER_001: { status: 403, message: 'Folder does not exist or is outside ALLOWED_ROOTS' },
   // SESSION

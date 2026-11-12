@@ -27,7 +27,9 @@ export type ClaudeLaunch =
    * spike of the accounts spec). The owner finishes the OAuth in the browser and answers the account's first-run
    * dialogs in the same terminal.
    */
-  | { kind: 'login'; sessionId: string };
+  | { kind: 'login'; sessionId: string }
+  /** A project's app run (spec correr-a-app): a new conversation whose first message is the project's `/run`. */
+  | { kind: 'run'; sessionId: string };
 
 /** What a guided session is for, the command and input file it starts with, and its hidden terminal's label. */
 export const GUIDED_COMMANDS = {
@@ -108,6 +110,11 @@ export function claudeArgs(
   if (launch.kind === 'login') {
     if (remoteControl) throw new ClaudeArgsError('a login terminal never runs with remote control');
     args.push('/login');
+    return args;
+  }
+  if (launch.kind === 'run') {
+    if (remoteControl) throw new ClaudeArgsError('an app run never runs with remote control');
+    args.push('/run');
     return args;
   }
   if (launch.kind === 'guided') {

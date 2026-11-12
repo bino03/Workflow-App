@@ -46,6 +46,8 @@ export const savedTerminalSchema = z.object({
   guidedId: z.uuid().nullable().default(null),
   // ADR 0027: the Claude account it runs in. Older files → 'primary', no migration.
   accountId: accountIdSchema.default('primary'),
+  // Spec correr-a-app: the hidden terminal that runs a project's `/run`. Older files → false, no migration.
+  appRun: z.boolean().default(false),
 });
 
 export const closedTerminalSchema = z.object({

@@ -128,7 +128,12 @@ export function GuidedConversation({ view, entries, busy, act, onReveal, onSend,
       }
       break;
     case 'waiting-text':
-      bottomPanel = <ReplyBox busy={busy} onSend={onSend} />;
+      // Presa ao fundo da área com scroll: escreve-se a resposta enquanto se relê a conversa lá em cima.
+      bottomPanel = (
+        <div className="sticky bottom-0 z-10 -mx-1 px-1 pt-2 pb-4 bg-bg" data-reply-dock>
+          <ReplyBox busy={busy} onSend={onSend} maxRows={8} />
+        </div>
+      );
       break;
     case 'needs-you':
       bottomPanel = (
