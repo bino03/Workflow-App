@@ -2,9 +2,6 @@
 .obsidian/workspace.json
 .obsidian/workspace-mobile.json
 
-# Notas pessoais — não versionadas
-/notes/
-
 # Definições pessoais do Claude Code (as skills e agentes em .claude/ vão para o git)
 .claude/settings.local.json
 
