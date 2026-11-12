@@ -57,7 +57,7 @@ function setup({
     remoteControl: false,
     preview: previews.get(ID) ?? null,
     importId: null,
-    guidedId: null, appRun: false,
+    guidedId: null,
     hidden: false,
     accountId: 'primary',
   });

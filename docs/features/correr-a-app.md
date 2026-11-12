@@ -238,10 +238,11 @@ Ordem obrigatória. Tiers: `opus` (desenho, não delegar) · `sonnet` (implement
 
 > ⚠️ **Atualizar SEMPRE no fim de cada sessão.** É a secção que torna esta spec retomável.
 
-**Feito:** nada — spec escrita a 2026-11-12.
-**Em curso:** —
-**Próxima ação concreta:** passo 1 — escrever `docs/adr/0030-correr-e-parar-a-app-de-um-projeto.md`.
-**Desvios ao plano:** —
+**Feito:** nada fechado. Passo 3 **a meio** (sessão de 2026-11-12, modo NORMAL a partir do passo 3; os passos 1-2, `opus`, ficam para uma sessão Opus): o terminal do `/run` existe, o `AppRunService` não.
+- Feito no passo 3: códigos `APPRUN_001-003` em `backend/src/common/errors.ts`; campo `appRun` (por omissão `false`) em `savedTerminalSchema`; `ClaudeLaunch` `{ kind: 'run' }` → primeira mensagem `/run` em `claudeArgs.ts`; em `terminalsService.ts`: `createAppRun` (conta ativa, exige pasta *trusted*, escondido, sem pasta recente), `dropAppRuns()` (apaga os `appRun` guardados — **ainda ninguém a chama**), `isLoginTerminal` exclui `appRun`, `close` de um `appRun` não deixa histórico, `reopen` não toca nas pastas recentes. Testes dos ficheiros tocados a passar (83/83); `tsc` só tem o erro antigo de `test/auth.test.ts`.
+**Em curso:** passo 3 — falta o `AppRunService`.
+**Próxima ação concreta:** escrever `backend/src/appRuns/appRunService.ts` + `appRun.schemas.ts` (modelo em memória por pasta; fases e transições da §4.3; `/stop` por `terminals.paste` e rede de 20 s que fecha o terminal; `unavailable` por falta de `.claude/skills/{run,stop}/SKILL.md` ou por ser a própria app, via `isInsideRoot`; `devPorts(pid)` com pid ≤ 0 → `[]`; o GET atualiza o estado a pedido, sem timers, exceto o do `/stop`); chamar `terminalsService.dropAppRuns()` em `buildApp`; testes com `devPortsOf` e terminal falsos (cenários do critério de aceitação do passo 3). Depois o passo 4 (rotas e `docs/api.md`). O passo 1 (ADR **0030**, o 0029 é o node-pty) continua por escrever.
+**Desvios ao plano:** decidido ao ler o código — o `TerminalView` não ganha campo novo (`hidden` basta); `/stop` num estado `failed` fecha o terminal e volta a `idle`; `Correr` num `failed` fecha o terminal antigo e arranca outro; o `appRun` guardado não deixa histórico ao fechar.
 **O que uma sessão nova precisa de saber:** o passo 2 é **noutro repositório** (o Workflow, em `WORKFLOW_PATH`)
 e é o que torna o `/stop` obrigatório; sem ele, o passo 7 não tem o que copiar. O terminal do `/run` é o terceiro
 tipo de terminal escondido — rever todos os sítios que tratam `hidden` (`list()`, `isLoginTerminal`, a grelha,

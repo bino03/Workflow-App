@@ -814,3 +814,9 @@ Guardar o verbatim importa: vários bullets são vagos, e o log preserva o que f
 ## 2026-11-12 — Atualizado do Workflow `eff6838` → `15c58e8`
 
 - `/upgrade-project` (corrido no Workflow): **tier de modelo por item do ToDo**. Cada item passa a começar por `opus` ou `sonnet` (critérios em [[ai-workflow]] → "Tiers de modelo"); o `/refine-idea` escreve-o, o `/implement-todo` confirma-o depois de investigar e avisa quando a sessão corre no modelo errado. Itens antigos sem tier continuam válidos (por decidir). Também o `plan-feature` e o template da spec (linha **Sessões**).
+
+## 2026-11-12 — Correr e parar a app, passo 3 a meio: o terminal do `/run`
+
+- Parcial, a pedido do dono (parou a meio): o terminal escondido que corre o `/run` de um projeto (`appRun` no estado, arranque `run`, `createAppRun`, `dropAppRuns`, códigos `APPRUN_001-003`). Falta o `AppRunService`, as rotas e tudo o resto; retoma-se pela secção 6 da spec. Passos 1-2 (`opus`) por fazer.
+- Files: backend/src/{common/errors,state/state.schema,terminals/claudeArgs,terminals/terminalsService}.ts, backend/test/{stateStore,telegramPreview,terminalsService}.test.ts, docs/features/correr-a-app.md
+- Item original do ToDo: "Spec correr e parar a app (8 passos, 0 feitos — 2026-11-12) — botões Correr/Parar no cabeçalho comum da página Terminais…" (mantido no ToDo)
