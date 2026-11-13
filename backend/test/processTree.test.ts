@@ -2,7 +2,7 @@ import { mkdirSync, mkdtempSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
-import { descendantsOf, parseLinuxStat, parseWindowsProcessList, readLinuxProcesses } from '../src/common/processTree.js';
+import { descendantsOf, parseLinuxBootTime, parseLinuxStat, parseWindowsProcessList, readLinuxProcesses } from '../src/common/processTree.js';
 
 describe('parseWindowsProcessList', () => {
   it('reads "<pid> <ppid> <name>" lines, names with spaces included (real Get-CimInstance output)', () => {
@@ -80,5 +80,28 @@ describe('descendantsOf', () => {
       { pid: 31, ppid: 30, name: 'b' },
     ];
     expect(descendantsOf(loop, 30).map((r) => r.pid)).toEqual([31]);
+  });
+});
+
+describe('creation time (ADR 0032)', () => {
+  it('parseLinuxStat dates the process from starttime (field 22) and the boot time', () => {
+    // fields[0] is field 3 (state), so field 22 sits at index 19.
+    const fields = ['S', '1200', ...Array.from({ length: 19 }, () => '0')];
+    fields[19] = '250';
+    expect(parseLinuxStat(`1234 (node) ${fields.join(' ')}`, 1_000_000)).toEqual({ pid: 1234, ppid: 1200, name: 'node', createdAt: 1_002_500 });
+  });
+
+  it('parseLinuxBootTime reads btime', () => {
+    expect(parseLinuxBootTime('cpu 1 2 3\nbtime 1700000000\nprocesses 5\n')).toBe(1_700_000_000_000);
+    expect(parseLinuxBootTime('cpu 1 2 3\n')).toBeUndefined();
+  });
+
+  it("descendantsOf skips a 'child' older than its parent: an orphan whose dead parent's pid was reused", () => {
+    const rows = [
+      { pid: 10, ppid: 1, name: 'claude', createdAt: 1000 },
+      { pid: 11, ppid: 10, name: 'bash', createdAt: 1100 },
+      { pid: 12, ppid: 10, name: 'old-orphan', createdAt: 500 },
+    ];
+    expect(descendantsOf(rows, 10).map((r) => r.pid)).toEqual([11]);
   });
 });

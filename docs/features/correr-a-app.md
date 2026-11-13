@@ -2,10 +2,10 @@
 
 | | |
 |---|---|
-| **Estado** | 🚧 Em curso |
+| **Estado** | ✅ Concluída (resta passar o `/stop` do Workflow a `proven`) |
 | **Criada** | 2026-11-12 |
 | **Última sessão** | 2026-11-13 |
-| **Passos** | 7 / 8 concluídos (1-7) |
+| **Passos** | 8 / 8 concluídos |
 
 > Escrita para uma sessão que **não viu a conversa que a originou**. Se algo só faz sentido com contexto
 > externo, falta escrevê-lo.
@@ -34,7 +34,9 @@ passa a "A arrancar…" e depois a "● A correr · 0 min · :5173" (a porta é 
 - Botões **Correr** / **Parar** e um indicador de estado por projeto, num **cabeçalho comum** aos dois
   modos (grelha e foco dividido), à direita, logo à esquerda do seletor de grelha (que só existe na grelha).
 - **Correr** abre um terminal **sempre escondido** no projeto, com a conta ativa, cuja primeira mensagem é
-  `/run`. A app está "a correr" quando há portas em escuta abaixo desse terminal (`devPortsOf`).
+  `/run`. A app está "a correr" quando há portas em escuta abaixo desse terminal **ou num processo do projeto
+  criado depois do Correr** (`devPortsOf` com `owner`; [[../adr/0032-servidores-de-dev-orfaos|ADR 0032]], 2026-11-13:
+  o servidor do `/run` fica órfão da árvore do PTY).
 - **Parar** escreve `/stop` nesse mesmo terminal (a mesma conversa sabe os IDs das tarefas); se ao fim de
   20 s ainda houver portas, fecha o terminal (o `close` já mata a árvore de processos). No fim fecha sempre
   o terminal escondido.
@@ -80,7 +82,7 @@ passa a "A arrancar…" e depois a "● A correr · 0 min · :5173" (a porta é 
 | Terminal visível? | Sempre escondido; só aparece por **Ver terminal** num erro | Não ocupa lugares da grelha; um erro tem de ter saída | Visível na grelha |
 | Preso (permissão, sem porta) | 3 min sem porta → "Não arrancou" + Ver terminal | Sem hooks de estado não se sabe se está à espera; o limite cobre isso | Aprovar tudo sozinho (corre comandos sem ninguém validar) |
 | Sítio na UI | Cabeçalho "Terminais · N abertos" **comum** à grelha e ao foco, controlo à direita | Mesmo sítio nos dois modos; mudar de modo não mexe no layout | Barra dos separadores (muda o layout ao trocar de modo); só na grelha; barra de estado em baixo |
-| Quando está "a correr" | Há portas em escuta abaixo do terminal; tempo desde a primeira porta | Reutiliza `devPortsOf` da pré-visualização; não depende de ler o ecrã | Ler a resposta do Claude no `.jsonl` |
+| Quando está "a correr" | Há portas em escuta abaixo do terminal; tempo desde a primeira porta. **Alterado a 2026-11-13 ([[../adr/0032-servidores-de-dev-orfaos|ADR 0032]])**: também as de um processo que traz o caminho do projeto (ou cujo pai o traz), criado depois do Correr; o Parar mata-as por PID no fim dos 20 s | Reutiliza `devPortsOf` da pré-visualização; não depende de ler o ecrã | Ler a resposta do Claude no `.jsonl`; hook `PostToolUse(Bash)` (não dá o PID) |
 | Atualização | Pelas sondagens (o frontend lê o estado a cada poucos segundos) | O canal de eventos ainda não existe | Esperar pelo `/api/events` |
 
 **ADRs gerados:** app **0030** e Workflow **0013** (passo 1). Reabre o "Fora" de [[pre-visualizacao]]
@@ -225,7 +227,7 @@ Ordem obrigatória. Tiers: `opus` (desenho, não delegar) · `sonnet` (implement
   - Tier: `sonnet`
   - Aceite quando: um projeto de teste tem as duas skills e a app mostra-lhe os botões; um sem `/stop` não.
 
-- [ ] **8. Verificação real no browser**
+- [x] **8. Verificação real no browser** (2026-11-13)
   - Ficheiro: cenário novo em `scripts/verify/` (ex.: `app-run.mjs`)
   - Skill: `run` + [[../skills/references/testing-and-verification]] (inline, nunca num subagente)
   - Tier: `sonnet`
@@ -245,8 +247,9 @@ Ordem obrigatória. Tiers: `opus` (desenho, não delegar) · `sonnet` (implement
 - Passos 5-6 (2026-11-13): `TerminalsHeader.tsx` (sai do `TerminalGrid`, que fica só o contentor; a página desenha-o por cima da grelha e do foco) + `AppRunControl.tsx`/`useAppRun.ts`/`appRunService.ts`/`types/appRun.ts`. Ver terminal → `navigate` com `focusTerminalId` (o mecanismo que já espera pela lista e amplia na grelha). Verificado no browser: `scripts/verify/app-run-ui.mjs` 26/26 (os 6 estados, portas como links, 11 → 12 min sem resposta nova, `1 h 05 min`, cor de erro, o mesmo cabeçalho nos dois modos, controlo à esquerda do seletor, Ver terminal ampliado com o controlo à vista, Alfa sem skills sem controlo, `TERMINAL_007` real ao Correr) e `terminal-menu.mjs` 42/42 (nada mais mudou). Em 9 corridas do `app-run-ui`, 2 falharam no último check com o último estado no ecrã — compatível com a instância que morre a meio (`docs/commands.md`), não confirmado.
 - Passo 7 (2026-11-13): `/upgrade-project` do Workflow até `6904f56` (só o `stop`; o `a7bbc2a` ficou por decidir) nesta app, no PortFolio e no Gestao-Sock. Cada um ficou com `docs/skills/process/skill-stop.md` (gerada pelo `dry-run`, com as portas e os comandos de paragem da `skill-run` dele), o ponteiro `.claude/skills/stop/SKILL.md`, os dois índices e o "Parar" da `skill-run` a apontar para o `/stop`. Provado pelo `AppRunService` real: PortFolio e Gestao-Sock → `idle` (o controlo aparece), uma pasta só com o `/run` → `missing-skills`, esta app → `self`. Commit no Workflow `aa7278a`; nos outros dois filhos as alterações ficam por gravar, para o dono ver.
 - Passo 8 (2026-11-13), **parado por um 🔴**: com o `/run` real do PortFolio o Vite arrancou em `[::1]:5174`, mas o controlo deu "Não arrancou" ao fim de 3 min. O Claude Code 2.1.323 lança a tarefa em segundo plano por um `bash` que sai logo e a árvore do Vite fica órfã, fora dos descendentes do PTY, que é o que o `devPortsOf` procura. O desenho "a correr = portas abaixo do PTY" (§3, ADR 0030) não aguenta isto, por isso é preciso um ADR novo (ToDo → Terminais, 🔴). O que passou: Correr → "A arrancar…"; nenhum terminal novo na grelha nem no `GET /terminals`; o Vite do Worksite na 5173 ficou intacto. Cenário `scripts/verify/app-run-real.mjs` (5/11; o resto depende do 🔴).
-**Em curso:** nada (passo 8 à espera do 🔴).
-**Próxima ação concreta:** resolver o 🔴 do ToDo (como reconhecer as portas de uma árvore órfã, num ADR novo) e voltar a correr o `scripts/verify/app-run-real.mjs`.
+- Passo 8, fechado (2026-11-13), depois do [[../adr/0032-servidores-de-dev-orfaos|ADR 0032]]: as portas do `/run` contam também quando são de um processo que traz o caminho do projeto (ou cujo pai o traz), criado depois do Correr; o Parar mata por PID o que ainda escutar ao fim dos 20 s. `scripts/verify/app-run-real.mjs` **21/21** no PortFolio real: "A correr · :5174" aos 24 s, o link responde, o tempo sobe, grelha e foco, nenhum terminal novo, o Worksite na 5173 intacto; Parar em 26 s (o próprio `/stop` desligou o Vite: `killed: 0`); "Não arrancou" + Ver terminal num `/run` partido (pasta temporária, já apagada); a própria app sem o controlo. **Encontrado pelo cenário:** com 5 s de folga na hora, o Chrome do próprio cenário (pai `node` com o caminho do projeto nos argumentos, 3 s antes do Correr) foi adotado como "porta 9335" e o Parar matou-o; a folga passou a 1 s (ADR 0032 ponto 2).
+**Em curso:** nada.
+**Próxima ação concreta:** no Workflow, passar a `library/skills/process/skill-stop.md` de `prospective` a `proven` (provada neste passo 8).
 **Ainda por confirmar num terminal real** (passo 8): se o Claude Code põe em fila um `/stop` escrito a meio de um turno (§7) — a rede de 20 s cobre o caso em que não põe.
 **Desvios ao plano:** decidido ao ler o código — o `TerminalView` não ganha campo novo (`hidden` basta); `/stop` num estado `failed` fecha o terminal e volta a `idle`; `Correr` num `failed` fecha o terminal antigo e arranca outro; o `appRun` guardado não deixa histórico ao fechar. **Novo código `APPRUN_004`** (422, "The Workflow App cannot run itself") para recusar a própria app — o `APPRUN_002` diria "falta a skill", o que é falso; uma subpasta da app também é recusada. Ao fechar uma execução com as portas já fechadas, espera-se o fim do turno do `/stop` (até ao fim dos 20 s) para não matar um `docker compose down` a meio. O terminal escondido abre com 120×32. **Frontend (2026-11-13):** **Parar** também em `starting` (o backend aceita; corta um arranque preso numa permissão sem esperar os 3 min). A sondagem é por fase (2 s a arrancar/parar, 5 s a correr, 10 s parado/erro, 30 s indisponível) com `setInterval` — um `setTimeout` por resposta parava de vez se disparasse com a janela escondida (apanhado pelo cenário). O tempo sobe por um relógio de 15 s (até 15 s de atraso no minuto mostrado). **Encontrado pelo teste de rota:** a execução só se esquece **depois** de o `close` acabar (~1,6 s a matar a árvore) — antes, o GET dizia `idle` com o terminal ainda vivo e um Correr nesse intervalo abria um segundo.
 **O que uma sessão nova precisa de saber:** o passo 2 é **noutro repositório** (o Workflow, em `WORKFLOW_PATH`)

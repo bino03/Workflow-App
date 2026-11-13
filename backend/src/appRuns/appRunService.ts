@@ -2,7 +2,8 @@ import { existsSync, realpathSync } from 'node:fs';
 import { basename, join } from 'node:path';
 import { AppError } from '../common/errors.js';
 import { isInsideRoot, resolveAllowedPath } from '../folders/cwdPolicy.js';
-import type { DevPort } from '../preview/listeningPorts.js';
+import { killProcessById } from '../common/processTree.js';
+import type { DevPort, DevPortQuery } from '../preview/listeningPorts.js';
 import type { CreateAppRunTerminal, TerminalView } from '../terminals/terminalsService.js';
 import type { AppRunError, AppRunUnavailableReason, AppRunView } from './appRun.schemas.js';
 
@@ -21,7 +22,9 @@ export type AppRunServiceDeps = {
   /** The terminal's last real pid (TerminalManager), or undefined — 0 means "not up yet" (ADR 0029). */
   pidOf: (terminalId: string) => number | undefined;
   /** devPortsOf, already excluding the backend's own PORT. */
-  devPorts: (rootPid: number) => Promise<DevPort[]>;
+  devPorts: (query: DevPortQuery) => Promise<DevPort[]>;
+  /** Kills a confirmed leftover server by pid, with what is below it (ADR 0032 point 3). Default: taskkill /T /F. */
+  killPid?: (pid: number) => Promise<void>;
   allowedRoots: readonly string[];
   /** The Workflow App's own folder: never run from itself (CLAUDE.md rule 8). */
   selfPath: string;
@@ -65,9 +68,10 @@ function realOrSelf(path: string): string {
 }
 
 /**
- * Runs and stops a project's app (ADR 0030): a hidden terminal whose first message is `/run`; "running" means ports
- * listening below it. State lives in memory — it dies with the PTYs on a backend restart. The GET brings it up to
- * date on demand; the only timer is a stop's 20 s safety net.
+ * Runs and stops a project's app (ADR 0030, ADR 0032): a hidden terminal whose first message is `/run`; "running"
+ * means ports listening below it or held by the project's own processes since the Correr. State lives in memory — it
+ * dies with the PTYs on a backend restart. The GET brings it up to date on demand; the only timer is a stop's 20 s
+ * safety net.
  */
 export class AppRunService {
   private readonly runs = new Map<string, Entry>();
@@ -175,9 +179,13 @@ export class AppRunService {
       const left = deadline - Date.now();
       if (left > 0) await this.deps.terminals.waitForQuiet(entry.terminalId, { quietMs: 2_000, timeoutMs: left });
     }
-    const portsLeft = (await this.currentPorts(entry)).length;
+    // Whatever still listens is the run's (below its terminal, or an orphan of this project started since the
+    // Correr — ADR 0032): killed by pid before the terminal goes, so no Vite is left behind.
+    const left = await this.currentDevPorts(entry);
+    const pids = [...new Set(left.map((p) => p.pid))];
+    await Promise.all(pids.map((pid) => (this.deps.killPid ?? killProcessById)(pid)));
     await this.discard(entry);
-    this.deps.log?.info({ path: entry.path, portsLeft }, 'app run stopped');
+    this.deps.log?.info({ path: entry.path, portsLeft: left.map((p) => p.port), killed: pids.length }, 'app run stopped');
   }
 
   /** Brings an entry up to date from the terminal and the OS. Only the GET calls it. */
@@ -207,9 +215,19 @@ export class AppRunService {
   }
 
   private async currentPorts(entry: Entry): Promise<number[]> {
+    return (await this.currentDevPorts(entry)).map((p) => p.port);
+  }
+
+  /**
+   * The run's ports (ADR 0032 point 2): below its terminal, or held by a process of the project created since the
+   * Correr — the `/run`'s background tasks run through a shell that exits at once, so the server is an orphan.
+   */
+  private async currentDevPorts(entry: Entry): Promise<DevPort[]> {
     const pid = this.deps.pidOf(entry.terminalId);
-    if (pid === undefined || pid <= 0) return [];
-    return (await this.deps.devPorts(pid)).map((p) => p.port);
+    return this.deps.devPorts({
+      rootPid: pid !== undefined && pid > 0 ? pid : undefined,
+      owner: { path: entry.path, since: entry.startedAt, when: 'always' },
+    });
   }
 
   private fail(entry: Entry, error: AppRunError): void {

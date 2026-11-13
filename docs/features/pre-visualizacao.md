@@ -28,7 +28,9 @@ dispositivo fora da tailnet o link não abre. Ao fechar o terminal o link deixa 
 ## 2. Âmbito
 
 ### Dentro
-- Descobrir as portas TCP em escuta nos **processos descendentes** do terminal (Windows **e** Linux).
+- Descobrir as portas TCP em escuta nos **processos descendentes** do terminal (Windows **e** Linux). **Alterado a
+  2026-11-13 ([[../adr/0032-servidores-de-dev-orfaos|ADR 0032]])**: se não houver nenhuma, também as de um processo da
+  pasta do terminal criado depois de ele abrir — um `npm run dev` em segundo plano fica órfão da árvore.
 - Ligar `tailscale serve` (HTTPS, tailnet) para uma dessas portas, a pedido; desligar à mão, ao sair/fechar/
   reabrir o terminal, ou quando a porta deixa de escutar.
 - Entregar o link **no Telegram e na app** (etiqueta no cabeçalho do terminal com o link e ✕ para desligar).
@@ -382,7 +384,7 @@ regra 3 e `backend/CLAUDE.md`/`code-best-practices.md` ("só `CLAUDE_BIN`" passo
 | Pergunta | Bloqueia | Notas |
 |---|---|---|
 | ~~Que portas HTTPS o `tailscale serve` aceita?~~ | — | ✅ Qualquer uma (spike, 2026-10-23) → `8443-8446` |
-| ~~O dev server lançado pelo `claude` em background continua descendente?~~ | — | ✅ Sim (spike (d)) |
+| ~~O dev server lançado pelo `claude` em background continua descendente?~~ | — | ✅ Sim (spike (d)) — **já não** no Claude Code 2.1.323 (2026-11-13): a tarefa corre por um `bash` que sai logo e o servidor fica órfão; resolvido pelo [[../adr/0032-servidores-de-dev-orfaos\|ADR 0032]] (o caminho da pasta na linha de comando) |
 | ~~No Windows o `serve` pede elevação?~~ | — | ✅ Não (spike (a)) |
 | Atalho por omissão para `togglePreview` | Não — passo 7 | Um `Alt+…` livre no catálogo |
 | Acrescentar "pré-visualizar o build" (`vite build && vite preview`, poucos ficheiros, sem HMR)? | Não — só se a medição do passo 8 for má | Em dev o Vite serve cada módulo à parte (centenas de pedidos): cada um paga a ida e volta a casa. Estimativa sem medição (2026-10-23): +1–3 s no primeiro carregamento, F5 seguintes e HMR quase iguais a local. Seria 2.ª fase, com quem arranca o `vite preview` por decidir (hoje a app não arranca servidores) |

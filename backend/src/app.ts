@@ -74,7 +74,7 @@ export type AppDeps = {
   /** Previews only (ADR 0018): tests replace the Tailscale CLI and the port discovery. Default: the real ones. */
   preview?: { tailscale?: PreviewServiceDeps['tailscale']; devPorts?: PreviewServiceDeps['devPorts'] };
   /** App runs only (ADR 0030): tests replace the port discovery, the app's own folder and the skills check. */
-  appRuns?: Partial<Pick<AppRunServiceDeps, 'devPorts' | 'selfPath' | 'hasRunAndStop'>>;
+  appRuns?: Partial<Pick<AppRunServiceDeps, 'devPorts' | 'killPid' | 'selfPath' | 'hasRunAndStop'>>;
   /** Tests only: a fake Telegram API (the bot's long polling and the preview notices go through it). */
   telegramApi?: TelegramBotDeps['api'];
   /** Preparar anexos (ADR 0025): shows a folder to the owner. Default: none — tests never open a window. */
@@ -154,7 +154,7 @@ export async function buildApp({
     ? new PreviewService({
         terminals: terminalManager,
         tailscale: preview?.tailscale ?? new TailscaleCli(config.preview.tailscaleBin),
-        devPorts: preview?.devPorts ?? ((pid) => devPortsOf(pid, { exclude: [config.port] })),
+        devPorts: preview?.devPorts ?? ((query) => devPortsOf(query, { exclude: [config.port] })),
         httpsPorts: config.preview.httpsPorts,
         notifier: {
           started: (...args) => previewNotifier?.started(...args),
@@ -229,7 +229,8 @@ export async function buildApp({
   const appRunService = new AppRunService({
     terminals: terminalsService,
     pidOf: (id) => terminalManager.get(id)?.pid,
-    devPorts: appRuns?.devPorts ?? ((pid) => devPortsOf(pid, { exclude: [config.port] })),
+    devPorts: appRuns?.devPorts ?? ((query) => devPortsOf(query, { exclude: [config.port] })),
+    killPid: appRuns?.killPid,
     allowedRoots: config.terminals.allowedRoots,
     // backend/src/app.ts and backend/dist/app.js are both two levels below the repository root.
     selfPath: appRuns?.selfPath ?? fileURLToPath(new URL('../..', import.meta.url)),

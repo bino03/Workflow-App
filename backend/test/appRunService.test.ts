@@ -4,7 +4,7 @@ import { join } from 'node:path';
 import { afterAll, beforeEach, describe, expect, it, vi } from 'vitest';
 import { AppRunService, type AppRunServiceDeps } from '../src/appRuns/appRunService.js';
 import { AppError, type ErrorCode } from '../src/common/errors.js';
-import type { DevPort } from '../src/preview/listeningPorts.js';
+import type { DevPort, DevPortQuery } from '../src/preview/listeningPorts.js';
 import type { CreateAppRunTerminal, TerminalView } from '../src/terminals/terminalsService.js';
 import { removeDir } from './helpers.js';
 
@@ -84,6 +84,10 @@ describe('AppRunService (ADR 0030)', () => {
   let fake: ReturnType<typeof fakeTerminals>;
   /** Ports listening below each pid — what devPortsOf would read from the OS. */
   let ports: Map<number, number[]>;
+  /** Servers of the project outside the terminal's tree (ADR 0032) — what devPortsOf finds by the folder. */
+  let orphans: DevPort[];
+  let queries: DevPortQuery[];
+  let killed: number[];
   let clock: number;
   let service: AppRunService;
 
@@ -91,7 +95,12 @@ describe('AppRunService (ADR 0030)', () => {
     return new AppRunService({
       terminals: fake.terminals,
       pidOf: fake.pidOf,
-      devPorts: async (pid) => (ports.get(pid) ?? []).map((port): DevPort => ({ port, pid, process: 'node.exe' })),
+      devPorts: async (query) => {
+        queries.push(query);
+        const below = (ports.get(query.rootPid ?? -1) ?? []).map((port): DevPort => ({ port, pid: query.rootPid!, process: 'node.exe' }));
+        return query.owner ? [...below, ...orphans] : below;
+      },
+      killPid: async (pid) => void killed.push(pid),
       allowedRoots: [root],
       selfPath: self,
       stopGraceMs: 300,
@@ -107,6 +116,9 @@ describe('AppRunService (ADR 0030)', () => {
   beforeEach(() => {
     fake = fakeTerminals();
     ports = new Map();
+    orphans = [];
+    queries = [];
+    killed = [];
     clock = Date.parse('2026-11-12T10:00:00Z');
     service = build();
   });
@@ -184,13 +196,45 @@ describe('AppRunService (ADR 0030)', () => {
     expect(await service.get(project)).toMatchObject({ phase: 'failed', error: 'ports-gone' });
   });
 
-  it('a pid of 0 (the process is not up yet, ADR 0029) reads as no port, never as devPortsOf(0)', async () => {
-    const devPorts = vi.fn(async () => [{ port: 1, pid: 0, process: 'System' }]);
-    service = build({ devPorts });
+  it('a pid of 0 (the process is not up yet, ADR 0029) is never a root: only the project folder is looked at', async () => {
     const { terminalId } = await service.start(project);
     fake.pids.set(terminalId!, 0);
     expect((await service.get(project)).phase).toBe('starting');
-    expect(devPorts).not.toHaveBeenCalled();
+    expect(queries.at(-1)).toEqual({ rootPid: undefined, owner: { path: project, since: new Date(clock), when: 'always' } });
+  });
+
+  it('ADR 0032: an orphan server of the project (the /run background task) makes the run "running"', async () => {
+    const started = await service.start(project);
+    minutes(1);
+    expect((await service.get(project)).phase).toBe('starting');
+    orphans = [{ port: 5174, pid: 3764, process: 'node.exe' }];
+    expect(await service.get(project)).toMatchObject({ phase: 'running', ports: [5174] });
+    expect(queries.at(-1)).toEqual({
+      rootPid: fake.pids.get(started.terminalId!),
+      owner: { path: project, since: new Date(started.startedAt!), when: 'always' },
+    });
+  });
+
+  it('ADR 0032: Parar kills by pid what still listens after the grace period, then closes the terminal', async () => {
+    const { terminalId } = await service.start(project);
+    orphans = [
+      { port: 5174, pid: 3764, process: 'node.exe' },
+      { port: 5175, pid: 3764, process: 'node.exe' },
+    ];
+    await service.get(project);
+    await service.stop(project);
+    await vi.waitFor(() => expect(fake.terminals.close).toHaveBeenCalledWith(terminalId));
+    expect(killed).toEqual([3764]);
+  });
+
+  it('ADR 0032: a /stop that ends the servers in time kills nothing', async () => {
+    const { terminalId } = await service.start(project);
+    orphans = [{ port: 5174, pid: 3764, process: 'node.exe' }];
+    await service.get(project);
+    await service.stop(project);
+    orphans = []; // the /stop did its job
+    await vi.waitFor(() => expect(fake.terminals.close).toHaveBeenCalledWith(terminalId));
+    expect(killed).toEqual([]);
   });
 
   it('one run per project: a second Correr is APPRUN_001, also while the first is still being created', async () => {

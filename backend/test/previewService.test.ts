@@ -67,7 +67,7 @@ function setup(overrides: Partial<PreviewServiceDeps> = {}) {
   const service = new PreviewService({
     terminals,
     tailscale,
-    devPorts: async (pid) => ports.get(pid) ?? [],
+    devPorts: async ({ rootPid }) => ports.get(rootPid!) ?? [],
     httpsPorts: [8443, 8444],
     notifier,
     pollMs: 60_000,
@@ -95,6 +95,19 @@ describe('PreviewService.start', () => {
     expect(tailscale.calls).toEqual(['serve 8443 5173']);
     expect(service.get('t1')).toEqual(preview);
     expect(notifier.started).toHaveBeenCalledWith('t1', preview);
+  });
+
+  it('ADR 0032: asks for the terminal\'s ports, and the folder\'s since it opened only when none are below it', async () => {
+    const devPorts = vi.fn<PreviewServiceDeps['devPorts']>(async () => [vite]);
+    const { service, terminals } = setup({ devPorts });
+    terminals.add('t1', 100);
+    await service.start('t1');
+    expect(devPorts).toHaveBeenCalledWith({
+      rootPid: 100,
+      owner: { path: 'C:\\p', since: new Date('2026-10-23T10:00:00.000Z'), when: 'no-descendants' },
+    });
+    await service.checkPorts();
+    expect(devPorts).toHaveBeenLastCalledWith(expect.objectContaining({ rootPid: 100, owner: expect.objectContaining({ when: 'no-descendants' }) }));
   });
 
   it('several dev ports → returns them to choose from, serves nothing; then the chosen one', async () => {

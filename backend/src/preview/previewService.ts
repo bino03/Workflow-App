@@ -1,6 +1,6 @@
 import { AppError } from '../common/errors.js';
 import type { TerminalInfo, TerminalListener } from '../terminals/terminalManager.js';
-import type { DevPort } from './listeningPorts.js';
+import type { DevPort, DevPortQuery } from './listeningPorts.js';
 import { type TailscaleCli, TailscaleError } from './tailscale.js';
 
 /** What the API and the bot show for a terminal's preview. */
@@ -22,7 +22,7 @@ export type PreviewServiceDeps = {
   };
   tailscale: Pick<TailscaleCli, 'hostName' | 'servedPorts' | 'serve' | 'off'>;
   /** devPortsOf, already excluding the backend's own PORT. */
-  devPorts: (rootPid: number) => Promise<DevPort[]>;
+  devPorts: (query: DevPortQuery) => Promise<DevPort[]>;
   /** PREVIEW_HTTPS_PORTS: the only HTTPS ports this backend serves, and the only ones it ever turns off. */
   httpsPorts: readonly number[];
   notifier?: PreviewNotifier;
@@ -72,7 +72,7 @@ export class PreviewService {
 
   private async doStart(terminalId: string, requested: number | undefined, quiet: boolean): Promise<StartPreviewResult> {
     const info = this.runningTerminal(terminalId);
-    const ports = await this.deps.devPorts(info.pid);
+    const ports = await this.portsOf(info);
     let devPort: number;
     if (requested !== undefined) {
       if (!ports.some((p) => p.port === requested)) throw new AppError('PREVIEW_003');
@@ -167,9 +167,17 @@ export class PreviewService {
         await this.stop(terminalId, 'terminal-ended').catch(() => false);
         continue;
       }
-      const ports = await this.deps.devPorts(entry.pid);
+      const ports = await this.portsOf(info);
       if (!ports.some((p) => p.port === entry.devPort)) await this.stop(terminalId, 'port-closed').catch(() => false);
     }
+  }
+
+  /**
+   * A terminal's dev ports (ADR 0032 point 4): those below it; only if there are none, those of a process of its
+   * folder created since it opened — a dev server started as a background task is an orphan of a shell that exited.
+   */
+  private portsOf(info: TerminalInfo): Promise<DevPort[]> {
+    return this.deps.devPorts({ rootPid: info.pid, owner: { path: info.cwd, since: new Date(info.startedAt), when: 'no-descendants' } });
   }
 
   private runningTerminal(terminalId: string): TerminalInfo {

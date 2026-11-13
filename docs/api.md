@@ -100,8 +100,9 @@ UUID dá o mesmo `TERMINAL_001` que um id desconhecido.
   aparece no `GET` (nem no bot) até ser revelado; reaberto, mantém o `--settings` das importações e as `--add-dir`.
   `preview: {url, devPort, httpsPort, startedAt} | null` — pré-visualização viva na tailnet
   ([[adr/0018-pre-visualizacao-por-tailscale-serve]], `preview/preview.routes.ts`). `DevPort = {port, pid, process}`.
-  As portas vêm do sistema operativo (descendentes do `claude` do terminal, só loopback/*any*, sem a `PORT` do backend
-  nem `9229`); o cliente só escolhe uma das oferecidas. Desliga-se sozinha quando o terminal sai/fecha/é reaberto ou a
+  As portas vêm do sistema operativo (descendentes do `claude` do terminal — ou, sem nenhuma, um processo da pasta do
+  terminal criado depois de ele abrir, [[adr/0032-servidores-de-dev-orfaos]] —, só loopback/*any*, sem a `PORT` do
+  backend nem `9229`); o cliente só escolhe uma das oferecidas. Desliga-se sozinha quando o terminal sai/fecha/é reaberto ou a
   porta deixa de escutar (verificação a cada 15 s). Sem `TAILSCALE_BIN` as rotas existem e dão `404 PREVIEW_006`.
   `PREVIEW_007` (Serve por ativar na tailnet) traz o link de ativação na `message`.
   `remoteControl: true` = lançado com `--remote-control` (só o bot de Telegram o liga; o `POST` não tem esse campo —
@@ -388,7 +389,9 @@ chama. Todas as rotas exigem sessão (`AUTH_002`) e um `projectPath` que esteja 
 
 Correr e parar a app de um projeto por um terminal **escondido** cuja primeira mensagem é `/run`; parar escreve
 `/stop` nesse terminal e, ao fim de 20 s, fecha-o de qualquer maneira ([[adr/0030-correr-e-parar-a-app-de-um-projeto]],
-[[features/correr-a-app]]). O estado vive **em memória** (morre com o backend) e só se atualiza quando o GET é
+[[features/correr-a-app]]). As `ports` são as que escutam abaixo do terminal **ou** num processo que traz o caminho do
+projeto, criado depois do Correr, porque o servidor do `/run` fica órfão. O que ainda escutar ao fim dos 20 s é morto por
+PID ([[adr/0032-servidores-de-dev-orfaos]]). O estado vive **em memória** (morre com o backend) e só se atualiza quando o GET é
 chamado: o frontend sonda. Todas as rotas exigem sessão (`AUTH_002`). O `path` passa pela política de pastas
 (`FOLDER_001` fora de `ALLOWED_ROOTS`), e nenhum outro campo é aceite (`COMMON_001`).
 

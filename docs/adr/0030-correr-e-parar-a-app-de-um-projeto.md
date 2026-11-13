@@ -6,7 +6,8 @@ data: 2026-11-12
 
 # 0030 — Correr e parar a app de um projeto por um terminal escondido com `/run` e `/stop`
 
-**Data**: 2026-11-12 · **Estado**: `aceite` · **Decidido com**: o dono, na entrevista da spec
+**Data**: 2026-11-12 · **Estado**: `aceite` (pontos 2-3 — o que é "a app" e o Parar — alterados por
+[[0032-servidores-de-dev-orfaos]]) · **Decidido com**: o dono, na entrevista da spec
 [[../features/correr-a-app|correr e parar a app]] (§3) e no `/implement-todo` de 2026-11-12.
 
 ## Contexto

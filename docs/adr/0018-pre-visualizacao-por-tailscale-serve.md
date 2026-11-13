@@ -6,7 +6,7 @@ data: 2026-10-23
 
 # 0018 — Pré-visualização de apps em dev por `tailscale serve`
 
-**Data**: 2026-10-23 · **Estado**: `aceite` (o comportamento do CLI do Tailscale — permissões, persistência do
+**Data**: 2026-10-23 · **Estado**: `aceite` (ponto 2 — a porta "descendente" — alterado por [[0032-servidores-de-dev-orfaos]]; o comportamento do CLI do Tailscale — permissões, persistência do
 `serve --bg`, certificados — fica por confirmar no spike, passo 1 da spec) · **Decidido com**: `/refine-idea` +
 `/plan-feature` (spec [[../features/pre-visualizacao]])
 
