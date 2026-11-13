@@ -42,7 +42,7 @@ dispositivo fora da tailnet o link não abre. Ao fechar o terminal o link deixa 
   "Como expor fora de casa", não este.
 - A Workflow App a **fazer de proxy** da app em teste.
 - **Corrigir a app em teste** (o `localhost` da API, `server.allowedHosts` do Vite): só se avisa no texto do link.
-- **Arrancar o servidor de dev** pela app — quem o arranca é o `claude` no terminal (ou o dono, a pedir-lho).
+- **Arrancar o servidor de dev** pela app — quem o arranca é o `claude` no terminal (ou o dono, a pedir-lho). Reaberto, só para o `/run` num terminal escondido, por [[correr-a-app]] ([[../adr/0030-correr-e-parar-a-app-de-um-projeto|ADR 0030]]).
 - **Ligar automaticamente** quando um dev server aparece, ou o Claude pedir a pré-visualização — só a pedido do dono.
 - Persistir pré-visualizações no `state.json` — é estado em memória, morre com o backend.
 - Instalar/configurar o Tailscale (é do dono; vai para a checklist de `docs/operations.md`).
