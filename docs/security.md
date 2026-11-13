@@ -111,6 +111,12 @@ como UUID e de uma conta que existe no `state.json`; um pedido só escolhe **qua
 Os tokens de cada conta ficam no `.credentials.json` da sua pasta e nenhuma rota os lê. Remover uma conta desfaz
 primeiro as junctions para a principal e só então apaga a pasta (`accounts/accountDirs.ts`).
 
+**Estado das sessões** ([[adr/0031-estado-das-sessoes-por-hooks]]): o `claude-settings.json` comum regista o
+`DATA_DIR/session-hook.cjs` (escrito pelo backend, caminhos absolutos) em vários hooks; o script nunca imprime nem
+decide, por isso não aprova nem recusa nada. Um terminal normal recebe `WFA_TERMINAL_ID=<o seu id>`, que o hook só aceita
+como UUID para nomear a pasta; o backend nunca passa a sua própria (está na lista negra do `childEnv`). Grava só o
+evento, o estado e a hora — nunca o prompt, a mensagem nem o input das ferramentas.
+
 **As sessões guiadas** ([[adr/0020-sessoes-guiadas]]) acrescentam três superfícies, cada uma estreita:
 - **Uma rota REST que escreve num PTY** (`POST /api/guided/:id/message`). Sessão obrigatória como as outras (o
   cookie `SameSite=Strict` não segue num pedido de outro site); só para terminais de sessões guiadas, só no estado

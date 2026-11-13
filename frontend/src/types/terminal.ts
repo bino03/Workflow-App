@@ -25,7 +25,15 @@ export type TerminalView = {
   hidden: boolean;
   /** A conta do Claude em que corre (ADR 0027): 'primary' ou o UUID de uma conta extra. */
   accountId: string;
+  /**
+   * O que o claude de um terminal normal a correr está a fazer, pelos hooks (ADR 0031). null se não corre
+   * ("Terminada" é o status) ou se não é um terminal normal. Ainda sem UI (ícones: ToDo).
+   */
+  activity: TerminalActivity | null;
 };
+
+/** A trabalhar · Precisa de ti (permissão/pergunta) · À tua espera (acabou o turno, ou acabado de abrir). */
+export type TerminalActivity = 'working' | 'needs-you' | 'waiting';
 
 // ── Pré-visualização (backend/src/preview/{previewService,listeningPorts}.ts) ─────────────
 export type TerminalPreview = { url: string; devPort: number; httpsPort: number; startedAt: string };

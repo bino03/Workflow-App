@@ -38,6 +38,8 @@ const DENIED_NAMES = new Set([
   'WORKFLOW_PATH',
   'DATA_DIR',
   'FRONTEND_DIST',
+  // Set per terminal by launchEnv (ADR 0031); a backend started from inside a terminal must not pass its own on.
+  'WFA_TERMINAL_ID',
 ]);
 
 export function isDeniedEnvName(name: string): boolean {
@@ -116,30 +118,36 @@ export type SpawnOptions = {
    * the primary, which keeps the backend's own CLAUDE_CONFIG_DIR (or none).
    */
   configDir?: string;
+  /** A normal terminal's id, handed to its hooks as WFA_TERMINAL_ID (ADR 0031). Omitted → no session state. */
+  stateId?: string;
 };
 
 export type SpawnPty = (options: SpawnOptions) => pty.IPty;
 
 /** The child's environment, with an extra account's CLAUDE_CONFIG_DIR in place of the inherited one. */
-export function launchEnv(configDir: string | undefined, env: NodeJS.ProcessEnv = process.env): Record<string, string> {
+export function launchEnv(
+  configDir: string | undefined,
+  env: NodeJS.ProcessEnv = process.env,
+  stateId?: string,
+): Record<string, string> {
   const clean = childEnv(env);
   if (configDir !== undefined) {
     // Windows names are case-insensitive: drop any spelling of it before setting ours.
     for (const name of Object.keys(clean)) if (name.toUpperCase() === 'CLAUDE_CONFIG_DIR') delete clean[name];
     clean.CLAUDE_CONFIG_DIR = configDir;
   }
-  return { ...clean, TERM: 'xterm-256color', COLORTERM: 'truecolor' };
+  return { ...clean, ...(stateId ? { WFA_TERMINAL_ID: stateId } : {}), TERM: 'xterm-256color', COLORTERM: 'truecolor' };
 }
 
 /** Spawns the resolved `claude` executable — fixed binary, fixed args, clean environment, never a shell. */
 export function claudeSpawner(claudePath: string): SpawnPty {
-  return ({ cwd, cols, rows, args = [], configDir }) =>
+  return ({ cwd, cols, rows, args = [], configDir, stateId }) =>
     pty.spawn(claudePath, args, {
       name: 'xterm-256color',
       cwd,
       cols,
       rows,
-      env: launchEnv(configDir),
+      env: launchEnv(configDir, process.env, stateId),
     });
 }
 

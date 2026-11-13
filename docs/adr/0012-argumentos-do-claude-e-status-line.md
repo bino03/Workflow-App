@@ -65,3 +65,5 @@ Os únicos argumentos que o backend passa ao `CLAUDE_BIN` são, gerados só em `
 aceita `--session-id` e `--settings`; o comando da status line corre logo no arranque, e o JSON traz
 `rate_limits.five_hour` / `seven_day` (`used_percentage`, `resets_at` em segundos Unix) **a partir da
 primeira resposta da API** — o formato está em [[../features/terminais]] §4.3.
+
+O "só tem `statusLine`" do `claude-settings.json` foi alterado por [[0031-estado-das-sessoes-por-hooks]] a 2026-11-13 (passa a ter também os hooks de estado).

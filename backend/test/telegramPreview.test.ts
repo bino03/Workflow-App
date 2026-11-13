@@ -60,6 +60,7 @@ function setup({
     guidedId: null,
     hidden: false,
     accountId: 'primary',
+    activity: null,
   });
   const menus = new MenuStore<BotAction>();
   const actions = new BotActions({

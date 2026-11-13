@@ -128,13 +128,14 @@ export class TerminalManager {
     rows,
     args,
     configDir,
-  }: { id?: string; cwd: string; cols: number; rows: number; args?: string[]; configDir?: string }): TerminalInfo {
+    stateId,
+  }: { id?: string; cwd: string; cols: number; rows: number; args?: string[]; configDir?: string; stateId?: string }): TerminalInfo {
     if (this.terminals.has(id)) throw new Error(`terminal ${id} is already in memory`);
     const running = [...this.terminals.values()].filter((terminal) => terminal.status === 'running').length;
     if (running >= this.options.maxTerminals) {
       throw new TerminalLimitError(`MAX_TERMINALS (${this.options.maxTerminals}) reached`);
     }
-    const ptyProcess = this.options.spawn({ cwd, cols, rows, args, configDir });
+    const ptyProcess = this.options.spawn({ cwd, cols, rows, args, configDir, ...(stateId ? { stateId } : {}) });
     const terminal = new Terminal(id, cwd, ptyProcess, new Scrollback(this.options.scrollbackBytes));
     this.terminals.set(terminal.id, terminal);
     return terminal.info();

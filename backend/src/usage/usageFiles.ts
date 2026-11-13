@@ -80,12 +80,16 @@ export function statusLineSetting(dataDir: string) {
   return { type: 'command', command: `"${process.execPath}" "${join(dataDir, USAGE_FILES.script)}"` };
 }
 
-/** Writes the settings and the script into DATA_DIR (every start: they are ours). Returns the --settings path. */
-export function writeUsageFiles(dataDir: string): string {
+/**
+ * Writes the settings and the script into DATA_DIR (every start: they are ours). Returns the --settings path.
+ * `hooks` — the session-state hooks of the normal terminals (ADR 0031); omitted → the status line only.
+ */
+export function writeUsageFiles(dataDir: string, hooks?: Record<string, unknown>): string {
   mkdirSync(dataDir, { recursive: true });
   const settings = join(dataDir, USAGE_FILES.settings);
   writeFileSync(join(dataDir, USAGE_FILES.script), statusLineScript(dataDir));
-  writeFileSync(settings, `${JSON.stringify({ statusLine: statusLineSetting(dataDir) }, null, 2)}\n`);
+  const body = { statusLine: statusLineSetting(dataDir), ...(hooks ? { hooks } : {}) };
+  writeFileSync(settings, `${JSON.stringify(body, null, 2)}\n`);
   return settings;
 }
 

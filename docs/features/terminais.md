@@ -77,7 +77,9 @@ resumo.
 
 ### ⛔ Fora — não implementar nesta feature
 - **Estados "a trabalhar" / "à tua espera"** (arco, losango, alerta na lateral) — o protótipo mostra-os,
-  mas no MVP só há **a correr / terminado / parado**. Está em `notes/ideas.md`.
+  mas no MVP só há **a correr / terminado / parado**. *Atualizado a 2026-11-13:* o backend já os dá
+  (`TerminalView.activity`, [[../adr/0031-estado-das-sessoes-por-hooks|ADR 0031]]); os ícones são outro item do ToDo,
+  com o design por escolher.
 - **Estado "Desligado" separado** (✕, "Reiniciar") — um `claude` que sai com código ≠ 0 é **terminado**, e o
   banner mostra o código. Não há "Reiniciar"; há **Reabrir** (`--resume`).
 - **Resumo feito pelo Claude** (escrever um prompt no PTY) — recusado ([[../adr/0009-estado-em-ficheiro-json]]);
@@ -93,7 +95,8 @@ resumo.
 > Esta lista impede uma sessão futura de expandir o âmbito sozinha.
 
 ### Segunda fase (se houver)
-- Estados "a trabalhar"/"à tua espera" (precisa de uma fonte fiável — talvez hooks do Claude Code).
+- Estados "a trabalhar"/"à tua espera" — **a fonte existe** (2026-11-13): hooks não bloqueantes, `activity` no
+  `TerminalView` ([[../adr/0031-estado-das-sessoes-por-hooks|ADR 0031]]). Falta a UI (ícones, ToDo).
 - Botão **Resumir** (ideia em `ideas.md`).
 - Ecrã de histórico, se a lista Retomar deixar de chegar.
 

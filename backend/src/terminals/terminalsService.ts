@@ -8,6 +8,7 @@ import type { StateStore } from '../state/stateStore.js';
 import { type ClaudeArgsOptions, type ClaudeLaunch, GUIDED_COMMANDS, type GuidedPurpose, claudeArgs } from './claudeArgs.js';
 import { bracketedPaste } from './paste.js';
 import { remoteControlName } from './remoteName.js';
+import type { TerminalActivity } from './sessionState.js';
 import { ClaudeBinError } from './spawnClaude.js';
 import { TerminalLimitError, type TerminalManager } from './terminalManager.js';
 
@@ -34,6 +35,11 @@ export type TerminalView = {
   hidden: boolean;
   /** The Claude account it runs in (ADR 0027). */
   accountId: AccountId;
+  /**
+   * What its `claude` is doing, from the session hooks (ADR 0031): only for a running normal terminal, else null
+   * ("ended" is `status`).
+   */
+  activity: TerminalActivity | null;
 };
 
 /**
@@ -42,6 +48,11 @@ export type TerminalView = {
  */
 function isLoginTerminal(saved: SavedTerminal): boolean {
   return saved.hidden && saved.importId === null && saved.guidedId === null && !saved.appRun;
+}
+
+/** Opened by the person (not an import's, a guided session's, an app run's or a login): the ones with session state. */
+function isNormalTerminal(saved: SavedTerminal): boolean {
+  return saved.importId === null && saved.guidedId === null && !saved.appRun && !isLoginTerminal(saved);
 }
 
 /** A hidden terminal that runs `/import <requestPath>` in the Workflow (ADR 0019). Only the imports module calls it. */
@@ -132,6 +143,8 @@ export type TerminalsServiceDeps = {
   accounts?: TerminalAccounts;
   /** The previews (ADR 0018); omitted when TAILSCALE_BIN is not set — every terminal shows `preview: null`. */
   previews?: { get(terminalId: string): TerminalPreview | undefined };
+  /** What the session hooks recorded (ADR 0031; `SessionStateStore`). Omitted → `activity: null` everywhere. */
+  sessionState?: { activity(terminalId: string): TerminalActivity; clear(terminalId: string): void };
   now?: () => Date;
 };
 
@@ -174,7 +187,11 @@ export class TerminalsService {
     if (remoteControl) await this.assertTrusted(cwd, configDir);
     const launch = await this.launchFor(cwd, request);
     const id = randomUUID();
-    this.spawn(id, cwd, launch, request, { remoteControl: remoteControl ? await this.remoteControlFor(cwd, launch) : undefined, configDir });
+    this.spawn(id, cwd, launch, request, {
+      remoteControl: remoteControl ? await this.remoteControlFor(cwd, launch) : undefined,
+      configDir,
+      trackState: true,
+    });
 
     const at = this.now().toISOString();
     const saved: SavedTerminal = {
@@ -480,7 +497,7 @@ export class TerminalsService {
         : saved.guidedId !== null
           ? { settingsPath: this.deps.guidedSettingsPath, addDirs: saved.addDirs, permissionMode: 'default' }
           : {};
-    this.spawn(id, cwd, launch, size, { remoteControl: remote, ...hiddenLaunch, configDir });
+    this.spawn(id, cwd, launch, size, { remoteControl: remote, ...hiddenLaunch, configDir, trackState: isNormalTerminal(saved) });
 
     const at = this.now().toISOString();
     this.deps.stateStore.update((draft) => {
@@ -517,6 +534,7 @@ export class TerminalsService {
     const saved = this.saved(id);
     if (!saved) throw new AppError('TERMINAL_001');
     await this.deps.terminalManager.kill(id);
+    this.deps.sessionState?.clear(id);
     if (isLoginTerminal(saved) || saved.appRun) {
       this.deps.stateStore.update((draft) => {
         draft.terminals = draft.terminals.filter((t) => t.id !== id);
@@ -590,11 +608,15 @@ export class TerminalsService {
       addDirs,
       permissionMode,
       configDir,
-    }: { remoteControl?: { name?: string }; configDir?: string } & ClaudeArgsOptions = {},
+      trackState = false,
+    }: { remoteControl?: { name?: string }; configDir?: string; trackState?: boolean } & ClaudeArgsOptions = {},
   ): void {
     const args = claudeArgs(launch, { settingsPath, remoteControl, addDirs, permissionMode });
+    // A normal terminal: its hooks write under its id (ADR 0031) — an earlier run's events must not show.
+    const stateId = trackState && this.deps.sessionState ? id : undefined;
+    if (stateId) this.deps.sessionState!.clear(stateId);
     try {
-      this.deps.terminalManager.create({ id, cwd, cols: size.cols, rows: size.rows, args, configDir });
+      this.deps.terminalManager.create({ id, cwd, cols: size.cols, rows: size.rows, args, configDir, ...(stateId ? { stateId } : {}) });
     } catch (error) {
       if (error instanceof TerminalLimitError) throw new AppError('TERMINAL_002');
       if (error instanceof ClaudeBinError) throw new AppError('TERMINAL_005');
@@ -623,6 +645,8 @@ export class TerminalsService {
       guidedId: saved.guidedId,
       hidden: saved.hidden,
       accountId: this.resolveAccount(saved.accountId),
+      activity:
+        inMemory?.status === 'running' && isNormalTerminal(saved) ? (this.deps.sessionState?.activity(saved.id) ?? null) : null,
     };
   }
 }

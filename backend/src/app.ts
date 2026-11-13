@@ -53,6 +53,7 @@ import { TerminalsService } from './terminals/terminalsService.js';
 import { upworkRoutes } from './upwork/upwork.routes.js';
 import { UpworkService } from './upwork/upworkService.js';
 import { usageRoutes } from './usage/usage.routes.js';
+import { SessionStateStore, sessionStateHooks, writeSessionHook } from './terminals/sessionState.js';
 import { readUsage, writeUsageFiles } from './usage/usageFiles.js';
 import { type BotAction, BotActions } from './telegram/botActions.js';
 import { MenuStore } from './telegram/menuStore.js';
@@ -182,8 +183,10 @@ export async function buildApp({
     terminalManager,
     sessions: sessionsReader,
     allowedRoots: config.terminals.allowedRoots,
-    // Every claude gets the status line that keeps the quota in DATA_DIR/usage.json (ADR 0012).
-    settingsPath: writeUsageFiles(config.dataDir),
+    // Every claude gets the status line that keeps the quota in DATA_DIR/usage.json (ADR 0012), plus the session
+    // hooks, which only write for a normal terminal — the one launched with WFA_TERMINAL_ID (ADR 0031).
+    settingsPath: (writeSessionHook(config.dataDir), writeUsageFiles(config.dataDir, sessionStateHooks(config.dataDir))),
+    sessionState: new SessionStateStore(config.dataDir),
     // An import's hidden terminal: the same status line plus the hooks it is followed by (ADR 0019).
     importSettingsPath: writeImportFiles(config.dataDir),
     // A guided session's hidden terminal: the status line, blocking hooks and two narrow permissions (ADR 0020);
