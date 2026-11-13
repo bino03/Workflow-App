@@ -132,6 +132,7 @@ node scripts/verify/accounts-terminals.mjs                # a conta de cada term
 node scripts/verify/terminal-menu.mjs                     # o menu de contexto dos terminais, no foco dividido e na grelha (instância nova)
 node scripts/verify/settings.mjs                          # a página de Definições: índice, salto, scroll, layout, captura de atalho (instância nova)
 node scripts/verify/sidebar-empty-project.mjs              # os ícones do cabeçalho de um projeto vazio na lateral não abrem terminais (instância nova)
+node scripts/verify/app-run-ui.mjs                        # Correr/Parar no cabeçalho dos Terminais: os 6 estados, grelha e foco, Ver terminal (instância nova)
 node scripts/verify/instance.mjs stop --clean             # mata a árvore pelo PID da porta e apaga a pasta
 ```
 
@@ -140,6 +141,12 @@ node scripts/verify/instance.mjs stop --clean             # mata a árvore pelo 
   O sintoma é `Cannot read properties of null (reading 'focus')` no login, ou `fetch failed`. A 2026-11-05 aconteceu
   também **na mesma chamada**, três vezes em cerca de quinze arranques (pelo Bash e pelo PowerShell), sem nada no log e com
   causa por apurar. O `instance.mjs stop` a dizer só "port free", sem "stopped", confirma que já tinha morrido. Com este sintoma, repetir o cenário numa instância nova antes de procurar um bug na app.
+- **`app-run-ui.mjs`** — o controlo Correr/Parar ([[features/correr-a-app|correr-a-app]] passos 5-6). Põe skills `run`/`stop` falsas no
+  projeto Beta (o Alfa fica sem elas: sem controlo). `idle`, `unavailable` e o `TERMINAL_007` do Correr vêm do backend da instância;
+  o `claude` dela não corre um `/run`, por isso `starting`/`running`/`stopping`/`failed` são respostas do backend repetidas pelo
+  cenário (`Fetch.requestPaused` sobre `/api/app-runs`). O `/run` → `/stop` real é o passo 8, num projeto real. Leva ~70 s (espera
+  pelo relógio passar de 11 para 12 min). Uma falha em "the real backend again" com o último estado no ecrã é, até agora, a instância
+  que morreu a meio (o detalhe mostra o `real now`).
 - **`settings.mjs`** — a página `/settings`: o item do menu navega (sem drawer), uma secção e uma entrada de índice por
   definição, o clique salta e a marca (`aria-current`) acompanha o scroll do `<main>`, o layout fica no `localStorage`
   e a captura de um atalho chega ao servidor (`Alt+Y`, reposto no fim). Espera que as secções desapareçam ao sair

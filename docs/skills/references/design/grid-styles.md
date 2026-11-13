@@ -61,6 +61,16 @@ Um lugar vazio (`slotIds[i] === null`):
   `grid-column`/`grid-row` explícito quando um lugar é maior do que os outros (`spotlight`).
 - **Lugar vazio**: mesma borda tracejada + "+" ao centro, do tamanho do lugar (não da página toda).
 
+### Cabeçalho comum (2026-11-13)
+
+A linha "Terminais · N abertos" + contagens é o `TerminalsHeader.tsx`, desenhado pela página por cima da grelha
+**e** do foco dividido (o `TerminalGrid` é só o contentor) — trocar de modo não mexe no layout. À direita, pela
+ordem: o `AppRunControl` (Correr/Parar, [[../../../features/correr-a-app|correr-a-app]]; fica com um terminal
+ampliado) e o seletor de grelha (só na grelha, e não com um ampliado). Os estados do controlo usam as formas do
+[[tokens-and-colors]] §3 (`is-work` a arrancar/a parar, `is-run` a correr, `is-err` + `--wfa-state-err` num erro);
+botões contornados pequenos (`size="small"`), "Ver terminal" `type="text"`. ✅ verificado no browser
+(`scripts/verify/app-run-ui.mjs`, `terminal-menu.mjs`).
+
 ## Drift encontrado — não copiar
 
 _Nenhum ainda._

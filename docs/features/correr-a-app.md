@@ -4,8 +4,8 @@
 |---|---|
 | **Estado** | 🚧 Em curso |
 | **Criada** | 2026-11-12 |
-| **Última sessão** | 2026-11-12 |
-| **Passos** | 2 / 8 concluídos (3 e 4; o 1 a meio: falta o ADR do Workflow) |
+| **Última sessão** | 2026-11-13 |
+| **Passos** | 6 / 8 concluídos (1-6) |
 
 > Escrita para uma sessão que **não viu a conversa que a originou**. Se algo só faz sentido com contexto
 > externo, falta escrevê-lo.
@@ -159,7 +159,7 @@ contra o `ErrorCodes` do backend no passo 3.
 
 Ordem obrigatória. Tiers: `opus` (desenho, não delegar) · `sonnet` (implementação) · `haiku` (mecânico).
 
-- [ ] **1. ADRs**
+- [x] **1. ADRs**
   - Ficheiro: `docs/adr/0030-correr-e-parar-a-app-de-um-projeto.md` (+ linha em `docs/adr/README.md`);
     no Workflow, `C:\Users\jlalv\Desktop\Workflow\Workflow\docs\adr\0013-skill-stop-obrigatoria.md`
   - Skill: `engineering:architecture`
@@ -169,7 +169,7 @@ Ordem obrigatória. Tiers: `opus` (desenho, não delegar) · `sonnet` (implement
     0002/0004/0018/0020; o 0013 do Workflow regista o `/stop` "sempre"; [[pre-visualizacao]] ganha um link
     no "Fora" para esta spec.
 
-- [ ] **2. Skill `/stop` no Workflow, obrigatória**
+- [x] **2. Skill `/stop` no Workflow, obrigatória**
   - Ficheiro: `library/skills/process/skill-stop.md` (nova; usa `{{RUN_STOP}}` e `{{RUN_PORTS}}`),
     `library/skills/process/skill-run.md` (a secção "Parar" passa a apontar para o `/stop`),
     `library/skills/README.md` (linha "**sempre**"), `docs/placeholders.md`, o que o `/create`, o
@@ -199,7 +199,7 @@ Ordem obrigatória. Tiers: `opus` (desenho, não delegar) · `sonnet` (implement
   - Aceite quando: as 4 rotas exigem sessão, validam `path` pelo `cwdPolicy`, recusam a pasta da própria
     app; testes de rota passam; `docs/api.md` atualizado.
 
-- [ ] **5. Frontend: cabeçalho comum**
+- [x] **5. Frontend: cabeçalho comum**
   - Ficheiro: `frontend/src/components/terminals/TerminalsHeader.tsx` (novo, sai de `TerminalGrid.tsx`),
     `frontend/src/pages/TerminalsPage.tsx` (usar no foco dividido)
   - Skill: `frontend-design-system`
@@ -207,7 +207,7 @@ Ordem obrigatória. Tiers: `opus` (desenho, não delegar) · `sonnet` (implement
   - Aceite quando: a linha "Terminais · N abertos" + contagens aparece igual nos dois modos; o seletor só na
     grelha; nada mais muda (cenários de `scripts/verify/` passam).
 
-- [ ] **6. Frontend: `AppRunControl`**
+- [x] **6. Frontend: `AppRunControl`**
   - Ficheiro: `frontend/src/types/appRun.ts`, `frontend/src/services/appRunService.ts`,
     `frontend/src/hooks/useAppRun.ts`, `frontend/src/components/terminals/AppRunControl.tsx`,
     `frontend/src/errors/errorMessages.ts`
@@ -238,13 +238,15 @@ Ordem obrigatória. Tiers: `opus` (desenho, não delegar) · `sonnet` (implement
 
 > ⚠️ **Atualizar SEMPRE no fim de cada sessão.** É a secção que torna esta spec retomável.
 
-**Feito:** passo 3 ✅ (2026-11-12). Passo 1 **a meio**: o ADR **0030** da app está escrito (`aceite`, no índice) e o "Fora" da [[pre-visualizacao]] tem o link; falta o **ADR 0013 do Workflow**, que vai com o passo 2 (mesmo repositório).
+**Feito:** passos 1-6 ✅. Passo 1: ADR **0030** da app (`aceite`) + ADR **0013** do Workflow (`aceite`, 2026-11-13); o "Fora" da [[pre-visualizacao]] tem o link.
+- Passo 2 (2026-11-13, commit `6904f56` no Workflow, sem push): `library/skills/process/skill-stop.md` (`applies-when: always`, **`prospective`** até o passo 8 a provar — depois `proven` no Workflow). Dois modos: na conversa do `/run`, pelos IDs + `{{RUN_STOP}}` (`docker compose down` sem perguntar), sem perguntas nem relatório longo (a app só dá 20 s); depois **sempre** `netstat` por fora; o que ainda escuta → PID pela porta, linha de comando e executável do PID e dos pais (`Get-CimInstance Win32_Process`, até 8 níveis; Linux `/proc/<pid>/cwd`); mata (`taskkill /T /F`) só se aparece o caminho do projeto, senão pergunta. Noutra conversa, `docker compose ps` e perguntar antes do `down`. Peças sem porta só pelos IDs. O "Parar" da `skill-run` passa a apontar para o `/stop`; `/adopt-project` lista-a; `/upgrade-project` diz que os `RUN_*` vêm da `skill-run.md` do filho; `placeholders.md`, `provenance.md`, README da biblioteca. Provado: `audit-library` e `dry-run` 0 erros; o `dry-run --out` (fixture `own-api-node`) gera `.claude/skills/stop/SKILL.md` + `docs/skills/process/skill-stop.md` com o aviso 🚧 e as entradas nos índices; o `upgrade-report` contra esta app lista `stop` em "Skills novas…" e o "Parar" da `skill-run` como 🟡 parcial.
 - Passo 3: `backend/src/appRuns/appRunService.ts` + `appRun.schemas.ts` (`AppRunView`, fases da §4.3, `/stop` por `paste` e rede de 20 s; com as portas fechadas espera que o turno acabe — `waitForQuiet`, 2 s de silêncio — antes de fechar; `pid <= 0` → sem portas; o GET atualiza a pedido, sem timers). `dropAppRuns()` chamado em `buildApp`. Testes: `test/appRunService.test.ts` (12) + 4 em `terminalsService.test.ts` (`/run` como 1.ª mensagem, escondido e fora do `list()`, não é login, conta para o `MAX_TERMINALS`, `dropAppRuns` só leva os `appRun`). Suite 543/543; `tsc` só com o erro antigo de `test/auth.test.ts`; `eslint .` limpo.
 - Passo 4: `backend/src/appRuns/appRun.routes.ts` (as 4 rotas, `appRunPathSchema` estrito), `AppRunService` montado em `buildApp` (`pidOf` = `terminalManager.get(id)?.pid`, `devPorts` = `devPortsOf` sem a `PORT`, `selfPath` = raiz do repo por `import.meta.url`; `AppDeps.appRuns` para os testes). `test/appRun.routes.test.ts` (4: sessão, validação, `self`/`missing-skills`, ciclo completo por HTTP com o claude falso). HTTP real numa instância `scripts/verify` (7498): 401, `missing-skills`, `idle`, `FOLDER_001`, `COMMON_001`, `APPRUN_002`, `TERMINAL_007` numa pasta não confiada sem deixar execução, `APPRUN_003` em Parar/Ver terminal. Docs: `api.md` (secção + `APPRUN_001-004`), `database.md` (`appRun`), `code-map.md`; `errorMessages.ts` do frontend já espelha os 4 códigos. Suite 548/548.
+- Passos 5-6 (2026-11-13): `TerminalsHeader.tsx` (sai do `TerminalGrid`, que fica só o contentor; a página desenha-o por cima da grelha e do foco) + `AppRunControl.tsx`/`useAppRun.ts`/`appRunService.ts`/`types/appRun.ts`. Ver terminal → `navigate` com `focusTerminalId` (o mecanismo que já espera pela lista e amplia na grelha). Verificado no browser: `scripts/verify/app-run-ui.mjs` 26/26 (os 6 estados, portas como links, 11 → 12 min sem resposta nova, `1 h 05 min`, cor de erro, o mesmo cabeçalho nos dois modos, controlo à esquerda do seletor, Ver terminal ampliado com o controlo à vista, Alfa sem skills sem controlo, `TERMINAL_007` real ao Correr) e `terminal-menu.mjs` 42/42 (nada mais mudou). Em 9 corridas do `app-run-ui`, 2 falharam no último check com o último estado no ecrã — compatível com a instância que morre a meio (`docs/commands.md`), não confirmado.
 **Em curso:** nada (entre passos).
-**Próxima ação concreta:** passo 2 (`opus`, no **repositório do Workflow**): a skill `/stop` obrigatória + o ADR 0013 do Workflow (fecha o passo 1). Ou, se se preferir avançar a app primeiro, o passo 5 (cabeçalho comum, `sonnet`) — não depende do 2; o 6 também não; o 7 e o 8 sim.
+**Próxima ação concreta:** passo 7 — o 7 tem o que copiar: `/upgrade-project` nesta app e nos projetos de teste aplica o `stop` (os `RUN_*` da `skill-run.md` de cada filho).
 **Ainda por confirmar num terminal real** (passo 8): se o Claude Code põe em fila um `/stop` escrito a meio de um turno (§7) — a rede de 20 s cobre o caso em que não põe.
-**Desvios ao plano:** decidido ao ler o código — o `TerminalView` não ganha campo novo (`hidden` basta); `/stop` num estado `failed` fecha o terminal e volta a `idle`; `Correr` num `failed` fecha o terminal antigo e arranca outro; o `appRun` guardado não deixa histórico ao fechar. **Novo código `APPRUN_004`** (422, "The Workflow App cannot run itself") para recusar a própria app — o `APPRUN_002` diria "falta a skill", o que é falso; uma subpasta da app também é recusada. Ao fechar uma execução com as portas já fechadas, espera-se o fim do turno do `/stop` (até ao fim dos 20 s) para não matar um `docker compose down` a meio. O terminal escondido abre com 120×32. **Encontrado pelo teste de rota:** a execução só se esquece **depois** de o `close` acabar (~1,6 s a matar a árvore) — antes, o GET dizia `idle` com o terminal ainda vivo e um Correr nesse intervalo abria um segundo.
+**Desvios ao plano:** decidido ao ler o código — o `TerminalView` não ganha campo novo (`hidden` basta); `/stop` num estado `failed` fecha o terminal e volta a `idle`; `Correr` num `failed` fecha o terminal antigo e arranca outro; o `appRun` guardado não deixa histórico ao fechar. **Novo código `APPRUN_004`** (422, "The Workflow App cannot run itself") para recusar a própria app — o `APPRUN_002` diria "falta a skill", o que é falso; uma subpasta da app também é recusada. Ao fechar uma execução com as portas já fechadas, espera-se o fim do turno do `/stop` (até ao fim dos 20 s) para não matar um `docker compose down` a meio. O terminal escondido abre com 120×32. **Frontend (2026-11-13):** **Parar** também em `starting` (o backend aceita; corta um arranque preso numa permissão sem esperar os 3 min). A sondagem é por fase (2 s a arrancar/parar, 5 s a correr, 10 s parado/erro, 30 s indisponível) com `setInterval` — um `setTimeout` por resposta parava de vez se disparasse com a janela escondida (apanhado pelo cenário). O tempo sobe por um relógio de 15 s (até 15 s de atraso no minuto mostrado). **Encontrado pelo teste de rota:** a execução só se esquece **depois** de o `close` acabar (~1,6 s a matar a árvore) — antes, o GET dizia `idle` com o terminal ainda vivo e um Correr nesse intervalo abria um segundo.
 **O que uma sessão nova precisa de saber:** o passo 2 é **noutro repositório** (o Workflow, em `WORKFLOW_PATH`)
 e é o que torna o `/stop` obrigatório; sem ele, o passo 7 não tem o que copiar. O terminal do `/run` é o terceiro
 tipo de terminal escondido — rever todos os sítios que tratam `hidden` (`list()`, `isLoginTerminal`, a grelha,
@@ -256,7 +258,7 @@ o bot do Telegram).
 |---|---|---|
 | ~~O terminal do `/run` conta para o `MAX_TERMINALS`?~~ | — | ✅ **Conta** (dono, 2026-11-12; ADR 0030 ponto 7) — já acontecia: o `TerminalManager` conta todos os PTYs a correr |
 | O Claude Code põe mesmo em fila um `/stop` escrito a meio de um turno? | Passo 3 | Confirmar num terminal real; se não, esperar que o `/run` acabe o turno ou fechar logo |
-| Como o `/stop` encontra a pasta de um processo em Windows sem ser pelo nome | Passo 2 | `Get-CimInstance Win32_Process` (linha de comando) ou `netstat -ano` + PID; em Linux `/proc/<pid>/cwd` |
+| ~~Como o `/stop` encontra a pasta de um processo em Windows sem ser pelo nome~~ | — | ✅ PID pela porta → linha de comando/executável do PID e dos pais; sem o caminho do projeto, pergunta (dono, 2026-11-13; ADR 0013 do Workflow) |
 
 ## Relacionado
 

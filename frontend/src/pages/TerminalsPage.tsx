@@ -10,6 +10,8 @@ import { GridStylePicker } from '@/components/terminals/GridStylePicker';
 import { displayNames, type Project, joinProjects, projectsWithTerminals } from '@/components/terminals/projects';
 import { QuotaMeter } from '@/components/terminals/QuotaMeter';
 import { TerminalGrid } from '@/components/terminals/TerminalGrid';
+import { TerminalsHeader } from '@/components/terminals/TerminalsHeader';
+import { AppRunControl } from '@/components/terminals/AppRunControl';
 import { parseTerminalMenuKey, terminalMenuItems, type TerminalViewAction } from '@/components/terminals/terminalMenu';
 import { PreviewPortsModal } from '@/components/terminals/PreviewPortsModal';
 import { TerminalPane } from '@/components/terminals/TerminalPane';
@@ -815,12 +817,22 @@ export function TerminalsPage() {
       <div className="flex-1 min-w-0 flex flex-col">
         <ProjectTabs projects={openProjects} activePath={activePath} onSelect={setActivePath} onClose={closeTab} />
         {errorState}
+        {!error && (
+          <TerminalsHeader terminals={activeTerminals}>
+            {activeProject && (
+              <AppRunControl
+                key={activeProject.path}
+                path={activeProject.path}
+                onReveal={(terminalId) => void navigate(location.pathname, { state: { focusTerminalId: terminalId } })}
+              />
+            )}
+            {grid && !enlarged && <GridStylePicker value={gridStyle} onChange={setGridStyle} />}
+          </TerminalsHeader>
+        )}
         {!error && grid && (
           <TerminalGrid
-            terminals={activeTerminals}
             enlarged={!!enlarged}
             onBackgroundMouseDown={clearGridFocus}
-            stylePicker={<GridStylePicker value={gridStyle} onChange={setGridStyle} />}
             style={gridStyle}
             slotIds={sanitizedSlotIds}
             onSlotNew={(index) => void handleSlotNew(index)}
