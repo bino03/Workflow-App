@@ -26,7 +26,6 @@ continuar sem ele se o utilizador disser explicitamente que é um ecrã descart�
 5. **Formulários com regras de validação no cliente: Zod + React Hook Form.** Sem campos para validar no cliente (uma escolha + um ficheiro, validados pelo servidor) não há formulário a montar — estado local e botão `disabled`.
 6. **Texto livre restringe caracteres** (lista branca) e tem `max`; o frontend nunca é mais permissivo
    do que o backend.
-7. **Visibilidade de campos por role é sempre perguntada**, e o backend filtra primeiro.
 8. **Cores, larguras, tokens e ícones vêm de [[frontend-visual-consistency]]** — nunca inventar.
 
 E uma que não é de código: **testar no browser antes de dar por feito** — type-check e lint não
@@ -66,15 +65,6 @@ src/components/
 | Rotas | `kebab-case`, **em inglês** | `/orders/:id/items` |
 
 Segmento de rota novo sempre em inglês, mesmo aninhado num pai antigo em português.
-
-## Visibilidade de campos por role
-
-Antes de construir uma lista (colunas) ou formulário (campos), **perguntar**: cada campo é visível
-para todas as roles, ou só para algumas? Duas camadas:
-1. **Backend primeiro** — o DTO não inclui o campo para quem não pode (`permissions-and-auth` (não incluída — sem roles)).
-2. **Frontend depois** — condicionar com `useAuth().isAdmin()`, como reforço.
-
-Se o DTO já filtra, isso responde à pergunta para esse campo.
 
 ## Forms (React Hook Form + Zod)
 

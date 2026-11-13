@@ -43,7 +43,7 @@ custo (leituras e greps, sem subagentes):
 3. **Ideias com contexto** — grep a `notes/ideas.md` por `> Contexto (via ` (deixadas por esta skill ou
    pelo [[skill-refine-idea]]).
 4. **Work log recente** — os 1-3 títulos mais recentes de `notes/whatIveDone.md`.
-5. **Specs em curso** — `docs/features/*.md` com estado 🚧, e a secção "Estado atual" de cada uma.
+5. **Specs em curso** — `docs/features/*.md` com estado 🚧 e as secções do ToDo que apontam para elas.
 
 ## Fase 1: Menu, âmbito, orçamento
 
@@ -51,8 +51,7 @@ custo (leituras e greps, sem subagentes):
 
 `AskUserQuestion`, opções dinâmicas conforme a Fase 0 (3-4):
 - **Retomar um plano anterior** — só se há plano `em curso`
-- **Implementar a partir de uma spec** — só se há spec 🚧 (ver "Modo spec" abaixo)
-- **Implementar** — backlog até ao código
+- **Implementar** — backlog até ao código (as fases de uma spec são bullets como os outros — ver "Fases de uma spec" abaixo)
 - **Só planear** — ordem de prioridade gravada, sem implementar
 - **Ver estado atual** — resumo, sem alterar nada
 
@@ -247,20 +246,20 @@ Começar a tarefa 1.
 
 ---
 
-## Modo spec (a partir de `docs/features/<slug>.md`)
+## Fases de uma spec (`docs/features/<slug>.md`)
 
-Para features multi-sessão planeadas com [[skill-plan-feature]]:
+Uma feature planeada com [[skill-plan-feature]] chega ao ToDo como uma secção com **um bullet por fase**,
+a apontar para a spec. Corre pelo fluxo normal, com três diferenças:
 
-1. Ler a spec inteira; a secção **6 "Estado atual"** diz onde retomar.
-2. Perguntar o modo: **NORMAL** (passo a passo, confirmação entre passos) ou **LAZY** (autónomo até ao
-   fim ou até uma pergunta em aberto). Antes de LAZY, verificar que os passos de tier `opus` têm onde
-   correr (sessão Opus ou agente `architect`).
-3. Executar os passos pela ordem da secção 5, cada um com a skill e o tier indicados, e o critério de
-   aceitação como definição de feito.
-4. **No fim de cada sessão (ou se parar), atualizar a secção 6** — feito, em curso, próxima ação
-   concreta, desvios, o que uma sessão nova precisa de saber. As checkboxes mentem quando uma sessão
-   morre a meio; a secção 6 é a verdade.
-5. Perguntas em aberto que bloqueiam o próximo passo → parar e perguntar.
+1. **Ler a spec antes de qualquer fase** (a secção dela, mais "Fora" e as decisões) e passar o excerto da
+   fase ao plano.
+2. **A investigação da Fase 2 encolhe**: se a fase tem `Ficheiros` concretos e o código não mudou desde a
+   data da spec (`git log --since`), basta confirmar por grep os `file:line` citados — lançar agentes só
+   redescobriria o que a spec já diz.
+3. **O estado não volta para a spec**: o progresso fica no plano e no bullet do ToDo. Um desvio ao desenho
+   (uma decisão mudou) é que se escreve na spec, com a data.
+
+Perguntas em aberto da spec que bloqueiam a fase → parar e perguntar.
 
 ---
 

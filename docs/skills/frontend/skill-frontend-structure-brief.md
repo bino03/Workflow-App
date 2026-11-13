@@ -54,7 +54,7 @@ Factual e compacto. Código só quando a forma exata importa (ex.: uma interface
 
 ## Step 4: Guardar
 
-`notes/design-briefs/AAAA-MM-DD-<assunto-kebab>.md` (git-ignored — é um artefacto de trabalho).
+`notes/design-briefs/AAAA-MM-DD-<assunto-kebab>.md` (em `notes/` — é um artefacto de trabalho, não documentação).
 Depois do redesign implementado, o brief vai para `notes/design-briefs/archive/`.
 
 ## Final Checklist

@@ -24,7 +24,7 @@ que arranca. **Quem arranca é o Claude**, não o utilizador: esta skill diz exa
    Nunca arrancar uma segunda instância por cima.
    > ⚠️ **A porta do frontend importa**: o CORS só permite as origens configuradas. Se a porta estiver
    > ocupada e o dev server saltar para outra, as chamadas à API falham como se fosse auth.
-4. **O arranque aplica migrações?** Se o backend aplica migrações sozinho ao arrancar (ex.: Flyway), e há
+4. **O arranque aplica migrações?** Se o backend aplica migrações sozinho ao arrancar (o gestor de migrações corre no arranque), e há
    migrações novas por aplicar, **confirmar com o utilizador antes** se a BD configurada não é local —
    um arranque é suficiente para mudar o schema da BD real.
 
@@ -84,8 +84,21 @@ Só com todos a responder reportar que a app está a correr, com os URLs:
 
 Terminar as duas tarefas em background. **Ao parar o backend, todos os terminais (PTYs) abertos pela app morrem com ele** — se havia sessões do Claude Code a trabalhar, avisar o utilizador antes (retomam-se com `--resume`, mas o trabalho em curso é interrompido).
 
-Parar só os processos que esta skill arrancou (pelos IDs das tarefas em background) — nunca matar
-processos por nome às cegas.
+Parar só os processos que esta skill arrancou — nunca matar processos por nome às cegas.
+
+**Terminar a tarefa em background não chega** quando ela lançou um `node` (npm, `npx`, `tsx`, Next): no
+Windows mata a shell e deixa o servidor órfão a ouvir na porta — o arranque seguinte dá `EADDRINUSE` ou,
+pior, serve código velho. Já aconteceu em dois projetos, várias vezes. Depois de parar, **confirmar que a
+porta ficou livre**; se não ficou, matar a árvore pelo PID **que escuta na porta** (o PID lançado muitas
+vezes não é esse):
+
+```bash
+netstat -ano | grep ":<porta> .*LISTENING"     # → PID na última coluna
+taskkill //PID <pid> //T //F                     # /T leva os filhos
+```
+
+Nunca filtrar processos por `CommandLine` para os matar: o texto procurado está também na linha de comando
+da shell que corre o filtro, e ela vai junta.
 
 ## Final Checklist
 

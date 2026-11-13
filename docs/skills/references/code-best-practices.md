@@ -19,7 +19,7 @@ e linka para cá. Se uma regra geral muda, muda num sítio só.
   Extrai-se quando o padrão se repete a sério, não à segunda ocorrência.
 - **Sem código morto nem comentado** — apaga-se; o git guarda o histórico.
 - **Comentários só para o porquê não óbvio**, nunca para o quê (o nome já o diz). Um comentário
-  que explica uma armadilha real ("o Lombok tem de correr antes do MapStruct") vale ouro; um
+  que explica uma armadilha real ("este processador de anotações tem de correr antes daquele") vale ouro; um
   que parafraseia a linha seguinte é ruído.
 - **Validar na fronteira, não em todo o lado** — no controller/handler e no formulário; não
   repetido em cada camada interna.

@@ -47,6 +47,12 @@ Uma **skill** é invocável (`/nome`). Uma **referência** não — é lida pela
 | `/frontend-integration-guide` | Depois de uma feature de backend |
 | `/frontend-structure-brief` | Antes de um redesign |
 
+## 🖥️ Backend
+
+| Skill | Quando |
+|---|---|
+| `/add-backend-feature` | Uma rota ou um domínio novo no backend |
+
 ---
 
 **Last Updated**: 2026-09-27

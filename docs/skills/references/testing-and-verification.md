@@ -51,6 +51,20 @@ Confirmar que o comando de type-check **analisa ficheiros de facto**. Num projet
 `tsconfig` só de referências, `tsc --noEmit` sai com 0 erros e 0 ficheiros — parece limpo e não
 é; o comando real era `tsc -b`, e um import partido chegou ao ramo principal por causa disso.
 Se o build já falha com erros pré-existentes, registar o número e comparar antes/depois.
+## Um código de saída escondido
+
+`npm test | grep … && git commit` faz o commit **com os testes a falhar**: o código de saída é o do `grep`,
+não o dos testes. Dois commits entraram assim com lint e testes vermelhos. Correr a verificação sozinha,
+ou com `set -o pipefail`, antes do commit.
+
+## Testes que falham "às vezes"
+
+Uma falha que só aparece com a máquina carregada **reproduz-se carregando a CPU**, não esperando que
+volte: N processos em ciclo ocupado (`node -e "const e=Date.now()+60e3; while(Date.now()<e){}"`) durante a
+corrida. Com 6 de 8 núcleos ocupados, uma falha que aparecia de vez em quando voltou à primeira — e serviu
+para provar a correção antes e depois, em vez de contar corridas com sorte. Testes que lançam processos
+reais ficam num grupo à parte, com menos paralelismo.
+
 
 ## Relacionado
 

@@ -53,10 +53,10 @@ em localhost". Mostram-se inline, como os do login, nunca em toast. Um `AbortErr
 ```ts
 // services/orderService.ts
 import api from "@/api";
-import { normalizeSpringPage } from "@/utils/springPage";
+import { normalizePage } from "@/utils/page";
 
 export async function getOrders(params: OrderFilters) {
-  return normalizeSpringPage<Order>((await api.get("/orders", { params })).data);
+  return normalizePage<Order>((await api.get("/orders", { params })).data);
 }
 export async function getOrderById(id: string) { return (await api.get<Order>(`/orders/${id}`)).data; }
 export async function createOrder(data: OrderFormValues) { return (await api.post<Order>("/orders", data)).data; }
@@ -68,12 +68,13 @@ export async function deleteOrder(id: string) { await api.delete(`/orders/${id}`
 > Não se aplica enquanto a API não paginar — não criar `springPage.ts` ([[../../../frontend-conventions]]).
 
 ```ts
-type SpringPageMeta = { size: number; number: number; totalElements: number; totalPages: number };
-type WrappedPageResponse<T> = { content: T[]; page: SpringPageMeta };
+type PageMeta = { size: number; number: number; totalElements: number; totalPages: number };
+type WrappedPageResponse<T> = { content: T[]; page: PageMeta };
 ```
 
-**Uma** função `normalizeSpringPage<T>()` em `utils/springPage.ts`, que aceita a forma embrulhada e a
-plana. Nunca uma segunda cópia do tipo. `number` é 0-based.
+**Uma** função `normalizePage<T>()` em `utils/page.ts`, que aceita a forma embrulhada e a
+plana. Nunca uma segunda cópia do tipo. `number` é 0-based. Os campos são os da página que o backend devolve
+(`docs/api.md` → "Paginação"): se forem outros, o tipo muda aqui e só aqui.
 
 ## 4. Toasts — um canal
 

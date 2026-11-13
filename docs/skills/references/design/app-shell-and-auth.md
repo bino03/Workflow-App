@@ -108,6 +108,10 @@ evita piscar o `/login` num refresh — o `/auth/me` confirma logo a seguir. O `
 passar a `anonymous`; o `PrivateRoute` trata do redirect. Logout limpa a sessão local mesmo que a
 chamada falhe. Backend inacessível no arranque → um toast "Sem ligação ao backend" + `/login`.
 
+O `sessionStorage` é **por tab**: num tab novo a cache está vazia. Se o `PrivateRoute` redireciona logo,
+um tab novo cai no `/login` com a sessão válida (já aconteceu) — com a cache vazia, mostrar um estado de
+carregamento até o `/auth/me` responder, e só então decidir.
+
 O login mostra **todos** os erros inline por baixo do campo (password errada, rate limit, sem ligação)
 — nunca em toast.
 

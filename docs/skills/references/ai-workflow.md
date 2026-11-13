@@ -56,8 +56,8 @@ O contexto morre entre sessões. O que sobrevive é o que está escrito:
 - **Planos** (`notes/roadmap/plans/`) com checkpoint antes e depois de cada tarefa, e um
   "Próximo passo" exato — permite retomar mesmo que a sessão morra sem aviso.
 - **Specs de feature** (`docs/features/`, com a flag `feature-specs`) escritas para uma sessão
-  que **nunca viu a conversa**, com secção "Estado atual" atualizada no fim de cada sessão — as
-  checkboxes mentem quando uma sessão morre a meio de um passo.
+  que **nunca viu a conversa**, com o desenho e o porquê — e **sem estado**: as fases vão para o ToDo e o
+  progresso para o plano. Duas cópias do progresso divergem.
 - **Work log** com o texto verbatim do item do ToDo — preserva o que foi realmente decidido.
 
 ## Tiers de modelo — em que modelo corre cada trabalho

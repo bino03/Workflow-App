@@ -20,7 +20,7 @@ import { ListActions, ListActionPrimary, ListActionSecondary, ListActionDanger }
     <ListActions>
       <ListActionPrimary onClick={() => onView(record)}>Ver detalhes</ListActionPrimary>
       {canEdit(record) && <ListActionSecondary onClick={() => onEdit(record)}>Editar</ListActionSecondary>}
-      {isAdmin() && <ListActionDanger onClick={() => confirmDelete(record)}>Eliminar</ListActionDanger>}
+      <ListActionDanger onClick={() => confirmDelete(record)}>Eliminar</ListActionDanger>
     </ListActions>
   ),
 }

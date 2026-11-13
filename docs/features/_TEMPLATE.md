@@ -4,11 +4,13 @@
 |---|---|
 | **Estado** | 🚧 Em curso · ✅ Concluída · ⏸️ Pausada · 📋 Planeada |
 | **Criada** | AAAA-MM-DD |
-| **Última sessão** | AAAA-MM-DD |
-| **Passos** | 0 / N concluídos |
 
 > Escrita para uma sessão que **não viu a conversa que a originou**. Se algo só faz sentido com contexto
 > externo, falta escrevê-lo.
+
+> 📌 Desenhada via `/plan-feature` a AAAA-MM-DD. <Que entradas do ToDo/ideias substitui ou funde.>
+> As fases estão no ToDo, um bullet cada; **o porquê de cada decisão vive aqui**. O progresso não: é do
+> plano do `/implement-todo`.
 
 ---
 
@@ -16,7 +18,7 @@
 
 <2-4 frases. O problema, não a solução.>
 
-**Como sei que está bem feito:** <o momento concreto de uso>
+**Como sei que está bem feito:** <o momento concreto de uso, e por quem>
 
 ## 2. Âmbito
 
@@ -31,7 +33,10 @@
 ### Segunda fase (se houver)
 - …
 
-## 3. Decisões tomadas
+## 3. O ponto de partida e as decisões
+
+**O que existe hoje** (com `file:line` e contagens — o que se reaproveita e o molde a seguir):
+- …
 
 | Decisão | Escolha | Porquê | Alternativa rejeitada |
 |---|---|---|---|
@@ -42,9 +47,7 @@
 ## 4. Desenho técnico
 
 ### 4.1 Dados
-```sql
--- tabelas e colunas concretas
-```
+<tabelas e colunas concretas (SQL), ou — se o estado persistido não é uma BD — as coleções/ficheiros e a sua forma>
 
 ### 4.2 Endpoints
 | Método | Rota | Acesso | Descrição |
@@ -58,29 +61,20 @@
 | Código | HTTP | Mensagem no frontend |
 |---|---|---|
 
-## 5. Passos
+## 5. As fases, na ordem das dependências
 
-Ordem obrigatória. Tiers: `opus` (desenho, não delegar) · `sonnet` (implementação) · `haiku` (mecânico, só com ficheiro e conteúdo exatos).
+Cada fase **entra em uso sozinha**. Tiers: `opus` (ainda há uma decisão, ou mexe em permissões, schema
+partilhado, segurança — na dúvida, `opus`) · `sonnet` (o desenho está fechado aqui).
 
-**Sessões**: passos <1-2> em `opus` · <3-7> em `sonnet` — abrir cada sessão no modelo do bloco que vai fazer.
+**Sessões**: fases <1-2> em `opus` · <3-5> em `sonnet` — abrir cada sessão no modelo do bloco que vai fazer.
 
-- [ ] **1. <título>**
-  - Ficheiro: `<caminho concreto>`
-  - Skill: `skill-…`
-  - Tier: `sonnet`
-  - Aceite quando: <critério verificável>
+### Fase 1 — <o que passa a ser possível>
+- **Ficheiros**: `<caminhos concretos>`
+- **Skill**: `skill-…` (ou as convenções da camada + o ficheiro irmão a imitar)
+- **Tier**: `sonnet`
+- **Aceite quando**: <critério verificável>
 
-## 6. Estado atual
-
-> ⚠️ **Atualizar SEMPRE no fim de cada sessão.** É a secção que torna esta spec retomável.
-
-**Feito:** …
-**Em curso:** <passo, e o que exatamente falta>
-**Próxima ação concreta:** <ficheiro:linha ou comando exato>
-**Desvios ao plano:** …
-**O que uma sessão nova precisa de saber:** …
-
-## 7. Perguntas em aberto
+## 6. Perguntas em aberto
 
 | Pergunta | Bloqueia | Notas |
 |---|---|---|

@@ -119,6 +119,22 @@ N resultado(s)                                       ‹ 1 2 3 ›
 - O gatilho do menu é um `<button>` com `aria-label` — alcançável por teclado.
 - **Responsivo é decisão explícita**: se a app não trata ecrã pequeno, isso fica escrito; quem
   introduzir a primeira media query documenta a convenção.
+### 8.1 Variante: a ferramenta de portátil que passa a telemóvel
+
+Provada numa app interna densa (tabelas de 5-10 colunas, dezenas de drawers) que ganhou uso no telemóvel:
+
+| Decisão | Porquê |
+|---|---|
+| **Um só breakpoint** (`< 768px` = telemóvel); o tablet cai no desktop | Um segundo breakpoint é complexidade sem pedido |
+| O que muda a **estrutura** (nav → menu ☰ num drawer, tabela → lista de cartões) decide-se em JS por um hook (`useIsMobile()`); o que muda só a **medida** (larguras, paddings) fica em media queries | Uma só fonte para o breakpoint: o hook e o CSS usam o mesmo valor |
+| **Tabelas viram cartões** com 3-4 campos; o resto abre no detalhe que já existe. Um botão "⋯" substitui o clique-direito | Scroll horizontal e colunas escondidas são inutilizáveis com um dedo |
+| **Drawers e modais a ecrã inteiro**, por uma regra de CSS global, com exceções nomeadas (o drawer da nav, confirmações) | Trata dezenas de componentes sem lhes tocar |
+| Inputs com **16px** de letra | O iOS faz zoom em campos menores |
+| PDFs: um botão que abre o visualizador nativo | No iOS um `<embed>` de PDF não renderiza |
+
+Começar por uma área (a que se usa no telemóvel) e dizer quais ficam só-desktop. Um seletor genérico que
+"empilha todas as grelhas" serve de remendo para a primeira semana, não de convenção.
+
 
 ## 9. Markdown de utilizador
 

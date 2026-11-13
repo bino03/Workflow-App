@@ -62,9 +62,12 @@ Lidas pelas skills antes de produzirem código ou um `.md`. Vivem em `docs/skill
 
 ## 🖥️ Backend
 
-_Sem skills ainda_ — a stack `node-fastify` é 📋 (criada na hora, sem código provado). Quando um padrão
-se repetir 2-3 vezes (ex.: "acrescentar um endpoint", "acrescentar uma mensagem ao protocolo do
-WebSocket"), `/create-new-skill`.
+| Skill | Para quê |
+|---|---|
+| [[skill-add-backend-feature]] (`/add-backend-feature`) | Uma rota ou um domínio novo no backend: schema zod, serviço, rotas, `app.ts`, `ErrorCode`, teste com `inject`, `docs/api.md` |
+
+Veio da stack `node-fastify` do Workflow (🟡, tirada deste projeto a 2026-11-12). Outros padrões que se
+repitam 2-3 vezes (ex.: "acrescentar uma mensagem ao protocolo do WebSocket") → `/create-new-skill`.
 
 ---
 
