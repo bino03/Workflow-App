@@ -1,6 +1,6 @@
 # Plano — 2026-11-13 terminais-estados-grelha-stop
 
-**Estado**: em curso
+**Estado**: concluído (a tarefa 5 parou num 🔴, que passou ao ToDo)
 **Âmbito escolhido**: tema Terminais (sem os ícones de estado — o dono escolhe o design depois)
 **Orçamento da sessão**: sem limite
 **Modelo**: tarefa 1 `opus` · 2-5 `sonnet` (mudar com `/model` depois da 1, ou retomar noutra sessão)
@@ -23,7 +23,7 @@
 2. [x] `sonnet` Agentes por terminal (backend) — era `opus`: a decisão foi para a 1 — concluída (3 agentes reais em paralelo)
 3. [x] `sonnet` Terminal novo no primeiro lugar vazio da grelha + spec estilos-de-grelha §2 + cenário verify — concluída (grid-slots 13/13)
 4. [x] `sonnet` correr-a-app passo 7: commit da atualização pendente; `/upgrade-project` com o `/stop` nos três filhos — concluída (`689c174`, Workflow `aa7278a`; PortFolio e Gestao-Sock sem commit)
-5. [ ] `sonnet` correr-a-app passo 8: verificação real no browser — por começar
+5. [ ] `sonnet` correr-a-app passo 8: verificação real no browser — **parada**: o Vite do `/run` real fica órfão da árvore do PTY e o `devPortsOf` não o vê → 🔴 `opus` no ToDo (ADR novo). `app-run-real.mjs` 5/11
 
 ## Próximo passo
-Tarefa 5: passo 8 da correr-a-app — o dono (via esta sessão, no browser) num projeto real: o PortFolio (Vite :5173) é o candidato; precisa da app do dono na 7400 com o código novo (rebuild = mata os terminais — combinar o momento) **ou** uma instância de verificação com `--real-claude`.
+Nenhum neste plano. O 🔴 do ToDo (Terminais) é o que desbloqueia o passo 8.

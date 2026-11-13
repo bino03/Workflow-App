@@ -134,6 +134,7 @@ node scripts/verify/settings.mjs                          # a página de Defini�
 node scripts/verify/sidebar-empty-project.mjs              # os ícones do cabeçalho de um projeto vazio na lateral não abrem terminais (instância nova)
 node scripts/verify/app-run-ui.mjs                        # Correr/Parar no cabeçalho dos Terminais: os 6 estados, grelha e foco, Ver terminal (instância nova)
 node scripts/verify/grid-slots.mjs                        # terminal novo no 1.º lugar livre da grelha, sem ampliar; cheia → amplia (instância nova)
+node scripts/verify/app-run-real.mjs <run> <projeto> <run partido> <este repo>  # Correr/Parar a sério (instância com --real-claude --extra-root; gasta quota)
 node scripts/verify/instance.mjs stop --clean             # mata a árvore pelo PID da porta e apaga a pasta
 ```
 
@@ -142,6 +143,7 @@ node scripts/verify/instance.mjs stop --clean             # mata a árvore pelo 
   O sintoma é `Cannot read properties of null (reading 'focus')` no login, ou `fetch failed`. A 2026-11-05 aconteceu
   também **na mesma chamada**, três vezes em cerca de quinze arranques (pelo Bash e pelo PowerShell), sem nada no log e com
   causa por apurar. O `instance.mjs stop` a dizer só "port free", sem "stopped", confirma que já tinha morrido. Com este sintoma, repetir o cenário numa instância nova antes de procurar um bug na app.
+- **`app-run-real.mjs`** — o passo 8 da [[features/correr-a-app|correr-a-app]] a sério. Precisa de uma instância com o teu Claude e uma pasta tua nas raízes: `instance.mjs start --fresh --workflow <Workflow> --real-claude --extra-root <pasta dos projetos>` (o `--extra-root` só com `--real-claude`). Corre o `/run` real de um projeto com as duas skills, vê "A correr" com a porta e o tempo, em grelha e em foco, e depois Parar. Entretanto confirma que outra app numa porta vizinha (ex.: um Vite na 5173) fica intacta. Num `/run` partido de propósito vê "Não arrancou" e Ver terminal; o diálogo de confiança da pasta aceita-se pelo WebSocket. Por fim, a própria app sem o controlo. ⚠️ 5/11 a 2026-11-13: o Vite do `/run` fica órfão da árvore do PTY e nunca chega a "A correr" (🔴 no ToDo).
 - **`grid-slots.mjs`** — o terminal novo no primeiro lugar livre ([[features/estilos-de-grelha|estilos de grelha]] §2, revisto 2026-11-13): 2×2 com 2 → o "+" da lateral ocupa o 3.º e o 4.º lugar sem ampliar e fica com o teclado (a única borda `border-accent`); grelha cheia → amplia, lugares iguais; o lugar de um terminal fechado conta como livre (e nada o preenche sozinho); `classic` continua a ampliar. Prova pelo DOM (`checkVisibility` de cada painel) e pela preferência no `localStorage`. ✅ 13/13 a 2026-11-13 (`terminal-menu.mjs` 42/42 na mesma passagem).
 - **`app-run-ui.mjs`** — o controlo Correr/Parar ([[features/correr-a-app|correr-a-app]] passos 5-6). Põe skills `run`/`stop` falsas no
   projeto Beta (o Alfa fica sem elas: sem controlo). `idle`, `unavailable` e o `TERMINAL_007` do Correr vêm do backend da instância;

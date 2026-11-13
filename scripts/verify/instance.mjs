@@ -5,6 +5,7 @@
 //   node scripts/verify/instance.mjs start [--port 7498] [--dir <run dir>] [--fresh] [--projects 3]
 //                                          [--sessions] [--workflow <real Workflow path>] [--git-workflow]
 //                                          [--real-claude]   (with --workflow: the owner's ~/.claude — spends quota)
+//                                          [--extra-root <path>]  (with --real-claude: one more ALLOWED_ROOT)
 //                                          [--portfolio <path>]  (PORTFOLIO_PATH, read-only — ADR 0024; omitted = unset)
 //   node scripts/verify/instance.mjs stop  [--port 7498] [--dir <run dir>] [--clean]
 //
@@ -33,6 +34,7 @@ const { positionals, values: opts } = parseArgs({
     workflow: { type: 'string' },
     'git-workflow': { type: 'boolean', default: false },
     'real-claude': { type: 'boolean', default: false },
+    'extra-root': { type: 'string' },
     portfolio: { type: 'string' },
     clean: { type: 'boolean', default: false },
   },
@@ -143,6 +145,11 @@ async function start() {
   // A fresh login on every start: nothing reusable outlives the run dir.
   const realClaude = opts['real-claude'];
   if (realClaude && !opts.workflow) fail('--real-claude needs --workflow <the real Workflow path>');
+  // --extra-root: a real folder of the owner (ex.: the projects folder) as one more root — for a check that runs a
+  // real project's /run with --real-claude (spec correr-a-app step 8). Only read and run in, never seeded.
+  const extraRoot = opts['extra-root'] ? resolve(opts['extra-root']) : null;
+  if (extraRoot && !realClaude) fail('--extra-root needs --real-claude (the instance claude has no login)');
+  if (extraRoot && !existsSync(extraRoot)) fail(`--extra-root ${extraRoot}: does not exist`);
   const argon2 = createRequire(join(BACKEND, 'package.json'))('argon2');
   const username = 'verifier';
   const password = randomBytes(18).toString('base64url');
@@ -165,7 +172,7 @@ async function start() {
     WEBAUTHN_ORIGINS: '',
     // --real-claude: the owner's Claude Code (login, trusted folders) can run an import in the real Workflow,
     // which must then be a root too. Only with --workflow; it spends quota and writes in that repo.
-    ALLOWED_ROOTS: realClaude ? `${rootsDir};${workflowPath}` : rootsDir,
+    ALLOWED_ROOTS: [rootsDir, ...(realClaude ? [workflowPath] : []), ...(extraRoot ? [extraRoot] : [])].join(';'),
     DEFAULT_CWD: '',
     CLAUDE_CONFIG_DIR: realClaude ? '' : claudeDir,
     MAX_TERMINALS: '12',
