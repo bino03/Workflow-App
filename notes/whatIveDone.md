@@ -871,3 +871,10 @@ Guardar o verbatim importa: vários bullets são vagos, e o log preserva o que f
 - Verificado no browser: `scripts/verify/grid-slots.mjs` (novo) 13/13 e `terminal-menu.mjs` 42/42.
 - Files: frontend/src/pages/TerminalsPage.tsx, frontend/src/components/terminals/gridStyle.ts, scripts/verify/grid-slots.mjs, docs/features/estilos-de-grelha.md, docs/commands.md
 - Item original do ToDo: "Terminal novo ocupa o primeiro lugar vazio da grelha — hoje, num estilo com lugares (2×2, Colunas, Principal + laterais), um terminal aberto fora do "+" do próprio lugar (o "+" do projeto na lateral, "Noutra conta", `Novo terminal`, "Retomar sessão", atalho) só é ampliado e, ao sair da ampliação, fica de fora mesmo com um "+" à vista."
+
+## 2026-11-13 — Atualizado do Workflow `b55f327` → `6904f56` (skill `/stop`)
+
+- `/upgrade-project` (feito no Workflow): entra a skill `/stop` e o "Parar" da `skill-run` passa a apontar para ela; o `a7bbc2a` ficou de fora por agora. Ver [[../docs/provenance]] → "Atualizações do Workflow".
+- É o passo 7 da spec [[../docs/features/correr-a-app|correr-a-app]], feito também no PortFolio e no Gestao-Sock. Antes, a atualização anterior (`b55f327`), que estava por gravar, entrou num commit à parte (`689c174`). Provado: o `AppRunService` real dá `idle` ao PortFolio e ao Gestao-Sock, `missing-skills` a uma pasta só com o `/run`, e `self` a esta app. `verify-project` sem erros novos (os 5 que restam já lá estavam).
+- Files: docs/skills/process/{skill-stop,skill-run}.md, docs/skills/{SKILLS-INDEX,SKILLS-QUICK-REFERENCE}.md, .claude/skills/stop/SKILL.md, docs/provenance.md, docs/features/correr-a-app.md · (Workflow) notes/whatIveDone.md, projects/INDEX.md · (PortFolio, Gestao-Sock) os mesmos do vault, sem commit
+- Item original do ToDo: "Spec [[../docs/features/correr-a-app|correr e parar a app]] (8 passos, 6 fechados …) — passo 7 (levar o `/stop` aos projetos pelo `/upgrade-project`)" (mantido no ToDo, falta o 8)

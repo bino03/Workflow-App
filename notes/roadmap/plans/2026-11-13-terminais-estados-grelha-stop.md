@@ -22,8 +22,8 @@
 1. [x] `opus` Estado das sessões (backend): spike único (estados + agentes) → ADR 0031 (muda o 0012; contrato `activity` + `agents[]`) → `session-hook.cjs` + leitor → `activity` no `TerminalView` → testes com stdin real → terminal real nos 4 estados → `protocol.ts`, `api.md`, spec Terminais §2, frontend `types/terminal.ts` — concluída (ADR 0031; spike e check reais; commit a seguir)
 2. [x] `sonnet` Agentes por terminal (backend) — era `opus`: a decisão foi para a 1 — concluída (3 agentes reais em paralelo)
 3. [x] `sonnet` Terminal novo no primeiro lugar vazio da grelha + spec estilos-de-grelha §2 + cenário verify — concluída (grid-slots 13/13)
-4. [ ] `sonnet` correr-a-app passo 7: commit da atualização pendente; `/upgrade-project` com o `/stop` nos três filhos — por começar
+4. [x] `sonnet` correr-a-app passo 7: commit da atualização pendente; `/upgrade-project` com o `/stop` nos três filhos — concluída (`689c174`, Workflow `aa7278a`; PortFolio e Gestao-Sock sem commit)
 5. [ ] `sonnet` correr-a-app passo 8: verificação real no browser — por começar
 
 ## Próximo passo
-Tarefa 4: `/upgrade-project` do Workflow (em `C:UsersjlalvDesktopWorkflowWorkflow`, `docs/skills/skill-upgrade-project.md`) para `a7bbc2a` nesta app, no Gestao-Sock e no PortFolio — o que interessa é o `stop` (`6904f56`); os `RUN_*` da `skill-run.md` de cada filho.
+Tarefa 5: passo 8 da correr-a-app — o dono (via esta sessão, no browser) num projeto real: o PortFolio (Vite :5173) é o candidato; precisa da app do dono na 7400 com o código novo (rebuild = mata os terminais — combinar o momento) **ou** uma instância de verificação com `--real-claude`.

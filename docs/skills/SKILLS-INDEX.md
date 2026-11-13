@@ -48,6 +48,7 @@ Lidas pelas skills antes de produzirem código ou um `.md`. Vivem em `docs/skill
 | [[skill-design-database]] (`/design-database`) | Decidir o modelo de dados (ou que não há BD) a partir do domain brief |
 | [[skill-choose-design]] (`/choose-design`) | Mudar a identidade visual (escolhida: Violeta + Geist, ADR 0008) |
 | [[skill-run]] (`/run`) | Arrancar a app (backend + frontend) e confirmar que responde |
+| [[skill-stop]] (`/stop`) | Parar a app que o `/run` arrancou: pelos IDs na mesma conversa, senão pelas portas, só depois de confirmar que o processo é deste projeto |
 | [[skill-git-commits]] (`/git-commits`) | Estilo dos commits |
 | [[skill-create-new-skill]] (`/create-new-skill`) | Criar e registar uma skill ou referência nova |
 

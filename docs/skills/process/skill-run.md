@@ -82,23 +82,12 @@ Só com todos a responder reportar que a app está a correr, com os URLs:
 
 ## Parar
 
-Terminar as duas tarefas em background. **Ao parar o backend, todos os terminais (PTYs) abertos pela app morrem com ele** — se havia sessões do Claude Code a trabalhar, avisar o utilizador antes (retomam-se com `--resume`, mas o trabalho em curso é interrompido).
+Com o [[skill-stop]] (`/stop`), de preferência **nesta mesma conversa**: é ela que tem os IDs das tarefas em
+background e sabe o que arrancou à parte. O `/stop` confirma por fora que as portas fecharam (terminar a
+tarefa deixa muitas vezes um `node` órfão a ouvir) e, para o que sobrar, só mata o PID que escuta na porta
+depois de confirmar que é deste projeto — nunca por nome nem filtrando por `CommandLine`.
 
-Parar só os processos que esta skill arrancou — nunca matar processos por nome às cegas.
-
-**Terminar a tarefa em background não chega** quando ela lançou um `node` (npm, `npx`, `tsx`, Next): no
-Windows mata a shell e deixa o servidor órfão a ouvir na porta — o arranque seguinte dá `EADDRINUSE` ou,
-pior, serve código velho. Já aconteceu em dois projetos, várias vezes. Depois de parar, **confirmar que a
-porta ficou livre**; se não ficou, matar a árvore pelo PID **que escuta na porta** (o PID lançado muitas
-vezes não é esse):
-
-```bash
-netstat -ano | grep ":<porta> .*LISTENING"     # → PID na última coluna
-taskkill //PID <pid> //T //F                     # /T leva os filhos
-```
-
-Nunca filtrar processos por `CommandLine` para os matar: o texto procurado está também na linha de comando
-da shell que corre o filtro, e ela vai junta.
+**Ao parar o backend, todos os terminais (PTYs) abertos pela app morrem com ele** — se havia sessões do Claude Code a trabalhar, avisar o utilizador antes (retomam-se com `--resume`, mas o trabalho em curso é interrompido).
 
 ## Final Checklist
 
@@ -113,4 +102,4 @@ da shell que corre o filtro, e ela vai junta.
 
 ## Related Skills
 
-[[commands]] · [[environment]]
+[[skill-stop]] — parar · [[commands]] · [[environment]]
