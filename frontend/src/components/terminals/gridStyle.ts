@@ -39,6 +39,21 @@ export function initialSlotIds(style: GridStyle, terminalIdsInOrder: string[]): 
 }
 
 /**
+ * O primeiro lugar livre para um terminal novo (spec estilos-de-grelha §2, revisto 2026-11-13): `null`, um id que
+ * já não existe (fechado) ou um lugar para lá do fim de `slotIds`. -1 em `classic` (sem lugares) ou com a grelha
+ * cheia — aí o terminal novo amplia, como antes.
+ */
+export function firstFreeSlot(style: GridStyle, slotIds: (string | null)[], exists: (id: string) => boolean): number {
+  const n = slotCount(style);
+  if (n === null) return -1;
+  for (let i = 0; i < n; i++) {
+    const id = slotIds[i];
+    if (!id || !exists(id)) return i;
+  }
+  return -1;
+}
+
+/**
  * `grid-column`/`grid-row` (ou `order`, em `columns`, onde todos os lugares são iguais) de cada lugar.
  * Sempre CSS sobre o **mesmo** contentor plano (`TerminalGrid.tsx`) — nunca aninha nem muda a posição no
  * DOM dos terminais já montados, para trocar de estilo nunca desligar um WebSocket só por reorganizar o

@@ -5,7 +5,7 @@ import { accountLabelOf } from '@/components/accounts/accountLabel';
 import { ContextSizeNotice } from '@/components/terminals/ContextSizeNotice';
 import { ResumeSessionModal } from '@/components/terminals/new/ResumeSessionModal';
 import { ProjectTabs } from '@/components/terminals/ProjectTabs';
-import { DEFAULT_GRID_STYLE, type GridStyle, initialSlotIds, slotPlacement } from '@/components/terminals/gridStyle';
+import { DEFAULT_GRID_STYLE, type GridStyle, firstFreeSlot, initialSlotIds, slotPlacement } from '@/components/terminals/gridStyle';
 import { GridStylePicker } from '@/components/terminals/GridStylePicker';
 import { displayNames, type Project, joinProjects, projectsWithTerminals } from '@/components/terminals/projects';
 import { QuotaMeter } from '@/components/terminals/QuotaMeter';
@@ -346,9 +346,29 @@ export function TerminalsPage() {
     if (document.activeElement instanceof HTMLElement) document.activeElement.blur();
   }, [activePath, updateLayout]);
 
+  /**
+   * Um terminal novo aberto fora do "+" de um lugar ("+" da lateral, "Noutra conta", Novo terminal, Retomar sessão,
+   * atalho): na grelha com lugares e um livre, ocupa o primeiro, **sem ampliar**, e fica com o teclado (como o
+   * `handleSlotNew`); grelha cheia, `classic` ou foco dividido → como antes (`focusedLayout`). Spec estilos-de-grelha §2.
+   */
   const handleCreate = async (body: Omit<CreateTerminalBody, 'cols' | 'rows'>) => {
+    // Os terminais que o projeto já tinha — o novo ainda não está em `projects` neste render.
+    const existing = new Set(projects.find((p) => p.path === body.cwd)?.terminals.map((t) => t.id) ?? []);
     const view = await create({ ...body, ...paneSize(false) });
-    focusTerminal(body.cwd, view.id);
+    const path = body.cwd;
+    setOpenPaths((prev) => (prev.includes(path) ? prev : [...prev, path]));
+    setActivePath(path);
+    setLayouts((prev) => {
+      const current = prev[path] ?? defaultLayoutFor(path);
+      const index = grid ? firstFreeSlot(current.gridStyle, current.slotIds, (id) => existing.has(id)) : -1;
+      if (index === -1) return { ...prev, [path]: focusedLayout(current, view.id, grid) };
+      const slotIds = [...current.slotIds];
+      while (slotIds.length < index) slotIds.push(null);
+      slotIds[index] = view.id;
+      writeGridPreference(path, current.gridStyle, slotIds);
+      // Sai de uma ampliação que estivesse aberta: senão o lugar ocupado ficava fora de vista.
+      return { ...prev, [path]: { ...current, slotIds, enlargedId: null, activeId: view.id } };
+    });
   };
 
   /** `ResumeSessionModal`: cria um terminal a retomar a sessão escolhida na pasta já conhecida. */

@@ -49,6 +49,14 @@ para fullscreen, por cima de qualquer estilo.
   novo começa em Grelha 3×2).
 - **Lugares vazios**: um estilo com mais lugares do que terminais (ex.: 2×2 com 2 terminais) mostra um
   "+" no(s) lugar(es) livre(s) — clicar abre logo um terminal novo (`mode: 'new'`) ali mesmo.
+- **Terminal novo aberto fora do "+" de um lugar** (*revisto 2026-11-13*, pedido do dono): o "+" do projeto na
+  lateral, "Noutra conta", Novo terminal, Retomar sessão ou o atalho põem-no no **primeiro lugar livre, sem
+  ampliar**, e com o teclado — como o "+" do próprio lugar (um lugar cujo terminal fechou conta como livre). Com
+  a **grelha cheia**, como antes: amplia, e fica de fora até ser clicado na lateral (não empurra ninguém).
+  **Fechar um terminal não preenche nada** — fica o "+"; a grelha nunca muda sozinha. Grelha 3×2 e Foco
+  dividido não mudam. Os terminais que chegam de outras páginas (Novo projeto, importação, Upwork, "Ver
+  terminal" do Correr) continuam a ampliar. Antes desta revisão, todos estes ampliavam, e ao sair da ampliação o
+  terminal ficava de fora mesmo com um "+" à vista.
 - **Excesso**: um estilo com menos lugares do que terminais (ex.: 2×2 com 6) deixa os que não cabem de
   fora da grelha — continuam a correr, aparecem na lateral como hoje. Clicar um deles na lateral troca-o
   para o lugar que tinha o teclado (substitui esse, não o mais antigo).
@@ -84,6 +92,7 @@ para fullscreen, por cima de qualquer estilo.
 | Âmbito do estilo | Por projeto | Consistente com o resto do estado do separador (foco/split/ampliado já é por projeto) | Global (um só para toda a app, como Foco dividido/Grelha) — perderia sentido com projetos de tamanhos diferentes |
 | Onde se escolhe | Botão no cabeçalho da grelha | Visível sempre que a grelha está ativa, sem abrir Definições | Drawer Definições — mais escondido, mais cliques no dia a dia |
 | Lugar vazio (menos terminais que lugares) | Mostra um "+" no lugar livre | Consistente com o estado vazio de um projeto sem terminais; um clique cria e preenche | O estilo encolher sozinho (2×2 com 2 vira "2 colunas") — muda de forma sem o dono pedir |
+| Terminal novo fora do "+" de um lugar (**revisto 2026-11-13**) | Primeiro lugar livre, sem ampliar; grelha cheia → amplia como antes | Com um "+" à vista, o terminal novo ficava de fora depois de sair da ampliação, e era preciso ir buscá-lo à lateral | Empurrar o mais antigo para fora (muda a grelha sem pedido); preencher o lugar ao fechar outro (a grelha mudava sozinha) |
 | Excesso (mais terminais que lugares) | Ficam de fora, a correr; clicar na lateral troca para o lugar em foco | Nunca perde trabalho (o terminal continua vivo) nem obriga a sair do estilo escolhido | Desligar o estilo sozinho e voltar à grelha 3×2 — surpreende o dono a meio do trabalho |
 | Principal + laterais | 2 laterais fixos (3 lugares no total) | Simples e previsível; o resto segue a regra do "Excesso" | Laterais sem limite, empilhados com scroll — mistura dois problemas (excesso já resolve isto) |
 | Redimensionar | Fixo nesta v1 | Menos trabalho, e nenhum dos quatro estilos precisa de proporções à medida para ser útil | Arrastável já nesta v1 — fica para 2ª fase se fizer falta |
