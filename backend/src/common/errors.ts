@@ -44,6 +44,7 @@ export const ErrorCode = {
   APPRUN_001: { status: 409, message: 'The app of this project is already running' },
   APPRUN_002: { status: 422, message: 'This project has no /run and /stop skills' },
   APPRUN_003: { status: 404, message: 'The app of this project is not running' },
+  APPRUN_004: { status: 422, message: 'The Workflow App cannot run itself' },
   // FOLDER
   FOLDER_001: { status: 403, message: 'Folder does not exist or is outside ALLOWED_ROOTS' },
   // SESSION

@@ -468,6 +468,55 @@ describe('TerminalsService', () => {
     });
   });
 
+  describe('app runs (ADR 0030)', () => {
+    const trusted = () => Promise.resolve(true);
+    const appRunOf = (cwd = project) => ({ cwd, label: 'api-faturas · run', ...size });
+
+    it('a hidden terminal whose first message is /run, in the active account; only in a trusted folder inside the roots', async () => {
+      await expectAppError(() => service.createAppRun(appRunOf()), 'TERMINAL_007');
+      await expect(build({ isTrustedFolder: trusted }).createAppRun(appRunOf(outside))).rejects.toBeInstanceOf(AppError);
+      expect(claude.launches).toEqual([]);
+
+      const view = await build({ isTrustedFolder: trusted }).createAppRun(appRunOf());
+      expect(claude.launches.at(-1)?.args?.at(-1)).toBe('/run');
+      expect(view).toMatchObject({ hidden: true, cwd: project, accountId: 'primary', importId: null, guidedId: null });
+      expect(stateStore.read().terminals[0]).toMatchObject({ id: view.id, appRun: true, hidden: true });
+      expect(service.list()).toEqual([]);
+      // Not a recent folder: the owner never opened it.
+      expect(stateStore.read().folders).toEqual([]);
+    });
+
+    it('is not taken for a login: closeLogins leaves it, and closing it leaves no history', async () => {
+      const terminals = build({ isTrustedFolder: trusted });
+      const view = await terminals.createAppRun(appRunOf());
+      await terminals.closeLogins('primary');
+      expect(terminals.get(view.id)?.status).toBe('running');
+
+      await terminals.close(view.id);
+      expect(stateStore.read().terminals).toEqual([]);
+      expect(stateStore.read().closedTerminals).toEqual([]);
+    });
+
+    it('counts for MAX_TERMINALS like any running claude', async () => {
+      const terminals = build({ isTrustedFolder: trusted });
+      await terminals.create({ cwd: project, mode: 'new', ...size });
+      await terminals.createAppRun(appRunOf());
+      await expectAppError(() => terminals.create({ cwd: project, mode: 'new', ...size }), 'TERMINAL_002');
+    });
+
+    it('once revealed it is in list(), still an app run; dropAppRuns at startup takes only the app runs', async () => {
+      const terminals = build({ isTrustedFolder: trusted });
+      const normal = await terminals.create({ cwd: project, mode: 'new', ...size });
+      const run = await terminals.createAppRun(appRunOf());
+      terminals.reveal(run.id);
+      expect(terminals.list().map((t) => t.id)).toEqual([normal.id, run.id]);
+      expect(stateStore.read().terminals.find((t) => t.id === run.id)?.appRun).toBe(true);
+
+      terminals.dropAppRuns();
+      expect(stateStore.read().terminals.map((t) => t.id)).toEqual([normal.id]);
+    });
+  });
+
   describe('waitForQuiet (spec upwork step 5)', () => {
     it('false while the screen keeps changing, true once it has been quiet long enough; false for a terminal that is not there', async () => {
       const view = await service.create({ cwd: project, mode: 'new', ...size });

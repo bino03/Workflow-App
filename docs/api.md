@@ -64,6 +64,10 @@ próprio Fastify (JSON mal formado, content-type errado → `COMMON_001`) e as r
 | `PROJECT_001` | 404 | O `projectPath` não está na lista de `GET /api/projects` (saiu do registo, foi descartado ou está fora de `ALLOWED_ROOTS`) |
 | `PROJECT_002` | 404 | O ambiente não existe na ficha (ou o projeto ainda não tem ficha) |
 | `PROJECT_003` | 404 | O deploy não existe nesse ambiente |
+| `APPRUN_001` | 409 | Correr um projeto cuja app já está a correr (ou a arrancar, ou a parar) |
+| `APPRUN_002` | 422 | O projeto não tem `.claude/skills/run/SKILL.md` **e** `.claude/skills/stop/SKILL.md` |
+| `APPRUN_003` | 404 | Parar ou Ver terminal num projeto sem execução |
+| `APPRUN_004` | 422 | A pasta é a própria Workflow App (ou está dentro dela) — nunca se corre a partir dela própria |
 
 O frontend espelha esta tabela em `frontend/src/errors/errorMessages.ts`, pela mesma ordem — os dois
 mudam no mesmo commit.
@@ -379,6 +383,24 @@ chama. Todas as rotas exigem sessão (`AUTH_002`) e um `projectPath` que esteja 
 - Limites: 5 ambientes, 20 deploys por ambiente, 10 links, notas ≤ 4000. Validação falhada (URL que não
   `http(s)`, texto longo) → `COMMON_001` com erro por campo.
 - O "último deploy" não existe na resposta: deriva-se no frontend do `at` mais recente.
+
+## Correr e parar a app (`appRuns/`, `/api/app-runs`) — 🚧
+
+Correr e parar a app de um projeto por um terminal **escondido** cuja primeira mensagem é `/run`; parar escreve
+`/stop` nesse terminal e, ao fim de 20 s, fecha-o de qualquer maneira ([[adr/0030-correr-e-parar-a-app-de-um-projeto]],
+[[features/correr-a-app]]). O estado vive **em memória** (morre com o backend) e só se atualiza quando o GET é
+chamado: o frontend sonda. Todas as rotas exigem sessão (`AUTH_002`). O `path` passa pela política de pastas
+(`FOLDER_001` fora de `ALLOWED_ROOTS`), e nenhum outro campo é aceite (`COMMON_001`).
+
+| Método | Rota | Corpo / query | Resposta | Erros |
+|---|---|---|---|---|
+| GET | `/api/app-runs` | query `path` | `200 AppRunView`. `starting` → `running` assim que há portas; `failed` aos 3 min sem portas, ou se o terminal acaba | `COMMON_001` · `FOLDER_001` |
+| POST | `/api/app-runs` | `{path}` | `200 AppRunView` (`starting`). Depois de um `failed`, fecha o terminal antigo e arranca outro. Conta para o `MAX_TERMINALS` | `COMMON_001` · `FOLDER_001` · `APPRUN_001` · `APPRUN_002` · `APPRUN_004` · `TERMINAL_002` · `TERMINAL_005` · `TERMINAL_007` |
+| POST | `/api/app-runs/stop` | `{path}` | `200 AppRunView` (`stopping`; idempotente). Volta a `idle` quando o terminal fecha: as portas fecharam e o turno acabou, ou passaram os 20 s. Num `failed`, fecha logo e devolve `idle` | `COMMON_001` · `FOLDER_001` · `APPRUN_003` |
+| POST | `/api/app-runs/reveal` | `{path}` | `200 {terminalId}`. O terminal passa a aparecer em `GET /api/terminals` ("Ver terminal"); a execução continua | `COMMON_001` · `FOLDER_001` · `APPRUN_003` |
+
+- `AppRunView = {path, phase: unavailable|idle|starting|running|stopping|failed, unavailableReason: missing-skills|self|null, terminalId, startedAt, runningSince, ports: number[], error: no-port|exited|ports-gone|null}`. O `runningSince` é a primeira porta vista; o `startedAt` é o clique em Correr.
+- O terminal do `/run` é um `SavedTerminal` com `appRun: true` (ver [[database]]): não aparece em `GET /api/terminals` até ao `reveal`, não deixa histórico nem pasta recente, e o arranque do backend apaga os que lá ficaram.
 
 ## Contas do Claude (`accounts/`, `/api/accounts`) — 🚧
 

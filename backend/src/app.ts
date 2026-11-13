@@ -4,6 +4,9 @@ import multipart from '@fastify/multipart';
 import rateLimit from '@fastify/rate-limit';
 import websocket from '@fastify/websocket';
 import Fastify, { type FastifyInstance } from 'fastify';
+import { fileURLToPath } from 'node:url';
+import { appRunRoutes } from './appRuns/appRun.routes.js';
+import { AppRunService, type AppRunServiceDeps } from './appRuns/appRunService.js';
 import type { Config } from './config.js';
 import { authRoutes } from './auth/auth.routes.js';
 import { PasskeyStore } from './auth/passkeyStore.js';
@@ -69,6 +72,8 @@ export type AppDeps = {
   logStream?: NodeJS.WritableStream;
   /** Previews only (ADR 0018): tests replace the Tailscale CLI and the port discovery. Default: the real ones. */
   preview?: { tailscale?: PreviewServiceDeps['tailscale']; devPorts?: PreviewServiceDeps['devPorts'] };
+  /** App runs only (ADR 0030): tests replace the port discovery, the app's own folder and the skills check. */
+  appRuns?: Partial<Pick<AppRunServiceDeps, 'devPorts' | 'selfPath' | 'hasRunAndStop'>>;
   /** Tests only: a fake Telegram API (the bot's long polling and the preview notices go through it). */
   telegramApi?: TelegramBotDeps['api'];
   /** Preparar anexos (ADR 0025): shows a folder to the owner. Default: none — tests never open a window. */
@@ -84,6 +89,7 @@ export async function buildApp({
   logger = true,
   logStream,
   preview,
+  appRuns,
   telegramApi,
   openFolder,
 }: AppDeps): Promise<FastifyInstance> {
@@ -188,6 +194,8 @@ export async function buildApp({
     accounts: accountsService,
     previews: previewService,
   });
+  // An app run's terminal died with the previous backend, and its app with it (ADR 0030 point 8).
+  terminalsService.dropAppRuns();
   await app.register(terminalsRoutes, { terminalsService });
   await app.register(accountsRoutes, { accountsService });
   await app.register(importsRoutes, {
@@ -214,6 +222,18 @@ export async function buildApp({
     }),
   });
   await app.register(previewRoutes, { terminalsService, previewService });
+  // Correr / Parar a project's app (ADR 0030): a hidden terminal with /run; never the Workflow App itself.
+  const appRunService = new AppRunService({
+    terminals: terminalsService,
+    pidOf: (id) => terminalManager.get(id)?.pid,
+    devPorts: appRuns?.devPorts ?? ((pid) => devPortsOf(pid, { exclude: [config.port] })),
+    allowedRoots: config.terminals.allowedRoots,
+    // backend/src/app.ts and backend/dist/app.js are both two levels below the repository root.
+    selfPath: appRuns?.selfPath ?? fileURLToPath(new URL('../..', import.meta.url)),
+    hasRunAndStop: appRuns?.hasRunAndStop,
+    log: app.log.child({ module: 'app-runs' }),
+  });
+  await app.register(appRunRoutes, { appRunService });
   await app.register(terminalsGateway, { terminalManager, sessionStore: sessions });
   await app.register(usageRoutes, { dataDir: config.dataDir, activeAccountId: () => accountsService.activeAccountId() });
   await app.register(sessionsRoutes, { sessions: sessionsReader, stateStore, terminalsService, allowedRoots: config.terminals.allowedRoots });

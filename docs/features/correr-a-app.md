@@ -2,10 +2,10 @@
 
 | | |
 |---|---|
-| **Estado** | 📋 Planeada |
+| **Estado** | 🚧 Em curso |
 | **Criada** | 2026-11-12 |
 | **Última sessão** | 2026-11-12 |
-| **Passos** | 0 / 8 concluídos |
+| **Passos** | 2 / 8 concluídos (3 e 4; o 1 a meio: falta o ADR do Workflow) |
 
 > Escrita para uma sessão que **não viu a conversa que a originou**. Se algo só faz sentido com contexto
 > externo, falta escrevê-lo.
@@ -182,7 +182,7 @@ Ordem obrigatória. Tiers: `opus` (desenho, não delegar) · `sonnet` (implement
     cegas; confirma por fora que as portas fecharam. Um `/create` de teste gera `.claude/skills/stop/SKILL.md`;
     o `/upgrade-project` acrescenta-o a um projeto antigo. Commit no Workflow.
 
-- [ ] **3. Backend: terminal do `/run` e `AppRunService`**
+- [x] **3. Backend: terminal do `/run` e `AppRunService`**
   - Ficheiro: `backend/src/terminals/terminalsService.ts` (`appRun`, `createAppRun`, `isLoginTerminal`,
     limpeza no arranque), `backend/src/appRuns/appRunService.ts` (novo), `backend/src/appRuns/appRun.schemas.ts`
   - Skill: `add-backend-feature` (stack `node-fastify`) · ler [[../backend-conventions]]
@@ -191,7 +191,7 @@ Ordem obrigatória. Tiers: `opus` (desenho, não delegar) · `sonnet` (implement
     stopping → idle`, os 3 erros, a rede de 20 s (fecha o terminal), o 409 de uma segunda execução, o
     `missing-skills` e o `self`; um terminal `appRun` guardado não é tomado por login nem aparece em `list()`.
 
-- [ ] **4. Backend: rotas**
+- [x] **4. Backend: rotas**
   - Ficheiro: `backend/src/appRuns/appRun.routes.ts` (novo), registo em `backend/src/app.ts`,
     `docs/api.md`, códigos de erro
   - Skill: `add-backend-feature`
@@ -238,11 +238,13 @@ Ordem obrigatória. Tiers: `opus` (desenho, não delegar) · `sonnet` (implement
 
 > ⚠️ **Atualizar SEMPRE no fim de cada sessão.** É a secção que torna esta spec retomável.
 
-**Feito:** nada fechado. Passo 3 **a meio** (sessão de 2026-11-12, modo NORMAL a partir do passo 3; os passos 1-2, `opus`, ficam para uma sessão Opus): o terminal do `/run` existe, o `AppRunService` não.
-- Feito no passo 3: códigos `APPRUN_001-003` em `backend/src/common/errors.ts`; campo `appRun` (por omissão `false`) em `savedTerminalSchema`; `ClaudeLaunch` `{ kind: 'run' }` → primeira mensagem `/run` em `claudeArgs.ts`; em `terminalsService.ts`: `createAppRun` (conta ativa, exige pasta *trusted*, escondido, sem pasta recente), `dropAppRuns()` (apaga os `appRun` guardados — **ainda ninguém a chama**), `isLoginTerminal` exclui `appRun`, `close` de um `appRun` não deixa histórico, `reopen` não toca nas pastas recentes. Testes dos ficheiros tocados a passar (83/83); `tsc` só tem o erro antigo de `test/auth.test.ts`.
-**Em curso:** passo 3 — falta o `AppRunService`.
-**Próxima ação concreta:** escrever `backend/src/appRuns/appRunService.ts` + `appRun.schemas.ts` (modelo em memória por pasta; fases e transições da §4.3; `/stop` por `terminals.paste` e rede de 20 s que fecha o terminal; `unavailable` por falta de `.claude/skills/{run,stop}/SKILL.md` ou por ser a própria app, via `isInsideRoot`; `devPorts(pid)` com pid ≤ 0 → `[]`; o GET atualiza o estado a pedido, sem timers, exceto o do `/stop`); chamar `terminalsService.dropAppRuns()` em `buildApp`; testes com `devPortsOf` e terminal falsos (cenários do critério de aceitação do passo 3). Depois o passo 4 (rotas e `docs/api.md`). O passo 1 (ADR **0030**, o 0029 é o node-pty) continua por escrever.
-**Desvios ao plano:** decidido ao ler o código — o `TerminalView` não ganha campo novo (`hidden` basta); `/stop` num estado `failed` fecha o terminal e volta a `idle`; `Correr` num `failed` fecha o terminal antigo e arranca outro; o `appRun` guardado não deixa histórico ao fechar.
+**Feito:** passo 3 ✅ (2026-11-12). Passo 1 **a meio**: o ADR **0030** da app está escrito (`aceite`, no índice) e o "Fora" da [[pre-visualizacao]] tem o link; falta o **ADR 0013 do Workflow**, que vai com o passo 2 (mesmo repositório).
+- Passo 3: `backend/src/appRuns/appRunService.ts` + `appRun.schemas.ts` (`AppRunView`, fases da §4.3, `/stop` por `paste` e rede de 20 s; com as portas fechadas espera que o turno acabe — `waitForQuiet`, 2 s de silêncio — antes de fechar; `pid <= 0` → sem portas; o GET atualiza a pedido, sem timers). `dropAppRuns()` chamado em `buildApp`. Testes: `test/appRunService.test.ts` (12) + 4 em `terminalsService.test.ts` (`/run` como 1.ª mensagem, escondido e fora do `list()`, não é login, conta para o `MAX_TERMINALS`, `dropAppRuns` só leva os `appRun`). Suite 543/543; `tsc` só com o erro antigo de `test/auth.test.ts`; `eslint .` limpo.
+- Passo 4: `backend/src/appRuns/appRun.routes.ts` (as 4 rotas, `appRunPathSchema` estrito), `AppRunService` montado em `buildApp` (`pidOf` = `terminalManager.get(id)?.pid`, `devPorts` = `devPortsOf` sem a `PORT`, `selfPath` = raiz do repo por `import.meta.url`; `AppDeps.appRuns` para os testes). `test/appRun.routes.test.ts` (4: sessão, validação, `self`/`missing-skills`, ciclo completo por HTTP com o claude falso). HTTP real numa instância `scripts/verify` (7498): 401, `missing-skills`, `idle`, `FOLDER_001`, `COMMON_001`, `APPRUN_002`, `TERMINAL_007` numa pasta não confiada sem deixar execução, `APPRUN_003` em Parar/Ver terminal. Docs: `api.md` (secção + `APPRUN_001-004`), `database.md` (`appRun`), `code-map.md`; `errorMessages.ts` do frontend já espelha os 4 códigos. Suite 548/548.
+**Em curso:** nada (entre passos).
+**Próxima ação concreta:** passo 2 (`opus`, no **repositório do Workflow**): a skill `/stop` obrigatória + o ADR 0013 do Workflow (fecha o passo 1). Ou, se se preferir avançar a app primeiro, o passo 5 (cabeçalho comum, `sonnet`) — não depende do 2; o 6 também não; o 7 e o 8 sim.
+**Ainda por confirmar num terminal real** (passo 8): se o Claude Code põe em fila um `/stop` escrito a meio de um turno (§7) — a rede de 20 s cobre o caso em que não põe.
+**Desvios ao plano:** decidido ao ler o código — o `TerminalView` não ganha campo novo (`hidden` basta); `/stop` num estado `failed` fecha o terminal e volta a `idle`; `Correr` num `failed` fecha o terminal antigo e arranca outro; o `appRun` guardado não deixa histórico ao fechar. **Novo código `APPRUN_004`** (422, "The Workflow App cannot run itself") para recusar a própria app — o `APPRUN_002` diria "falta a skill", o que é falso; uma subpasta da app também é recusada. Ao fechar uma execução com as portas já fechadas, espera-se o fim do turno do `/stop` (até ao fim dos 20 s) para não matar um `docker compose down` a meio. O terminal escondido abre com 120×32. **Encontrado pelo teste de rota:** a execução só se esquece **depois** de o `close` acabar (~1,6 s a matar a árvore) — antes, o GET dizia `idle` com o terminal ainda vivo e um Correr nesse intervalo abria um segundo.
 **O que uma sessão nova precisa de saber:** o passo 2 é **noutro repositório** (o Workflow, em `WORKFLOW_PATH`)
 e é o que torna o `/stop` obrigatório; sem ele, o passo 7 não tem o que copiar. O terminal do `/run` é o terceiro
 tipo de terminal escondido — rever todos os sítios que tratam `hidden` (`list()`, `isLoginTerminal`, a grelha,
@@ -252,7 +254,7 @@ o bot do Telegram).
 
 | Pergunta | Bloqueia | Notas |
 |---|---|---|
-| O terminal do `/run` conta para o `MAX_TERMINALS`? | Passo 3 | Proposta: conta (é um PTY real); dizer no erro qual é |
+| ~~O terminal do `/run` conta para o `MAX_TERMINALS`?~~ | — | ✅ **Conta** (dono, 2026-11-12; ADR 0030 ponto 7) — já acontecia: o `TerminalManager` conta todos os PTYs a correr |
 | O Claude Code põe mesmo em fila um `/stop` escrito a meio de um turno? | Passo 3 | Confirmar num terminal real; se não, esperar que o `/run` acabe o turno ou fechar logo |
 | Como o `/stop` encontra a pasta de um processo em Windows sem ser pelo nome | Passo 2 | `Get-CimInstance Win32_Process` (linha de comando) ou `netstat -ano` + PID; em Linux `/proc/<pid>/cwd` |
 

@@ -73,6 +73,10 @@ export const ERROR_MESSAGES: Record<string, string> = {
   PROJECT_001: 'Este projeto já não está no registo do Workflow.',
   PROJECT_002: 'Esse ambiente já não existe — recarrega a página.',
   PROJECT_003: 'Esse deploy já não existe.',
+  APPRUN_001: 'A app deste projeto já está a correr.',
+  APPRUN_002: 'Este projeto não tem as skills /run e /stop.',
+  APPRUN_003: 'A app deste projeto não está a correr.',
+  APPRUN_004: 'A Workflow App não se pode correr a partir dela própria.',
 
   DEFAULT:'Ocorreu um erro. Tenta outra vez.',
 };

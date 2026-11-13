@@ -143,6 +143,9 @@ Ver [[security]] → "Fluxo de autenticação" e [[adr/0003-auth-utilizador-unic
   por omissão (forks) 4/4 limpas. Não tem frames do node-pty: é uma asserção do Node em `fs.readFileSync`
   (`node_file.cc`, `uv_fs_close` falhou num ficheiro acabado de abrir), o sinal típico de outro código no mesmo
   processo ter fechado esse handle. A origem não está provada (o `conpty.cc` da beta não mostra fecho duplo).
+  Pista contra o node-pty: no mesmo dia, um script Node simples (só `fetch` + `process.exit`, sem node-pty)
+  morreu à saída com `Assertion failed: !(handle->flags & UV_HANDLE_CLOSING), file src\win\async.c` — o
+  libuv do Node v24.16 / Windows também tropeça a fechar handles sozinho.
   Como o backend real é um só processo com PTYs e `fs`, **se o backend morrer sem erro JS, procurar esta
   asserção no stderr primeiro**.
 - ✅ **Sair do `claude` pelo teclado**: dois `\x03` (Ctrl+C) seguidos → sai com código 0.

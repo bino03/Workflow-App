@@ -96,6 +96,7 @@ porque o backend reiniciou.
 | `addDirs` | texto[] (≤ 4) | — (omissão `[]`) | Pastas passadas com `--add-dir`, para o reabrir igual (a da importação e, se a origem é um projeto, a do projeto). Os três campos novos leem-se com a omissão em ficheiros antigos — sem subir o `STATE_VERSION` |
 | `guidedId` | UUID \| null | — (omissão `null`) | Terminal lançado por uma sessão guiada ([[adr/0020-sessoes-guiadas]]); liga-o à pasta `DATA_DIR/guided/<id>/`, e reabre-se com o `--settings` das sessões guiadas e `--permission-mode default`. Ficheiros antigos → `null`, sem subir o `STATE_VERSION` |
 | `accountId` | `'primary'` \| UUID | — (omissão `'primary'`) | A conta do Claude em que corre ([[adr/0027-varias-contas-do-claude]]). Um id de uma conta que já não existe lê-se como `primary`. Ficheiros antigos → `'primary'`, sem subir o `STATE_VERSION` |
+| `appRun` | booleano | — (omissão `false`) | O terminal escondido que corre o `/run` de um projeto ([[adr/0030-correr-e-parar-a-app-de-um-projeto]]): não é um login, não deixa histórico nem pasta recente ao fechar, e o arranque do backend apaga-o (a app morreu com o PTY). Ficheiros antigos → `false`, sem subir o `STATE_VERSION` |
 
 - **Ciclo**: abrir → guardado. Backend reinicia → aparece como **parado**, com **Reabrir** (`claude --resume
   <claudeSessionId>`) e **Reabrir todos**. Nada reabre sozinho (não gasta quota sem pedido).
