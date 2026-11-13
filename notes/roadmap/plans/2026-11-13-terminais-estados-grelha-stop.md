@@ -20,10 +20,10 @@
 
 ## Ordem confirmada
 1. [x] `opus` Estado das sessões (backend): spike único (estados + agentes) → ADR 0031 (muda o 0012; contrato `activity` + `agents[]`) → `session-hook.cjs` + leitor → `activity` no `TerminalView` → testes com stdin real → terminal real nos 4 estados → `protocol.ts`, `api.md`, spec Terminais §2, frontend `types/terminal.ts` — concluída (ADR 0031; spike e check reais; commit a seguir)
-2. [ ] `sonnet` Agentes por terminal (backend) — era `opus`: a decisão foi para a 1 — por começar
+2. [x] `sonnet` Agentes por terminal (backend) — era `opus`: a decisão foi para a 1 — concluída (3 agentes reais em paralelo)
 3. [ ] `sonnet` Terminal novo no primeiro lugar vazio da grelha + spec estilos-de-grelha §2 + cenário verify — por começar
 4. [ ] `sonnet` correr-a-app passo 7: commit da atualização pendente; `/upgrade-project` com o `/stop` nos três filhos — por começar
 5. [ ] `sonnet` correr-a-app passo 8: verificação real no browser — por começar
 
 ## Próximo passo
-Tarefa 2 (`sonnet` — `/model` para Sonnet se quiseres): agentes no `session-hook.cjs` — `SubagentStart`/`PostToolUse(Agent)`/`SubagentStop` em `DATA_DIR/session-state/<id>/agents/` (um ficheiro por evento), `TerminalView.agents`, limpeza dos `done` num `UserPromptSubmit` que não seja `<task-notification>` (ADR 0031 pontos 5-6).
+Tarefa 3: terminal novo no primeiro lugar vazio — `handleCreate`/`focusTerminal` em `frontend/src/pages/TerminalsPage.tsx` (ver o modelo `handleSlotNew`, :306-323); helper puro em `components/terminals/gridStyle.ts`; spec `docs/features/estilos-de-grelha.md` §2-§3; cenário novo em `scripts/verify/`.

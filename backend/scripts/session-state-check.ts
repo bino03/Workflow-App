@@ -3,7 +3,7 @@
  * the common claude-settings.json, the WFA_TERMINAL_ID the spawner sets, SessionStateStore and TerminalsService —
  * with the real `claude`, in a normal terminal. Follows `activity` through: waiting → working → needs-you (a Bash
  * permission) → working → waiting → needs-you (AskUserQuestion) → working → waiting → ended (status exited,
- * activity null). The project's .claude/settings.local.json forces the "default" permission mode, whatever the
+ * activity null), then three agents in parallel (3 running → all done → gone after the next prompt). The project's .claude/settings.local.json forces the "default" permission mode, whatever the
  * account's is. Sends two prompts: spends a little quota.
  *
  *   npx tsx scripts/session-state-check.ts
@@ -105,20 +105,61 @@ async function main() {
     manager.write(view.id, '\r'); // submit, if the TUI asks for it
   }
   await waitActivity('waiting', 120_000);
+  await sleep(500); // let the 150 ms poll record it too
+  const activityTimeline = [...timeline];
+
+  // Agents (ADR 0031 points 5-6): three in parallel → 3 running, each done, and gone after the next real prompt.
+  log('--- three agents');
+  await sleep(1000);
+  await type(
+    'In ONE message, launch three agents with the Agent tool, subagent_type "general-purpose", descriptions "agente 1", "agente 2" and "agente 3", ' +
+      'each with the prompt "Reply with the single word ok. Use no tools.". Then answer only "launched".',
+  );
+  let maxRunning = 0;
+  let sawAllDone = false;
+  const agentsBy = Date.now() + 240_000;
+  while (Date.now() < agentsBy) {
+    const agents = service.get(view.id)?.agents ?? [];
+    const running = agents.filter((a) => a.status === 'running').length;
+    if (running > maxRunning) {
+      maxRunning = running;
+      log(`  agents running: ${running} — ${agents.map((a) => `${a.description} (${a.type}, ${a.model})`).join(', ')}`);
+    }
+    if (agents.length === 3 && agents.every((a) => a.status === 'done')) {
+      sawAllDone = true;
+      break;
+    }
+    await sleep(300);
+  }
+  log(`  all three done: ${sawAllDone}`);
+  await waitActivity('waiting', 120_000);
+  await sleep(1500);
+  await type('Responde apenas: ok');
+  await waitActivity('working', 30_000);
+  await waitActivity('waiting', 60_000);
+  await sleep(500);
+  const afterPrompt = service.get(view.id)?.agents ?? [];
+  log(`  agents after the next prompt: ${afterPrompt.length}`);
+  const agentsOk = maxRunning === 3 && sawAllDone && afterPrompt.length === 0;
 
   log('--- exit');
-  manager.write(view.id, '\x03');
-  await sleep(400);
-  manager.write(view.id, '\x03');
-  const exitBy = Date.now() + 10_000;
-  while (Date.now() < exitBy && service.get(view.id)?.status === 'running') await sleep(200);
+  // Ctrl+C twice, like a person; again if the TUI was still busy with an agent's wake-up.
+  for (let attempt = 0; attempt < 3 && service.get(view.id)?.status === 'running'; attempt++) {
+    manager.write(view.id, '\x03');
+    await sleep(400);
+    manager.write(view.id, '\x03');
+    const exitBy = Date.now() + 8_000;
+    while (Date.now() < exitBy && service.get(view.id)?.status === 'running') await sleep(200);
+  }
   await sleep(400);
   clearInterval(poll);
 
-  const expected = ['waiting', 'working', 'needs-you', 'working', 'waiting', 'working', 'needs-you', 'working', 'waiting', 'ended(exited)'];
-  const ok = JSON.stringify(timeline) === JSON.stringify(expected);
+  const expected = ['waiting', 'working', 'needs-you', 'working', 'waiting', 'working', 'needs-you', 'working', 'waiting'];
+  const activityOk = JSON.stringify(activityTimeline) === JSON.stringify(expected) && timeline.at(-1) === 'ended(exited)';
   log(`\ntimeline: ${timeline.join(' → ')}`);
-  log(`${ok ? 'PASS' : 'FAIL'} — expected ${expected.join(' → ')}`);
+  log(`${activityOk ? 'PASS' : 'FAIL'} activity — expected ${expected.join(' → ')} … → ended(exited)`);
+  log(`${agentsOk ? 'PASS' : 'FAIL'} agents — 3 running at once (saw ${maxRunning}), all done, none after the next prompt`);
+  const ok = activityOk && agentsOk;
   writeFileSync(join(root, 'screen.txt'), screen);
   await manager.killAll();
   await stateStore.flush();

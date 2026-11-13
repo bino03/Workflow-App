@@ -30,6 +30,19 @@ export type TerminalView = {
    * ("Terminada" é o status) ou se não é um terminal normal. Ainda sem UI (ícones: ToDo).
    */
   activity: TerminalActivity | null;
+  /** Os agentes que o claude lançou, deste lote (ADR 0031); [] quando activity é null. Ainda sem UI. */
+  agents: TerminalAgent[];
+};
+
+/** Só o que vem nos hooks: nunca o prompt nem o resultado. `done` fica até à mensagem seguinte do dono. */
+export type TerminalAgent = {
+  id: string;
+  description: string | null;
+  type: string | null;
+  model: string | null;
+  status: 'running' | 'done';
+  startedAt: string;
+  endedAt: string | null;
 };
 
 /** A trabalhar · Precisa de ti (permissão/pergunta) · À tua espera (acabou o turno, ou acabado de abrir). */

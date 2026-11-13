@@ -8,7 +8,7 @@ import type { StateStore } from '../state/stateStore.js';
 import { type ClaudeArgsOptions, type ClaudeLaunch, GUIDED_COMMANDS, type GuidedPurpose, claudeArgs } from './claudeArgs.js';
 import { bracketedPaste } from './paste.js';
 import { remoteControlName } from './remoteName.js';
-import type { TerminalActivity } from './sessionState.js';
+import type { TerminalActivity, TerminalAgent } from './sessionState.js';
 import { ClaudeBinError } from './spawnClaude.js';
 import { TerminalLimitError, type TerminalManager } from './terminalManager.js';
 
@@ -40,6 +40,8 @@ export type TerminalView = {
    * ("ended" is `status`).
    */
   activity: TerminalActivity | null;
+  /** The agents its claude launched, this batch (ADR 0031 point 5); [] when `activity` is null. */
+  agents: TerminalAgent[];
 };
 
 /**
@@ -144,7 +146,7 @@ export type TerminalsServiceDeps = {
   /** The previews (ADR 0018); omitted when TAILSCALE_BIN is not set — every terminal shows `preview: null`. */
   previews?: { get(terminalId: string): TerminalPreview | undefined };
   /** What the session hooks recorded (ADR 0031; `SessionStateStore`). Omitted → `activity: null` everywhere. */
-  sessionState?: { activity(terminalId: string): TerminalActivity; clear(terminalId: string): void };
+  sessionState?: { activity(terminalId: string): TerminalActivity; agents(terminalId: string): TerminalAgent[]; clear(terminalId: string): void };
   now?: () => Date;
 };
 
@@ -628,6 +630,13 @@ export class TerminalsService {
     return this.deps.stateStore.read().terminals.find((terminal) => terminal.id === id);
   }
 
+  /** Only a running normal terminal has session state (ADR 0031). */
+  private sessionStateOf(saved: SavedTerminal, running: boolean): Pick<TerminalView, 'activity' | 'agents'> {
+    const store = this.deps.sessionState;
+    if (!store || !running || !isNormalTerminal(saved)) return { activity: null, agents: [] };
+    return { activity: store.activity(saved.id), agents: store.agents(saved.id) };
+  }
+
   private view(saved: SavedTerminal): TerminalView {
     const inMemory = this.deps.terminalManager.get(saved.id);
     return {
@@ -645,8 +654,7 @@ export class TerminalsService {
       guidedId: saved.guidedId,
       hidden: saved.hidden,
       accountId: this.resolveAccount(saved.accountId),
-      activity:
-        inMemory?.status === 'running' && isNormalTerminal(saved) ? (this.deps.sessionState?.activity(saved.id) ?? null) : null,
+      ...this.sessionStateOf(saved, inMemory?.status === 'running'),
     };
   }
 }

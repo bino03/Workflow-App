@@ -1,5 +1,5 @@
 import { spawnSync } from 'node:child_process';
-import { existsSync, mkdirSync, mkdtempSync, readFileSync, realpathSync, writeFileSync } from 'node:fs';
+import { existsSync, mkdirSync, mkdtempSync, readFileSync, readdirSync, realpathSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { afterAll, afterEach, beforeEach, describe, expect, it } from 'vitest';
@@ -95,11 +95,76 @@ describe('session-hook.cjs (ADR 0031)', () => {
     const settings = JSON.parse(readFileSync(writeUsageFiles(dataDir, sessionStateHooks(dataDir)), 'utf8'));
     const command = { type: 'command', command: `"${process.execPath}" "${hookPath}"` };
     expect(settings.statusLine.command).toContain(USAGE_FILES.script);
-    expect(Object.keys(settings.hooks).sort()).toEqual(['Notification', 'PermissionRequest', 'PostToolUse', 'PreToolUse', 'SessionStart', 'Stop', 'UserPromptSubmit']);
+    expect(Object.keys(settings.hooks).sort()).toEqual([
+      'Notification',
+      'PermissionRequest',
+      'PostToolUse',
+      'PreToolUse',
+      'SessionStart',
+      'Stop',
+      'SubagentStart',
+      'SubagentStop',
+      'UserPromptSubmit',
+    ]);
     expect(settings.hooks.PreToolUse).toEqual([{ matcher: 'AskUserQuestion', hooks: [command] }]);
     expect(settings.hooks.PostToolUse).toEqual([{ hooks: [command] }]);
     // Without hooks it stays what ADR 0012 had.
     expect(Object.keys(JSON.parse(readFileSync(writeUsageFiles(dataDir), 'utf8')))).toEqual(['statusLine']);
+  });
+});
+
+// The payloads as the spike saw them (claude 2.1.323, ADR 0031): every agent is async.
+const FG = 'ad8d70b07aaa19765';
+const BG = 'a4d11f9a654bb1309';
+const startOf = (agentId: string) => ({ hook_event_name: 'SubagentStart', agent_id: agentId, agent_type: 'general-purpose' });
+const launchOf = (agentId: string, description: string, model: string) => ({
+  hook_event_name: 'PostToolUse',
+  tool_name: 'Agent',
+  tool_input: { description, prompt: 'SEGREDO do prompt', subagent_type: 'general-purpose' },
+  tool_response: { isAsync: true, status: 'async_launched', agentId, description, resolvedModel: model, prompt: 'SEGREDO do prompt' },
+});
+const stopOf = (agentId: string) => ({ hook_event_name: 'SubagentStop', agent_id: agentId, last_assistant_message: 'SEGREDO do resultado' });
+
+describe('session-hook.cjs — agents (ADR 0031 points 5-6)', () => {
+  it('start + launch + stop make one agent per id, running then done, without the prompt or the result', () => {
+    const store = new SessionStateStore(dataDir);
+    runHook({ hook_event_name: 'UserPromptSubmit', prompt: 'lança dois agentes' });
+    runHook(startOf(FG));
+    runHook(launchOf(FG, 'spike foreground', 'claude-opus-5-5'));
+    runHook(startOf(BG));
+    runHook(launchOf(BG, 'spike background', 'claude-haiku-5-5'));
+    expect(store.agents(TERMINAL)).toEqual([
+      { id: FG, description: 'spike foreground', type: 'general-purpose', model: 'claude-opus-5-5', status: 'running', startedAt: expect.any(String), endedAt: null },
+      { id: BG, description: 'spike background', type: 'general-purpose', model: 'claude-haiku-5-5', status: 'running', startedAt: expect.any(String), endedAt: null },
+    ]);
+    runHook(stopOf(BG));
+    expect(store.agents(TERMINAL).map((a) => [a.id, a.status, a.endedAt !== null])).toEqual([[FG, 'running', false], [BG, 'done', true]]);
+    // The launch of an agent is a PostToolUse: the session is working.
+    expect(recorded().activity).toBe('working');
+    const files = join(dataDir, SESSION_STATE_FILES.dir, TERMINAL, 'agents');
+    for (const name of readdirSync(files)) expect(readFileSync(join(files, name), 'utf8')).not.toContain('SEGREDO');
+  });
+
+  it('the wake-up of an ended agent (<task-notification>) keeps the list; the next real prompt drops only the done ones', () => {
+    const store = new SessionStateStore(dataDir);
+    for (const agentId of [FG, BG]) {
+      runHook(startOf(agentId));
+      runHook(launchOf(agentId, agentId, 'claude-opus-5-5'));
+    }
+    runHook(stopOf(BG));
+    runHook({ hook_event_name: 'UserPromptSubmit', prompt: `<task-notification>\n<task-id>${BG}</task-id>` });
+    expect(store.agents(TERMINAL)).toHaveLength(2);
+    runHook({ hook_event_name: 'UserPromptSubmit', prompt: 'e agora?' });
+    expect(store.agents(TERMINAL).map((a) => a.id)).toEqual([FG]);
+  });
+
+  it('an odd agent id, a non-agent tool and a stop without a start leave nothing to show', () => {
+    const store = new SessionStateStore(dataDir);
+    runHook({ ...startOf('../../fora'), agent_id: '../../fora' });
+    runHook({ hook_event_name: 'PostToolUse', tool_name: 'Bash', tool_response: { agentId: 'x1' } });
+    runHook(stopOf('semstart1'));
+    expect(store.agents(TERMINAL)).toEqual([]);
+    expect(store.agents('not-a-uuid')).toEqual([]);
   });
 });
 
@@ -181,10 +246,22 @@ describe('TerminalsService activity (ADR 0031)', () => {
     expect(existsSync(join(dataDir, SESSION_STATE_FILES.dir, view.id))).toBe(false);
   });
 
+  it('a running normal terminal lists its agents; a login never does', async () => {
+    const view = await service.create({ cwd: project, mode: 'new', ...size });
+    expect(view.agents).toEqual([]);
+    const agents = join(dataDir, SESSION_STATE_FILES.dir, view.id, 'agents');
+    mkdirSync(agents, { recursive: true });
+    writeFileSync(join(agents, 'a1.start.json'), JSON.stringify({ type: 'Explore', at: '2026-11-13T10:00:00.000Z' }));
+    expect(service.get(view.id)!.agents).toEqual([
+      { id: 'a1', description: null, type: 'Explore', model: null, status: 'running', startedAt: '2026-11-13T10:00:00.000Z', endedAt: null },
+    ]);
+  });
+
   it('a login terminal never gets a stateId and shows no activity', async () => {
     const login = await service.createLogin({ accountId: 'primary', cwd: project, label: 'Login', ...size });
     expect(claude.launches.at(-1)!.stateId).toBeUndefined();
     record(login.id, 'working');
     expect(service.get(login.id)!.activity).toBeNull();
+    expect(service.get(login.id)!.agents).toEqual([]);
   });
 });

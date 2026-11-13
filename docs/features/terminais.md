@@ -96,7 +96,7 @@ resumo.
 
 ### Segunda fase (se houver)
 - Estados "a trabalhar"/"à tua espera" — **a fonte existe** (2026-11-13): hooks não bloqueantes, `activity` no
-  `TerminalView` ([[../adr/0031-estado-das-sessoes-por-hooks|ADR 0031]]). Falta a UI (ícones, ToDo).
+  `TerminalView` ([[../adr/0031-estado-das-sessoes-por-hooks|ADR 0031]]), e os agentes de cada terminal em `agents`. Falta a UI (ícones; o desenho dos agentes fica para o dono).
 - Botão **Resumir** (ideia em `ideas.md`).
 - Ecrã de histórico, se a lista Retomar deixar de chegar.
 

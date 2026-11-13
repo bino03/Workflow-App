@@ -61,6 +61,7 @@ function setup({
     hidden: false,
     accountId: 'primary',
     activity: null,
+    agents: [],
   });
   const menus = new MenuStore<BotAction>();
   const actions = new BotActions({

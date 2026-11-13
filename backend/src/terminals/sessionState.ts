@@ -1,4 +1,4 @@
-import { mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import { mkdirSync, readFileSync, readdirSync, rmSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 
 /**
@@ -25,7 +25,8 @@ const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 /**
  * Runs inside Claude Code at every hook of a normal terminal. It must never fail, never be slow, never print and
  * never decide: output can hold the turn or answer a permission. Without a UUID in WFA_TERMINAL_ID (a login, an
- * app run, a claude started by hand) it does nothing. Only the event, the activity and the time are kept.
+ * app run, a claude started by hand) it does nothing. Only the event, the activity and the time are kept — and, for
+ * agents, the id, type, model and a cut description; never a prompt, a message or a tool input otherwise.
  *
  * Mapping (ADR 0031 point 3): SessionStart/Stop → waiting · UserPromptSubmit/PostToolUse → working ·
  * PermissionRequest, PreToolUse(AskUserQuestion), Notification other than idle_prompt → needs-you. A Notification
@@ -68,6 +69,40 @@ function activityOf(data, dir) {
       return null;
   }
 }
+const AGENT_ID = /^[A-Za-z0-9_-]{1,64}$/;
+const AGENT_TOOLS = new Set(['Agent', 'Task']);
+const text = (v, max) => (typeof v === 'string' && v.trim() ? v.trim().slice(0, max) : null);
+// One file per event and per agent (ADR 0031 point 5): hooks run in parallel and never write the same file.
+function recordAgent(data, dir, at) {
+  const agents = path.join(dir, 'agents');
+  const put = (agentId, kind, body) => {
+    if (typeof agentId !== 'string' || !AGENT_ID.test(agentId)) return;
+    fs.mkdirSync(agents, { recursive: true });
+    writeAtomic(path.join(agents, agentId + '.' + kind + '.json'), JSON.stringify({ ...body, at }));
+  };
+  const event = data.hook_event_name;
+  if (event === 'SubagentStart') put(data.agent_id, 'start', { type: text(data.agent_type, 80) });
+  else if (event === 'SubagentStop') put(data.agent_id, 'stop', {});
+  else if (event === 'PostToolUse' && AGENT_TOOLS.has(data.tool_name) && data.tool_response) {
+    const input = data.tool_input || {};
+    put(data.tool_response.agentId, 'info', {
+      description: text(input.description, 120),
+      type: text(input.subagent_type, 80),
+      model: text(data.tool_response.resolvedModel, 80) || text(input.model, 80),
+    });
+  } else if (event === 'UserPromptSubmit' && !String(data.prompt || '').trimStart().startsWith('<task-notification>')) {
+    // The owner's next message: the agents that already ended leave the list; the running ones stay.
+    let names = [];
+    try { names = fs.readdirSync(agents); } catch {}
+    for (const name of names) {
+      if (!name.endsWith('.stop.json')) continue;
+      const agentId = name.slice(0, -'.stop.json'.length);
+      for (const kind of ['start', 'info', 'stop']) {
+        try { fs.unlinkSync(path.join(agents, agentId + '.' + kind + '.json')); } catch {}
+      }
+    }
+  }
+}
 if (typeof id === 'string' && UUID.test(id)) {
   let input = '';
   process.stdin.on('data', (chunk) => (input += chunk));
@@ -75,10 +110,12 @@ if (typeof id === 'string' && UUID.test(id)) {
     try {
       const data = JSON.parse(input);
       const dir = path.join(STATE_DIR, id.toLowerCase());
+      const at = new Date().toISOString();
+      try { recordAgent(data, dir, at); } catch {}
       const activity = activityOf(data, dir);
       if (!activity) return;
       fs.mkdirSync(dir, { recursive: true });
-      writeAtomic(path.join(dir, 'state.json'), JSON.stringify({ activity, event: data.hook_event_name, at: new Date().toISOString() }));
+      writeAtomic(path.join(dir, 'state.json'), JSON.stringify({ activity, event: data.hook_event_name, at }));
     } catch {}
   });
 } else {
@@ -99,8 +136,33 @@ export function sessionStateHooks(dataDir: string) {
     PermissionRequest: all,
     Notification: all,
     Stop: all,
+    SubagentStart: all,
+    SubagentStop: all,
   };
 }
+
+/** One agent a terminal's claude launched (ADR 0031 point 5) — only what the hooks carry, never the prompt. */
+export type TerminalAgent = {
+  id: string;
+  description: string | null;
+  type: string | null;
+  model: string | null;
+  status: 'running' | 'done';
+  startedAt: string;
+  endedAt: string | null;
+};
+
+const MAX_AGENTS = 50;
+
+function readJson(file: string): Record<string, unknown> | null {
+  try {
+    const data = JSON.parse(readFileSync(file, 'utf8')) as unknown;
+    return data && typeof data === 'object' ? (data as Record<string, unknown>) : null;
+  } catch {
+    return null;
+  }
+}
+const str = (value: unknown) => (typeof value === 'string' && value !== '' ? value : null);
 
 /** Writes the hook into DATA_DIR (every start: it is ours). */
 export function writeSessionHook(dataDir: string): void {
@@ -126,6 +188,41 @@ export class SessionStateStore {
     } catch {
       return 'waiting';
     }
+  }
+
+  /**
+   * The agents of the current batch, oldest first (the last MAX_AGENTS): an agent shows from its first file
+   * (start or info) and is `done` once its stop file exists. Odd files are skipped.
+   */
+  agents(terminalId: string): TerminalAgent[] {
+    const dir = this.dir(terminalId);
+    if (!dir) return [];
+    const agentsDir = join(dir, 'agents');
+    let names: string[];
+    try {
+      names = readdirSync(agentsDir);
+    } catch {
+      return [];
+    }
+    const ids = new Set(names.map((name) => /^([A-Za-z0-9_-]{1,64})\.(start|info|stop)\.json$/.exec(name)?.[1]).filter((id) => id !== undefined));
+    const agents: TerminalAgent[] = [];
+    for (const id of ids) {
+      const start = readJson(join(agentsDir, `${id}.start.json`));
+      const info = readJson(join(agentsDir, `${id}.info.json`));
+      const stop = readJson(join(agentsDir, `${id}.stop.json`));
+      const startedAt = str(start?.at) ?? str(info?.at);
+      if (!startedAt) continue;
+      agents.push({
+        id,
+        description: str(info?.description),
+        type: str(start?.type) ?? str(info?.type),
+        model: str(info?.model),
+        status: stop ? 'done' : 'running',
+        startedAt,
+        endedAt: str(stop?.at),
+      });
+    }
+    return agents.sort((a, b) => a.startedAt.localeCompare(b.startedAt) || a.id.localeCompare(b.id)).slice(-MAX_AGENTS);
   }
 
   /** Before a launch (an old run's events must not show) and when the terminal goes away. */
