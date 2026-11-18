@@ -1,6 +1,6 @@
-import { CodeOutlined } from '@ant-design/icons';
+import { CodeOutlined, MobileOutlined } from '@ant-design/icons';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { Button, Input, Spin } from 'antd';
+import { Button, Input, Spin, Tooltip } from 'antd';
 import { isAxiosError } from 'axios';
 import { type ReactNode, useCallback, useEffect, useState } from 'react';
 import { Controller, useForm } from 'react-hook-form';
@@ -8,13 +8,14 @@ import { useNavigate } from 'react-router';
 import { z } from 'zod';
 import { FieldError } from '@/components/common/FieldError';
 import { Markdown } from '@/components/common/Markdown';
+import { ContinueInAppModal } from '@/components/guided/ContinueInAppModal';
 import { GuidedConversation, GuidedModeSelect, GuidedStatusTag } from '@/components/guided/GuidedConversation';
 import { ErrorHandler } from '@/errors/errorHandler';
 import { useConfirm } from '@/hooks/useConfirm';
 import { useGuidedAct } from '@/hooks/useGuidedAct';
 import { useGuidedSession } from '@/hooks/useGuidedSession';
 import { getCurrentCreation, openCreatedProject, startCreation } from '@/services/creationService';
-import { removeGuided, resumeGuided, revealGuided, sendGuidedMessage } from '@/services/guidedService';
+import { continueInClaudeApp, removeGuided, resumeGuided, revealGuided, sendGuidedMessage } from '@/services/guidedService';
 import type { GuidedView } from '@/types/guided';
 
 /**
@@ -26,6 +27,8 @@ type BriefValues = z.infer<typeof briefSchema>;
 
 /** O terminal escondido arranca com este tamanho; ao ser revelado, a grelha ajusta-o. */
 const RESUME_SIZE = { cols: 120, rows: 40 };
+/** O nome da sessão no Claude app: o mesmo que o backend escreve em `/remote-control <nome>` (ADR 0033). */
+const CLAUDE_APP_NAME = 'Novo projeto · create';
 
 function PageHeader({ title, extra }: { title: ReactNode; extra?: ReactNode }) {
   return (
@@ -105,6 +108,7 @@ function CreationSession({ id, onGone }: { id: string; onGone: () => void }) {
   const confirm = useConfirm();
   const { view, entries, gone, refresh } = useGuidedSession(id);
   const { busy, act } = useGuidedAct(refresh);
+  const [choosing, setChoosing] = useState(false);
 
   useEffect(() => {
     if (gone) onGone();
@@ -226,6 +230,18 @@ function CreationSession({ id, onGone }: { id: string; onGone: () => void }) {
           <>
             <GuidedStatusTag status={view.status} />
             {!finished && <GuidedModeSelect view={view} busy={busy} act={act} />}
+            {!finished && view.remote && (
+              <span className="tag" data-in-app-tag>
+                No Claude app
+              </span>
+            )}
+            {!finished && !view.remote && view.status !== 'stopped' && (
+              <Tooltip title={view.status === 'waiting-text' ? undefined : 'Só quando o Claude está à espera do teu texto — sem escolha por responder nem a trabalhar.'}>
+                <Button size="small" icon={<MobileOutlined />} disabled={busy || view.status !== 'waiting-text'} onClick={() => setChoosing(true)}>
+                  Continuar no Claude app
+                </Button>
+              </Tooltip>
+            )}
             <Button size="small" icon={<CodeOutlined />} disabled={busy} onClick={reveal}>
               Ver terminal
             </Button>
@@ -245,6 +261,18 @@ function CreationSession({ id, onGone }: { id: string; onGone: () => void }) {
         onReveal={reveal}
         onSend={(text) => act(() => sendGuidedMessage(id, text))}
         endPanel={endPanel}
+      />
+      <ContinueInAppModal
+        open={choosing}
+        sessionName={CLAUDE_APP_NAME}
+        busy={busy}
+        onCancel={() => setChoosing(false)}
+        onChoose={(display) =>
+          void act(async () => {
+            await continueInClaudeApp(id, display);
+            setChoosing(false);
+          })
+        }
       />
     </div>
   );

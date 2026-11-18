@@ -91,6 +91,27 @@ caracteres de controlo. Limpa-se só se o envio correu bem.
 | Terminada | `.card p-5`: ponto `is-run` + "Projeto criado", a pasta num `.code-line`, o resumo em Markdown, "Decisões em aberto" (`kicker` + lista), o próximo passo em mono; **Fechar** e **Abrir projeto** (`primary`) |
 | Falhou | Faixa `is-err` em bloco: o erro, o resumo se houver, **Ver terminal** e **Fechar** (`primary`) |
 
+## Continuar no Claude app (ADR 0033, 2026-11-18)
+
+Só no Novo projeto (`create`); a Upwork nunca tem `remote`.
+
+- **Botão** no cabeçalho, depois de **Permissões**: `Button size="small"` com `MobileOutlined` e o texto "Continuar no Claude
+  app". Só está ativo em `waiting-text`. Noutro estado vivo fica desativado, com um `Tooltip` a explicar porquê; numa
+  sessão parada ou terminada não aparece. Depois de ligado, dá lugar à etiqueta neutra `.tag` "No Claude app".
+- **A escolha** num Modal utilitário (`components/guided/ContinueInAppModal.tsx`, `min(520px, 94vw)`). Explica o que muda e
+  mostra o nome da sessão no app em mono. No rodapé: **Cancelar** à esquerda; **Manter aberto** e **Esconder aqui**
+  (`primary`) à direita. Termina com uma nota `text-text-3`: não dá para desligar a meio; o Retomar traz as perguntas de volta.
+- **Esconder aqui**: no lugar da conversa fica um `.card p-5` (`data-in-app-notice`) com o arco `is-work`,
+  "A responder no Claude app", e a frase de que há um terminal a correr em fundo. Tem um botão **Mostrar a conversa**.
+  O cabeçalho fica igual (estado, Permissões, Ver terminal, Cancelar). Os painéis do fim (parada, criada, falhou)
+  aparecem como sempre, em vez do aviso.
+- **Manter aberto**: o feed fica à vista. Por cima do painel do fundo aparece uma faixa neutra `.status-banner`
+  (`data-in-app-banner`) com "No Claude app: as escolhas e as permissões respondem-se lá" e um **Esconder aqui** `text`.
+  Em `needs-you` (uma escolha à espera no app), a faixa usa o `is-wait` e o texto "há uma escolha ou uma permissão
+  à tua espera lá". Substitui a faixa "Ver terminal". Em `waiting-text` a `ReplyBox` continua.
+- **Permissões decididas fora da página** (`outside` no feed): a linha leva a etiqueta `text-text-3` "no Claude app"
+  entre "Permitido"/"Recusado" e o alvo. Sem remote, a etiqueta é "fora desta página".
+
 ## Partilhado: `GuidedConversation` (2026-10-26)
 
 O feed + o painel do fundo de `working`/`question`/`permission`/`waiting-text`/`needs-you` vivem em

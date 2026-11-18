@@ -8,7 +8,7 @@ import { PermissionCard } from '@/components/guided/PermissionCard';
 import { QuestionCard } from '@/components/guided/QuestionCard';
 import { ReplyBox } from '@/components/guided/ReplyBox';
 import { useStickToBottom } from '@/components/guided/useStickToBottom';
-import { answerQuestion, decidePermission, setGuidedMode } from '@/services/guidedService';
+import { answerQuestion, decidePermission, setGuidedDisplay, setGuidedMode } from '@/services/guidedService';
 import type { Answers, FeedEntry, GuidedMode, GuidedStatus, GuidedView } from '@/types/guided';
 
 /**
@@ -92,6 +92,42 @@ function JumpToEndButton({ onClick }: { onClick: () => void }) {
   );
 }
 
+/**
+ * ADR 0033, "Esconder aqui": no lugar da conversa, o aviso de que o terminal continua em fundo e a resposta é no
+ * Claude app. O cabeçalho e o painel do fim (parada, criada, falhou) ficam com quem usa a conversa.
+ */
+function InAppNotice({ busy, onShow }: { busy: boolean; onShow: () => void }) {
+  return (
+    <section className="card p-5 flex items-start gap-3" aria-label="No Claude app" data-in-app-notice>
+      <span className="state-icon is-work mt-1" aria-hidden />
+      <div className="flex-1 flex flex-col gap-1">
+        <span className="text-[14px] font-semibold text-text-1">A responder no Claude app</span>
+        <span className="text-[13.5px] leading-[20px] text-text-2">
+          Há um terminal a correr em fundo com esta criação. As escolhas e as permissões aparecem no Claude app; quando acabar, o resumo aparece aqui.
+        </span>
+      </div>
+      <Button size="small" disabled={busy} onClick={onShow}>
+        Mostrar a conversa
+      </Button>
+    </section>
+  );
+}
+
+/** "Manter aberto": a faixa que lembra onde se responde, com a troca para Esconder aqui. */
+function InAppBanner({ busy, waiting, onHide }: { busy: boolean; waiting: boolean; onHide: () => void }) {
+  return (
+    <div className="status-banner flex items-center gap-3 px-4 py-2.5" role="status" data-in-app-banner>
+      <span className={`state-icon ${waiting ? 'is-wait' : 'is-work'}`} aria-hidden />
+      <span className="flex-1 text-[13.5px] leading-[20px]">
+        {waiting ? 'No Claude app: há uma escolha ou uma permissão à tua espera lá.' : 'No Claude app: as escolhas e as permissões respondem-se lá.'}
+      </span>
+      <Button size="small" type="text" disabled={busy} onClick={onHide}>
+        Esconder aqui
+      </Button>
+    </div>
+  );
+}
+
 function lastActivity(entries: FeedEntry[]): string | null {
   const entry = entries.at(-1);
   return entry?.type === 'activity' ? entry.summary : null;
@@ -103,6 +139,9 @@ export function GuidedConversation({ view, entries, busy, act, onReveal, onSend,
   const changeKey = `${entries.length}|${entries.at(-1)?.id}|${view.status}|${view.pending?.requestId}`;
   const { away, jumpToEnd } = useStickToBottom(root, changeKey, ownerCount);
   const [reserveIndex, setReserveIndex] = useState(false);
+  const live = view.status !== 'stopped' && view.status !== 'done' && view.status !== 'failed';
+  const inApp = view.remote && live;
+  const display = (next: 'hidden' | 'open') => void act(() => setGuidedDisplay(view.id, next));
 
   let bottomPanel: ReactNode = endPanel;
   switch (view.status) {
@@ -158,6 +197,11 @@ export function GuidedConversation({ view, entries, busy, act, onReveal, onSend,
       );
       break;
     case 'needs-you':
+      // In the app, a question or permission is asked there — the hook leaves it to Claude Code's own prompt.
+      if (inApp) {
+        bottomPanel = null;
+        break;
+      }
       bottomPanel = (
         <div className="status-banner is-wait flex items-center gap-3 px-4 py-2.5" role="status">
           <span className="state-icon is-wait" aria-hidden />
@@ -170,9 +214,18 @@ export function GuidedConversation({ view, entries, busy, act, onReveal, onSend,
       break;
   }
 
+  if (inApp && view.display === 'hidden') {
+    return (
+      <div ref={root} className="flex flex-col gap-6">
+        <InAppNotice busy={busy} onShow={() => display('open')} />
+      </div>
+    );
+  }
+
   return (
     <div ref={root} className={`flex flex-col gap-6${reserveIndex ? ' pr-10' : ''}`}>
-      <GuidedFeed entries={entries} copyable={copyable} />
+      <GuidedFeed entries={entries} copyable={copyable} outsideLabel={view.remote ? 'no Claude app' : undefined} />
+      {inApp && <InAppBanner busy={busy} waiting={view.status === 'needs-you'} onHide={() => display('hidden')} />}
       {bottomPanel}
       {away && view.status !== 'waiting-text' && (
         // Preso ao fundo da área com scroll; a altura 0 (e o -mt-6 que anula o gap) não mexe no fim da conversa.

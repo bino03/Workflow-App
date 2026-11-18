@@ -962,3 +962,35 @@ Guardar o verbatim importa: vários bullets são vagos, e o log preserva o que f
   - Gravar uma branch nova sincroniza logo, para não ser preciso carregar no botão.
 - Files: backend/src/{state/state.schema.ts,projectInfo/{projectGit.ts,projectInfoService.ts,projectInfo.routes.ts,projectInfo.schemas.ts},app.ts}, backend/test/{projectInfo.gitSync.test.ts,stateStore.test.ts}, backend/vitest.config.ts, frontend/src/{types/projectInfo.ts,services/projectInfoService.ts,hooks/useProjectInfos.ts,pages/ProjectsPage.tsx,components/projects/{DeployList,EnvironmentFields,ProjectInfoDetails,ProjectInfoDrawer}.tsx,components/projects/projectInfoFormSchema.ts}, scripts/verify/project-git-sync.mjs, docs/{api,database,security,environment,code-map,commands}.md, docs/features/informacao-dos-projetos.md
 - Item original do ToDo: "`sonnet` Implementar o deploy automático do git a partir do [[../docs/adr/0034-deploy-automatico-a-partir-do-git|ADR 0034]] (2026-11-18): o campo e o schema (`backend/src/projectInfo/`, espelho em `frontend/src/types/projectInfo.ts`), o git no estilo de `imports/workflowGit.ts`, a rota, o botão no drawer e a etiqueta "git" na `DeployList`; `docs/api.md`, `docs/database.md`, nota datada na spec. Verificar: testes do backend com um repo git temporário (merge novo → 1 deploy; o mesmo commit outra vez → nada; branch inválida → 400) e no browser num projeto real com remote (a data bate com `git log -1 origin/main`). Tier: o quê/onde/como já ficam decididos pelo ADR."
+
+## 2026-11-18 — "Continuar no Claude app": backend (ADR 0033)
+
+- `POST /api/guided/:id/remote` marca `remote`/`display` no `guided-control` **antes** de colar a linha fixa `/remote-control Novo projeto · create`.
+  - Só para o `create`, só em `waiting-text` e só uma vez. Os erros são `GUIDED_005` (já está no app) e `GUIDED_006` (propósito sem app).
+  - Se a colagem falha, o `remote` volta atrás.
+- `PUT /api/guided/:id/display` troca entre Esconder e Manter. O `setMode` e o `display` passaram por `writeControl`, que nunca perde campos.
+- Com `remote`, o hook sai calado: a pergunta e a permissão ficam para o Claude app. O Automático e a regra do destino continuam.
+- O Retomar limpa o `remote`, porque o processo do `--resume` não tem remote control.
+- O feed lê o `permissionDecision` com `source: user…` e mostra essas permissões como linha `outside: true`.
+  - Provado no `.jsonl` real da 4.ª corrida do spike: `Write: …answers.txt allow outside=true`.
+  - O feed vazio do spike era bug do script (`CLAUDE_CONFIG_DIR=` vazio), não do parser. Corrigido em `scripts/guided-rc-spike.ts`.
+- Mudei o comentário e a mensagem de `claudeArgs.ts:121`. Os `GUIDED_005`/`006` estão espelhados no frontend, e o `GuidedView` tem agora `remote`/`display`.
+- Backend 614/614; `tsc` e `eslint` limpos. O teste de rota confirma no PTY real o que lá é escrito: `ESC[200~/remote-control Novo projeto · create ESC[201~` e depois `\r`.
+- Files: backend/src/guided/{guided.schemas,guidedService,guided.routes,guidedFiles,transcriptFeed}.ts, backend/src/common/errors.ts, backend/src/terminals/claudeArgs.ts, backend/scripts/guided-rc-spike.ts, backend/test/{guidedHook,guidedService,guided.routes,transcriptFeed}.test.ts, frontend/src/{errors/errorMessages,types/guided}.ts, frontend/src/pages/dev/GuidedPreviewPage.tsx, docs/{api,security}.md, docs/adr/0033-continuar-no-claude-app.md
+- Item original do ToDo (antes de ser dividido em 3): "`opus` Botão **"Continuar no Claude app"** no Novo projeto — construir o que o [[../docs/adr/0033-continuar-no-claude-app|ADR 0033]] decidiu (spike feito a 2026-11-18): rota que marca `remote: true` em `guided-control/<id>.json` e escreve a linha fixa `/remote-control Novo projeto · create` no PTY (só em `waiting-text`, uma só vez); `guided-hook.cjs` sai sem output no `AskUserQuestion`/`PermissionRequest` com `remote: true` (o Automático continua); página com o botão, a escolha **Esconder aqui** / **Manter aberto** e o aviso do terminal em fundo; **o feed tem de mostrar as mensagens dadas no app** (no spike não mostrou — ver como ficam no `.jsonl`). Muda o comentário de `claudeArgs.ts:121`. Pôr em produção reinicia o backend da 7400 e mata os terminais — combinar o momento comigo. Verificar: criação real → botão → a sessão no Claude app → pergunta com opções e permissão respondidas lá → a página mostra-as no feed ("Manter aberto") ou só o aviso ("Esconder aqui"). (pedido direto do dono, 2026-11-12)"
+- Bullet desta tarefa: "`opus` "Continuar no Claude app" — **backend** ([[../docs/adr/0033-continuar-no-claude-app|ADR 0033]]): `remote` + `display` no `guided-control/<id>.json` (o `setMode` preserva-os), `POST /api/guided/:id/remote` (só `create`, só `waiting-text`, uma vez; `GUIDED_005`), hook calado com `remote` (o Automático e a regra do destino continuam), Retomar limpa o `remote`, feed com as permissões do app, comentário de `claudeArgs.ts:121`, testes, docs. (pedido direto do dono, 2026-11-12)"
+
+## 2026-11-18 — "Continuar no Claude app": frontend (ADR 0033)
+
+- **Cabeçalho.** Há um botão "Continuar no Claude app", ativo só em `waiting-text`; fora disso fica desativado, com tooltip. Depois de ligado passa à etiqueta "No Claude app".
+- **Modal.** O `ContinueInAppModal` mostra o nome da sessão (`Novo projeto · create`) e dá a escolher entre Esconder aqui e Manter aberto.
+- **Esconder aqui.** No lugar da conversa fica um cartão com "A responder no Claude app" e "há um terminal a correr em fundo", e um botão **Mostrar a conversa**.
+- **Manter aberto.** Aparece uma faixa "No Claude app" com **Esconder aqui**. Em `needs-you` a faixa diz que a espera é lá, em vez de "Ver terminal", e em `waiting-text` a caixa de resposta continua.
+- **Feed.** A linha de uma permissão decidida no app diz "no Claude app".
+- **Verificação.**
+  - `scripts/verify/guided-claude-app.mjs` passou 28/28 no browser.
+  - Como o `claude` da instância não tem login, a criação é do cenário: `Fetch.requestPaused` em `/api/creations/current` e `/api/guided/*`. O cenário confirma os pedidos que a página faz (POST /remote, PUT /display).
+  - `tsc -b` e `eslint` limpos.
+  - Não voltei a correr o `guided-index.mjs`: o caminho sem remote do `GuidedConversation` só ganhou a prop `outsideLabel`.
+- Files: frontend/src/components/guided/{ContinueInAppModal,GuidedConversation,GuidedFeed}.tsx, frontend/src/pages/NewProjectPage.tsx, frontend/src/services/guidedService.ts, scripts/verify/guided-claude-app.mjs, docs/skills/references/design/guided-session.md, docs/{code-map,commands}.md
+- Item original do ToDo: "`sonnet` "Continuar no Claude app" — **frontend**: botão (tooltip fora de `waiting-text`), escolha Esconder aqui / Manter aberto, cartão "A responder no Claude app" com "Mostrar a conversa", estado real + `remote`; verificado no browser numa instância descartável."

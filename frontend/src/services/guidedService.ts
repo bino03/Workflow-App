@@ -1,5 +1,5 @@
 import api from '@/api';
-import type { Answers, FeedPage, GuidedMode, GuidedView } from '@/types/guided';
+import type { Answers, FeedPage, GuidedDisplay, GuidedMode, GuidedView } from '@/types/guided';
 import type { TerminalView } from '@/types/terminal';
 
 /**
@@ -27,6 +27,16 @@ export async function decidePermission(id: string, requestId: string, decision: 
 /** Perguntar / Automático (ADR 0021). Passar a Automático aprova também as permissões que já estão à espera. */
 export async function setGuidedMode(id: string, mode: GuidedMode): Promise<GuidedView> {
   return (await api.put<GuidedView>(`/guided/${id}/mode`, { mode })).data;
+}
+
+/** "Continuar no Claude app" (ADR 0033): o backend escreve a sua linha fixa `/remote-control`, uma só vez. */
+export async function continueInClaudeApp(id: string, display: GuidedDisplay): Promise<GuidedView> {
+  return (await api.post<GuidedView>(`/guided/${id}/remote`, { display })).data;
+}
+
+/** Esconder aqui ↔ Manter aberto, numa sessão que já está no Claude app. */
+export async function setGuidedDisplay(id: string, display: GuidedDisplay): Promise<GuidedView> {
+  return (await api.put<GuidedView>(`/guided/${id}/display`, { display })).data;
 }
 
 /** Texto livre, quando o Claude parou à espera dele. */

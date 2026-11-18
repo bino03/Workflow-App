@@ -48,19 +48,20 @@ export function ActivityLine({ summary }: { summary: string }) {
   );
 }
 
-/** Uma permissão já decidida: ✓ permitida / ✕ recusada, e sobre quê. */
-export function PermissionLine({ summary, decision }: { summary: string; decision: 'allow' | 'deny' | null }) {
+/** Uma permissão já decidida: ✓ permitida / ✕ recusada, sobre quê, e onde — quando não foi nesta página. */
+export function PermissionLine({ summary, decision, where }: { summary: string; decision: 'allow' | 'deny' | null; where?: string | undefined }) {
   const allowed = decision === 'allow';
   return (
     <div className="feed-line">
       {allowed ? <CheckOutlined aria-hidden className="text-success" /> : <CloseOutlined aria-hidden className="text-error" />}
       <span>{allowed ? 'Permitido' : 'Recusado'}</span>
+      {where && <span className="text-text-3">{where}</span>}
       <span className="feed-target">{summary}</span>
     </div>
   );
 }
 
-function Entry({ entry, copyable }: { entry: FeedEntry; copyable: boolean }) {
+function Entry({ entry, copyable, outsideLabel }: { entry: FeedEntry; copyable: boolean; outsideLabel: string }) {
   switch (entry.type) {
     case 'assistant-text':
       return <AssistantMessage markdown={entry.markdown} copyable={copyable} />;
@@ -69,7 +70,7 @@ function Entry({ entry, copyable }: { entry: FeedEntry; copyable: boolean }) {
     case 'question':
       return entry.answers ? <AnsweredQuestion questions={entry.questions} answers={entry.answers} /> : null;
     case 'permission':
-      return <PermissionLine summary={entry.summary} decision={entry.decision} />;
+      return <PermissionLine summary={entry.summary} decision={entry.decision} where={entry.outside ? outsideLabel : undefined} />;
     case 'activity':
       return <ActivityLine summary={entry.summary} />;
   }
@@ -80,13 +81,22 @@ function Entry({ entry, copyable }: { entry: FeedEntry; copyable: boolean }) {
  * pergunta ainda por responder não aparece aqui — está no cartão por baixo do feed. Cada entrada leva
  * `data-entry-id`, por onde o índice das mensagens a encontra; descer sozinha é com quem a usa (`useStickToBottom`).
  */
-export function GuidedFeed({ entries, copyable = false }: { entries: FeedEntry[]; copyable?: boolean }) {
+export function GuidedFeed({
+  entries,
+  copyable = false,
+  outsideLabel = 'fora desta página',
+}: {
+  entries: FeedEntry[];
+  copyable?: boolean;
+  /** Onde foram decididas as permissões que não passaram pela página (ADR 0033: "no Claude app"). */
+  outsideLabel?: string;
+}) {
   return (
     <div className="flex flex-col gap-4" role="log" aria-label="Conversa" aria-live="polite">
       {entries.map((entry) =>
         entry.type === 'question' && !entry.answers ? null : (
           <div key={entry.id} data-entry-id={entry.id} className="scroll-mt-6">
-            <Entry entry={entry} copyable={copyable} />
+            <Entry entry={entry} copyable={copyable} outsideLabel={outsideLabel} />
           </div>
         ),
       )}
