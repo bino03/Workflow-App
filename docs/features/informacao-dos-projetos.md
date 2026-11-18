@@ -57,7 +57,7 @@ um botão para a preencher.
   (`{projectPath}`) para essa fase ser barata — mas o ícone não se faz agora.
 - **Ping/verificação de estado dos URLs** (bolinha verde/vermelha), automático ou por botão. É o backend a
   fazer pedidos a URLs escritos pelo utilizador (SSRF); precisa de ADR próprio ([[../adr/0028-informacao-de-deploy-por-projeto]], ponto 4).
-- **Ler a data do deploy do git ou da API do hosting.** A data é sempre manual.
+- ~~**Ler a data do deploy do git ou da API do hosting.** A data é sempre manual.~~ — *2026-11-18: o git passou a entrar ([[../adr/0034-deploy-automatico-a-partir-do-git|ADR 0034]]); a API do hosting continua de fora.*
 - **Projetos que não estão no registo** (entradas manuais, site de cliente sem pasta). Só os do registo,
   sem `descartado` e dentro de `ALLOWED_ROOTS`.
 - **Entidade `Fornecedor`** reutilizável entre apps. Hosting é texto com autocompletar.
@@ -291,6 +291,9 @@ consegue escrever num `datetime-local` (é segmentado): o cenário põe o valor 
 passo 7 extraiu `scripts/verify/formDriver.mjs` (`fill`, `choose`, `setDateTime`), que os cenários de Projetos partilham,
 e acrescentou `project-info-http.mjs` (HTTP real, sem browser) e `project-info-e2e.mjs`. O critério "Worksite" correu com o
 projeto Alfa da instância descartável (a app não tem como apontar ao projeto real sem `DATA_DIR` do dono: dados de teste só).
+**Desvio de 2026-11-18:** o [[../adr/0034-deploy-automatico-a-partir-do-git|ADR 0034]] acrescenta o deploy automático a partir do
+git (campo "Branch de deploy" por ambiente, deploys com `source: git`, `POST /api/project-infos/git-sync`). Altera a linha "Data
+do deploy" do §3 e a linha correspondente do "Fora". Implementado no mesmo dia: backend 603/603 + `test/projectInfo.gitSync.test.ts`, `scripts/verify/project-git-sync.mjs` 36/36 (com um remote real).
 **O que uma sessão nova precisa de saber:**
 - O dono quer, no futuro, um ícone ⓘ em cada separador de projeto (`ProjectTabs`) que abre esta ficha
   **na mesma página de Projetos**. Fica de fora desta feature (§2) mas a página deve aceitar

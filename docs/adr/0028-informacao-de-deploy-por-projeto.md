@@ -6,7 +6,8 @@ data: 2026-11-08
 
 # 0028 — Informação de deploy por projeto: uma coleção nova no `state.json`, ligada pelo caminho
 
-**Data**: 2026-11-08 · **Estado**: `aceite` · **Decidido com**: o dono, na entrevista de
+**Data**: 2026-11-08 · **Estado**: `aceite` (ponto 6 — deploys só manuais — alterado por
+[[0034-deploy-automatico-a-partir-do-git]]) · **Decidido com**: o dono, na entrevista de
 [[../features/informacao-dos-projetos]] — "guardar estados e informações sobre cada aplicação: onde está
 alocado, qual é o URL, quando é que o deploy foi dado".
 
