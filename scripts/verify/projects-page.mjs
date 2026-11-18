@@ -1,5 +1,5 @@
 // The Projects page (spec informacao-dos-projetos, step 4): one card per project of the registry joined with its
-// sheet, lifecycle chips, search, the nav item. The sheets are seeded through the API and the DOM is read back —
+// sheet, lifecycle chips (several at once), search, the nav item. The sheets are seeded through the API and the DOM is read back —
 // every claim on screen is also checked against the API, never by a screenshot alone.
 //
 //   cd frontend && npm run build && cd ..
@@ -73,10 +73,30 @@ try {
   await page.evaluate(`${chip('Em produção')}.click()`);
   check('filtering by "Em produção" leaves Alfa only', await page.waitFor(`${cards}.length === 1`) && (await names())[0] === 'Alfa');
   check('the chip is pressed', await page.evaluate(`${chip('Em produção')}.getAttribute('aria-pressed') === 'true'`));
+  // Several lifecycles at once: the union; "Todos" is pressed only when none is chosen.
+  await page.evaluate(`${chip('Em desenvolvimento')}.click()`);
+  check('adding "Em desenvolvimento" shows Alfa and Beta', (await page.waitFor(`${cards}.length === 2`)) && (await names()).sort().join() === 'Alfa,Beta', (await names()).join());
+  check('both chips pressed, "Todos" not', await page.evaluate(`${chip('Em produção')}.getAttribute('aria-pressed') === 'true' && ${chip('Em desenvolvimento')}.getAttribute('aria-pressed') === 'true' && ${chip('Todos')}.getAttribute('aria-pressed') === 'false'`));
+  await page.evaluate(`${chip('Em produção')}.click()`);
+  check('clicking "Em produção" again unselects it: Beta only', (await page.waitFor(`${cards}.length === 1`)) && (await names())[0] === 'Beta' && (await page.evaluate(`${chip('Em produção')}.getAttribute('aria-pressed') === 'false'`)));
+  await page.evaluate(`${chip('Em desenvolvimento')}.click()`);
+  check('unselecting the last one is "Todos" again', (await page.waitFor(`${cards}.length === 3`)) && (await page.evaluate(`${chip('Todos')}.getAttribute('aria-pressed') === 'true'`)));
   await page.evaluate(`${chip('Arquivado')}.click()`);
   check('an empty filter says so', await page.waitFor(`document.body.textContent.includes('Nenhum projeto com esse filtro')`));
+  await page.evaluate(`${chip('Em produção')}.click()`);
+  check('"Arquivado" + "Em produção": Alfa', (await page.waitFor(`${cards}.length === 1`)) && (await names())[0] === 'Alfa');
+  // The choice is kept in this browser: a reload (and leaving the page) brings it back.
+  check('the choice is saved', (await page.evaluate(`localStorage.getItem('workflow-app.projects-lifecycle-filter')`)) === '["archived","production"]', await page.evaluate(`localStorage.getItem('workflow-app.projects-lifecycle-filter')`));
+  await page.navigate(`${instance.base}/projects`);
+  check('after a reload the same chips are pressed and Alfa only', (await page.waitFor(`${cards}.length === 1`)) && (await page.evaluate(`${chip('Arquivado')}.getAttribute('aria-pressed') === 'true' && ${chip('Em produção')}.getAttribute('aria-pressed') === 'true' && ${chip('Todos')}.getAttribute('aria-pressed') === 'false'`)));
+  await page.evaluate(`localStorage.setItem('workflow-app.projects-lifecycle-filter', '{broken')`);
+  await page.navigate(`${instance.base}/projects`);
+  check('a broken saved value falls back to "Todos"', (await page.waitFor(`${cards}.length === 3`)) && (await page.evaluate(`${chip('Todos')}.getAttribute('aria-pressed') === 'true'`)));
+  await page.evaluate(`${chip('Em produção')}.click()`);
+  await page.waitFor(`${cards}.length === 1`);
   await page.evaluate(`${chip('Todos')}.click()`);
-  check('"Todos" brings the 3 back', await page.waitFor(`${cards}.length === 3`));
+  check('"Todos" clears the choice and brings the 3 back', (await page.waitFor(`${cards}.length === 3`)) && (await page.evaluate(`[...document.querySelectorAll('[role="group"][aria-label="Filtrar por ciclo de vida"] [aria-pressed="true"]')].length === 1`)));
+  check('and saves it as "Todos"', (await page.evaluate(`localStorage.getItem('workflow-app.projects-lifecycle-filter')`)) === '[]');
   await page.type('input[aria-label="Pesquisar projetos"]', 'gam');
   check('searching "gam" leaves Gama only', (await page.waitFor(`${cards}.length === 1`)) && (await names())[0] === 'Gama');
 

@@ -9,13 +9,43 @@ import { useProjectInfos } from '@/hooks/useProjectInfos';
 import { useProjects } from '@/hooks/useProjects';
 import type { Lifecycle } from '@/types/projectInfo';
 
-type LifecycleFilter = 'all' | Lifecycle;
+// Preferência do dispositivo, no localStorage (docs/database.md): os ciclos de vida escolhidos, em JSON; [] = Todos.
+const FILTER_KEY = 'workflow-app.projects-lifecycle-filter';
+
+function readSavedFilter(): ReadonlySet<Lifecycle> {
+  try {
+    const saved: unknown = JSON.parse(localStorage.getItem(FILTER_KEY) ?? '[]');
+    // Um valor estragado ou um ciclo de vida que deixou de existir não pode esconder projetos.
+    return new Set(Array.isArray(saved) ? LIFECYCLES.filter((lifecycle) => saved.includes(lifecycle)) : []);
+  } catch {
+    return new Set();
+  }
+}
+
+function saveFilter(selected: ReadonlySet<Lifecycle>) {
+  try {
+    localStorage.setItem(FILTER_KEY, JSON.stringify([...selected]));
+  } catch {
+    // localStorage indisponível: a escolha dura só esta visita.
+  }
+}
 
 /** A ficha de cada projeto do registo: ciclo de vida, onde corre e o último deploy (spec informacao-dos-projetos). */
 export function ProjectsPage() {
   const projects = useProjects();
   const infos = useProjectInfos();
-  const [filter, setFilter] = useState<LifecycleFilter>('all');
+  // Vários ciclos de vida ao mesmo tempo (mostra-se a união); nenhum escolhido = Todos. Guardado neste browser.
+  const [selected, setSelected] = useState<ReadonlySet<Lifecycle>>(readSavedFilter);
+  const choose = (next: ReadonlySet<Lifecycle>) => {
+    setSelected(next);
+    saveFilter(next);
+  };
+  const toggle = (lifecycle: Lifecycle) => {
+    const next = new Set(selected);
+    if (next.has(lifecycle)) next.delete(lifecycle);
+    else next.add(lifecycle);
+    choose(next);
+  };
   const [search, setSearch] = useState('');
 
   // Um projeto pré-aberto por `location.state.projectPath` (o ícone ⓘ dos separadores, numa segunda fase).
@@ -35,9 +65,10 @@ export function ProjectsPage() {
     const needle = search.trim().toLowerCase();
     return projects.projects.filter(
       (project) =>
-        (filter === 'all' || infoByPath.get(project.path)?.lifecycle === filter) && (!needle || project.name.toLowerCase().includes(needle)),
+        (selected.size === 0 || selected.has(infoByPath.get(project.path)?.lifecycle as Lifecycle)) &&
+        (!needle || project.name.toLowerCase().includes(needle)),
     );
-  }, [projects.projects, infoByPath, filter, search]);
+  }, [projects.projects, infoByPath, selected, search]);
 
   const loading = projects.loading || infos.loading;
   const error = projects.error ?? infos.error;
@@ -66,11 +97,11 @@ export function ProjectsPage() {
       </div>
 
       <div className="flex gap-1.5 flex-wrap" role="group" aria-label="Filtrar por ciclo de vida">
-        <button type="button" className="filter-chip" aria-pressed={filter === 'all'} onClick={() => setFilter('all')}>
+        <button type="button" className="filter-chip" aria-pressed={selected.size === 0} onClick={() => choose(new Set())}>
           Todos <span className="font-mono text-[11.5px] text-text-3">{projects.projects.length}</span>
         </button>
         {LIFECYCLES.map((lifecycle) => (
-          <button key={lifecycle} type="button" className="filter-chip" aria-pressed={filter === lifecycle} onClick={() => setFilter(lifecycle)}>
+          <button key={lifecycle} type="button" className="filter-chip" aria-pressed={selected.has(lifecycle)} onClick={() => toggle(lifecycle)}>
             {lifecycleLabel(lifecycle)} <span className="font-mono text-[11.5px] text-text-3">{countOf(lifecycle)}</span>
           </button>
         ))}

@@ -44,7 +44,8 @@ um botão para a preencher.
     (nome, onde está registado, data de renovação).
   - *Notas e links*: notas livres (≤ 4000) e até 10 links `{rótulo, URL}`.
 - **Página `/projects`**: cartões (nome, tag de ciclo de vida, URL do ambiente de produção, hosting, último
-  deploy relativo), filtro por ciclo de vida (chips), pesquisa por nome; clicar num cartão abre um **drawer**
+  deploy relativo), filtro por ciclo de vida (chips; **desde 2026-11-18 vários ao mesmo tempo**, a mostrar a união,
+  com "Todos" = nenhum escolhido, e a escolha guardada neste browser — pedido do dono), pesquisa por nome; clicar num cartão abre um **drawer**
   com a ficha completa e **Editar**.
 - **Registar deploy**: botão no drawer, por ambiente — data/hora de agora, editável, versão e nota opcionais.
 - **Item "Projetos"** na navegação e uma ação de atalho `goProjects` no catálogo (sem tecla por omissão,
