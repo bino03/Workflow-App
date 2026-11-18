@@ -368,8 +368,8 @@ projeto (ou a lista toda) sai, nunca 500.
 
 ## Informação dos projetos (`projectInfo/`, `/api/project-infos`) — ✅
 
-A ficha de cada projeto do registo: ciclo de vida, ambientes (URL, hosting, deploys registados à mão), código e
-infra, notas ([[adr/0028-informacao-de-deploy-por-projeto]], [[features/informacao-dos-projetos]]). Guardada no
+A ficha de cada projeto do registo: ciclo de vida, ambientes (URL, hosting, deploys registados à mão ou vindos do git), código e
+infra, notas ([[adr/0028-informacao-de-deploy-por-projeto]], [[adr/0034-deploy-automatico-a-partir-do-git]], [[features/informacao-dos-projetos]]). Guardada no
 `state.json` (`projectInfos`, [[database]]). Todos os URLs são `http(s)` e **só guardados**: o backend nunca os
 chama. Todas as rotas exigem sessão (`AUTH_002`) e um `projectPath` que esteja em `GET /api/projects`
 (senão `PROJECT_001`), igual ao que essa rota devolve.
@@ -379,12 +379,17 @@ chama. Todas as rotas exigem sessão (`AUTH_002`) e um `projectPath` que esteja 
 | GET | `/api/project-infos` | — | `ProjectInfo[]` — só as fichas dos projetos hoje visíveis no registo (a de um projeto escondido fica no ficheiro) | `AUTH_002` |
 | PUT | `/api/project-infos` | `{projectPath, info}` — `info` é a ficha **sem** `deploys`/`projectPath`/`updatedAt`; um ambiente sem `id` ganha um | `200 ProjectInfo`. Substitui a ficha mas **preserva os deploys** dos ambientes cujo `id` se mantém; um ambiente que desaparece leva os deploys consigo. Idempotente; uma ficha vazia grava na mesma | `COMMON_001` · `PROJECT_001` |
 | DELETE | `/api/project-infos` | query `projectPath` | `204`. Apaga a ficha inteira (também `204` se não havia) | `COMMON_001` · `PROJECT_001` |
-| POST | `/api/project-infos/deploys` | `{projectPath, environmentId, at?, version?, note?}` — `at` (ISO) omitido = agora | `200 ProjectInfo`. Mais recente primeiro; o 21.º deploy faz sair o mais antigo | `COMMON_001` · `PROJECT_001` · `PROJECT_002` |
+| POST | `/api/project-infos/deploys` | `{projectPath, environmentId, at?, version?, note?}` — `at` (ISO) omitido = agora | `200 ProjectInfo`. Mais recente primeiro; o 21.º deploy faz sair o mais antigo. Fica sempre `source: manual`, `commit: null` (o corpo não os escolhe) | `COMMON_001` · `PROJECT_001` · `PROJECT_002` |
+| POST | `/api/project-infos/git-sync` | `{projectPath, force?}` | `200 {info: ProjectInfo \| null, warnings: {environmentId, reason}[], skipped}`. Para cada ambiente com `deployBranch`, `git fetch` + `git log -1` de `origin/<branch>`; um topo diferente do `lastGitCommit` (e que ainda não está no histórico) entra como deploy `source: git` (`version` = hash curto, `note` = assunto, `at` = committer date). Sem `force`, no máx. 1×/5 min por projeto (em memória): dentro do intervalo `skipped: true`, sem git, com os avisos do último sync. `reason`: `no-git` · `no-repo` · `outside-roots` · `no-remote` · `no-branch` · `fetch-failed` · `timeout` — nunca erro, e o stderr do git nunca vem na resposta. Sem ficha ou sem `deployBranch`: `{info, warnings: [], skipped: false}` | `COMMON_001` · `PROJECT_001` |
 | DELETE | `/api/project-infos/deploys` | query `projectPath`, `environmentId`, `deployId` | `200 ProjectInfo` | `COMMON_001` · `PROJECT_001` · `PROJECT_002` · `PROJECT_003` |
 
 - Limites: 5 ambientes, 20 deploys por ambiente, 10 links, notas ≤ 4000. Validação falhada (URL que não
   `http(s)`, texto longo) → `COMMON_001` com erro por campo.
 - O "último deploy" não existe na resposta: deriva-se no frontend do `at` mais recente.
+- `deployBranch` (no `PUT`) é um nome de branch validado (`BRANCH_NAME` em `state.schema.ts`: nada começado por `-` ou `/`,
+  sem `..`, `//`, componente começado por `.`, `.lock`) → senão `COMMON_001`. O `lastGitCommit` só o backend escreve (o
+  `PUT` não o aceita; mudar o `deployBranch` põe-no a `null`). O frontend chama o `git-sync` em fundo ao abrir `/projects`
+  e depois de gravar uma branch nova; o botão **Atualizar do git** manda `force: true`.
 
 ## Correr e parar a app (`appRuns/`, `/api/app-runs`) — 🚧
 

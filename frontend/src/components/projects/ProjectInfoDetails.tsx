@@ -1,5 +1,5 @@
 import type { ReactNode } from 'react';
-import type { Deploy, Environment, ProjectInfo } from '@/types/projectInfo';
+import type { Deploy, Environment, GitSyncWarning, ProjectInfo } from '@/types/projectInfo';
 import { DeployList } from './DeployList';
 import { ENVIRONMENT_KIND_LABEL, displayUrl, lifecycleLabel, lifecycleTagClass } from './projectInfoFormat';
 
@@ -42,9 +42,13 @@ const money = new Intl.NumberFormat('pt-PT', { style: 'currency', currency: 'EUR
 type DeployHandlers = {
   onRegisterDeploy: (environment: Environment) => void;
   onRemoveDeploy: (environment: Environment, deploy: Deploy) => void;
+  /** Os avisos do último sync do git deste projeto (ADR 0034). */
+  gitWarnings: readonly GitSyncWarning[];
+  syncing: boolean;
+  onSyncGit: () => void;
 };
 
-function EnvironmentView({ environment, onRegisterDeploy, onRemoveDeploy }: { environment: Environment } & DeployHandlers) {
+function EnvironmentView({ environment, onRegisterDeploy, onRemoveDeploy, gitWarnings, syncing, onSyncGit }: { environment: Environment } & DeployHandlers) {
   return (
     <div className="p-4 border border-border rounded-md bg-surface-2 flex flex-col gap-3">
       <div className="flex items-center gap-2">
@@ -56,19 +60,27 @@ function EnvironmentView({ environment, onRegisterDeploy, onRemoveDeploy }: { en
           { label: 'URL', value: <ExternalLink url={environment.url} /> },
           { label: 'Hosting', value: environment.hosting ?? DASH },
           { label: 'Branch / versão', value: environment.version ? <span className="font-mono text-[12.5px]">{environment.version}</span> : DASH },
+          { label: 'Branch de deploy', value: environment.deployBranch ? <span className="font-mono text-[12.5px]">origin/{environment.deployBranch}</span> : DASH },
           { label: 'Painel do hosting', value: <ExternalLink url={environment.dashboardUrl} /> },
           { label: 'Logs', value: <ExternalLink url={environment.logsUrl} /> },
           { label: 'Health check', value: <ExternalLink url={environment.healthUrl} /> },
           { label: 'Custo mensal', value: environment.monthlyCostEur === null ? DASH : money.format(environment.monthlyCostEur) },
         ]}
       />
-      <DeployList environment={environment} onRegister={onRegisterDeploy} onRemove={onRemoveDeploy} />
+      <DeployList
+        environment={environment}
+        onRegister={onRegisterDeploy}
+        onRemove={onRemoveDeploy}
+        gitWarning={gitWarnings.find((warning) => warning.environmentId === environment.id)?.reason ?? null}
+        syncing={syncing}
+        onSyncGit={onSyncGit}
+      />
     </div>
   );
 }
 
 /** A ficha de um projeto em modo de leitura. Sem ficha (`info` indefinido), só o convite a preenchê-la. */
-export function ProjectInfoDetails({ info, onRegisterDeploy, onRemoveDeploy }: { info: ProjectInfo | undefined } & DeployHandlers) {
+export function ProjectInfoDetails({ info, ...handlers }: { info: ProjectInfo | undefined } & DeployHandlers) {
   if (!info) {
     return <p className="m-0 text-[13.5px] text-text-2">Ainda não há informação sobre este projeto. Carrega em Editar para a preencher.</p>;
   }
@@ -84,7 +96,7 @@ export function ProjectInfoDetails({ info, onRegisterDeploy, onRemoveDeploy }: {
       </Section>
 
       <Section title="Ambientes">
-        {info.environments.length === 0 ? <p className="m-0 text-[13px] text-text-3">Nenhum ambiente.</p> : info.environments.map((environment) => <EnvironmentView key={environment.id} environment={environment} onRegisterDeploy={onRegisterDeploy} onRemoveDeploy={onRemoveDeploy} />)}
+        {info.environments.length === 0 ? <p className="m-0 text-[13px] text-text-3">Nenhum ambiente.</p> : info.environments.map((environment) => <EnvironmentView key={environment.id} environment={environment} {...handlers} />)}
       </Section>
 
       <Section title="Código e infra">

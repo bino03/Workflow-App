@@ -4,10 +4,20 @@ import type { ProjectsService } from '../projects/projectsService.js';
 import { type Environment, MAX_DEPLOYS, type ProjectInfo } from '../state/state.schema.js';
 import type { StateStore } from '../state/stateStore.js';
 import type { ProjectInfoInput } from './projectInfo.schemas.js';
+import type { BranchTip, GitWarningReason, ProjectGit } from './projectGit.js';
+
+/** At most one automatic git sync per project in this interval (ADR 0034); the drawer's button skips it. */
+export const GIT_SYNC_INTERVAL_MS = 5 * 60_000;
+
+export type GitSyncWarning = { environmentId: string; reason: GitWarningReason };
+export type GitSyncResult = { info: ProjectInfo | null; warnings: GitSyncWarning[]; skipped: boolean };
 
 export type ProjectInfoServiceOptions = {
   stateStore: StateStore;
   projects: ProjectsService;
+  git: ProjectGit;
+  /** Tests only. */
+  now?: () => number;
 };
 
 /**
@@ -17,10 +27,19 @@ export type ProjectInfoServiceOptions = {
 export class ProjectInfoService {
   private readonly stateStore: StateStore;
   private readonly projects: ProjectsService;
+  private readonly git: ProjectGit;
+  private readonly now: () => number;
+  // In memory on purpose: a restart only means one extra fetch.
+  private readonly lastSync = new Map<string, number>();
+  private readonly running = new Map<string, Promise<GitSyncResult>>();
+  // A skipped sync still shows what the last one found.
+  private readonly lastWarnings = new Map<string, GitSyncWarning[]>();
 
-  constructor({ stateStore, projects }: ProjectInfoServiceOptions) {
+  constructor({ stateStore, projects, git, now = Date.now }: ProjectInfoServiceOptions) {
     this.stateStore = stateStore;
     this.projects = projects;
+    this.git = git;
+    this.now = now;
   }
 
   /** Only the sheets of the projects the registry shows today; a hidden project keeps its sheet on disk. */
@@ -34,10 +53,13 @@ export class ProjectInfoService {
     const state = this.stateStore.update((draft) => {
       const previous = draft.projectInfos.find((info) => info.projectPath === projectPath);
       // An environment that keeps its id keeps its deploys; one that disappears takes them with it.
-      const deploysOf = new Map((previous?.environments ?? []).map((environment) => [environment.id, environment.deploys]));
+      const previousOf = new Map((previous?.environments ?? []).map((environment) => [environment.id, environment]));
       const environments: Environment[] = input.environments.map((environment) => {
         const id = environment.id ?? randomUUID();
-        return { ...environment, id, deploys: deploysOf.get(id) ?? [] };
+        const before = previousOf.get(id);
+        // A new deploy branch starts over: its current tip is the next git deploy.
+        const lastGitCommit = before && before.deployBranch === environment.deployBranch ? before.lastGitCommit : null;
+        return { ...environment, id, lastGitCommit, deploys: before?.deploys ?? [] };
       });
       const info: ProjectInfo = { ...input, environments, projectPath, updatedAt: new Date().toISOString() };
       if (previous) draft.projectInfos[draft.projectInfos.indexOf(previous)] = info;
@@ -66,6 +88,8 @@ export class ProjectInfoService {
         at: deploy.at ?? new Date().toISOString(),
         version: deploy.version ?? null,
         note: deploy.note ?? null,
+        source: 'manual',
+        commit: null,
       });
       // Newest first; past the limit the oldest goes.
       environment.deploys.sort((a, b) => Date.parse(b.at) - Date.parse(a.at));
@@ -73,6 +97,69 @@ export class ProjectInfoService {
       this.touch(draft.projectInfos, projectPath);
     });
     return this.find(state.projectInfos, projectPath);
+  }
+
+  /**
+   * ADR 0034: fetch the tip of `origin/<deployBranch>` of each environment that has one, and add it to that
+   * environment's history when it is a commit not seen before. Without `force`, at most once per interval.
+   */
+  async syncFromGit(projectPath: string, { force }: { force: boolean }): Promise<GitSyncResult> {
+    await this.assertInRegistry(projectPath);
+    const pending = this.running.get(projectPath);
+    if (pending) return pending;
+    const current = this.stateStore.read().projectInfos.find((info) => info.projectPath === projectPath) ?? null;
+    const tracked = current?.environments.filter((environment) => environment.deployBranch) ?? [];
+    if (tracked.length === 0) return { info: current, warnings: [], skipped: false };
+    const last = this.lastSync.get(projectPath);
+    if (!force && last !== undefined && this.now() - last < GIT_SYNC_INTERVAL_MS) return { info: current, warnings: this.lastWarnings.get(projectPath) ?? [], skipped: true };
+
+    this.lastSync.set(projectPath, this.now());
+    const work = this.runSync(projectPath, tracked)
+      .then((result) => {
+        this.lastWarnings.set(projectPath, result.warnings);
+        return result;
+      })
+      .finally(() => this.running.delete(projectPath));
+    this.running.set(projectPath, work);
+    return work;
+  }
+
+  private async runSync(projectPath: string, tracked: Environment[]): Promise<GitSyncResult> {
+    const tips = await this.git.tips(projectPath, tracked.map((environment) => environment.deployBranch!));
+    const warnings: GitSyncWarning[] = [];
+    const fresh: { environmentId: string; branch: string; tip: BranchTip }[] = [];
+    for (const environment of tracked) {
+      const tip = tips.get(environment.deployBranch!);
+      if (tip === undefined) continue;
+      if (typeof tip === 'string') warnings.push({ environmentId: environment.id, reason: tip });
+      else if (tip.commit !== environment.lastGitCommit) fresh.push({ environmentId: environment.id, branch: environment.deployBranch!, tip });
+    }
+    if (fresh.length === 0) {
+      const info = this.stateStore.read().projectInfos.find((candidate) => candidate.projectPath === projectPath) ?? null;
+      return { info, warnings, skipped: false };
+    }
+    // git ran outside the (synchronous) update; inside it, check again that nothing changed meanwhile.
+    const state = this.stateStore.update((draft) => {
+      const info = draft.projectInfos.find((candidate) => candidate.projectPath === projectPath);
+      for (const { environmentId, branch, tip } of fresh) {
+        const environment = info?.environments.find((env) => env.id === environmentId);
+        if (!environment || environment.deployBranch !== branch) continue;
+        environment.lastGitCommit = tip.commit;
+        if (environment.deploys.some((deploy) => deploy.commit === tip.commit)) continue;
+        environment.deploys.push({
+          id: randomUUID(),
+          at: tip.at,
+          version: tip.commit.slice(0, 7),
+          note: tip.subject ? tip.subject.slice(0, 280).trim() : null,
+          source: 'git',
+          commit: tip.commit,
+        });
+        environment.deploys.sort((a, b) => Date.parse(b.at) - Date.parse(a.at));
+        environment.deploys.splice(MAX_DEPLOYS);
+      }
+      this.touch(draft.projectInfos, projectPath);
+    });
+    return { info: state.projectInfos.find((info) => info.projectPath === projectPath) ?? null, warnings, skipped: false };
   }
 
   async removeDeploy(projectPath: string, environmentId: string, deployId: string): Promise<ProjectInfo> {

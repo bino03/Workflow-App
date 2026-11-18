@@ -932,3 +932,33 @@ Guardar o verbatim importa: vários bullets são vagos, e o log preserva o que f
 - Verificação: `npx tsc -b` e lint limpos; `scripts/verify/projects-page.mjs` 36/36 (com escolha múltipla, desmarcar, guardar, recarregar e valor estragado).
 - Files: frontend/src/pages/ProjectsPage.tsx · scripts/verify/projects-page.mjs · docs/database.md · docs/features/informacao-dos-projetos.md
 - Item original: pedido direto (não estava no ToDo): "na filtragem de projeto quero poder escolher mais que uma categoria ao mesmo tempo" + "mas deve guardar sempre o estado das escolhas de filtragem"
+
+## 2026-11-18 — ADR 0034: deploy automático a partir do git
+
+- O ADR fixa o campo `deployBranch` por ambiente, os deploys com `source: git`/`commit` e o `lastGitCommit` por ambiente (apagar um deploy do git é definitivo e um que caiu fora dos 20 não volta), e a rota `POST /api/project-infos/git-sync` (em fundo ≤1×/5 min por projeto, e o botão com `force`). Fixa também três formas fixas do `GIT_BIN` (`rev-parse --show-toplevel`, `fetch` sem tags, sem FETCH_HEAD, sem gc e não interativo, `log -1`), com a raiz do repo dentro das `ALLOWED_ROOTS`, e diz que as falhas são avisos. Respostas do dono: subir até à raiz, guardar o último hash, o frontend dispara por projeto, fetch mínimo e não interativo.
+- Uma diferença em relação ao plano: o fetch é um **por branch distinta**, não um por projeto. Uma branch inexistente faria falhar o fetch das outras. O limite de 5 min continua a ser por projeto.
+- Marcado o ponto 6 do 0028 como alterado (no topo e no README) e acrescentada uma nota datada na spec informacao-dos-projetos (o "Fora" riscado, e o desvio no §6).
+- Files: docs/adr/0034-deploy-automatico-a-partir-do-git.md, docs/adr/0028-informacao-de-deploy-por-projeto.md, docs/adr/README.md, docs/features/informacao-dos-projetos.md
+- Item original do ToDo: "`opus` ADR novo: **deploy automático a partir do git** — substitui o ponto 6 do [[../docs/adr/0028-informacao-de-deploy-por-projeto|ADR 0028]] (deploys só manuais) e a linha "Ler a data do deploy do git" do "Fora" da spec [[../docs/features/informacao-dos-projetos|informacao-dos-projetos]]; quero que o merge para produção preencha o último deploy sem o registar à mão. (pedido direto do dono, 2026-11-18)"
+
+## 2026-11-18 — Deploy automático a partir do git (ADR 0034)
+
+- **Backend:**
+  - `deployBranch` e `lastGitCommit` por ambiente, e `source`/`commit` nos deploys. Entram por omissões, sem subir o `STATE_VERSION`.
+  - `projectInfo/projectGit.ts` tem as três formas fixas do `GIT_BIN` e um ambiente não interativo. Uma falha passa a aviso.
+  - `POST /api/project-infos/git-sync` só corre 1×/5 min por projeto, com o limite em memória. Um pedido saltado devolve os avisos do último sync.
+- **Frontend:**
+  - Campo "Branch de deploy (git)" com o regex espelhado.
+  - Sync em fundo ao abrir /projects, e também logo depois de gravar uma branch nova.
+  - Botão **Atualizar do git** e aviso discreto, ambos por ambiente.
+  - Etiqueta "git" no deploy, com o hash completo no `title`.
+- **Testes e verificação:**
+  - Backend 603/603. A seguir acrescentei um teste: os 12 de `projectInfo.gitSync.test.ts` usam repos reais (bare origin + clone, pasta numa subpasta do repo).
+  - `tsc -b` e `eslint` limpos.
+  - Browser: `scripts/verify/project-git-sync.mjs` deu 36/36 numa instância descartável.
+  - O "projeto real com remote" foi um repo da instância com `origin` = o GitHub deste repo. O deploy deu `a0aea59` (= `ls-remote`), com a committer date certa. Não apontei a nenhuma pasta tua: a instância só tem as roots dela.
+- **Depois do plano:**
+  - O backend guarda os avisos do último sync. Sem isso, um reload dentro dos 5 min apagava-os.
+  - Gravar uma branch nova sincroniza logo, para não ser preciso carregar no botão.
+- Files: backend/src/{state/state.schema.ts,projectInfo/{projectGit.ts,projectInfoService.ts,projectInfo.routes.ts,projectInfo.schemas.ts},app.ts}, backend/test/{projectInfo.gitSync.test.ts,stateStore.test.ts}, backend/vitest.config.ts, frontend/src/{types/projectInfo.ts,services/projectInfoService.ts,hooks/useProjectInfos.ts,pages/ProjectsPage.tsx,components/projects/{DeployList,EnvironmentFields,ProjectInfoDetails,ProjectInfoDrawer}.tsx,components/projects/projectInfoFormSchema.ts}, scripts/verify/project-git-sync.mjs, docs/{api,database,security,environment,code-map,commands}.md, docs/features/informacao-dos-projetos.md
+- Item original do ToDo: "`sonnet` Implementar o deploy automático do git a partir do [[../docs/adr/0034-deploy-automatico-a-partir-do-git|ADR 0034]] (2026-11-18): o campo e o schema (`backend/src/projectInfo/`, espelho em `frontend/src/types/projectInfo.ts`), o git no estilo de `imports/workflowGit.ts`, a rota, o botão no drawer e a etiqueta "git" na `DeployList`; `docs/api.md`, `docs/database.md`, nota datada na spec. Verificar: testes do backend com um repo git temporário (merge novo → 1 deploy; o mesmo commit outra vez → nada; branch inválida → 400) e no browser num projeto real com remote (a data bate com `git log -1 origin/main`). Tier: o quê/onde/como já ficam decididos pelo ADR."

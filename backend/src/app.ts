@@ -41,6 +41,7 @@ import { ProjectsService } from './projects/projectsService.js';
 import { ClaudeSessions } from './sessions/claudeSessions.js';
 import { isTrustedFolder } from './sessions/claudeTrust.js';
 import { projectInfoRoutes } from './projectInfo/projectInfo.routes.js';
+import { ProjectGit } from './projectInfo/projectGit.js';
 import { ProjectInfoService } from './projectInfo/projectInfoService.js';
 import { AccountDirs } from './accounts/accountDirs.js';
 import { accountsRoutes } from './accounts/accounts.routes.js';
@@ -143,7 +144,10 @@ export async function buildApp({
   await app.register(libraryRoutes, { libraryService: new LibraryService(config.workflowPath) });
   const projectsService = new ProjectsService(config.workflowPath, config.terminals.allowedRoots);
   await app.register(projectsRoutes, { projectsService });
-  await app.register(projectInfoRoutes, { projectInfoService: new ProjectInfoService({ stateStore, projects: projectsService }) });
+  const projectGit = new ProjectGit({ gitBin: config.gitBin, allowedRoots: config.terminals.allowedRoots });
+  await app.register(projectInfoRoutes, {
+    projectInfoService: new ProjectInfoService({ stateStore, projects: projectsService, git: projectGit }),
+  });
 
   const sessionsReader = new ClaudeSessions(config.terminals.claudeConfigDir);
 

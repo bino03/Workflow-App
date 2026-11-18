@@ -66,7 +66,7 @@ isso há os outros:
 | | `hooks/{useTerminals,useLayoutMode,useUsage}.ts` · `services/{terminal,session,folder,usage}Service.ts` · `types/{terminal,session,folder,usage}.ts` · `terminal/terminalSize.ts` |
 | **Backend** | `backend/src/terminals/` — `terminals.routes.ts` · `terminals.gateway.ts` (WS) · `terminalsService.ts` (ciclo de vida) · `terminalManager.ts` (PTYs) · `claudeArgs.ts` · `terminal.schemas.ts` |
 | | `backend/src/sessions/` (`.jsonl` do Claude Code) · `backend/src/folders/` (política de pastas, favoritas, browse) · `backend/src/usage/` (quota) · `backend/src/accounts/` — `accounts.routes.ts` (`/api/accounts`) · `accountsService.ts` (conta ativa, criar/renomear/remover, terminal de login, preparar um lançamento) · `accountDirs.ts` (pastas das contas do Claude: junctions, sincronização, login, remoção segura) · `accounts.schemas.ts`; ADR 0027, ✅ spec contas-do-claude |
-| | `backend/src/projectInfo/` — `projectInfo.routes.ts` (`/api/project-infos`) · `projectInfoService.ts` (ficha por projeto do registo e deploys; guarda no `state.json`) · `projectInfo.schemas.ts` (corpos dos pedidos); schemas da coleção em `state/state.schema.ts`; ADR 0028, ✅ spec informacao-dos-projetos |
+| | `backend/src/projectInfo/` — `projectInfo.routes.ts` (`/api/project-infos`) · `projectInfoService.ts` (ficha por projeto do registo e deploys; guarda no `state.json`) · `projectInfo.schemas.ts` (corpos dos pedidos) · `projectGit.ts` (o `git` nas pastas dos projetos: deploys automáticos, ADR 0034); schemas da coleção em `state/state.schema.ts`; ADR 0028, ✅ spec informacao-dos-projetos |
 | **Dados** | `DATA_DIR/state.json` (`terminals`, `closedTerminals`, `folders`) · `DATA_DIR/usage.json` · `~/.claude/projects/` (só leitura) |
 | **Detalhe** | [[api]] → "Terminais", "Sessões gravadas e pastas", "Quota" · spec [[features/terminais]] |
 
@@ -75,9 +75,9 @@ isso há os outros:
 | Camada | Ficheiros |
 |---|---|
 | **Entrada** | rota `/projects` → `frontend/src/pages/ProjectsPage.tsx` (cartões, chips de ciclo de vida, pesquisa) · item "Projetos" em `layouts/AppLayout.tsx` · ação `goProjects` (sem tecla) |
-| **Frontend** | `components/projects/` (`ProjectCard.tsx`, `projectInfoFormat.ts` — último deploy, "há 3 dias", etiquetas —, `hosting.ts`; o drawer: `ProjectInfoDrawer.tsx` — leitura e edição no mesmo drawer —, `ProjectInfoDetails.tsx`, `DeployList.tsx` + `RegisterDeployModal.tsx` — os deploys —, `ProjectInfoForm.tsx`, `EnvironmentFields.tsx`, `FormField.tsx`, `projectInfoFormSchema.ts` — Zod + conversões form ↔ API) · `hooks/useProjectInfos.ts` · `services/projectInfoService.ts` · `types/projectInfo.ts` · cenários `scripts/verify/{projects-page,project-drawer,project-deploys}.mjs` |
+| **Frontend** | `components/projects/` (`ProjectCard.tsx`, `projectInfoFormat.ts` — último deploy, "há 3 dias", etiquetas —, `hosting.ts`; o drawer: `ProjectInfoDrawer.tsx` — leitura e edição no mesmo drawer —, `ProjectInfoDetails.tsx`, `DeployList.tsx` + `RegisterDeployModal.tsx` — os deploys —, `ProjectInfoForm.tsx`, `EnvironmentFields.tsx`, `FormField.tsx`, `projectInfoFormSchema.ts` — Zod + conversões form ↔ API) · `hooks/useProjectInfos.ts` · `services/projectInfoService.ts` · `types/projectInfo.ts` · cenários `scripts/verify/{projects-page,project-drawer,project-deploys,project-git-sync}.mjs` |
 | **Backend** | `backend/src/projectInfo/` (ver "Terminais", linha do backend) |
-| **Detalhe** | [[api]] → "Informação dos projetos" · [[database]] → `projectInfos` · spec [[features/informacao-dos-projetos]] · [[adr/0028-informacao-de-deploy-por-projeto]] |
+| **Detalhe** | [[api]] → "Informação dos projetos" · [[database]] → `projectInfos` · spec [[features/informacao-dos-projetos]] · [[adr/0028-informacao-de-deploy-por-projeto]] · [[adr/0034-deploy-automatico-a-partir-do-git]] |
 
 ## Biblioteca — ✅
 

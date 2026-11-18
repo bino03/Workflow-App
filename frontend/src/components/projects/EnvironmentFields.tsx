@@ -7,7 +7,7 @@ import type { ProjectInfoFormValues } from './projectInfoFormSchema';
 
 const KIND_OPTIONS = Object.entries(ENVIRONMENT_KIND_LABEL).map(([value, label]) => ({ value, label }));
 
-type EnvironmentTextKey = 'kind' | 'name' | 'url' | 'hosting' | 'version' | 'monthlyCost' | 'dashboardUrl' | 'logsUrl' | 'healthUrl';
+type EnvironmentTextKey = 'kind' | 'name' | 'url' | 'hosting' | 'version' | 'deployBranch' | 'monthlyCost' | 'dashboardUrl' | 'logsUrl' | 'healthUrl';
 
 type EnvironmentFieldsProps = {
   index: number;
@@ -36,6 +36,7 @@ export function EnvironmentFields({ index, control, errors, hostingSuggestions, 
         <TextField {...common} name={field('url')} id={id('url')} label="URL" placeholder="https://…" mono />
         <TextField {...common} name={field('hosting')} id={id('hosting')} label="Hosting" suggestions={hostingSuggestions} />
         <TextField {...common} name={field('version')} id={id('version')} label="Branch / versão em produção" mono />
+        <TextField {...common} name={field('deployBranch')} id={id('deployBranch')} label="Branch de deploy (git)" placeholder="main — vazio = só à mão" mono />
         <TextField {...common} name={field('monthlyCost')} id={id('monthlyCost')} label="Custo mensal (€)" placeholder="0,00" mono />
         <TextField {...common} name={field('dashboardUrl')} id={id('dashboardUrl')} label="Painel do hosting" placeholder="https://…" mono />
         <TextField {...common} name={field('logsUrl')} id={id('logsUrl')} label="Logs / monitorização" placeholder="https://…" mono />

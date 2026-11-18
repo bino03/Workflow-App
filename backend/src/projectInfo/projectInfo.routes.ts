@@ -1,6 +1,12 @@
 import type { FastifyInstance } from 'fastify';
 import { parseWith } from '../common/validation.js';
-import { projectPathQuerySchema, putProjectInfoSchema, registerDeploySchema, removeDeployQuerySchema } from './projectInfo.schemas.js';
+import {
+  gitSyncSchema,
+  projectPathQuerySchema,
+  putProjectInfoSchema,
+  registerDeploySchema,
+  removeDeployQuerySchema,
+} from './projectInfo.schemas.js';
 import type { ProjectInfoService } from './projectInfoService.js';
 
 export type ProjectInfoRoutesOptions = {
@@ -25,6 +31,12 @@ export async function projectInfoRoutes(app: FastifyInstance, { projectInfoServi
   app.post('/api/project-infos/deploys', async (request) => {
     const { projectPath, environmentId, ...deploy } = parseWith(registerDeploySchema, request.body);
     return projectInfoService.registerDeploy(projectPath, environmentId, deploy);
+  });
+
+  // ADR 0034: the tip of each environment's deploy branch joins its history; failures come back as warnings.
+  app.post('/api/project-infos/git-sync', async (request) => {
+    const { projectPath, force } = parseWith(gitSyncSchema, request.body);
+    return projectInfoService.syncFromGit(projectPath, { force: force ?? false });
   });
 
   app.delete('/api/project-infos/deploys', async (request) => {

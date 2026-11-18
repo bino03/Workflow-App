@@ -94,12 +94,27 @@ const httpUrl = z
 
 const optionalText = (max: number) => z.string().trim().min(1).max(max).nullable().default(null);
 
-/** A manual deploy record; the date is never read from git or the host. */
+/**
+ * A branch name as `git check-ref-format --branch` would take it, narrowed (ADR 0034): never starts with `-` (an
+ * option) or `/`, no `..` or `//` (`@{`, spaces, `~^:?*[` are outside the class), no component starting with `.`, no `.lock` component, no `/` or `.` at the end.
+ * Mirrored in `frontend/src/components/projects/projectInfoFormSchema.ts`.
+ */
+export const BRANCH_NAME = /^(?![-/])(?!.*\.\.)(?!.*\/\/)(?!(?:.*\/)?\.)(?!.*\.lock(?:\/|$))[A-Za-z0-9._/-]{1,100}(?<![/.])$/;
+const branchName = z.string().trim().regex(BRANCH_NAME, 'invalid branch name');
+/** A full commit hash (SHA-1, or SHA-256 repositories). */
+const commitHash = z.string().regex(/^(?:[0-9a-f]{40}|[0-9a-f]{64})$/);
+
+/**
+ * One deploy: registered by hand (`manual`), or the tip of the environment's deploy branch (`git`, ADR 0034) —
+ * then `version` is the short hash, `note` the commit subject and `at` the committer date.
+ */
 export const deploySchema = z.object({
   id: z.uuid(),
   at: instant,
   version: optionalText(80),
   note: optionalText(280),
+  source: z.enum(['manual', 'git']).default('manual'),
+  commit: commitHash.nullable().default(null),
 });
 
 export const environmentSchema = z.object({
@@ -114,6 +129,10 @@ export const environmentSchema = z.object({
   // Stored only, never requested (ADR 0028: no ping, SSRF).
   healthUrl: httpUrl.nullable().default(null),
   monthlyCostEur: z.number().min(0).max(100000).nullable().default(null),
+  // The branch whose tip on `origin` is the deploy (ADR 0034); null = no automatic deploys.
+  deployBranch: branchName.nullable().default(null),
+  // The last tip seen on that branch — written by the backend only, so a deleted git deploy does not come back.
+  lastGitCommit: commitHash.nullable().default(null),
   // Newest first.
   deploys: z.array(deploySchema).max(MAX_DEPLOYS).default([]),
 });

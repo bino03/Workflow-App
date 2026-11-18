@@ -204,6 +204,13 @@ describe('StateStore', () => {
       expect(loaded?.environments[0]?.deploys).toHaveLength(1);
     });
 
+    it('a sheet saved before ADR 0034 reads as manual deploys without a deploy branch', async () => {
+      await writeFile(file, JSON.stringify({ ...base, projectInfos: [info({ environments: [environment({ deploys: [deploy()] })] })] }));
+      const [loaded] = (await StateStore.load(dataDir)).read().projectInfos;
+      expect(loaded?.environments[0]).toMatchObject({ deployBranch: null, lastGitCommit: null });
+      expect(loaded?.environments[0]?.deploys[0]).toMatchObject({ source: 'manual', commit: null });
+    });
+
     it('refuses a non-http(s) URL, 21 deploys, 6 environments and a repeated project path', async () => {
       const deploys = (count: number) => Array.from({ length: count }, deploy);
       for (const bad of [

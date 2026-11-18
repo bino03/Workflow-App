@@ -154,6 +154,9 @@ export function ProjectsPage() {
         onRemove={infos.remove}
         onRegisterDeploy={infos.registerDeploy}
         onRemoveDeploy={infos.removeDeploy}
+        gitWarnings={drawer.path ? (infos.gitWarnings[drawer.path] ?? []) : []}
+        syncing={drawer.path !== null && infos.syncing === drawer.path}
+        onSyncGit={infos.syncFromGit}
       />
     </div>
   );

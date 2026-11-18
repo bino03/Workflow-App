@@ -12,6 +12,7 @@ const PROCESS_TESTS = [
   'test/keybindings.test.ts',
   'test/listeningPorts.test.ts',
   'test/preview.routes.test.ts',
+  'test/projectInfo.gitSync.test.ts',
   'test/telegramBot.test.ts',
   'test/terminalManager.test.ts',
   'test/terminals.gateway.test.ts',

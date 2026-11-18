@@ -5,7 +5,7 @@ import { useForm } from 'react-hook-form';
 import { DRAWER_WIDTH } from '@/config/drawer';
 import { useConfirm } from '@/hooks/useConfirm';
 import type { ProjectEntry } from '@/types/project';
-import type { Deploy, DeployInput, Environment, ProjectInfo, ProjectInfoInput } from '@/types/projectInfo';
+import type { Deploy, DeployInput, Environment, GitSyncWarning, ProjectInfo, ProjectInfoInput } from '@/types/projectInfo';
 import { hostingOptions } from './hosting';
 import { formatDeployDate } from './projectInfoFormat';
 import { RegisterDeployModal } from './RegisterDeployModal';
@@ -29,13 +29,31 @@ type ProjectInfoDrawerProps = {
   /** A ficha nova, ou `null` se falhou (o erro já foi notificado). */
   onRegisterDeploy: (projectPath: string, environmentId: string, deploy: DeployInput) => Promise<ProjectInfo | null>;
   onRemoveDeploy: (projectPath: string, environmentId: string, deployId: string) => Promise<ProjectInfo | null>;
+  /** Os avisos do último sync do git deste projeto (ADR 0034). */
+  gitWarnings: readonly GitSyncWarning[];
+  syncing: boolean;
+  onSyncGit: (projectPath: string) => Promise<boolean>;
 };
 
 /**
  * A ficha de um projeto: leitura, e **Editar** troca-a pelo formulário no mesmo drawer. O `useForm` vive aqui
  * (segue a ficha por `values`, sem efeitos) para o rodapé poder gravar; o que não se gravou perde-se ao fechar.
  */
-export function ProjectInfoDrawer({ open, project, info, infos, startEditing, onClose, onSave, onRemove, onRegisterDeploy, onRemoveDeploy }: ProjectInfoDrawerProps) {
+export function ProjectInfoDrawer({
+  open,
+  project,
+  info,
+  infos,
+  startEditing,
+  onClose,
+  onSave,
+  onRemove,
+  onRegisterDeploy,
+  onRemoveDeploy,
+  gitWarnings,
+  syncing,
+  onSyncGit,
+}: ProjectInfoDrawerProps) {
   const confirm = useConfirm();
   const [editing, setEditing] = useState(startEditing);
   // O ambiente a que se está a registar um deploy (o modal monta-se a cada abertura).
@@ -139,7 +157,14 @@ export function ProjectInfoDrawer({ open, project, info, infos, startEditing, on
       {editing ? (
         <ProjectInfoForm form={form} hostingSuggestions={hostings} disabled={isSubmitting} />
       ) : (
-        <ProjectInfoDetails info={info} onRegisterDeploy={setDeployTarget} onRemoveDeploy={removeDeploy} />
+        <ProjectInfoDetails
+          info={info}
+          onRegisterDeploy={setDeployTarget}
+          onRemoveDeploy={removeDeploy}
+          gitWarnings={gitWarnings}
+          syncing={syncing}
+          onSyncGit={() => project && void onSyncGit(project.path)}
+        />
       )}
       {deployTarget && project && (
         // O modal faz portal para o <body>; vive aqui para desaparecer com o drawer.

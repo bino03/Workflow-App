@@ -31,6 +31,16 @@ const optionalUrl = z
   .max(500, 'Até 500 caracteres.')
   .refine((value) => value === '' || isHttpUrl(value), 'Um endereço http:// ou https://.');
 
+/** Espelho do `BRANCH_NAME` do backend (`state.schema.ts`, ADR 0034). */
+const BRANCH_NAME = /^(?![-/])(?!.*\.\.)(?!.*\/\/)(?!(?:.*\/)?\.)(?!.*\.lock(?:\/|$))[A-Za-z0-9._/-]{1,100}(?<![/.])$/;
+
+/** Vazio (= sem deploy automático) ou um nome de branch. */
+const optionalBranch = z
+  .string()
+  .trim()
+  .max(100, 'Até 100 caracteres.')
+  .refine((value) => value === '' || BRANCH_NAME.test(value), 'Um nome de branch (ex.: main, release/1.2).');
+
 function parseCost(value: string): number {
   return Number(value.trim().replace(',', '.'));
 }
@@ -43,6 +53,7 @@ const environmentFormSchema = z.object({
   url: optionalUrl,
   hosting: text(80),
   version: text(80),
+  deployBranch: optionalBranch,
   dashboardUrl: optionalUrl,
   logsUrl: optionalUrl,
   healthUrl: optionalUrl,
@@ -92,6 +103,7 @@ export function toFormValues(info: ProjectInfo | undefined): ProjectInfoFormValu
       url: environment.url ?? '',
       hosting: environment.hosting ?? '',
       version: environment.version ?? '',
+      deployBranch: environment.deployBranch ?? '',
       dashboardUrl: environment.dashboardUrl ?? '',
       logsUrl: environment.logsUrl ?? '',
       healthUrl: environment.healthUrl ?? '',
@@ -120,6 +132,7 @@ export function toProjectInfoInput(values: ProjectInfoFormValues): ProjectInfoIn
       url: nullIfEmpty(environment.url),
       hosting: nullIfEmpty(environment.hosting),
       version: nullIfEmpty(environment.version),
+      deployBranch: nullIfEmpty(environment.deployBranch),
       dashboardUrl: nullIfEmpty(environment.dashboardUrl),
       logsUrl: nullIfEmpty(environment.logsUrl),
       healthUrl: nullIfEmpty(environment.healthUrl),
@@ -163,5 +176,5 @@ export function toDeployInput(values: DeployFormValues): DeployInput {
 /** Um ambiente novo: produção se ainda não há, senão staging. */
 export function newEnvironment(existing: readonly EnvironmentFormValues[]): EnvironmentFormValues {
   const kind: EnvironmentKind = existing.some((environment) => environment.kind === 'production') ? 'staging' : 'production';
-  return { envId: '', kind, name: ENVIRONMENT_KIND_LABEL[kind], url: '', hosting: '', version: '', dashboardUrl: '', logsUrl: '', healthUrl: '', monthlyCost: '' };
+  return { envId: '', kind, name: ENVIRONMENT_KIND_LABEL[kind], url: '', hosting: '', version: '', deployBranch: '', dashboardUrl: '', logsUrl: '', healthUrl: '', monthlyCost: '' };
 }

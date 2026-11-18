@@ -136,6 +136,7 @@ node scripts/verify/sidebar-empty-project.mjs              # os ícones do cabe�
 node scripts/verify/app-run-ui.mjs                        # Correr/Parar no cabeçalho dos Terminais: os 6 estados, grelha e foco, Ver terminal (instância nova)
 node scripts/verify/grid-slots.mjs                        # terminal novo no 1.º lugar livre da grelha, sem ampliar; cheia → amplia (instância nova)
 node scripts/verify/app-run-real.mjs <run> <projeto> <run partido> <este repo>  # Correr/Parar a sério (instância com --real-claude --extra-root; gasta quota)
+node scripts/verify/project-git-sync.mjs "" [remote real]   # deploys automáticos do git (ADR 0034): campo, sync ao gravar, Atualizar do git, avisos, sync em fundo; com um URL, um projeto aponta a esse remote (instância nova)
 node scripts/verify/instance.mjs stop --clean             # mata a árvore pelo PID da porta e apaga a pasta
 ```
 

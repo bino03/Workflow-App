@@ -166,7 +166,7 @@ O que representa: as contas do Claude além da principal, e a que está ativa ([
 ### Informação dos projetos — `projectInfos`
 
 O que representa: a ficha de cada projeto do registo — ciclo de vida, ambientes com os seus deploys, código e infra,
-notas ([[adr/0028-informacao-de-deploy-por-projeto]], [[features/informacao-dos-projetos]]). Chegou com
+notas ([[adr/0028-informacao-de-deploy-por-projeto]], [[adr/0034-deploy-automatico-a-partir-do-git]], [[features/informacao-dos-projetos]]). Chegou com
 `.default([])`, sem subir o `STATE_VERSION`: um ficheiro anterior lê-se com `projectInfos: []`. Schemas em
 `backend/src/state/state.schema.ts` (`projectInfoSchema`, `environmentSchema`, `deploySchema`).
 
@@ -175,8 +175,10 @@ notas ([[adr/0028-informacao-de-deploy-por-projeto]], [[features/informacao-dos-
 | `projectPath` | texto, **único** | O `path` do `ProjectEntry` do registo (referência fraca: um projeto que sai do registo deixa a ficha no ficheiro, escondida) |
 | `lifecycle` | `development` \| `production` \| `maintenance` \| `paused` \| `archived` \| `null` | |
 | `client`, `database`, `ci` | texto ≤ 80/120/120 \| `null` | |
-| `environments` | `Environment[]`, **máx. 5** | `{id: uuid, kind: production/staging/development/other, name ≤ 40, url, hosting ≤ 80, version ≤ 80, dashboardUrl, logsUrl, healthUrl, monthlyCostEur 0-100000, deploys}`; os URLs são `http(s)` ≤ 500 ou `null` (`healthUrl` só guardado, nunca chamado) |
-| `environments[].deploys` | `{id: uuid, at: ISO, version ≤ 80 \| null, note ≤ 280 \| null}[]`, **máx. 20** | Mais recente primeiro; ao exceder sai o mais antigo. O "último deploy" deriva-se, não se guarda |
+| `environments` | `Environment[]`, **máx. 5** | `{id: uuid, kind: production/staging/development/other, name ≤ 40, url, hosting ≤ 80, version ≤ 80, dashboardUrl, logsUrl, healthUrl, monthlyCostEur 0-100000, deployBranch, lastGitCommit, deploys}`; os URLs são `http(s)` ≤ 500 ou `null` (`healthUrl` só guardado, nunca chamado) |
+| `environments[].deployBranch` | nome de branch ≤ 100 (`BRANCH_NAME`) \| `null` | ADR 0034: o topo de `origin/<branch>` é o deploy; `null` = só à mão. O `version` ("Branch / versão") continua texto livre |
+| `environments[].lastGitCommit` | hash (40 ou 64 hex) \| `null` | O último topo visto; só o backend o escreve. Só entra deploy do git quando o topo muda — um deploy do git apagado não volta |
+| `environments[].deploys` | `{id: uuid, at: ISO, version ≤ 80 \| null, note ≤ 280 \| null, source: manual \| git, commit: hash \| null}[]`, **máx. 20** | Mais recente primeiro; ao exceder sai o mais antigo. O "último deploy" deriva-se, não se guarda. `source`/`commit` chegaram com omissões (`manual`/`null`, sem subir o `STATE_VERSION`) |
 | `repoUrl` | URL `http(s)` \| `null` | |
 | `domain` | `{name ≤ 120, registrar ≤ 80 \| null, renewsAt: data \| null}` \| `null` | |
 | `links` | `{label ≤ 60, url}[]`, **máx. 10** | |

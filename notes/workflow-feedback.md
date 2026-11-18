@@ -80,3 +80,7 @@ projeto inventou (→ `/harvest-project` no Workflow).
 - **2026-11-12 — O preflight procura specs 🚧, mas uma spec a meio pode continuar em "📋 Planeada"** · `docs/skills/process/skill-implement-todo.md` (Fase 0, ponto 5) · tipo: ambíguo
   - O que aconteceu: a spec `correr-a-app` tinha o passo 3 a meio (commit `b8be99c`), mas a tabela do topo dizia `📋 Planeada` e `0 / 8 concluídos`; o grep por 🚧 apanhou o `_TEMPLATE.md` e specs já fechadas, e não esta. Só a encontrei pelo ToDo e pelo work log.
   - Como se resolveu: por resolver na origem. Sugestão: o preflight lê a linha **Estado** de cada spec (`📋`/`🚧`) **e** a secção 6, e ignora o `_TEMPLATE.md`; ou o `plan-feature`/`implement-todo` passa o estado a 🚧 ao começar o 1.º passo.
+
+- **2026-11-18 — `notes/` está como git-ignored, mas este projeto versiona-a** · `docs/skills/references/documentation-rules.md` §3 · tipo: errado
+  - O que aconteceu: no fecho do `/implement-todo`, a pensar no commit. A tabela do §3 diz `notes/` ❌ git-ignored ("se o disco morrer, o `notes/` vai com ele"), mas aqui `git ls-files notes` lista o ToDo, ideas, whatIveDone, planos… e um `git status` mostra as edições do dono ao ToDo.
+  - Como se resolveu: seguiu-se o git (o work log e o plano arquivado entram no commit da feature; as edições do dono ao ToDo não se commitam sem perguntar). Na origem: ou o molde gera o `.gitignore` com `notes/`, ou o §3 diz que é escolha do projeto e como saber (`git check-ignore notes/ToDo.md`).
