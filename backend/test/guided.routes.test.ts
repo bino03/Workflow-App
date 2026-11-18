@@ -36,6 +36,8 @@ it('every /api/guided route needs a session (the whole app)', async () => {
     ['POST', `/api/guided/${id}/permission`],
     ['POST', `/api/guided/${id}/message`],
     ['PUT', `/api/guided/${id}/mode`],
+    ['POST', `/api/guided/${id}/remote`],
+    ['PUT', `/api/guided/${id}/display`],
     ['POST', `/api/guided/${id}/resume`],
     ['POST', `/api/guided/${id}/reveal`],
     ['DELETE', `/api/guided/${id}`],
@@ -144,6 +146,36 @@ describe('/api/guided', () => {
     expect((await app.inject({ method: 'GET', url: `/api/guided/${view.id}` })).json().mode).toBe('auto');
     expect((await app.inject({ method: 'PUT', url: `/api/guided/${view.id}/mode`, payload: { mode: 'bypass' } })).statusCode).toBe(400);
     expect((await app.inject({ method: 'PUT', url: `/api/guided/${randomUUID()}/mode`, payload: { mode: 'ask' } })).statusCode).toBe(404);
+    await app.inject({ method: 'DELETE', url: `/api/guided/${view.id}` });
+  });
+
+  it('remote (ADR 0033): 409 while working; once waiting, the fixed line as one paste; again → GUIDED_005; display switches', async () => {
+    const view = await start();
+    const remote = (display: string) => app.inject({ method: 'POST', url: `/api/guided/${view.id}/remote`, payload: { display } });
+    expect((await remote('hidden')).json()).toMatchObject({ errorCode: 'GUIDED_004' });
+    expect((await remote('everywhere')).statusCode).toBe(400);
+
+    setEvent(view.id, 'Stop');
+    const writes: string[] = [];
+    const write = terminalManager.write.bind(terminalManager);
+    terminalManager.write = (id, data) => {
+      if (id === view.terminalId) writes.push(String(data));
+      write(id, data);
+    };
+    let response;
+    try {
+      response = await remote('hidden');
+    } finally {
+      terminalManager.write = write;
+    }
+    expect(response.statusCode).toBe(200);
+    expect(response.json()).toMatchObject({ id: view.id, remote: true, display: 'hidden' });
+    expect(writes).toEqual(['\x1b[200~/remote-control Novo projeto · create\x1b[201~', '\r']);
+
+    setEvent(view.id, 'Stop');
+    expect((await remote('open')).json()).toMatchObject({ errorCode: 'GUIDED_005' });
+    const shown = await app.inject({ method: 'PUT', url: `/api/guided/${view.id}/display`, payload: { display: 'open' } });
+    expect(shown.json()).toMatchObject({ remote: true, display: 'open' });
     await app.inject({ method: 'DELETE', url: `/api/guided/${view.id}` });
   });
 

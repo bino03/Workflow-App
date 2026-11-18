@@ -86,3 +86,13 @@ inicial. A voz não se testou: é o mesmo canal de texto, e o dono dispensou-a.
 
 `aceite` (ponto 6 confirmado pelo dono a 2026-11-18). Spike feito (2026-11-18). Backend, frontend do botão e o
 feed das mensagens do app por construir.
+
+**Backend construído (2026-11-18)** — `POST /api/guided/:id/remote`, `PUT /api/guided/:id/display`, `GUIDED_005`/`006`
+([[../api]]). Ficou decidido com o dono no `/implement-todo` de 2026-11-18, dentro do que este ADR deixava aberto:
+- **Retomar limpa o `remote`**: o processo do `--resume` não tem remote control, por isso as perguntas voltam à página.
+  Desligar o RC numa sessão que corre continua fora.
+- **Esconder aqui / Manter aberto** fica no `guided-control` (`display`) e troca-se depois.
+- **O feed**: as mensagens e as respostas dadas no app já apareciam. No spike, o feed vinha vazio por um bug do script
+  (`CLAUDE_CONFIG_DIR=` vazio → pasta `projects` relativa; corrigido em `scripts/guided-rc-spike.ts`), não do parser. Faltavam
+  as permissões aprovadas no app: estão no `permissionDecision` (`source: user_temporary`) da linha do resultado e passam a
+  linha de permissão com `outside: true`. Uma recusa no app ainda não foi observada.

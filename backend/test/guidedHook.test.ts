@@ -289,3 +289,42 @@ describe('guided-hook.cjs — upwork sessions never open the Upwork (ADR 0022)',
     }
   });
 });
+
+describe('guided-hook.cjs — in the Claude app (ADR 0033)', () => {
+  const controlDir = join(dataDir, GUIDED_FILES.control);
+  const control = (id: string, extra: object) =>
+    writeFileSync(join(controlDir, `${id}.json`), JSON.stringify({ version: 1, mode: 'ask', startedAt: new Date(Date.now() - 1000).toISOString(), purpose: 'create', ...extra }));
+
+  it('remote: a question and a permission exit with no output and leave no pending — Claude Code asks, the app shows it', async () => {
+    const { id, sessionId, dir } = session();
+    control(id, { remote: true, display: 'hidden' });
+    const question = await runHook({ session_id: sessionId, hook_event_name: 'PreToolUse', tool_name: 'AskUserQuestion', tool_input: { questions: [{ question: 'Q?', options: [{ label: 'A' }] }] } }).done;
+    expect(question).toEqual({ stdout: '', code: 0 });
+    const permission = await runHook({ session_id: sessionId, hook_event_name: 'PermissionRequest', tool_name: 'Bash', tool_input: { command: 'git init' } }).done;
+    expect(permission).toEqual({ stdout: '', code: 0 });
+    expect(pendingFiles(dir)).toEqual([]);
+  });
+
+  it('remote + Automático: still allowed by the hook; remote + the declared destination: still allowed', async () => {
+    const auto = session();
+    control(auto.id, { remote: true, mode: 'auto' });
+    const allowed = await runHook({ session_id: auto.sessionId, hook_event_name: 'PermissionRequest', tool_name: 'Bash', tool_input: { command: 'git init' } }).done;
+    expect(JSON.parse(allowed.stdout).hookSpecificOutput.decision).toEqual({ behavior: 'allow' });
+
+    const dest = session();
+    const target = join(root, `novo-${randomUUID()}`);
+    control(dest.id, { remote: true });
+    writeFileSync(join(dest.dir, GUIDED_FILES.destination), JSON.stringify({ version: 1, projectPath: target }));
+    const inside = await runHook({ session_id: dest.sessionId, hook_event_name: 'PermissionRequest', tool_name: 'Write', tool_input: { file_path: join(target, 'a.md'), content: 'x' } }).done;
+    expect(JSON.parse(inside.stdout).hookSpecificOutput.decision).toEqual({ behavior: 'allow' });
+  });
+
+  it('remote: false (or absent) asks on the page, as before', async () => {
+    const { id, sessionId, dir } = session();
+    control(id, { remote: false });
+    const { done } = runHook({ session_id: sessionId, hook_event_name: 'PreToolUse', tool_name: 'AskUserQuestion', tool_input: { questions: [] } });
+    await waitFor(() => pendingFiles(dir).length === 1);
+    rmSync(dir, { recursive: true, force: true });
+    expect(await done).toEqual({ stdout: '', code: 0 });
+  });
+});

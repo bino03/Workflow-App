@@ -121,3 +121,41 @@ describe('TranscriptFeed', () => {
     expect((await reader.read(file)).map((e) => e.id)).toEqual(['a', 'b']);
   });
 });
+
+describe('buildFeed — answered in the Claude app (ADR 0033)', () => {
+  // Shapes copied from the spike's 4th run (CLI 2.1.327): the permission decision sits on the tool result line.
+  const decided = (id: string, decision: string, source: string) =>
+    JSON.stringify({
+      type: 'user',
+      uuid: `r-${id}`,
+      message: { role: 'user', content: [{ type: 'tool_result', tool_use_id: id, content: 'ok' }] },
+      toolUseResult: 'ok',
+      permissionDecision: { decision, source },
+    });
+
+  it('a permission the owner decided outside the page is a permission line marked outside; a rule stays activity', () => {
+    const entries = buildFeed([
+      assistant('m1', [toolUse('w1', 'Write', { file_path: 'C:\\p\\answers.txt', content: 'secret' })]),
+      decided('w1', 'accept', 'user_temporary'),
+      assistant('m2', [toolUse('b1', 'Bash', { command: 'rm -rf x' })]),
+      decided('b1', 'reject', 'user_permanent'),
+      assistant('m3', [toolUse('r1', 'Read', { file_path: 'C:\\p\\a.md' })]),
+      decided('r1', 'accept', 'config'),
+    ]);
+    expect(entries.map((e) => e.type)).toEqual(['permission', 'permission', 'activity']);
+    expect(entries[0]).toMatchObject({ summary: 'Write: C:\\p\\answers.txt', decision: 'allow', outside: true });
+    expect(entries[1]).toMatchObject({ summary: 'Bash: rm -rf x', decision: 'deny', outside: true });
+    expect(JSON.stringify(entries)).not.toContain('secret');
+  });
+
+  it('the app’s own lines are not shown: the /remote-control command, the bridge status, the queue', () => {
+    const entries = buildFeed([
+      JSON.stringify({ type: 'system', subtype: 'local_command', content: '<command-name>/remote-control</command-name><command-args>Novo projeto · create</command-args>' }),
+      JSON.stringify({ type: 'bridge-session', bridgeSessionId: 'x' }),
+      JSON.stringify({ type: 'system', subtype: 'bridge_status', content: '/remote-control is active', url: 'https://claude.ai/code/session_x' }),
+      JSON.stringify({ type: 'queue-operation', operation: 'enqueue', content: 'teste' }),
+      JSON.stringify({ type: 'user', uuid: 'u-app', timestamp: '2026-11-18T10:00:00.000Z', message: { role: 'user', content: 'teste' }, origin: { kind: 'human' }, promptSource: 'queued' }),
+    ]);
+    expect(entries).toEqual([{ id: 'u-app', type: 'user-text', text: 'teste', at: '2026-11-18T10:00:00.000Z' }]);
+  });
+});

@@ -11,6 +11,7 @@ import { type FeedEntry, TranscriptFeed, feedPage } from './transcriptFeed.js';
 import {
   type CreateResult,
   type GuidedControl,
+  type GuidedDisplay,
   type GuidedMeta,
   type GuidedMode,
   type GuidedPurpose,
@@ -58,6 +59,14 @@ const EXTRA_FILE = /^[a-z0-9][a-z0-9-]*\.md$/;
  * a pause — the session waits, saved, for the next message.
  */
 const OPEN_ENDED: readonly GuidedPurpose[] = ['upwork'];
+
+/** Purposes that can continue in the Claude app (ADR 0033): only the creation for now. */
+const REMOTE_PURPOSES: readonly GuidedPurpose[] = ['create'];
+
+/** The only line the backend writes to turn remote control on: fixed, built here, never from the client (ADR 0033). */
+export function remoteControlLine(purpose: GuidedPurpose): string {
+  return `/remote-control ${GUIDED_COMMANDS[purpose].label} · ${purpose}`;
+}
 
 /**
  * Measured with the real claude (spec upwork step 5, 4 of 4): a paste right at SessionStart, or right after the spawn,
@@ -198,13 +207,47 @@ export class GuidedService {
    */
   async setMode(id: string, mode: GuidedMode): Promise<GuidedView> {
     const meta = this.meta(id);
-    const startedAt = this.control(meta).startedAt ?? meta.createdAt;
-    await atomicWrite(this.controlOf(meta.id), JSON.stringify({ version: 1, mode, startedAt, purpose: meta.purpose } satisfies GuidedControl));
+    await this.writeControl(meta, { mode });
     if (mode === 'auto') {
       for (const { pending } of this.pendings(meta).filter((p) => p.alive && p.pending.type === 'permission')) {
         await atomicWrite(join(this.dirOf(meta.id), `answer-${pending.requestId}.json`), JSON.stringify({ requestId: pending.requestId, decision: 'allow' }));
       }
     }
+    return this.view(meta);
+  }
+
+  /**
+   * "Continuar no Claude app" (ADR 0033): marks the session remote **before** writing the fixed line
+   * `/remote-control <label> · <purpose>` into the PTY, so the questions that follow already go to Claude Code's own
+   * prompts. Only `create`, only while claude waits for text, only once. Nothing from the client reaches the PTY.
+   */
+  async continueInApp(id: string, display: GuidedDisplay): Promise<GuidedView> {
+    const meta = this.meta(id);
+    if (!REMOTE_PURPOSES.includes(meta.purpose)) throw new AppError('GUIDED_006');
+    if (this.control(meta).remote) throw new AppError('GUIDED_005');
+    if (this.waking.has(meta.id)) throw new AppError('GUIDED_004');
+    const view = this.view(meta);
+    if (view.status === 'stopped' || view.status === 'done' || view.status === 'failed') throw new AppError('GUIDED_003');
+    if (view.status !== 'waiting-text') throw new AppError('GUIDED_004');
+    await this.writeControl(meta, { remote: true, display });
+    // A local slash command fires no Stop; the TUI's idle Notification follows (~60 s, measured in the spike).
+    this.writeEvent(meta.id, 'UserPromptSubmit');
+    try {
+      await this.deps.terminals.paste(meta.terminalId, remoteControlLine(meta.purpose));
+    } catch (error) {
+      // The line never reached claude: the page answers again.
+      await this.writeControl(meta, { remote: false, display: undefined });
+      this.writeEvent(meta.id, 'Stop');
+      throw error;
+    }
+    return this.view(meta);
+  }
+
+  /** Esconder aqui ↔ Manter aberto, after the fact. Only for a session already in the Claude app. */
+  async setDisplay(id: string, display: GuidedDisplay): Promise<GuidedView> {
+    const meta = this.meta(id);
+    if (!this.control(meta).remote) throw new AppError('GUIDED_004');
+    await this.writeControl(meta, { display });
     return this.view(meta);
   }
 
@@ -232,6 +275,8 @@ export class GuidedService {
   async resume(id: string, size: { cols: number; rows: number }): Promise<GuidedView> {
     const meta = this.meta(id);
     for (const file of this.pendingFiles(meta.id)) rmSync(join(this.dirOf(meta.id), file), { force: true });
+    // The resumed process has no remote control (ADR 0033, decided 2026-11-18): questions come back to the page.
+    if (this.control(meta).remote) await this.writeControl(meta, { remote: false, display: undefined });
     await this.deps.terminals.reopen(meta.terminalId, size);
     this.writeEvent(meta.id, 'Stop');
     return this.view(meta);
@@ -291,8 +336,26 @@ export class GuidedService {
     rmSync(this.controlOf(meta.id), { force: true });
   }
 
+  /** Rewrites the control file with `patch` over what it has — no field is dropped by another (the mode, the remote). */
+  private async writeControl(meta: GuidedMeta, patch: Partial<Pick<GuidedControl, 'mode' | 'remote' | 'display'>>): Promise<void> {
+    const current = this.control(meta);
+    const next: GuidedControl = {
+      version: 1,
+      mode: current.mode,
+      startedAt: current.startedAt ?? meta.createdAt,
+      purpose: meta.purpose,
+      ...(current.remote ? { remote: true } : {}),
+      ...(current.display ? { display: current.display } : {}),
+    };
+    for (const [key, value] of Object.entries(patch) as [keyof typeof patch, unknown][]) {
+      if (value === undefined || value === false) delete next[key];
+      else (next as Record<string, unknown>)[key] = value;
+    }
+    await atomicWrite(this.controlOf(meta.id), JSON.stringify(next satisfies GuidedControl));
+  }
+
   /** A session from before ADR 0021 has no control file: it asks, and has no start for the destination rule. */
-  private control(meta: GuidedMeta): { mode: GuidedMode; startedAt: string | null } {
+  private control(meta: GuidedMeta): { mode: GuidedMode; startedAt: string | null; remote?: boolean | undefined; display?: GuidedDisplay | undefined } {
     try {
       const parsed = guidedControlSchema.safeParse(JSON.parse(readFileSync(this.controlOf(meta.id), 'utf8')));
       if (parsed.success) return parsed.data;
@@ -352,7 +415,17 @@ export class GuidedService {
 
   /** The status, in this order (spec §4.1): a result; a terminal that is not running; a pending request; the last event. */
   private view(meta: GuidedMeta): GuidedView {
-    const base = { id: meta.id, purpose: meta.purpose, terminalId: meta.terminalId, createdAt: meta.createdAt, mode: this.control(meta).mode };
+    const control = this.control(meta);
+    const remote = control.remote === true;
+    const base = {
+      id: meta.id,
+      purpose: meta.purpose,
+      terminalId: meta.terminalId,
+      createdAt: meta.createdAt,
+      mode: control.mode,
+      remote,
+      display: remote ? (control.display ?? 'open') : null,
+    };
     const result = OPEN_ENDED.includes(meta.purpose) ? undefined : readResult(join(this.dirOf(meta.id), 'result.json'));
     if (result !== undefined) {
       if ('invalid' in result) return { ...base, status: 'failed', pending: null, result: null, error: `result.json inválido: ${result.invalid}` };

@@ -65,6 +65,8 @@ export function permissionRulePath(path: string): string {
  *   approves WebFetch, so no PermissionRequest would ever ask. The purpose comes from the backend-only control file.
  * - A PermissionRequest is allowed without a card (ADR 0021) when the session's mode is `auto`, or when it is a
  *   file tool aimed inside the declared destination — a new folder inside ALLOWED_ROOTS (see `destination`).
+ * - A session in the Claude app (`remote` in the control file, ADR 0033): AskUserQuestion, and a PermissionRequest
+ *   the rules above do not allow, exit with no output — Claude Code's own prompt asks, and the app shows it.
  */
 function hookScript(guidedDir: string, controlDir: string, { roots, protectedPaths }: GuidedHookPaths): string {
   return `// Written by the Workflow App backend at startup (backend/src/guided/guidedFiles.ts). Do not edit.
@@ -169,13 +171,16 @@ async function main(data) {
     return process.stdout.write(JSON.stringify({ hookSpecificOutput: { hookEventName: 'PreToolUse', permissionDecision: 'deny', permissionDecisionReason: 'A Workflow App nunca abre a Upwork (ADR 0022): trabalha só com o anúncio colado.' } }));
   }
 
+  const inApp = () => { const control = readJson(path.join(CONTROL_DIR, guidedId.toLowerCase() + '.json')); return !!(control && control.remote === true); };
   let pending;
   if (event === 'PreToolUse' && data.tool_name === 'AskUserQuestion') {
+    if (inApp()) return;
     pending = { type: 'question', questions: data.tool_input && data.tool_input.questions };
   } else if (event === 'PermissionRequest') {
     if (allowsWithoutAsking(guidedId.toLowerCase(), dir, data)) {
       return process.stdout.write(JSON.stringify({ hookSpecificOutput: { hookEventName: 'PermissionRequest', decision: { behavior: 'allow' } } }));
     }
+    if (inApp()) return;
     pending = { type: 'permission', tool: String(data.tool_name).slice(0, 200), summary: summarize(data.tool_name, data.tool_input) };
   } else return;
   const requestId = crypto.randomUUID();

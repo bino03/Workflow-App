@@ -118,7 +118,9 @@ export function claudeArgs(
     return args;
   }
   if (launch.kind === 'guided') {
-    if (remoteControl) throw new ClaudeArgsError('a guided session never runs with remote control');
+    // Never at launch: a guided session only turns remote control on later, by the backend's own fixed
+    // `/remote-control` line in the PTY (ADR 0033), and a resume always starts without it.
+    if (remoteControl) throw new ClaudeArgsError('a guided session never launches with remote control');
     const purpose = GUIDED_COMMANDS[launch.purpose] as (typeof GUIDED_COMMANDS)[GuidedPurpose] | undefined;
     if (!purpose) throw new ClaudeArgsError('unknown guided purpose');
     assertInputPath(launch.inputPath, purpose.inputFile);

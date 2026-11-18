@@ -40,6 +40,8 @@ export type CreateResult = {
   error: string | null;
 };
 
+export type GuidedDisplay = 'hidden' | 'open';
+
 export type GuidedView = {
   id: string;
   purpose: GuidedPurpose;
@@ -47,6 +49,10 @@ export type GuidedView = {
   terminalId: string;
   createdAt: string;
   mode: GuidedMode;
+  /** ADR 0033: também responde no Claude app. O `status` continua o real (uma pergunta à espera no app lê-se `needs-you`). */
+  remote: boolean;
+  /** Só com `remote`: Esconder aqui (`hidden`) ou Manter aberto (`open`). */
+  display: GuidedDisplay | null;
   pending: GuidedPending;
   result: CreateResult | null;
   /** Porquê, quando não há um resultado que se perceba (um `result.json` inválido). */
@@ -57,7 +63,7 @@ export type FeedEntry =
   | { id: string; type: 'assistant-text'; markdown: string; at: string }
   | { id: string; type: 'user-text'; text: string; at: string }
   | { id: string; type: 'question'; questions: Question[]; answers: Answers | null; at: string }
-  | { id: string; type: 'permission'; summary: string; decision: 'allow' | 'deny' | null; at: string }
+  | { id: string; type: 'permission'; summary: string; decision: 'allow' | 'deny' | null; at: string; outside?: true }
   | { id: string; type: 'activity'; summary: string; count: number; at: string };
 
 export type FeedPage = { entries: FeedEntry[]; cursor: string };

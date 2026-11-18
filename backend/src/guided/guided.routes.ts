@@ -1,6 +1,14 @@
 import type { FastifyInstance } from 'fastify';
 import { parseWith } from '../common/validation.js';
-import { answerBodySchema, feedQuerySchema, messageBodySchema, modeBodySchema, permissionBodySchema, resumeBodySchema } from './guided.schemas.js';
+import {
+  answerBodySchema,
+  displayBodySchema,
+  feedQuerySchema,
+  messageBodySchema,
+  modeBodySchema,
+  permissionBodySchema,
+  resumeBodySchema,
+} from './guided.schemas.js';
 import type { GuidedService } from './guidedService.js';
 
 export type GuidedRoutesOptions = {
@@ -41,6 +49,20 @@ export async function guidedRoutes(app: FastifyInstance, { guidedService }: Guid
     const view = await guidedService.setMode(request.params.id, mode);
     request.log.info({ guidedId: request.params.id, mode }, 'guided permission mode set');
     return view;
+  });
+
+  /** "Continuar no Claude app" (ADR 0033): the backend writes its own fixed `/remote-control` line, once. */
+  app.post<IdParams>('/api/guided/:id/remote', async (request) => {
+    const { display } = parseWith(displayBodySchema, request.body);
+    const view = await guidedService.continueInApp(request.params.id, display);
+    request.log.info({ guidedId: request.params.id, display }, 'guided session continued in the Claude app');
+    return view;
+  });
+
+  /** Esconder aqui ↔ Manter aberto, for a session already in the Claude app. */
+  app.put<IdParams>('/api/guided/:id/display', async (request) => {
+    const { display } = parseWith(displayBodySchema, request.body);
+    return guidedService.setDisplay(request.params.id, display);
   });
 
   app.post<IdParams>('/api/guided/:id/message', async (request, reply) => {

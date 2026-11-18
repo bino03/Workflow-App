@@ -56,6 +56,8 @@ export const ERROR_MESSAGES: Record<string, string> = {
   GUIDED_002: 'Esta pergunta já foi respondida ou mudou — a vista foi atualizada.',
   GUIDED_003: 'A sessão não está a correr — retoma-a primeiro.',
   GUIDED_004: 'O Claude ainda está a trabalhar — espera que termine para escrever.',
+  GUIDED_005: 'Esta criação já está no Claude app.',
+  GUIDED_006: 'Este tipo de sessão não continua no Claude app.',
   // CREATE
   CREATE_001: 'Já há um projeto a ser criado — acaba-o ou cancela-o primeiro.',
   CREATE_002: 'O projeto ainda não foi criado, ou a pasta dele não existe.',

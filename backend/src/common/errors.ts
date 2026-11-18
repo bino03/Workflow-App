@@ -66,6 +66,8 @@ export const ErrorCode = {
   GUIDED_002: { status: 409, message: 'That request was already answered or is no longer waiting' },
   GUIDED_003: { status: 409, message: 'The guided session is not running' },
   GUIDED_004: { status: 409, message: 'Claude is still working; wait for it to stop before writing' },
+  GUIDED_005: { status: 409, message: 'The guided session is already in the Claude app' },
+  GUIDED_006: { status: 409, message: 'This kind of guided session does not continue in the Claude app' },
   // CREATE (spec novo-projeto-guiado)
   CREATE_001: { status: 409, message: 'Another project is being created' },
   CREATE_002: { status: 409, message: 'The project was not created, or its folder does not exist' },

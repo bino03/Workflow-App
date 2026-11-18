@@ -58,6 +58,13 @@ export const guidedControlSchema = z.object({
   startedAt: instant,
   /** For the hook's per-purpose rules (ADR 0022): here, not in meta.json, which Claude may write. Absent before it. */
   purpose: guidedPurposeSchema.optional(),
+  /**
+   * ADR 0033: the session also answers in the Claude app (`/remote-control` was written to its PTY). The hook then
+   * leaves questions and permissions to Claude Code's own prompts, which the app shows. Absent = false.
+   */
+  remote: z.boolean().optional(),
+  /** While `remote`: the page hides the conversation (`hidden`) or keeps it (`open`). The owner can switch. */
+  display: z.enum(['hidden', 'open']).optional(),
 });
 
 /**
@@ -93,6 +100,10 @@ export const messageBodySchema = z.object({ text: z.string().trim().min(1).max(8
 
 export const modeBodySchema = z.object({ mode: guidedModeSchema });
 
+export const guidedDisplaySchema = z.enum(['hidden', 'open']);
+/** "Continuar no Claude app" (ADR 0033), and the later switch between Esconder aqui / Manter aberto. */
+export const displayBodySchema = z.object({ display: guidedDisplaySchema });
+
 export const resumeBodySchema = z.object({ cols: colsSchema, rows: rowsSchema });
 
 /** `after` = how many feed entries the client already has (0 or absent = all). */
@@ -104,6 +115,7 @@ export type PendingFile = z.infer<typeof pendingFileSchema>;
 export type GuidedMeta = z.infer<typeof guidedMetaSchema>;
 export type GuidedMode = z.infer<typeof guidedModeSchema>;
 export type GuidedControl = z.infer<typeof guidedControlSchema>;
+export type GuidedDisplay = z.infer<typeof guidedDisplaySchema>;
 export type CreateResult = z.infer<typeof createResultSchema>;
 
 export type GuidedStatus = 'working' | 'question' | 'permission' | 'waiting-text' | 'needs-you' | 'stopped' | 'done' | 'failed';
@@ -121,6 +133,10 @@ export type GuidedView = {
   createdAt: string;
   /** How permissions are decided (ADR 0021). */
   mode: GuidedMode;
+  /** ADR 0033: also answering in the Claude app. The status stays the real one (a question there reads as `needs-you`). */
+  remote: boolean;
+  /** Only with `remote`: what the page shows. */
+  display: GuidedDisplay | null;
   pending: GuidedPending;
   result: CreateResult | null;
   /** Why it failed when there is no usable result (an invalid result.json). */

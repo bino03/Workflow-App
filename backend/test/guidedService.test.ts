@@ -257,6 +257,74 @@ describe('GuidedService', () => {
     expect(JSON.parse(readFileSync(controlFile, 'utf8'))).toEqual({ version: 1, mode: 'auto', startedAt: createdAt, purpose: 'create' });
   });
 
+  describe('Continuar no Claude app (ADR 0033)', () => {
+    const controlFile = (id: string) => join(dataDir, GUIDED_FILES.control, `${id}.json`);
+    const readControl = (id: string) => JSON.parse(readFileSync(controlFile(id), 'utf8'));
+
+    it('only while waiting for text: marks remote, then pastes the fixed line — once', async () => {
+      const { id, terminalId } = await started();
+      await expect(service.continueInApp(id, 'hidden')).rejects.toMatchObject({ code: 'GUIDED_004' });
+      writePending(id, question());
+      setEvent(id, 'Stop');
+      await expect(service.continueInApp(id, 'hidden')).rejects.toMatchObject({ code: 'GUIDED_004' });
+      for (const name of readdirSync(dirOf(id)).filter((n) => n.startsWith('pending-'))) rmSync(join(dirOf(id), name));
+      expect(fake.calls.pasted).toEqual([]);
+
+      const view = await service.continueInApp(id, 'hidden');
+      expect(fake.calls.pasted).toEqual([{ id: terminalId, text: '/remote-control Novo projeto · create' }]);
+      expect(readControl(id)).toMatchObject({ remote: true, display: 'hidden', mode: 'ask', purpose: 'create' });
+      // The status stays the real one: the slash command runs, no Stop follows it.
+      expect(view).toMatchObject({ remote: true, display: 'hidden', status: 'working' });
+
+      setEvent(id, 'Stop');
+      await expect(service.continueInApp(id, 'open')).rejects.toMatchObject({ code: 'GUIDED_005' });
+      expect(fake.calls.pasted).toHaveLength(1);
+    });
+
+    it('a session that is not running → GUIDED_003; an upwork session → GUIDED_006', async () => {
+      const { id, terminalId } = await started();
+      fake.status.set(terminalId, 'exited');
+      await expect(service.continueInApp(id, 'open')).rejects.toMatchObject({ code: 'GUIDED_003' });
+      const upwork = await service.start({ purpose: 'upwork', cwd: 'C:\\Workflow', input: '# Anúncio' });
+      setEvent(upwork.id, 'Stop');
+      await expect(service.continueInApp(upwork.id, 'open')).rejects.toMatchObject({ code: 'GUIDED_006' });
+    });
+
+    it('a paste that fails leaves the session on the page', async () => {
+      const { id } = await started();
+      setEvent(id, 'Stop');
+      fake.terminals.paste = async () => {
+        throw new AppError('TERMINAL_006');
+      };
+      await expect(service.continueInApp(id, 'open')).rejects.toMatchObject({ code: 'TERMINAL_006' });
+      expect(readControl(id).remote).toBeUndefined();
+      expect(service.get(id)).toMatchObject({ remote: false, display: null, status: 'waiting-text' });
+    });
+
+    it('the mode and the display never drop the remote; display switches; a session on the page has no display', async () => {
+      const { id } = await started();
+      await expect(service.setDisplay(id, 'open')).rejects.toMatchObject({ code: 'GUIDED_004' });
+      expect(service.get(id)).toMatchObject({ remote: false, display: null });
+      setEvent(id, 'Stop');
+      await service.continueInApp(id, 'hidden');
+      await service.setMode(id, 'auto');
+      expect(readControl(id)).toMatchObject({ remote: true, display: 'hidden', mode: 'auto' });
+      expect((await service.setDisplay(id, 'open')).display).toBe('open');
+      expect(readControl(id)).toMatchObject({ remote: true, display: 'open', mode: 'auto' });
+    });
+
+    it('resume: the new process has no remote control, so the questions come back to the page', async () => {
+      const { id, terminalId } = await started();
+      setEvent(id, 'Stop');
+      await service.continueInApp(id, 'hidden');
+      fake.status.set(terminalId, 'stopped');
+      const view = await service.resume(id, { cols: 100, rows: 30 });
+      expect(view).toMatchObject({ remote: false, display: null, status: 'waiting-text', mode: 'ask' });
+      expect(readControl(id).remote).toBeUndefined();
+      expect(readControl(id).display).toBeUndefined();
+    });
+  });
+
   describe('upwork (ADR 0022)', () => {
     const upwork = () => service.start({ purpose: 'upwork', cwd: 'C:\\Workflow', input: '# Anúncio\n\nReact dashboard', files: { 'profile.md': '# Quem sou\n' } });
 

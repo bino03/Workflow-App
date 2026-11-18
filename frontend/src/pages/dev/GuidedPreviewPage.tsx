@@ -12,6 +12,8 @@ const PREVIEW_VIEW: GuidedView = {
   purpose: 'create',
   status: 'working',
   terminalId: 'preview',
+  remote: false,
+  display: null,
   createdAt: AT,
   mode: 'ask',
   pending: null,

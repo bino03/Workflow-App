@@ -77,7 +77,7 @@ async function main() {
   log(`root: ${root} · via ${via}`);
   const bin = resolveClaudeBin(process.env.CLAUDE_BIN ?? 'claude');
   const terminalManager = new TerminalManager({ spawn: claudeSpawner(bin), maxTerminals: 2, scrollbackBytes: 4 << 20 });
-  const claudeSessions = new ClaudeSessions(process.env.CLAUDE_CONFIG_DIR);
+  const claudeSessions = new ClaudeSessions(process.env.CLAUDE_CONFIG_DIR || undefined);
   const settingsPath = writeGuidedFiles(dataDir, [root]);
   remoteSettings(settingsPath);
   const terminals = new TerminalsService({

@@ -9,12 +9,16 @@ import { type Question, questionSchema } from './guided.schemas.js';
  *
  * Not shown: system lines, skill bodies (`isMeta`), tool results, thinking, sub-agents (`isSidechain`), and the
  * slash command that started the session (the service shows the brief in its place).
+ *
+ * A permission shows as a line when the app's hook decided it (`hook_permission_decision` attachment) or when the
+ * owner did, outside the page — in the Claude app or the revealed terminal (`permissionDecision` with a `user…`
+ * source on the tool result; ADR 0033). Rules (`source: config`) stay activity.
  */
 export type FeedEntry =
   | { id: string; type: 'assistant-text'; markdown: string; at: string }
   | { id: string; type: 'user-text'; text: string; at: string }
   | { id: string; type: 'question'; questions: Question[]; answers: Record<string, string> | null; at: string }
-  | { id: string; type: 'permission'; summary: string; decision: 'allow' | 'deny' | null; at: string }
+  | { id: string; type: 'permission'; summary: string; decision: 'allow' | 'deny' | null; at: string; outside?: true }
   | { id: string; type: 'activity'; summary: string; count: number; at: string };
 
 type Line = Record<string, unknown>;
@@ -92,12 +96,18 @@ export function buildFeed(rawLines: string[]): FeedEntry[] {
   // First pass: what later lines say about a tool call — the answers to a question, a permission's decision.
   const answers = new Map<string, Record<string, string>>();
   const decisions = new Map<string, 'allow' | 'deny'>();
+  const outside = new Map<string, 'allow' | 'deny'>();
   for (const line of lines) {
     const result = line.toolUseResult;
     const content = isObject(line.message) && Array.isArray(line.message.content) ? line.message.content : [];
     const toolUseId = content.map((b) => (isObject(b) ? text(b.tool_use_id) : '')).find(Boolean);
     if (toolUseId && isObject(result) && isObject(result.answers)) {
       answers.set(toolUseId, Object.fromEntries(Object.entries(result.answers).filter(([, v]) => typeof v === 'string')) as Record<string, string>);
+    }
+    const owner = line.permissionDecision;
+    if (toolUseId && isObject(owner) && text(owner.source).startsWith('user')) {
+      if (owner.decision === 'accept') outside.set(toolUseId, 'allow');
+      else if (owner.decision === 'reject') outside.set(toolUseId, 'deny');
     }
     const attachment = line.attachment;
     if (line.type === 'attachment' && isObject(attachment) && attachment.type === 'hook_permission_decision') {
@@ -155,6 +165,12 @@ export function buildFeed(rawLines: string[]): FeedEntry[] {
       if (decision) {
         flushActivity();
         entries.push({ id, type: 'permission', summary: `${tool}: ${toolTarget(tool, block.input)}`, decision, at });
+        continue;
+      }
+      const decidedOutside = outside.get(id);
+      if (decidedOutside) {
+        flushActivity();
+        entries.push({ id, type: 'permission', summary: `${tool}: ${toolTarget(tool, block.input)}`, decision: decidedOutside, at, outside: true });
         continue;
       }
       activity ??= { id, at, calls: [] };

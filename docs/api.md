@@ -322,17 +322,23 @@ Genérico: estas rotas **não começam** sessões — quem começa é a rota do 
 | POST | `/api/guided/:id/permission` | `{requestId, decision: 'allow'\|'deny'}` | `204` | `AUTH_002` · `COMMON_001` · `GUIDED_001` · `GUIDED_002` |
 | PUT | `/api/guided/:id/mode` | `{mode: 'ask'\|'auto'}` — Perguntar / Automático ([[adr/0021-permissoes-das-sessoes-guiadas]]); `auto` aprova também as permissões já à espera; as perguntas nunca | `200 GuidedView` | `AUTH_002` · `COMMON_001` · `GUIDED_001` |
 | POST | `/api/guided/:id/message` | `{text}` (1–8000, sem espaços nas pontas) | `204` — escrito no PTY como **um** bracketed paste, sem caracteres de controlo (exceto `\n`, `\t`; `\r\n` → `\n`), e Enter à parte | `AUTH_002` · `COMMON_001` · `GUIDED_001` · `GUIDED_003` · `GUIDED_004` |
-| POST | `/api/guided/:id/resume` | `{cols, rows}` | `200 GuidedView` — o `reopen` do terminal (`--resume`, com os mesmos `--settings`, `--add-dir` e `--permission-mode default`); fica `waiting-text` | `AUTH_002` · `COMMON_001` · `GUIDED_001` · `TERMINAL_*` (`TERMINAL_006` se ainda corre) |
+| POST | `/api/guided/:id/remote` | `{display: 'hidden'\|'open'}` | `200 GuidedView` — **Continuar no Claude app** ([[adr/0033-continuar-no-claude-app]]): marca `remote: true` (e o `display`) no `guided-control/<id>.json` **e depois** escreve no PTY a linha fixa `/remote-control Novo projeto · create` (bracketed paste + Enter; nada do cliente). Só `create`, só em `waiting-text`, uma só vez. Se o paste falha, o `remote` volta atrás | `AUTH_002` · `COMMON_001` · `GUIDED_001` · `GUIDED_003` · `GUIDED_004` · `GUIDED_005` (já está no app) · `GUIDED_006` (propósito sem Claude app) · `TERMINAL_*` |
+| PUT | `/api/guided/:id/display` | `{display: 'hidden'\|'open'}` — Esconder aqui ↔ Manter aberto | `200 GuidedView` | `AUTH_002` · `COMMON_001` · `GUIDED_001` · `GUIDED_004` (a sessão não está no app) |
+| POST | `/api/guided/:id/resume` | `{cols, rows}` | `200 GuidedView` — o `reopen` do terminal (`--resume`, com os mesmos `--settings`, `--add-dir` e `--permission-mode default`); fica `waiting-text`. O processo novo não tem remote control: o `remote` e o `display` apagam-se e as perguntas voltam à página (ADR 0033, decidido a 2026-11-18) | `AUTH_002` · `COMMON_001` · `GUIDED_001` · `TERMINAL_*` (`TERMINAL_006` se ainda corre) |
 | POST | `/api/guided/:id/reveal` | — | `200 TerminalView` (`hidden: false`) | `AUTH_002` · `GUIDED_001` |
 | DELETE | `/api/guided/:id` | — | `204` — fecha o terminal (vai para o histórico), apaga a pasta e o índice; um hook à espera acaba sem decisão | `AUTH_002` · `GUIDED_001` |
 
-- **`GuidedView`** = `{id, purpose: 'create' | 'upwork', status, terminalId, createdAt, pending, result, error}`. `pending`:
+- **`GuidedView`** = `{id, purpose: 'create' | 'upwork', status, terminalId, createdAt, mode, remote, display, pending, result, error}`.
+  `remote` (ADR 0033) = a sessão responde também no Claude app; o `status` continua o real (uma pergunta ou permissão
+  à espera no app lê-se `needs-you`, porque o hook não a apanha). `display`: `'hidden'`/`'open'` com `remote`, senão `null`. `pending`:
   `{requestId, type: 'question', questions: [{question, header, multiSelect, options: [{label, description}]}]}` ·
   `{requestId, type: 'permission', tool, summary}` (o comando, ou o caminho — nunca o conteúdo a escrever) · `null`.
   `result`: o `result.json` validado (contrato do Workflow, `skill-create.md` → "Modo app").
 - **`FeedEntry`** (`guided/transcriptFeed.ts`): `{id, type: 'assistant-text', markdown, at}` ·
   `{id, type: 'user-text', text, at}` · `{id, type: 'question', questions, answers | null, at}` ·
-  `{id, type: 'permission', summary, decision: 'allow'|'deny', at}` (`summary` = `<ferramenta>: <comando ou caminho>`) ·
+  `{id, type: 'permission', summary, decision: 'allow'|'deny', at, outside?: true}` (`summary` = `<ferramenta>: <comando ou caminho>`;
+  `outside` = decidida pelo dono fora da página — no Claude app, ou no terminal revelado: o `permissionDecision` com `source`
+  `user…` na linha do resultado; as regras, `source: config`, ficam atividade) ·
   `{id, type: 'activity', summary, count, at}` (chamadas seguidas agrupadas: "Leu 2 ficheiros · Correu 1 comando").
   Não aparecem: linhas de sistema, o corpo das skills, resultados de ferramentas, pensamento, sub-agentes, o slash
   command inicial. Uma permissão ainda por decidir aparece como atividade até ter decisão.

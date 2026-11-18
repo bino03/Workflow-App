@@ -124,7 +124,12 @@ evento, o estado e a hora — nunca o prompt, a mensagem nem o input das ferrame
   isso um `ESC[201~` fechava o paste e o resto chegava como teclas — e nunca vai para o log (só o tamanho).
 - **Hooks bloqueantes** (`DATA_DIR/guided-hook.cjs`, comando fixo, `timeout` 24 h): só atuam numa sessão cujo
   `session_id` (validado como UUID) está no índice `DATA_DIR/guided/by-session/`; qualquer outra sai sem decidir. A
-  resposta vem de um ficheiro que só o backend escreve, para o `requestId` que está à espera.
+  resposta vem de um ficheiro que só o backend escreve, para o `requestId` que está à espera. Com `remote: true` no
+  `guided-control` ([[adr/0033-continuar-no-claude-app]]), uma pergunta e uma permissão que as regras não aprovam saem sem
+  decidir: pergunta a TUI, e o Claude app mostra. O Automático e a regra do destino continuam a aprovar.
+- **Um segundo paste do backend, fixo** (`POST /api/guided/:id/remote`): a linha `/remote-control Novo projeto · create`,
+  construída no backend (`remoteControlLine`), só em `waiting-text` e uma só vez (`/remote-control` alterna). Fica o risco
+  do 0017: quem tem o login claude.ai do dono vê e responde à sessão. Um `--resume` volta sempre sem remote control.
 - **Duas permissões no `--settings` das sessões guiadas**: escrever em `DATA_DIR/guided/**` (o `result.json` e os
   ficheiros de trabalho do `/create`) e **ler** dentro de cada `ALLOWED_ROOTS` (ver se o destino existe) sem
   perguntar. Escrever fora disso, correr comandos fora da allowlist do Workflow, `git init` — tudo continua a pedir,
