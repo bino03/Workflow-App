@@ -39,6 +39,7 @@ próprio Fastify (JSON mal formado, content-type errado → `COMMON_001`) e as r
 | `TERMINAL_005` | 503 | O binário `claude` (`CLAUDE_BIN`) não foi encontrado |
 | `TERMINAL_006` | 409 | Reabrir um terminal que já está a correr |
 | `TERMINAL_007` | 409 | Lançar com Remote Control (ou uma importação, no Workflow) numa pasta que o Claude Code ainda não aceitou como de confiança (nem ela nem uma pasta-mãe, em `.claude.json`) — [[adr/0017-bot-telegram-e-remote-control]], [[adr/0019-importar-pelas-skills-do-workflow]] |
+| `TERMINAL_008` | 409 | Uma pasta do `--add-dir` de um terminal escondido (a pasta de dados `DATA_DIR/…` de uma importação ou sessão guiada, ou o projeto de uma importação) ainda não é de confiança na conta. Desde o CLI 2.1.327, cada uma abre o diálogo "Adding a new directory", com "No, exit" por omissão e ninguém no PTY. Resolve-se uma vez: `claude` nessa pasta e aceitar (por conta) |
 | `FOLDER_001` | 403 | Pasta inexistente, não é pasta, relativa, ou fora de `ALLOWED_ROOTS` (depois de resolver `..`, symlinks e junctions) — nunca diz qual |
 | `SESSION_001` | 404 | "Continuar a última" numa pasta sem sessões gravadas |
 | `KEYBIND_001` | 400 | Tecla não permitida para esse modificador (Esc, setas, F-keys, AltGr sem ser com `.`, código não canónico) |
@@ -88,7 +89,7 @@ UUID dá o mesmo `TERMINAL_001` que um id desconhecido.
 |---|---|---|---|---|
 | GET | `/api/terminals` | — | `TerminalView[]` (os gravados, por `createdAt`, sem os `hidden`) | — |
 | POST | `/api/terminals` | `{cwd, mode: 'new'\|'resume'\|'continue', sessionId?, label?, accountId?, cols, rows}` — `sessionId` (UUID) obrigatório em `resume`; `accountId` (`'primary'` ou UUID) omitido = a conta ativa | `201 TerminalView` | `COMMON_001` · `FOLDER_001` · `TERMINAL_002` · `TERMINAL_003` · `TERMINAL_004` · `TERMINAL_005` · `SESSION_001` · `ACCOUNT_001` · `ACCOUNT_005` |
-| POST | `/api/terminals/:id/reopen` | `{cols, rows, accountId?}` | `200 TerminalView & {freshSession}` — `--resume` da sessão; sem `.jsonl` (o `claude` não grava sessões sem mensagens) começa uma conversa nova no mesmo terminal e `freshSession: true`. Um terminal com `remoteControl` volta com `--remote-control`. Volta na sua conta; `accountId` reabre-o noutra ("Continuar noutra conta": a conversa é partilhada) e grava-a | `TERMINAL_001` · `TERMINAL_002` · `TERMINAL_005` · `TERMINAL_006` · `TERMINAL_007` · `FOLDER_001` · `ACCOUNT_001` · `ACCOUNT_005` |
+| POST | `/api/terminals/:id/reopen` | `{cols, rows, accountId?}` | `200 TerminalView & {freshSession}` — `--resume` da sessão; sem `.jsonl` (o `claude` não grava sessões sem mensagens) começa uma conversa nova no mesmo terminal e `freshSession: true`. Um terminal com `remoteControl` volta com `--remote-control`. Volta na sua conta; `accountId` reabre-o noutra ("Continuar noutra conta": a conversa é partilhada) e grava-a | `TERMINAL_001` · `TERMINAL_002` · `TERMINAL_005` · `TERMINAL_006` · `TERMINAL_007` · `TERMINAL_008` · `FOLDER_001` · `ACCOUNT_001` · `ACCOUNT_005` |
 | GET | `/api/terminals/:id/context` | — | `200 {tokens: number \| null}`: o tamanho da conversa do terminal (como `contextTokens` em Sessões gravadas). É o que "Continuar noutra conta" vai contar na primeira mensagem. Lido do fim do `.jsonl`; leva poucos ms numa conversa de 30 MB | `TERMINAL_001` |
 | PATCH | `/api/terminals/:id` | `{label: string \| null}` | `200 TerminalView` | `COMMON_001` · `TERMINAL_001` |
 | DELETE | `/api/terminals/:id` | — | `204` | `TERMINAL_001` |
@@ -224,7 +225,7 @@ na biblioteca: lança o `/import` do Workflow num terminal escondido e segue-o; 
 
 | Método | Rota | Corpo | Resposta | Erros |
 |---|---|---|---|---|
-| POST | `/api/library/imports` | `multipart/form-data`: um campo `request` (JSON, abaixo) e, com `source.type: 'files'`, uma parte `files` por entrada de `source.paths`, **pela mesma ordem** (o nome do ficheiro enviado é ignorado) | `201 ImportView` | `COMMON_001` · `AUTH_002` · `FOLDER_001` · `IMPORT_002` · `IMPORT_003` · `IMPORT_004` · `IMPORT_006` · `TERMINAL_002` · `TERMINAL_005` · `TERMINAL_007` |
+| POST | `/api/library/imports` | `multipart/form-data`: um campo `request` (JSON, abaixo) e, com `source.type: 'files'`, uma parte `files` por entrada de `source.paths`, **pela mesma ordem** (o nome do ficheiro enviado é ignorado) | `201 ImportView` | `COMMON_001` · `AUTH_002` · `FOLDER_001` · `IMPORT_002` · `IMPORT_003` · `IMPORT_004` · `IMPORT_006` · `TERMINAL_002` · `TERMINAL_005` · `TERMINAL_007` · `TERMINAL_008` |
 | GET | `/api/library/imports/current` | — | `200 ImportView \| null` | `AUTH_002` · `IMPORT_006` |
 | POST | `/api/library/imports/:id/reveal` | — | `200 TerminalView` (agora `hidden: false`) | `AUTH_002` · `IMPORT_001` |
 | GET | `/api/library/imports/:id/diff` | — | `200 {files: [{path, change: 'added'\|'modified'\|'deleted', diff, truncated}]}` — `git diff` para o que o HEAD tem, o ficheiro inteiro (linhas `+`) para o que é novo; binário → `(ficheiro binário, N bytes)`; acima de 200 KB por ficheiro, cortado | `AUTH_002` · `IMPORT_001` · `IMPORT_005` (não está em `review`) · `IMPORT_006` |
@@ -260,7 +261,7 @@ tudo o que vem depois do arranque passa por `/api/guided`. Uma criação de cada
 
 | Método | Rota | Corpo | Resposta | Erros |
 |---|---|---|---|---|
-| POST | `/api/creations` | `{description}` (1–8000, sem espaços nas pontas) — vai **só** para `DATA_DIR/guided/<id>/brief.md` | `201 GuidedView` | `AUTH_002` · `COMMON_001` · `CREATE_001` · `LIBRARY_001` · `FOLDER_001` · `TERMINAL_002` · `TERMINAL_005` · `TERMINAL_007` (o Workflow ainda não é de confiança) |
+| POST | `/api/creations` | `{description}` (1–8000, sem espaços nas pontas) — vai **só** para `DATA_DIR/guided/<id>/brief.md` | `201 GuidedView` | `AUTH_002` · `COMMON_001` · `CREATE_001` · `LIBRARY_001` · `FOLDER_001` · `TERMINAL_002` · `TERMINAL_005` · `TERMINAL_007` · `TERMINAL_008` (o Workflow ainda não é de confiança) |
 | GET | `/api/creations/current` | — | `200 GuidedView \| null` — a mais recente aberta | `AUTH_002` |
 | POST | `/api/creations/:id/open` | — | `201 TerminalView` — um terminal **visível**, novo, em `result.projectPath` | `AUTH_002` · `GUIDED_001` · `CREATE_002` · `FOLDER_001` (fora de `ALLOWED_ROOTS`) · `TERMINAL_*` |
 
@@ -277,7 +278,7 @@ A conversa (perguntas, permissões, feed, modo) passa por `/api/guided`. **Nenhu
 | GET | `/api/upwork/profile` | — | `200 {markdown, updatedAt \| null}` — o modelo inicial (`updatedAt: null`) enquanto não há perfil | `AUTH_002` |
 | PUT | `/api/upwork/profile` | `{markdown}` (1–20 000, sem espaços nas pontas) | `200 {markdown, updatedAt}` | `AUTH_002` · `COMMON_001` |
 | GET | `/api/upwork/applications?archived=true\|false` | — | `200 ApplicationView[]`, mais recente primeiro (omissão `false`) | `AUTH_002` · `COMMON_001` |
-| POST | `/api/upwork/applications` | `{job (1–20 000), screeningQuestions?: string[] (≤ 15, cada 1–1000), url?}` — `url` só `https://www.upwork.com/…`, guardado como link e **fora** do `job.md` | `201 ApplicationView` — o registo e a sessão guiada (`job.md` + cópia do `profile.md`) | `AUTH_002` · `COMMON_001` · `UPWORK_002` · `LIBRARY_001` · `TERMINAL_002` · `TERMINAL_005` · `TERMINAL_007` |
+| POST | `/api/upwork/applications` | `{job (1–20 000), screeningQuestions?: string[] (≤ 15, cada 1–1000), url?}` — `url` só `https://www.upwork.com/…`, guardado como link e **fora** do `job.md` | `201 ApplicationView` — o registo e a sessão guiada (`job.md` + cópia do `profile.md`) | `AUTH_002` · `COMMON_001` · `UPWORK_002` · `LIBRARY_001` · `TERMINAL_002` · `TERMINAL_005` · `TERMINAL_007` · `TERMINAL_008` |
 | GET | `/api/upwork/applications/:id` | — | `200 ApplicationView` | `AUTH_002` · `UPWORK_001` |
 | PATCH | `/api/upwork/applications/:id` | `{status?, clientName?, connectsSpent? (0–500), notes? (≤ 8000), url?}` — pelo menos um | `200 ApplicationView` — um `status` diferente junta-se ao `history`; passar a `sent` **pausa** a sessão | `AUTH_002` · `COMMON_001` · `UPWORK_001` · `UPWORK_004` |
 | POST | `/api/upwork/applications/:id/pause` | — | `200 ApplicationView` — fecha o terminal, a sessão fica (`stopped`); já parada não é erro | `AUTH_002` · `UPWORK_001` · `UPWORK_004` · `UPWORK_005` (sem sessão) |

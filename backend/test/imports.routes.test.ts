@@ -29,7 +29,9 @@ git('config', 'user.name', 'test');
 writeFileSync(join(workflow, 'README.md'), '# Workflow\n');
 git('add', '.');
 git('commit', '-q', '-m', 'base');
-writeFileSync(claudeJsonPath(claudeConfig), JSON.stringify({ projects: { [workflow.replace(/\\/g, '/')]: { hasTrustDialogAccepted: true } } }));
+// The --add-dir folders (the data folder, a project source) must be trusted too since CLI 2.1.327.
+const trust = (...folders: string[]) => Object.fromEntries(folders.map((f) => [f.replace(/\\/g, '/'), { hasTrustDialogAccepted: true }]));
+writeFileSync(claudeJsonPath(claudeConfig), JSON.stringify({ projects: trust(workflow, dataDir, project) }));
 
 let passwordHash: string;
 beforeAll(async () => {

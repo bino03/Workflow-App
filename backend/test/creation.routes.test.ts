@@ -21,8 +21,10 @@ const outside = realpathSync.native(mkdtempSync(join(tmpdir(), 'wfa-creation-out
 const claudeConfig = join(base, 'claude');
 const dataDir = join(base, 'data');
 for (const dir of [join(workflow, 'library'), created, claudeConfig]) mkdirSync(dir, { recursive: true });
-// The Workflow is a folder Claude Code already trusts.
-writeFileSync(claudeJsonPath(claudeConfig), JSON.stringify({ projects: { [workflow.replace(/\\/g, '/')]: { hasTrustDialogAccepted: true } } }));
+// The Workflow and the data folder (the guided session's --add-dir, CLI 2.1.327) are folders Claude Code already trusts.
+const trust = (...folders: string[]) => Object.fromEntries(folders.map((f) => [f.replace(/\\/g, '/'), { hasTrustDialogAccepted: true }]));
+const writeTrust = (...folders: string[]) => writeFileSync(claudeJsonPath(claudeConfig), JSON.stringify({ projects: trust(...folders) }));
+writeTrust(workflow, dataDir);
 
 let passwordHash: string;
 beforeAll(async () => {
@@ -88,6 +90,20 @@ describe('/api/creations', () => {
     const terminals = (await app.inject({ method: 'GET', url: '/api/terminals', headers: { cookie } })).json() as { id: string }[];
     expect(terminals.map((t) => t.id)).not.toContain(view.terminalId);
     expect((await app.inject({ method: 'GET', url: '/api/creations/current', headers: { cookie } })).json()).toMatchObject({ id: view.id });
+  });
+
+  it('the data folder not trusted → 409 TERMINAL_008, nothing launched (its --add-dir dialog would wait forever)', async () => {
+    writeTrust(workflow);
+    try {
+      const launches = claude.launches.length;
+      const response = await create('ginásio');
+      expect(response.statusCode).toBe(409);
+      expect(response.json()).toMatchObject({ errorCode: 'TERMINAL_008' });
+      expect(claude.launches.length).toBe(launches);
+    } finally {
+      writeTrust(workflow, dataDir);
+    }
+    expect((await create('ginásio')).statusCode).toBe(201);
   });
 
   it('a second creation while one is open → 409 CREATE_001', async () => {

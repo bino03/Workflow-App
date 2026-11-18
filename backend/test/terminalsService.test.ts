@@ -408,7 +408,7 @@ describe('TerminalsService', () => {
     const importDir = join(base, 'data', 'imports', IMPORT_ID);
     const requestPath = join(importDir, 'request.json');
     const importSettings = join(base, 'data', 'claude-import-settings.json');
-    const trusted = (cwd: string) => Promise.resolve(cwd === project);
+    const trusted = (cwd: string) => Promise.resolve(cwd === project || cwd === importDir);
     const importOf = (overrides: Partial<CreateImportTerminal> = {}): CreateImportTerminal => ({
       importId: IMPORT_ID,
       cwd: project,
@@ -465,6 +465,19 @@ describe('TerminalsService', () => {
       await expect(imports.createImport(importOf({ cwd: outside }))).rejects.toBeInstanceOf(AppError);
       expect(claude.launches).toEqual([]);
       expect(stateStore.read().terminals).toEqual([]);
+    });
+
+    it('an untrusted --add-dir folder → TERMINAL_008 (CLI 2.1.327 asks for it in a dialog nobody answers), on create and reopen', async () => {
+      const onlyProject = (cwd: string) => Promise.resolve(cwd === project);
+      await expectAppError(() => build({ importSettingsPath: importSettings, isTrustedFolder: onlyProject }).createImport(importOf()), 'TERMINAL_008');
+      expect(claude.launches).toEqual([]);
+      expect(stateStore.read().terminals).toEqual([]);
+
+      const view = await build({ importSettingsPath: importSettings, isTrustedFolder: trusted }).createImport(importOf());
+      await manager.kill(view.id);
+      const launches = claude.launches.length;
+      await expectAppError(() => build({ importSettingsPath: importSettings, isTrustedFolder: onlyProject }).reopen(view.id, size), 'TERMINAL_008');
+      expect(claude.launches.length).toBe(launches);
     });
   });
 

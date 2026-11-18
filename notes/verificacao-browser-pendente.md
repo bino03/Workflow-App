@@ -218,3 +218,7 @@ browser (14/14, instância `--git-workflow`). **Falta**: uma criação real com 
       o esperado é só `git init`, o commit, a linha do `projects/INDEX.md` e comandos fora da allowlist
 - [ ] O `destination.json` aparece na pasta do brief logo a seguir ao "Gerar"
 - [ ] Trocar para **Automático** a meio: a permissão que estava à espera passa, e não aparecem mais cartões
+
+## 2026-11-18 — `TERMINAL_008` (pasta do `--add-dir` sem confiança)
+
+- [ ] Com o `DATA_DIR` sem confiança (instância descartável: `node scripts/verify/instance.mjs start --workflow <Workflow> --real-claude`), Novo projeto → Gerar: aparece a mensagem "A pasta de dados da app (DATA_DIR …) ainda não é de confiança…", e a página não fica em "a trabalhar"

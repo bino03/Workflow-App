@@ -152,6 +152,12 @@ Ver [[security]] → "Fluxo de autenticação" e [[adr/0003-auth-utilizador-unic
 - **Pasta ainda não *trusted*** — na primeira vez numa pasta o `claude` mostra o diálogo de confiança
   antes do prompt; o spike deteta-o e falha com essa razão. No produto, o diálogo aparece no terminal e
   responde-se lá.
+- **Cada `--add-dir` sem confiança tem o seu diálogo** (desde o CLI 2.1.327, encontrado a 2026-11-18):
+  "Adding a new directory … This session hasn't worked here before", com "No, exit" por omissão. Num
+  terminal escondido (importação, sessão guiada) ninguém o vê, e a sessão fica presa em "a trabalhar". Por
+  isso o `assertTrusted` verifica também as `addDirs` → `TERMINAL_008`. O `DATA_DIR` (`~/.workflow-app`)
+  confia-se uma vez por conta: `claude` nessa pasta e aceitar. Um spike que use uma pasta de dados
+  temporária tem de responder a **todos** os diálogos que aparecerem no ecrã, não só ao primeiro.
 - **O `PATH` do serviço não é o do utilizador.** Se o backend correr como serviço/tarefa agendada no
   desktop de casa, o `PATH` (e o `HOME`/`USERPROFILE`, logo o `~/.claude` com o login) pode ser outro — o
   `claude` não é encontrado ou arranca sem sessão iniciada. Correr com o utilizador que fez login no

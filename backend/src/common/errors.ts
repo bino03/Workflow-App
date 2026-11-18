@@ -32,6 +32,7 @@ export const ErrorCode = {
   TERMINAL_005: { status: 503, message: 'claude binary not found (CLAUDE_BIN)' },
   TERMINAL_006: { status: 409, message: 'Terminal is already running' },
   TERMINAL_007: { status: 409, message: 'Folder not trusted by Claude Code yet' },
+  TERMINAL_008: { status: 409, message: 'An --add-dir folder (DATA_DIR) not trusted by Claude Code yet' },
   // PREVIEW
   PREVIEW_001: { status: 409, message: 'No dev server listening in this terminal' },
   PREVIEW_002: { status: 409, message: 'Terminal is not running' },

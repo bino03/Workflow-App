@@ -227,7 +227,7 @@ export class TerminalsService {
     const cwd = resolveAllowedPath(request.cwd, this.deps.allowedRoots);
     const accountId = this.activeAccount();
     const configDir = await this.deps.accounts?.prepareLaunch(accountId);
-    await this.assertTrusted(cwd, configDir);
+    await this.assertTrusted(cwd, configDir, request.addDirs);
     const launch: ClaudeLaunch = { kind: 'import', sessionId: randomUUID(), requestPath: request.requestPath };
     const id = randomUUID();
     this.spawn(id, cwd, launch, request, { settingsPath, addDirs: request.addDirs, configDir });
@@ -265,7 +265,7 @@ export class TerminalsService {
     const cwd = resolveAllowedPath(request.cwd, this.deps.allowedRoots);
     const accountId = this.activeAccount();
     const configDir = await this.deps.accounts?.prepareLaunch(accountId);
-    await this.assertTrusted(cwd, configDir);
+    await this.assertTrusted(cwd, configDir, request.addDirs);
     if (this.sessionsInUse().has(request.sessionId)) throw new AppError('TERMINAL_003');
     const launch: ClaudeLaunch = { kind: 'guided', sessionId: request.sessionId, purpose: request.purpose, inputPath: request.inputPath };
     const id = randomUUID();
@@ -487,6 +487,8 @@ export class TerminalsService {
     const accountId = options.accountId === undefined ? this.resolveAccount(saved.accountId) : this.requireAccount(options.accountId);
     const configDir = await this.deps.accounts?.prepareLaunch(accountId);
     if (remoteControl) await this.assertTrusted(cwd, configDir);
+    // A hidden terminal's --add-dir folders: an untrusted one stops it at a dialog nobody answers.
+    if (saved.addDirs.length > 0) await this.assertTrusted(cwd, configDir, saved.addDirs);
     const freshSession = !this.deps.sessions.hasSession(cwd, saved.claudeSessionId);
     const launch: ClaudeLaunch = { kind: freshSession ? 'new' : 'resume', sessionId: saved.claudeSessionId };
     const remote = remoteControl ? await this.remoteControlFor(cwd, launch) : undefined;
@@ -572,9 +574,14 @@ export class TerminalsService {
     return { kind: 'resume', sessionId };
   }
 
-  private async assertTrusted(cwd: string, configDir: string | undefined): Promise<void> {
-    const trusted = (await this.deps.isTrustedFolder?.(cwd, configDir)) ?? false;
-    if (!trusted) throw new AppError('TERMINAL_007');
+  /**
+   * The folder, and each --add-dir folder, must already be trusted in the account. Since Claude Code 2.1.327 an
+   * untrusted --add-dir folder opens its own dialog ("Adding a new directory"), whose default is "No, exit".
+   */
+  private async assertTrusted(cwd: string, configDir: string | undefined, addDirs: readonly string[] = []): Promise<void> {
+    const trusted = (folder: string) => this.deps.isTrustedFolder?.(folder, configDir) ?? Promise.resolve(false);
+    if (!(await trusted(cwd))) throw new AppError('TERMINAL_007');
+    for (const dir of addDirs) if (!(await trusted(dir))) throw new AppError('TERMINAL_008');
   }
 
   private activeAccount(): AccountId {

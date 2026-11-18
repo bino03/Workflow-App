@@ -92,6 +92,7 @@ const ERRORS: Partial<Record<ErrorCode, string>> = {
   TERMINAL_005: 'O claude não foi encontrado no PC (CLAUDE_BIN).',
   TERMINAL_006: 'Esse terminal já está a correr.',
   TERMINAL_007: 'Esta pasta ainda não é de confiança para o Claude Code. Abre-a uma vez num terminal da app, no PC.',
+  TERMINAL_008: 'A pasta de dados da app (DATA_DIR) ainda não é de confiança para o Claude Code. Corre claude uma vez nessa pasta, no PC, e aceita.',
   FOLDER_001: 'Essa pasta já não existe ou está fora de ALLOWED_ROOTS.',
   SESSION_001: 'Não há conversas gravadas neste projeto.',
   PREVIEW_001: 'Nenhum servidor de dev à escuta nesse terminal. Pede ao Claude para o arrancar (npm run dev) e tenta outra vez.',

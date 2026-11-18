@@ -40,8 +40,6 @@ quando levar várias sessões).
 
 ## Terminais
 
-- [ ] `sonnet` No Workflow: passar a `library/skills/process/skill-stop.md` de `prospective` a `proven` — o passo 8 da spec [[../docs/features/correr-a-app|correr e parar a app]] provou-a com o PortFolio real (2026-11-13: o `/stop` desligou o Vite sozinho, `scripts/verify/app-run-real.mjs` 21/21). Commit no repositório do Workflow, sem push.
-
 - [ ] Ícones de estado no cabeçalho de cada terminal e na lateral de projetos — o backend já dá o estado (`TerminalView.activity`, [[../docs/adr/0031-estado-das-sessoes-por-hooks|ADR 0031]], 2026-11-13).
   > Decidido (via refine-idea, 2026-11-12): **só ícone + tooltip**, nada de tags, para ficar limpo. Formas de [[../docs/skills/references/design/tokens-and-colors|tokens]] §3: arco verde a rodar = a trabalhar · losango âmbar cheio = precisa de ti · losango âmbar **vazio** = à tua espera (forma nova, mesmo token `--wfa-state-wait`, acrescentar à tabela) · quadrado cinzento vazio = terminada. Na lateral (`TerminalSidebar.tsx`), cada projeto mostra o estado **mais urgente** das suas sessões, com o número no tooltip. Separador do projeto: fora. Verificar no browser, em foco e em grelha.
   > ⚠️ (via implement-todo, 2026-11-13): **o dono vai escolher o design depois** — se a tag atual do cabeçalho ("A correr"/"Terminado") sai ou fica, e o resto do visual. Os chips de filtro da lateral e as contagens do cabeçalho **não mudam** (decidido). Não implementar antes dessa escolha.
@@ -51,7 +49,7 @@ quando levar várias sessões).
 
 ## Manutenção
 
-- [ ] `sonnet` Vigiar o node-pty 1.2.0-beta.18 ([[../docs/adr/0029-node-pty-beta-1-2|ADR 0029]], `proposto`): (1) quando sair a **1.2 estável**, subir (`npm view node-pty dist-tags`), correr a suite e passar o ADR a `aceite`; (2) confirmar no uso real (dias de terminais a abrir/fechar) que o backend não morre sem erro JS — se morrer, procurar no stderr a asserção `uv_fs_close` ([[../docs/backend-conventions]] → node-pty). Resta um SIGABRT raro só em `--pool=threads` (2/24; forks 4/4). Investigação completa em `notes/roadmap/plans/archive/2026-11-08-teste-worker-intermitente.md`. (encontrado pelo /implement-todo, 2026-11-01; reduzido a vigiar a 2026-11-12)
+- [ ] `sonnet` Vigiar o node-pty 1.2.0-beta.18 ([[../docs/adr/0029-node-pty-beta-1-2|ADR 0029]], `proposto`): (1) quando sair a **1.2 estável**, subir (`npm view node-pty dist-tags`), correr a suite e passar o ADR a `aceite`; (2) confirmar no uso real (dias de terminais a abrir/fechar) que o backend não morre sem erro JS — se morrer, procurar no stderr a asserção `uv_fs_close` ([[../docs/backend-conventions]] → node-pty). Resta um SIGABRT raro só em `--pool=threads` (2/24; forks 4/4). Investigação completa em `notes/roadmap/plans/archive/2026-11-08-teste-worker-intermitente.md`. (encontrado pelo /implement-todo, 2026-11-01; reduzido a vigiar a 2026-11-12) · **Verificado 2026-11-18: ainda beta** (`latest` 1.1.0, `beta` 1.2.0-beta.18).
 
 ---
 

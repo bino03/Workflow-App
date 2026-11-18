@@ -32,7 +32,9 @@ writeFileSync(join(base, 'outside', 'escape.png'), 'segredo');
 symlinkSync(join(base, 'outside'), join(portfolioImages, 'escape'), 'junction');
 // Preparar anexos (ADR 0025): the folders the backend asked to show — a fake, so no Explorer window opens.
 const shownFolders: string[] = [];
-writeFileSync(claudeJsonPath(claudeConfig), JSON.stringify({ projects: { [workflow.replace(/\\/g, '/')]: { hasTrustDialogAccepted: true } } }));
+// The Workflow and the data folder (the guided session's --add-dir, CLI 2.1.327) are trusted.
+const trust = (...folders: string[]) => Object.fromEntries(folders.map((f) => [f.replace(/\\/g, '/'), { hasTrustDialogAccepted: true }]));
+writeFileSync(claudeJsonPath(claudeConfig), JSON.stringify({ projects: trust(workflow, dataDir) }));
 
 let passwordHash: string;
 beforeAll(async () => {

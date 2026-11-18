@@ -27,6 +27,7 @@ export const ERROR_MESSAGES: Record<string, string> = {
   TERMINAL_005: 'O claude não foi encontrado no servidor. Confirma o CLAUDE_BIN.',
   TERMINAL_006: 'Este terminal já está a correr.',
   TERMINAL_007: 'Esta pasta ainda não é de confiança para o Claude Code — abre-a uma vez num terminal da app.',
+  TERMINAL_008: 'A pasta de dados da app (DATA_DIR, por omissão ~/.workflow-app) ainda não é de confiança para o Claude Code — corre `claude` uma vez nessa pasta, aceita, e tenta outra vez.',
   // ── PREVIEW ────────────────────────────
   PREVIEW_001: 'Nenhum servidor de dev à escuta neste terminal.',
   PREVIEW_002: 'O terminal não está a correr.',
