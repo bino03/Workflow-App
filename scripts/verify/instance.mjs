@@ -92,9 +92,10 @@ function seedSessions(claudeDir, cwd) {
 /**
  * The fake Workflow as a clean git repository that this instance's Claude Code already trusts — what an import
  * needs (ADR 0019). The instance's CLAUDE_CONFIG_DIR has no login, so its claude never runs /import: a check
- * writes what the skill would (files in the repo, result.json) by hand.
+ * writes what the skill would (files in the repo, result.json) by hand. DATA_DIR is trusted too: guided sessions
+ * pass it as --add-dir, and an untrusted one is refused with TERMINAL_008.
  */
-function gitWorkflow(workflowPath, claudeDir) {
+function gitWorkflow(workflowPath, claudeDir, dataDir) {
   const git = (...args) => execFileSync('git', args, { cwd: workflowPath, windowsHide: true, stdio: 'ignore' });
   git('init', '-q');
   git('config', 'user.email', 'verifier@example.com');
@@ -103,8 +104,9 @@ function gitWorkflow(workflowPath, claudeDir) {
   git('add', '.');
   git('commit', '-q', '-m', 'base');
   mkdirSync(claudeDir, { recursive: true });
-  const key = resolve(workflowPath).replace(/\\/g, '/');
-  writeFileSync(join(claudeDir, '.claude.json'), JSON.stringify({ projects: { [key]: { hasTrustDialogAccepted: true } } }));
+  const key = (path) => resolve(path).replace(/\\/g, '/');
+  const projects = { [key(workflowPath)]: { hasTrustDialogAccepted: true }, [key(dataDir)]: { hasTrustDialogAccepted: true } };
+  writeFileSync(join(claudeDir, '.claude.json'), JSON.stringify({ projects }));
 }
 
 async function start() {
@@ -137,7 +139,7 @@ async function start() {
       `# Projetos\n\nPasta base: \`${rootsDir}\\\`\n\n| Projeto | Caminho | Tipo | Stack | Estado |\n|---|---|---|---|---|\n${rows.join('\n')}\n`,
     );
   }
-  if (opts['git-workflow'] && !opts.workflow) gitWorkflow(workflowPath, claudeDir);
+  if (opts['git-workflow'] && !opts.workflow) gitWorkflow(workflowPath, claudeDir, dataDir);
   const portfolioPath = opts.portfolio ? resolve(opts.portfolio) : '';
   if (portfolioPath && !existsSync(portfolioPath)) fail(`--portfolio ${portfolioPath}: does not exist`);
   if (opts.sessions && projectDirs.length > 1) seedSessions(claudeDir, projectDirs[1]);
