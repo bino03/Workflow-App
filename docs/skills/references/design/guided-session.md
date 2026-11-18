@@ -2,7 +2,8 @@
 
 > ✅ Baseado em `frontend/src/components/guided/*`, `components/common/Markdown.tsx`, `pages/NewProjectPage.tsx` e
 > nas classes da secção "Sessão guiada" do `index.css`; verificado em Chrome headless (DOM + estilos computados +
-> capturas: `/_guided` 30/30, `/new-project` 30/30) a 2026-10-26.
+> capturas: `/_guided` 30/30, `/new-project` 30/30) a 2026-10-26. O scroll e o índice foram verificados com
+> `scripts/verify/guided-index.mjs` (82/82, três vezes; Upwork, Novo projeto e `/_guided`) a 2026-11-18.
 
 > Parte de [[../frontend-visual-consistency]]. Feature: [[../../../features/novo-projeto-guiado]] ·
 > [[../../../adr/0020-sessoes-guiadas]].
@@ -15,7 +16,8 @@ tags de estado).
 ## Coluna
 
 - Uma coluna de **760 px** centrada (`mx-auto max-w-[760px] px-6 py-8`), `gap-6` entre a conversa e o painel do
-  fundo. A página desce sozinha quando chega uma entrada nova ou o estado muda.
+  fundo. A página desce sozinha quando chega uma entrada nova ou o estado muda — **só se o dono estava no fim**
+  (ver "Scroll e índice" abaixo).
 - Cabeçalho como o resto da app: `kicker` + `text-display`, e à direita a **tag de estado** (cor + forma, de
   [[tokens-and-colors]] §3: a trabalhar `tag-work` · à tua espera `tag-wait` · parada `tag-stop` · criado `tag-run` ·
   falhou `tag-err`), **Ver terminal** (`size="small"`, ícone `CodeOutlined`) e **Cancelar** (`type="text" danger`,
@@ -103,6 +105,36 @@ Ações do dono: `hooks/useGuidedAct.ts`.
 - **Sessão em pausa que acorda ao escrever** (Upwork, ADR 0022): `stopped` não mostra **Retomar** mas a faixa `is-stop`
   ("Em pausa… Escrever aqui retoma a conversa") **e** a `ReplyBox`; enquanto acorda, a faixa troca para o arco
   `is-work` + "A retomar a sessão…". A tag diz "Em pausa", não "Parada". Sem Ver terminal nem Pausar enquanto pausada.
+
+## Scroll e índice das mensagens (2026-11-18)
+
+O que se faz é igual nas três áreas de scroll: o `<main>` (Novo projeto), a `section` da candidatura (Upwork) e a
+janela (`/_guided`). Por isso o contentor é o primeiro ascendente com `overflow-y: auto|scroll`, e a janela quando
+não há nenhum (`components/guided/scrollArea.ts`).
+
+- **Descer sozinha** (`useStickToBottom`, só no `GuidedConversation`): a conversa fica "presa ao fim" até o dono
+  subir, e volta a prender quando ele desce até 120 px do fim. Presa, desce a cada entrada nova, mudança de estado
+  ou crescimento do conteúdo (`ResizeObserver`). Solta, fica onde está. **Uma mensagem do próprio dono** (texto ou
+  resposta a uma pergunta) leva sempre ao fim. A `ReplyBox` faz foco com `preventScroll` para não puxar a página.
+- **Botão ↓**: `Button shape="circle"` com `ArrowDownOutlined` e `shadow-overlay`, centrado na conversa, 16 px acima
+  do fundo da área (`sticky` de altura 0). Com a caixa de resposta presa ao fundo, fica 48 px acima dela. Só aparece
+  com a conversa solta, e o clique leva ao fim.
+- **Índice** (`MessageIndex`, montado no `GuidedConversation`), à imagem do DeepSeek. Uma entrada por mensagem do
+  dono: o brief, cada `user-text` e cada pergunta respondida (as respostas unidas por " · ", com o label limpo).
+  Com menos de 2 mensagens não aparece.
+  - Em repouso, uma coluna de **traços** (`.msg-index-tick`: 10×2 px, `border-strong`, raio `sm`) em `position:
+    fixed`, colada à direita da área de scroll e ao meio da altura dela. O traço da mensagem atual tem 18 px e é
+    `accent`. A mensagem atual é a última cujo topo passou 72 px abaixo do topo da área; no topo é a primeira e, ao
+    fundo, a última.
+  - Com o rato ou com foco (os traços são focáveis, e o Tab entra no painel), abre-se à esquerda o **painel**
+    (`.msg-index-panel`, overlay = `surface-2` + borda + raio `lg` + `shadow-overlay`, 260 px, scroll próprio até
+    70 % da altura). Tem uma linha por mensagem: a primeira linha, com reticências; sob o rato a 600 em `text-1`
+    sobre `surface-3`; a atual a `accent` com `aria-current="location"`. O Esc fecha-o.
+  - O clique faz `scrollIntoView` suave (`scroll-mt-6` em cada entrada, que leva `data-entry-id`) e solta a
+    conversa **logo** (evento `guided:jumped-away`). Sem isto, uma entrada que chegasse antes do primeiro `scroll`
+    desfazia o salto.
+  - Quando a conversa chega por baixo dos traços (a Upwork usa a largura toda), o `GuidedConversation` ganha
+    `pr-10` para os traços não taparem as bolhas.
 
 ## Pacote da Upwork (`components/upwork/PackageCards.tsx`, 2026-10-26)
 

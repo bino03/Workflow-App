@@ -222,3 +222,12 @@ browser (14/14, instância `--git-workflow`). **Falta**: uma criação real com 
 ## 2026-11-18 — `TERMINAL_008` (pasta do `--add-dir` sem confiança)
 
 - [ ] Com o `DATA_DIR` sem confiança (instância descartável: `node scripts/verify/instance.mjs start --workflow <Workflow> --real-claude`), Novo projeto → Gerar: aparece a mensagem "A pasta de dados da app (DATA_DIR …) ainda não é de confiança…", e a página não fica em "a trabalhar"
+
+## 2026-11-18 — índice das mensagens e auto-scroll das sessões guiadas (numa sessão real)
+
+Feito em Chrome headless (`scripts/verify/guided-index.mjs`, 82/82, três vezes): o índice nas páginas reais da
+Upwork e do Novo projeto (instância de teste, conversa escrita à mão no `.jsonl`) e as entradas novas no `/_guided`.
+Na instância, o `claude` sem login sai logo: a sessão fica `stopped` e a página deixa de fazer polling. Por isso
+**as entradas novas a chegar não foram vistas nas páginas reais**, só no `/_guided`, onde o código é o mesmo.
+
+- [ ] Numa criação ou candidatura real: subir a reler enquanto o Claude trabalha → a página não desce e aparece o ↓; no fim, desce sozinha; responder a uma pergunta ou enviar texto → vai ao fim; quando o Claude acaba e aparece a caixa de resposta, a página não salta se estavas a reler.

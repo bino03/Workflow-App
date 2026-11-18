@@ -1,11 +1,25 @@
 import { useState } from 'react';
-import { GuidedFeed } from '@/components/guided/GuidedFeed';
+import { GuidedConversation } from '@/components/guided/GuidedConversation';
 import { PermissionCard } from '@/components/guided/PermissionCard';
 import { QuestionCard } from '@/components/guided/QuestionCard';
 import { ReplyBox } from '@/components/guided/ReplyBox';
-import type { FeedEntry, Question } from '@/types/guided';
+import type { FeedEntry, GuidedView, Question } from '@/types/guided';
 
 const AT = '2026-10-26T10:00:00.000Z';
+
+const PREVIEW_VIEW: GuidedView = {
+  id: 'preview',
+  purpose: 'create',
+  status: 'working',
+  terminalId: 'preview',
+  createdAt: AT,
+  mode: 'ask',
+  pending: null,
+  result: null,
+  error: null,
+};
+
+const LONG = Array.from({ length: 10 }, (_, i) => `Parágrafo ${i + 1} de uma resposta longa, para a conversa ter scroll a sério.`).join('\n\n');
 
 /** Uma proposta como a do `/create`, com tudo o que o Markdown tem de aguentar — e HTML que não pode ser interpretado. */
 const PROPOSAL = `## Proposta — GinasioTeste
@@ -50,6 +64,9 @@ const FEED: FeedEntry[] = [
   { id: 'p1', type: 'permission', summary: 'Bash: git rev-parse --short HEAD', decision: 'allow', at: AT },
   { id: 'p2', type: 'permission', summary: 'Write: C:\\Users\\dono\\Desktop\\fora.txt', decision: 'deny', at: AT },
   { id: 'a3', type: 'assistant-text', markdown: PROPOSAL, at: AT },
+  { id: 'u2', type: 'user-text', text: 'Gosto da proposta, mas o Supabase fica de fora: quero tudo a correr no portátil do ginásio, sem depender de um serviço externo nem de internet.', at: AT },
+  { id: 'a4', type: 'assistant-text', markdown: 'Então troco a plataforma por **Postgres local**. Mais alguma coisa antes de criar?', at: AT },
+  { id: 'u3', type: 'user-text', text: 'Não, podes criar.', at: AT },
   { id: 'q-pending', type: 'question', questions: ANSWERED, answers: null, at: AT },
 ];
 
@@ -80,6 +97,8 @@ const QUESTIONS: Question[] = [
 export default function GuidedPreviewPage() {
   const [lastAction, setLastAction] = useState('nenhuma');
   const [busy, setBusy] = useState(false);
+  const [feed, setFeed] = useState<FeedEntry[]>(FEED);
+  const [waitingText, setWaitingText] = useState(false);
 
   return (
     <div className="min-h-full bg-bg">
@@ -88,7 +107,6 @@ export default function GuidedPreviewPage() {
           <div className="kicker">Pré-visualização</div>
           <div className="text-display">Sessão guiada</div>
         </div>
-        <GuidedFeed entries={FEED} />
         <QuestionCard questions={QUESTIONS} busy={busy} onSubmit={(answers) => setLastAction(`answer ${JSON.stringify(answers)}`)} />
         <QuestionCard questions={[QUESTIONS[0]!]} busy={busy} onSubmit={(answers) => setLastAction(`answer-one ${JSON.stringify(answers)}`)} />
         <PermissionCard
@@ -109,6 +127,30 @@ export default function GuidedPreviewPage() {
         </label>
         <div id="last-action" className="text-text-3 font-mono text-[12px] break-all">
           Última ação: {lastAction}
+        </div>
+        {/* Uma conversa "viva": entradas novas à mão, para ver o índice e o auto-scroll (só desce se estavas no fim).
+            No fim da página: o fim da janela é o fim da conversa. */}
+        <GuidedConversation
+          view={{ ...PREVIEW_VIEW, status: waitingText ? 'waiting-text' : 'working' }}
+          entries={feed}
+          busy={busy}
+          act={async () => true}
+          onReveal={() => setLastAction('reveal')}
+          onSend={async (text) => {
+            setFeed((current) => [...current, { id: `me-${current.length}`, type: 'user-text', text, at: AT }]);
+            return true;
+          }}
+        />
+        <div className="fixed top-2 left-2 z-40 flex flex-col items-start gap-1 text-text-3 text-[12px]">
+          <button id="add-claude" type="button" onClick={() => setFeed((current) => [...current, { id: `claude-${current.length}`, type: 'assistant-text', markdown: `**Entrada nova ${current.length}.**\n\n${LONG}`, at: AT }])}>
+            + Claude
+          </button>
+          <button id="add-mine" type="button" onClick={() => setFeed((current) => [...current, { id: `me-${current.length}`, type: 'user-text', text: `Mensagem minha ${current.length}`, at: AT }])}>
+            + minha
+          </button>
+          <label className="flex items-center gap-2">
+            <input id="toggle-waiting-text" type="checkbox" checked={waitingText} onChange={(event) => setWaitingText(event.target.checked)} /> à tua espera (caixa de resposta presa ao fundo)
+          </label>
         </div>
       </div>
     </div>

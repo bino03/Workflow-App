@@ -1,9 +1,13 @@
+import { ArrowDownOutlined } from '@ant-design/icons';
 import { Button, Select } from 'antd';
-import { type ReactNode, useEffect, useRef } from 'react';
+import { type ReactNode, useMemo, useRef, useState } from 'react';
 import { GuidedFeed } from '@/components/guided/GuidedFeed';
+import { MessageIndex } from '@/components/guided/MessageIndex';
+import { ownerMessages } from '@/components/guided/ownerMessages';
 import { PermissionCard } from '@/components/guided/PermissionCard';
 import { QuestionCard } from '@/components/guided/QuestionCard';
 import { ReplyBox } from '@/components/guided/ReplyBox';
+import { useStickToBottom } from '@/components/guided/useStickToBottom';
 import { answerQuestion, decidePermission, setGuidedMode } from '@/services/guidedService';
 import type { Answers, FeedEntry, GuidedMode, GuidedStatus, GuidedView } from '@/types/guided';
 
@@ -74,18 +78,31 @@ type GuidedConversationProps = {
   copyable?: boolean;
 };
 
+function JumpToEndButton({ onClick }: { onClick: () => void }) {
+  return (
+    <Button
+      shape="circle"
+      icon={<ArrowDownOutlined />}
+      aria-label="Ir para o fim da conversa"
+      title="Ir para o fim"
+      className="shadow-overlay"
+      onClick={onClick}
+      data-jump-to-end
+    />
+  );
+}
+
 function lastActivity(entries: FeedEntry[]): string | null {
   const entry = entries.at(-1);
   return entry?.type === 'activity' ? entry.summary : null;
 }
 
 export function GuidedConversation({ view, entries, busy, act, onReveal, onSend, endPanel = null, copyable = false }: GuidedConversationProps) {
-  const bottom = useRef<HTMLDivElement>(null);
-  const lastEntryId = entries.at(-1)?.id;
-  const requestId = view.pending?.requestId;
-  useEffect(() => {
-    bottom.current?.scrollIntoView({ block: 'end', behavior: 'smooth' });
-  }, [entries.length, lastEntryId, view.status, requestId]);
+  const root = useRef<HTMLDivElement>(null);
+  const ownerCount = useMemo(() => ownerMessages(entries).length, [entries]);
+  const changeKey = `${entries.length}|${entries.at(-1)?.id}|${view.status}|${view.pending?.requestId}`;
+  const { away, jumpToEnd } = useStickToBottom(root, changeKey, ownerCount);
+  const [reserveIndex, setReserveIndex] = useState(false);
 
   let bottomPanel: ReactNode = endPanel;
   switch (view.status) {
@@ -131,6 +148,11 @@ export function GuidedConversation({ view, entries, busy, act, onReveal, onSend,
       // Presa ao fundo da área com scroll: escreve-se a resposta enquanto se relê a conversa lá em cima.
       bottomPanel = (
         <div className="sticky bottom-0 z-10 -mx-1 px-1 pt-2 pb-4 bg-bg" data-reply-dock>
+          {away && (
+            <div className="absolute left-1/2 -translate-x-1/2 -top-12">
+              <JumpToEndButton onClick={jumpToEnd} />
+            </div>
+          )}
           <ReplyBox busy={busy} onSend={onSend} maxRows={8} />
         </div>
       );
@@ -149,10 +171,18 @@ export function GuidedConversation({ view, entries, busy, act, onReveal, onSend,
   }
 
   return (
-    <div className="flex flex-col gap-6">
+    <div ref={root} className={`flex flex-col gap-6${reserveIndex ? ' pr-10' : ''}`}>
       <GuidedFeed entries={entries} copyable={copyable} />
       {bottomPanel}
-      <div ref={bottom} />
+      {away && view.status !== 'waiting-text' && (
+        // Preso ao fundo da área com scroll; a altura 0 (e o -mt-6 que anula o gap) não mexe no fim da conversa.
+        <div className="sticky bottom-4 z-20 h-0 -mt-6 flex justify-center">
+          <div className="absolute bottom-0">
+            <JumpToEndButton onClick={jumpToEnd} />
+          </div>
+        </div>
+      )}
+      <MessageIndex entries={entries} onOverlap={setReserveIndex} />
     </div>
   );
 }

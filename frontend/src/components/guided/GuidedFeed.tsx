@@ -1,5 +1,4 @@
 import { CheckOutlined, CloseOutlined, ToolOutlined } from '@ant-design/icons';
-import { useEffect, useRef } from 'react';
 import { CopyButton } from '@/components/common/CopyButton';
 import { Markdown } from '@/components/common/Markdown';
 import type { Answers, FeedEntry, Question } from '@/types/guided';
@@ -78,22 +77,19 @@ function Entry({ entry, copyable }: { entry: FeedEntry; copyable: boolean }) {
 
 /**
  * A conversa de uma sessão guiada, de cima para baixo (spec §4.4). Genérica: não sabe que é o `/create`. Uma
- * pergunta ainda por responder não aparece aqui — está no cartão por baixo do feed. Desce sozinha quando chega
- * uma entrada nova.
+ * pergunta ainda por responder não aparece aqui — está no cartão por baixo do feed. Cada entrada leva
+ * `data-entry-id`, por onde o índice das mensagens a encontra; descer sozinha é com quem a usa (`useStickToBottom`).
  */
 export function GuidedFeed({ entries, copyable = false }: { entries: FeedEntry[]; copyable?: boolean }) {
-  const end = useRef<HTMLDivElement>(null);
-  const last = entries.at(-1);
-  useEffect(() => {
-    end.current?.scrollIntoView({ block: 'end', behavior: 'smooth' });
-  }, [entries.length, last?.id]);
-
   return (
     <div className="flex flex-col gap-4" role="log" aria-label="Conversa" aria-live="polite">
-      {entries.map((entry) => (
-        <Entry key={entry.id} entry={entry} copyable={copyable} />
-      ))}
-      <div ref={end} />
+      {entries.map((entry) =>
+        entry.type === 'question' && !entry.answers ? null : (
+          <div key={entry.id} data-entry-id={entry.id} className="scroll-mt-6">
+            <Entry entry={entry} copyable={copyable} />
+          </div>
+        ),
+      )}
     </div>
   );
 }

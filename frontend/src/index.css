@@ -350,6 +350,71 @@
     overflow-wrap: anywhere;
   }
 
+  /*
+   * Índice das mensagens do dono (MessageIndex): traços colados à direita da área de scroll; com o rato ou foco, um
+   * painel flutuante (overlay = surface-2 + shadow-overlay) com o início de cada mensagem.
+   */
+  .msg-index {
+    position: fixed;
+    z-index: 30;
+    transform: translateY(-50%);
+    display: flex;
+    flex-direction: row-reverse;
+    align-items: center;
+  }
+  .msg-index-rail {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 6px;
+    max-height: 60vh;
+    overflow: hidden;
+    padding: 8px 10px 8px 8px;
+    border-radius: var(--wfa-radius-md);
+    cursor: pointer;
+  }
+  .msg-index-rail:focus-visible { outline: 2px solid var(--wfa-color-accent); outline-offset: -2px; }
+  .msg-index-tick {
+    flex: none;
+    display: block;
+    width: 10px;
+    height: 2px;
+    border-radius: var(--wfa-radius-sm);
+    background: var(--wfa-color-border-strong);
+    transition: width var(--wfa-dur-fast) var(--wfa-ease-standard),
+      background var(--wfa-dur-fast) var(--wfa-ease-standard);
+  }
+  .msg-index-tick.is-current { width: 18px; background: var(--wfa-color-accent); }
+  .msg-index-panel {
+    width: 260px;
+    overflow-y: auto;
+    padding: 4px;
+    background: var(--wfa-color-surface-2);
+    border: 1px solid var(--wfa-color-border);
+    border-radius: var(--wfa-radius-lg);
+    box-shadow: var(--wfa-shadow-overlay);
+  }
+  .msg-index-panel button {
+    display: block;
+    width: 100%;
+    text-align: left;
+    padding: 6px 10px;
+    border: 0;
+    border-radius: var(--wfa-radius-md);
+    background: none;
+    color: var(--wfa-color-text-2);
+    font-size: 13px;
+    line-height: 18px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    cursor: pointer;
+  }
+  .msg-index-panel button:hover,
+  .msg-index-panel button:focus-visible { color: var(--wfa-color-text-1); font-weight: 600; background: var(--wfa-color-surface-3); }
+  .msg-index-panel button:focus-visible { outline: 2px solid var(--wfa-color-accent); outline-offset: -2px; }
+  .msg-index-panel button.is-current { color: var(--wfa-color-accent); }
+
   .option-card {
     display: flex;
     align-items: flex-start;

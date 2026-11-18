@@ -1,5 +1,7 @@
 import { zodResolver } from '@hookform/resolvers/zod';
 import { Button, Input } from 'antd';
+import type { TextAreaRef } from 'antd/es/input/TextArea';
+import { useEffect, useRef } from 'react';
 import { Controller, useForm } from 'react-hook-form';
 import { z } from 'zod';
 import { FieldError } from '@/components/common/FieldError';
@@ -24,6 +26,11 @@ type ReplyBoxProps = {
 /** A caixa de resposta quando o Claude terminou o turno à espera de texto. `Ctrl+Enter` envia. */
 export function ReplyBox({ busy, onSend, placeholder = 'Responde ao Claude…', maxRows = 12 }: ReplyBoxProps) {
   const form = useForm<ReplyValues>({ resolver: zodResolver(replySchema), defaultValues: { text: '' } });
+  const textArea = useRef<TextAreaRef | null>(null);
+  // Foco ao aparecer, mas sem levar a página até à caixa: quem está a reler a conversa lá em cima fica onde está.
+  useEffect(() => {
+    textArea.current?.focus({ preventScroll: true });
+  }, []);
   const submit = form.handleSubmit(async ({ text }) => {
     if (await onSend(text)) form.reset({ text: '' });
   });
@@ -36,8 +43,11 @@ export function ReplyBox({ busy, onSend, placeholder = 'Responde ao Claude…', 
         render={({ field }) => (
           <Input.TextArea
             {...field}
+            ref={(element) => {
+              field.ref(element);
+              textArea.current = element;
+            }}
             id="guided-reply"
-            autoFocus
             aria-label="A tua resposta"
             autoSize={{ minRows: 3, maxRows }}
             maxLength={8000}
