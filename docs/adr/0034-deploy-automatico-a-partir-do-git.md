@@ -6,7 +6,8 @@ data: 2026-11-18
 
 # 0034 — Deploy automático a partir do git: o topo de `origin/<branch>` entra no histórico
 
-**Data**: 2026-11-18 · **Estado**: `aceite` · **Decidido com**: o dono, no `/refine-idea` e no `/implement-todo`
+**Data**: 2026-11-18 · **Estado**: `aceite` (pontos 4 e 6 — travão de 5 min e formas do `GIT_BIN` — alterados por
+[[0035-sync-do-deploy-por-ls-remote-e-hook]]) · **Decidido com**: o dono, no `/refine-idea` e no `/implement-todo`
 de 2026-11-18 — "quero que o merge para produção preencha o último deploy sem o registar à mão".
 
 Altera o [[0028-informacao-de-deploy-por-projeto]] (ponto 6: "histórico de deploys manual") e a linha "Ler a
