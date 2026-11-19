@@ -73,8 +73,8 @@ export type ProjectInfoInput = Omit<ProjectInfo, 'projectPath' | 'updatedAt' | '
 export type GitWarningReason = 'no-git' | 'no-repo' | 'outside-roots' | 'no-remote' | 'no-branch' | 'fetch-failed' | 'timeout';
 export type GitSyncWarning = { environmentId: string; reason: GitWarningReason };
 
-/** Resposta de `POST /project-infos/git-sync`. `skipped` = dentro dos 5 min, o git não correu (os avisos são os do último). */
-export type GitSyncResult = { info: ProjectInfo | null; warnings: GitSyncWarning[]; skipped: boolean };
+/** Resposta de `POST /project-infos/git-sync` (ADR 0035). */
+export type GitSyncResult = { info: ProjectInfo | null; warnings: GitSyncWarning[] };
 
 export type DeployInput = {
   /** ISO; omitido = agora. */

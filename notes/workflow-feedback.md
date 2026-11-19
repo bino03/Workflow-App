@@ -84,3 +84,4 @@ projeto inventou (→ `/harvest-project` no Workflow).
 - **2026-11-18 — `notes/` está como git-ignored, mas este projeto versiona-a** · `docs/skills/references/documentation-rules.md` §3 · tipo: errado
   - O que aconteceu: no fecho do `/implement-todo`, a pensar no commit. A tabela do §3 diz `notes/` ❌ git-ignored ("se o disco morrer, o `notes/` vai com ele"), mas aqui `git ls-files notes` lista o ToDo, ideas, whatIveDone, planos… e um `git status` mostra as edições do dono ao ToDo.
   - Como se resolveu: seguiu-se o git (o work log e o plano arquivado entram no commit da feature; as edições do dono ao ToDo não se commitam sem perguntar). Na origem: ou o molde gera o `.gitignore` com `notes/`, ou o §3 diz que é escolha do projeto e como saber (`git check-ignore notes/ToDo.md`).
+  - 2026-11-19, outra vez: no fecho do `/implement-todo` (sync do deploy). Mesmo tratamento: o work log e o plano arquivado entram no commit.

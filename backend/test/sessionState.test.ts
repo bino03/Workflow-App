@@ -168,6 +168,33 @@ describe('session-hook.cjs — agents (ADR 0031 points 5-6)', () => {
   });
 });
 
+describe('session-hook.cjs — push marker (ADR 0035)', () => {
+  const pushFile = () => join(dataDir, SESSION_STATE_FILES.dir, TERMINAL, SESSION_STATE_FILES.push);
+  const bash = (command: string, event = 'PostToolUse') => ({ hook_event_name: event, tool_name: 'Bash', tool_input: { command } });
+
+  it('a git push or a gh pr merge leaves push.json = {at}, never the command', () => {
+    for (const command of ['git push origin main', 'git -C app push', 'git add . && git commit -m "x" && git push', 'gh pr merge 12 --squash']) {
+      removeDir(join(dataDir, SESSION_STATE_FILES.dir));
+      const { status, stdout } = runHook(bash(command));
+      expect(status).toBe(0);
+      expect(stdout).toBe('');
+      const marker = JSON.parse(readFileSync(pushFile(), 'utf8')) as Record<string, unknown>;
+      expect(Object.keys(marker), command).toEqual(['at']);
+      expect(readFileSync(pushFile(), 'utf8')).not.toContain('origin');
+    }
+  });
+
+  it('other commands, other tools, other events and terminals without an id leave none', () => {
+    runHook(bash('git status'));
+    runHook(bash('npm run push-notes'));
+    runHook(bash('git log | grep push'));
+    runHook(bash('git push', 'PreToolUse'));
+    runHook({ hook_event_name: 'PostToolUse', tool_name: 'Write', tool_input: { command: 'git push' } });
+    runHook(bash('git push'), {});
+    expect(existsSync(pushFile())).toBe(false);
+  });
+});
+
 describe('SessionStateStore', () => {
   it('waiting with nothing recorded, an odd file or a bad id; clear removes the folder', () => {
     const store = new SessionStateStore(dataDir);

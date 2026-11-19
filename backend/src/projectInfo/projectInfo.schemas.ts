@@ -24,8 +24,8 @@ export const registerDeploySchema = z.object({
   note: deploySchema.shape.note.optional(),
 });
 
-/** ADR 0034: `force` (the drawer's button) skips the 5-minute interval. */
-export const gitSyncSchema = z.object({ projectPath: projectPathSchema, force: z.boolean().optional() });
+/** ADR 0034/0035: no interval and no `force` — every call asks the remote (`ls-remote` first). */
+export const gitSyncSchema = z.object({ projectPath: projectPathSchema });
 
 export const removeDeployQuerySchema = z.object({
   projectPath: projectPathSchema,

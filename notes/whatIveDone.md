@@ -994,3 +994,33 @@ Guardar o verbatim importa: vários bullets são vagos, e o log preserva o que f
   - Não voltei a correr o `guided-index.mjs`: o caminho sem remote do `GuidedConversation` só ganhou a prop `outsideLabel`.
 - Files: frontend/src/components/guided/{ContinueInAppModal,GuidedConversation,GuidedFeed}.tsx, frontend/src/pages/NewProjectPage.tsx, frontend/src/services/guidedService.ts, scripts/verify/guided-claude-app.mjs, docs/skills/references/design/guided-session.md, docs/{code-map,commands}.md
 - Item original do ToDo: "`sonnet` "Continuar no Claude app" — **frontend**: botão (tooltip fora de `waiting-text`), escolha Esconder aqui / Manter aberto, cartão "A responder no Claude app" com "Mostrar a conversa", estado real + `remote`; verificado no browser numa instância descartável."
+
+## 2026-11-19 — ADR 0035: sync do deploy por `ls-remote` e hook
+
+- O sync do deploy git passa a fazer `ls-remote` primeiro, a 4.ª forma do `GIT_BIN`, que não escreve no repo. O `fetch` + `log` só corre quando o topo mudou. Saem o travão de 5 min, o `force` e o `skipped`.
+- O hook do 0031 passa a escrever `push.json {at}` num `git push` ou `gh pr merge`, nunca o comando. Um `fs.watch` no backend sincroniza o projeto do terminal: o `cwd` guardado, numa pasta igual à do projeto ou dentro dela. Não há retries.
+- Porquê: o dono quer os dados certos quando os consulta, sem polling. Um webhook não chega a `127.0.0.1`. Ficaram rejeitados o marcador lido no `GET /api/terminals` (só funciona com a página aberta) e a chamada HTTP com token (é superfície nova).
+- Files: docs/adr/0035-sync-do-deploy-por-ls-remote-e-hook.md, docs/adr/README.md, docs/adr/0034-deploy-automatico-a-partir-do-git.md (nota de alteração no estado)
+- Item original do ToDo: "`opus` ADR novo que altera o [[../docs/adr/0034-deploy-automatico-a-partir-do-git|ADR 0034]] (pontos 4 e 6): o sync do deploy git passa a `git ls-remote` primeiro, sem o travão de 5 min, e um `git push`/`gh pr merge` feito pelo Claude num terminal da app dispara o sync logo — para o "último deploy" estar certo quando o consulto, sem polling."
+
+## 2026-11-19 — Sync do deploy por `ls-remote` e hook (ADR 0035)
+
+- **Backend:**
+  - `projectGit.ts` faz o `ls-remote` primeiro. Só conta a linha do ref exato: um `decoy/refs/heads/release` dá `no-branch`. Se o topo já foi visto por todos os ambientes da branch, devolve `unchanged` e não faz `fetch`.
+  - `projectInfoService.ts` deixa de ter travão, `lastSync`, `lastWarnings`, `now`, `force` e `skipped`. Fica só um sync em curso por projeto.
+  - O hook escreve `push.json {at}` num Bash `git … push` ou `gh pr merge` (`PostToolUse`).
+  - `deployTrigger.ts` (novo) é o primeiro `fs.watch` do código: debounce de 1 s e o mesmo `at` tratado uma só vez. Liga o `cwd` guardado do terminal ao projeto mais fundo do registo que o contém e corre o sync se houver `deployBranch`. Arranca no `onReady` e fecha no `onClose`.
+- **Frontend:**
+  - Sync silencioso ao abrir o drawer.
+  - Releitura ao voltar à janela (`focus`/`visibilitychange`, no mínimo 5 s entre duas), sem temporizador.
+  - O `force` sai do serviço e do tipo.
+- **Testes:**
+  - Backend 619/619. Novos: topo igual → o ref remoto apagado no clone não volta (prova que não houve `fetch`); ref decoy; `classify` do `ls-remote`; marcador do hook (4 comandos sim, 6 casos não); `deployTrigger.test.ts`.
+  - eslint limpo. `tsc --noEmit` só tem o erro de `auth.test.ts`, que já existia. Frontend `tsc -b` e eslint limpos.
+  - `project-git-sync.mjs` 41/41 numa instância descartável. Inclui o hook real alimentado com um `PostToolUse` Bash `git push` num terminal de Alfa. O backend registou o 5.º merge sozinho, e o `backend.log` tem "deploy trigger: synced after a push".
+- **Decisões a meio:**
+  - Um `force` antigo no pedido é ignorado, não dá 400: o zod do projeto tira as chaves desconhecidas.
+  - O passo do remote real (GitHub) não correu desta vez.
+  - Não verifiquei com um `claude` real a fazer push: a instância não tem login. O payload é o do spike do ADR 0031.
+- Files: backend/src/projectInfo/{projectGit.ts,projectInfoService.ts,projectInfo.schemas.ts,projectInfo.routes.ts,deployTrigger.ts}, backend/src/terminals/sessionState.ts, backend/src/app.ts, backend/test/{projectInfo.gitSync.test.ts,sessionState.test.ts,deployTrigger.test.ts}, frontend/src/{hooks/useProjectInfos.ts,services/projectInfoService.ts,types/projectInfo.ts,pages/ProjectsPage.tsx}, scripts/verify/project-git-sync.mjs, docs/{api,security,environment,code-map,commands}.md, docs/features/informacao-dos-projetos.md
+- Item original do ToDo: "`sonnet` Implementar o sync por `ls-remote` + o gatilho do hook, a partir do [[../docs/adr/0035-sync-do-deploy-por-ls-remote-e-hook|ADR 0035]] — backend (`projectInfo/projectGit.ts`, `projectInfoService.ts`, o hook do 0031), frontend (sync ao abrir o drawer, recarregar `/projects` no foco), `docs/api.md`, `docs/security.md`. Verificar: testes com repo git temporário (topo igual → zero `fetch`; topo novo → 1 deploy; sem travão), e numa instância descartável um `git push` num terminal que faz aparecer o deploy."

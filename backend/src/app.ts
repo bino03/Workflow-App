@@ -41,6 +41,7 @@ import { ProjectsService } from './projects/projectsService.js';
 import { ClaudeSessions } from './sessions/claudeSessions.js';
 import { isTrustedFolder } from './sessions/claudeTrust.js';
 import { projectInfoRoutes } from './projectInfo/projectInfo.routes.js';
+import { DeployTrigger } from './projectInfo/deployTrigger.js';
 import { ProjectGit } from './projectInfo/projectGit.js';
 import { ProjectInfoService } from './projectInfo/projectInfoService.js';
 import { AccountDirs } from './accounts/accountDirs.js';
@@ -145,9 +146,18 @@ export async function buildApp({
   const projectsService = new ProjectsService(config.workflowPath, config.terminals.allowedRoots);
   await app.register(projectsRoutes, { projectsService });
   const projectGit = new ProjectGit({ gitBin: config.gitBin, allowedRoots: config.terminals.allowedRoots });
-  await app.register(projectInfoRoutes, {
-    projectInfoService: new ProjectInfoService({ stateStore, projects: projectsService, git: projectGit }),
+  const projectInfoService = new ProjectInfoService({ stateStore, projects: projectsService, git: projectGit });
+  await app.register(projectInfoRoutes, { projectInfoService });
+  // ADR 0035: a push in a normal terminal syncs its project's deploy right away (the hook leaves push.json).
+  const deployTrigger = new DeployTrigger({
+    dataDir: config.dataDir,
+    terminalCwd: (id) => stateStore.read().terminals.find((terminal) => terminal.id.toLowerCase() === id)?.cwd ?? null,
+    projectPaths: async () => (await projectsService.list()).map((project) => project.path),
+    projectInfo: projectInfoService,
+    log: app.log.child({ module: 'deploy-trigger' }),
   });
+  app.addHook('onReady', async () => deployTrigger.start());
+  app.addHook('onClose', async () => deployTrigger.stop());
 
   const sessionsReader = new ClaudeSessions(config.terminals.claudeConfigDir);
 

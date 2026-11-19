@@ -33,10 +33,10 @@ export async function projectInfoRoutes(app: FastifyInstance, { projectInfoServi
     return projectInfoService.registerDeploy(projectPath, environmentId, deploy);
   });
 
-  // ADR 0034: the tip of each environment's deploy branch joins its history; failures come back as warnings.
+  // ADR 0034/0035: the tip of each environment's deploy branch joins its history; failures come back as warnings.
   app.post('/api/project-infos/git-sync', async (request) => {
-    const { projectPath, force } = parseWith(gitSyncSchema, request.body);
-    return projectInfoService.syncFromGit(projectPath, { force: force ?? false });
+    const { projectPath } = parseWith(gitSyncSchema, request.body);
+    return projectInfoService.syncFromGit(projectPath);
   });
 
   app.delete('/api/project-infos/deploys', async (request) => {

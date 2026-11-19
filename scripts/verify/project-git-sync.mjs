@@ -1,15 +1,17 @@
-// Automatic deploys from git (ADR 0034): the "Branch de deploy" field validates, saving it brings the tip of
+// Automatic deploys from git (ADR 0034, 0035): the "Branch de deploy" field validates, saving it brings the tip of
 // origin/<branch> into the history as a "git" deploy, "Atualizar do git" brings a new merge, warnings stay discreet
 // (a branch the remote lacks, a folder that is not a repository), opening /projects syncs in the background without a
-// notification — and one project points at a real remote (GitHub), whose tip and commit date the deploy must match.
+// notification. ADR 0035: no 5-minute interval — opening the drawer and coming back to the window bring a new merge at
+// once, and the real session hook, after a `git push` in a terminal, makes the backend sync with no page asking.
+// One project points at a real remote (GitHub), whose tip and commit date the deploy must match.
 // Every claim on screen is also read back from the API.
 //
 //   cd frontend && npm run build && cd ..
 //   node scripts/verify/instance.mjs start --fresh
 //   node scripts/verify/project-git-sync.mjs [run dir] [real remote URL]
 //   node scripts/verify/instance.mjs stop --clean
-import { execFileSync } from 'node:child_process';
-import { mkdirSync, writeFileSync } from 'node:fs';
+import { execFileSync, spawnSync } from 'node:child_process';
+import { mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { checker, login, openBrowser, readInstance, sleep } from './cdp.mjs';
 import { formDriver } from './formDriver.mjs';
@@ -132,22 +134,64 @@ try {
   check('Beta has no deploys', (await sheet(beta)).environments[0].deploys.length === 0);
   await closeDrawer();
 
-  // 5. Opening /projects again syncs in the background (inside 5 min: skipped, but the warnings come back).
+  // 5. Opening /projects again syncs in the background — no interval any more (ADR 0035), the warnings come back fresh.
   const before = page.errors.length;
   await page.navigate(`${instance.base}/projects`);
   await page.waitFor(`${cards}.length === 3`);
   await sleep(1500);
   check('no notification on opening /projects', (await page.evaluate(notifications)) === 0);
   await page.evaluate(`${card('Beta')}.click()`);
-  check('after a reload the Beta warning is still there (from the skipped sync)', await page.waitFor(`${drawerText}.includes('não está num repositório git')`, 5000));
+  check('after a reload the Beta warning is still there (from a real sync)', await page.waitFor(`${drawerText}.includes('não está num repositório git')`, 5000));
   await closeDrawer();
   check('no console errors on the reload', page.errors.length === before, page.errors.slice(before).join(' | '));
+
+  // 5b. ADR 0035: a merge right after → opening the drawer shows it, with no button and no interval.
+  const thirdTip = pushCommit('Merge pull request #3 from feat/terceiro');
+  await page.evaluate(`${card('Alfa')}.click()`);
+  check('opening the drawer brings the new merge at once', await page.waitFor(`${drawerText}.includes(${JSON.stringify(thirdTip.slice(0, 7))})`, 15000));
+  check('API: three deploys, the newest first', (await sheet(alfa)).environments[0].deploys[0]?.commit === thirdTip);
+  await closeDrawer();
+
+  // 5c. Coming back to the window (after the 5 s gap) re-reads the sheets: the card's "Último deploy" moves.
+  const fourthTip = pushCommit('Merge pull request #4 from feat/quarto');
+  const fourthAt = iso(git(dev, 'log', '-1', '--format=%cI', fourthTip));
+  const cardTime = `${card('Alfa')}?.querySelector('time')?.getAttribute('datetime')`;
+  await sleep(5500);
+  check('the card still shows the third deploy before the focus', (await page.evaluate(cardTime)) !== fourthAt);
+  await page.evaluate(`window.dispatchEvent(new Event('focus'))`);
+  check('after the focus the card shows the fourth deploy', await page.waitFor(`${cardTime} === ${JSON.stringify(fourthAt)}`, 15000), String(await page.evaluate(cardTime)));
+  check('API: lastGitCommit is the fourth tip', (await sheet(alfa)).environments[0].lastGitCommit === fourthTip);
+
+  // 5d. The hook: a terminal in Alfa, the real session-hook.cjs fed a PostToolUse Bash "git push" — what claude sends
+  // after a push — and the backend syncs by itself (fs.watch), with no page request in between.
+  const created = await page.api('POST', '/terminals', { cwd: alfa, mode: 'new', cols: 80, rows: 24 });
+  check('a terminal in Alfa', created.status === 201, JSON.stringify(created.body));
+  const fifthTip = pushCommit('Merge pull request #5 from feat/quinto');
+  const hook = spawnSync(process.execPath, [join(instance.dataDir, 'session-hook.cjs')], {
+    input: JSON.stringify({ hook_event_name: 'PostToolUse', tool_name: 'Bash', tool_input: { command: 'git push origin main' }, cwd: alfa }),
+    env: { ...process.env, WFA_TERMINAL_ID: created.body.id },
+    encoding: 'utf8',
+  });
+  check('the hook exits 0 and prints nothing', hook.status === 0 && hook.stdout === '', hook.stderr);
+  const marker = readFileSync(join(instance.dataDir, 'session-state', created.body.id.toLowerCase(), 'push.json'), 'utf8');
+  check('push.json has only the time', Object.keys(JSON.parse(marker)).join() === 'at' && !marker.includes('origin'), marker);
+  let hooked = null;
+  for (let i = 0; i < 30 && !hooked; i++) {
+    await sleep(500);
+    const raw = readFileSync(join(instance.dataDir, 'state.json'), 'utf8');
+    const state = JSON.parse(raw);
+    const env0 = state.projectInfos.find((s) => s.projectPath === alfa)?.environments[0];
+    if (env0?.lastGitCommit === fifthTip) hooked = env0;
+  }
+  check('the backend synced by itself after the push (state.json on disk)', hooked !== null);
+  check('API: the fifth merge is the newest git deploy', (await sheet(alfa)).environments[0].deploys[0]?.commit === fifthTip);
+  await page.api('DELETE', `/terminals/${created.body.id}`);
 
   // 6. A real remote: the deploy is the tip of main on GitHub, with that commit's committer date.
   if (realRemote) {
     const [remoteTip] = git(instance.rootsDir, 'ls-remote', realRemote, 'refs/heads/main').split(/\s+/);
     await page.api('PUT', '/project-infos', { projectPath: gama, info: { environments: [{ kind: 'production', name: 'Produção', deployBranch: 'main' }] } });
-    const synced = await page.api('POST', '/project-infos/git-sync', { projectPath: gama, force: true });
+    const synced = await page.api('POST', '/project-infos/git-sync', { projectPath: gama });
     const deploy = synced.body.info?.environments[0]?.deploys[0];
     check('real remote: no warnings', synced.status === 200 && synced.body.warnings.length === 0, JSON.stringify(synced.body.warnings));
     check('real remote: the deploy is the tip of main (ls-remote)', deploy?.commit === remoteTip, `${deploy?.commit} vs ${remoteTip}`);

@@ -48,7 +48,7 @@ quando levar várias sessões).
 
 ## Manutenção
 
-- [ ] `sonnet` Vigiar o node-pty 1.2.0-beta.18 ([[../docs/adr/0029-node-pty-beta-1-2|ADR 0029]], `proposto`): (1) quando sair a **1.2 estável**, subir (`npm view node-pty dist-tags`), correr a suite e passar o ADR a `aceite`; (2) confirmar no uso real (dias de terminais a abrir/fechar) que o backend não morre sem erro JS — se morrer, procurar no stderr a asserção `uv_fs_close` ([[../docs/backend-conventions]] → node-pty). Resta um SIGABRT raro só em `--pool=threads` (2/24; forks 4/4). Investigação completa em `notes/roadmap/plans/archive/2026-11-08-teste-worker-intermitente.md`. (encontrado pelo /implement-todo, 2026-11-01; reduzido a vigiar a 2026-11-12) · **Verificado 2026-11-18: ainda beta** (`latest` 1.1.0, `beta` 1.2.0-beta.18).
+- [ ] `sonnet` Vigiar o node-pty 1.2.0-beta.18 ([[../docs/adr/0029-node-pty-beta-1-2|ADR 0029]], `proposto`): (1) quando sair a **1.2 estável**, subir (`npm view node-pty dist-tags`), correr a suite e passar o ADR a `aceite`; (2) confirmar no uso real (dias de terminais a abrir/fechar) que o backend não morre sem erro JS — se morrer, procurar no stderr a asserção `uv_fs_close` ([[../docs/backend-conventions]] → node-pty). Resta um SIGABRT raro só em `--pool=threads` (2/24; forks 4/4). Investigação completa em `notes/roadmap/plans/archive/2026-11-08-teste-worker-intermitente.md`. (encontrado pelo /implement-todo, 2026-11-01; reduzido a vigiar a 2026-11-12) · **Verificado 2026-11-19: ainda beta** (`latest` 1.1.0, `beta` 1.2.0-beta.18; o pacote não é publicado desde 2026-10-23).
 
 ---
 

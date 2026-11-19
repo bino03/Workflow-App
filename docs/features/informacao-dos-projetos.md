@@ -294,6 +294,7 @@ projeto Alfa da instância descartável (a app não tem como apontar ao projeto 
 **Desvio de 2026-11-18:** o [[../adr/0034-deploy-automatico-a-partir-do-git|ADR 0034]] acrescenta o deploy automático a partir do
 git (campo "Branch de deploy" por ambiente, deploys com `source: git`, `POST /api/project-infos/git-sync`). Altera a linha "Data
 do deploy" do §3 e a linha correspondente do "Fora". Implementado no mesmo dia: backend 603/603 + `test/projectInfo.gitSync.test.ts`, `scripts/verify/project-git-sync.mjs` 36/36 (com um remote real).
+**Desvio de 2026-11-19:** o [[../adr/0035-sync-do-deploy-por-ls-remote-e-hook|ADR 0035]] tira o travão de 5 min: `ls-remote` primeiro, `fetch` só se o topo mudou, sync também ao abrir o drawer e ao voltar à janela, e um `git push`/`gh pr merge` num terminal da app faz o backend sincronizar sozinho (hook + `fs.watch`). Sai o `force`/`skipped` da rota. Backend 619/619, `project-git-sync.mjs` 41/41 (sem remote real).
 **O que uma sessão nova precisa de saber:**
 - O dono quer, no futuro, um ícone ⓘ em cada separador de projeto (`ProjectTabs`) que abre esta ficha
   **na mesma página de Projetos**. Fica de fora desta feature (§2) mas a página deve aceitar

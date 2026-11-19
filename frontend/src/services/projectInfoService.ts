@@ -17,9 +17,9 @@ export async function registerDeploy(projectPath: string, environmentId: string,
   return (await api.post<ProjectInfo>('/project-infos/deploys', { projectPath, environmentId, ...deploy })).data;
 }
 
-/** ADR 0034: o topo da branch de deploy de cada ambiente entra no histórico. `force` ignora o intervalo de 5 min. */
-export async function syncProjectFromGit(projectPath: string, force: boolean): Promise<GitSyncResult> {
-  return (await api.post<GitSyncResult>('/project-infos/git-sync', { projectPath, force })).data;
+/** ADR 0034/0035: o topo da branch de deploy de cada ambiente entra no histórico. Sem intervalo: pergunta sempre ao remote. */
+export async function syncProjectFromGit(projectPath: string): Promise<GitSyncResult> {
+  return (await api.post<GitSyncResult>('/project-infos/git-sync', { projectPath })).data;
 }
 
 export async function deleteDeploy(projectPath: string, environmentId: string, deployId: string): Promise<ProjectInfo> {

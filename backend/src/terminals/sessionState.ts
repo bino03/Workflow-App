@@ -12,6 +12,8 @@ export const SESSION_STATE_FILES = {
   /** `<terminal id>/state.json` = `{ activity, event, at }`. */
   dir: 'session-state',
   state: 'state.json',
+  /** `<terminal id>/push.json` = `{ at }` after a `git push` / `gh pr merge` (ADR 0035) — never the command. */
+  push: 'push.json',
 } as const;
 
 /** The env var that ties a hook to a terminal. Never inherited from the backend (spawnClaude.ts denylist). */
@@ -26,7 +28,8 @@ const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
  * Runs inside Claude Code at every hook of a normal terminal. It must never fail, never be slow, never print and
  * never decide: output can hold the turn or answer a permission. Without a UUID in WFA_TERMINAL_ID (a login, an
  * app run, a claude started by hand) it does nothing. Only the event, the activity and the time are kept — and, for
- * agents, the id, type, model and a cut description; never a prompt, a message or a tool input otherwise.
+ * agents, the id, type, model and a cut description; never a prompt, a message or a tool input otherwise. A Bash
+ * command is only tested against PUSH (ADR 0035): a push or a merge leaves `push.json` = `{at}`, nothing of the command.
  *
  * Mapping (ADR 0031 point 3): SessionStart/Stop → waiting · UserPromptSubmit/PostToolUse → working ·
  * PermissionRequest, PreToolUse(AskUserQuestion), Notification other than idle_prompt → needs-you. A Notification
@@ -70,6 +73,15 @@ function activityOf(data, dir) {
   }
 }
 const AGENT_ID = /^[A-Za-z0-9_-]{1,64}$/;
+// ADR 0035: a push or a PR merge may have moved a deploy branch. No branch parsing: ls-remote tells.
+const PUSH = /\\bgit\\b[^\\n;&|]*\\bpush\\b|\\bgh\\s+pr\\s+merge\\b/;
+function recordPush(data, dir, at) {
+  if (data.hook_event_name !== 'PostToolUse' || data.tool_name !== 'Bash') return;
+  const command = data.tool_input && data.tool_input.command;
+  if (typeof command !== 'string' || !PUSH.test(command)) return;
+  fs.mkdirSync(dir, { recursive: true });
+  writeAtomic(path.join(dir, 'push.json'), JSON.stringify({ at }));
+}
 const AGENT_TOOLS = new Set(['Agent', 'Task']);
 const text = (v, max) => (typeof v === 'string' && v.trim() ? v.trim().slice(0, max) : null);
 // One file per event and per agent (ADR 0031 point 5): hooks run in parallel and never write the same file.
@@ -112,6 +124,7 @@ if (typeof id === 'string' && UUID.test(id)) {
       const dir = path.join(STATE_DIR, id.toLowerCase());
       const at = new Date().toISOString();
       try { recordAgent(data, dir, at); } catch {}
+      try { recordPush(data, dir, at); } catch {}
       const activity = activityOf(data, dir);
       if (!activity) return;
       fs.mkdirSync(dir, { recursive: true });

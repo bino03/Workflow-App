@@ -68,7 +68,7 @@ beforeAll(async () => {
 
 afterAll(() => rmSync(base, { recursive: true, force: true }));
 
-describe('POST /api/project-infos/git-sync (ADR 0034)', () => {
+describe('POST /api/project-infos/git-sync (ADR 0034, 0035)', () => {
   let app: FastifyInstance;
   let cookie: string;
   let worksite: string;
@@ -93,8 +93,8 @@ describe('POST /api/project-infos/git-sync (ADR 0034)', () => {
   const call = (method: 'GET' | 'POST' | 'PUT' | 'DELETE', url: string, payload?: object) =>
     app.inject({ method, url, headers: { cookie }, ...(payload ? { payload } : {}) });
   const put = (environments: object[], target = worksite) => call('PUT', '/api/project-infos', { projectPath: target, info: { environments } });
-  const sync = (target = worksite, force = true) => call('POST', '/api/project-infos/git-sync', { projectPath: target, force });
-  type SyncBody = { info: ProjectInfo | null; warnings: { environmentId: string; reason: string }[]; skipped: boolean };
+  const sync = (target = worksite) => call('POST', '/api/project-infos/git-sync', { projectPath: target });
+  type SyncBody = { info: ProjectInfo | null; warnings: { environmentId: string; reason: string }[] };
   const production = (extra: object = {}) => ({ kind: 'production', name: 'Produção', deployBranch: 'main', ...extra });
 
   it('needs a session', async () => {
@@ -124,7 +124,7 @@ describe('POST /api/project-infos/git-sync (ADR 0034)', () => {
   it('without a deploy branch it does nothing: no git, no deploys', async () => {
     await put([{ kind: 'production', name: 'Produção' }]);
     const body = (await sync()).json<SyncBody>();
-    expect(body).toMatchObject({ warnings: [], skipped: false });
+    expect(body).toEqual({ info: expect.anything(), warnings: [] });
     expect(body.info!.environments[0]!.deploys).toEqual([]);
   });
 
@@ -166,16 +166,28 @@ describe('POST /api/project-infos/git-sync (ADR 0034)', () => {
     expect((await sync()).json<SyncBody>().info!.environments[0]!.deploys).toEqual([]);
   });
 
-  it('without force, at most once in 5 minutes per project (skipped); force skips the interval', async () => {
+  it('ADR 0035: the same tip → ls-remote only, no fetch; a new tip right after → fetched, no interval', async () => {
     await put([production()]);
-    expect((await sync(worksite, false)).json<SyncBody>().skipped).toBe(false);
-    pushCommit('inside the interval');
-    const skipped = (await sync(worksite, false)).json<SyncBody>();
-    expect(skipped.skipped).toBe(true);
-    const forced = (await sync(worksite, true)).json<SyncBody>();
-    expect(forced.skipped).toBe(false);
-    expect(forced.info!.environments[0]!.lastGitCommit).toBe(git(dev, 'rev-parse', 'HEAD'));
+    const first = (await sync()).json<SyncBody>();
+    expect(first.info!.environments[0]!.lastGitCommit).toBe(git(dev, 'rev-parse', 'HEAD'));
+    // Without the remote ref in the clone, only a fetch could bring it back.
+    git(clone, 'update-ref', '-d', 'refs/remotes/origin/main');
+    expect((await sync()).json<SyncBody>()).toMatchObject({ warnings: [] });
+    expect(() => git(clone, 'rev-parse', '--verify', '-q', 'refs/remotes/origin/main')).toThrow();
+
+    const next = pushCommit('right after');
+    const body = (await sync()).json<SyncBody>();
+    expect(body.info!.environments[0]!.lastGitCommit).toBe(next);
+    expect(git(clone, 'rev-parse', 'refs/remotes/origin/main')).toBe(next);
+    expect(body).not.toHaveProperty('skipped');
   });
+
+  it('ls-remote counts only the exact ref: a branch that merely ends in refs/heads/<b> is no-branch', async () => {
+    pushCommit('decoy', 'decoy/refs/heads/release');
+    const saved = (await put([production({ deployBranch: 'release' })])).json<ProjectInfo>();
+    expect((await sync()).json<SyncBody>().warnings).toEqual([{ environmentId: saved.environments[0]!.id, reason: 'no-branch' }]);
+  });
+
 
   it('a manual deploy cannot claim to come from git', async () => {
     const env = (await put([production()])).json<ProjectInfo>().environments[0]!;
@@ -195,9 +207,6 @@ describe('POST /api/project-infos/git-sync (ADR 0034)', () => {
     const body = res.json<SyncBody>();
     expect(body.warnings).toEqual([{ environmentId: saved.environments[1]!.id, reason: 'no-branch' }]);
     expect(body.info!.environments[0]!.deploys.length).toBeGreaterThan(0);
-    // Inside the interval the git does not run, but the warnings of the last sync come back.
-    const skipped = (await sync(worksite, false)).json<SyncBody>();
-    expect(skipped).toMatchObject({ skipped: true, warnings: body.warnings });
 
     const plainEnv = (await put([production()], plain)).json<ProjectInfo>().environments[0]!;
     expect((await sync(plain)).json<SyncBody>().warnings).toEqual([{ environmentId: plainEnv.id, reason: 'no-repo' }]);
@@ -219,6 +228,14 @@ describe('POST /api/project-infos/git-sync (ADR 0034)', () => {
     } catch (error) {
       stderr = String((error as { stderr?: Buffer }).stderr ?? '');
       expect(classify(Object.assign(new Error('x'), { stderr, code: 128 }), 'fetch')).toBe('no-remote');
+    }
+    expect(stderr).not.toBe('');
+    stderr = '';
+    try {
+      execFileSync('git', ['ls-remote', '--end-of-options', 'origin', 'refs/heads/main'], { cwd: lonely, stdio: 'pipe', env: gitEnv() });
+    } catch (error) {
+      stderr = String((error as { stderr?: Buffer }).stderr ?? '');
+      expect(classify(Object.assign(new Error('x'), { stderr, code: 128 }), 'ls-remote')).toBe('no-remote');
     }
     expect(stderr).not.toBe('');
   });

@@ -4,20 +4,15 @@ import type { ProjectsService } from '../projects/projectsService.js';
 import { type Environment, MAX_DEPLOYS, type ProjectInfo } from '../state/state.schema.js';
 import type { StateStore } from '../state/stateStore.js';
 import type { ProjectInfoInput } from './projectInfo.schemas.js';
-import type { BranchTip, GitWarningReason, ProjectGit } from './projectGit.js';
-
-/** At most one automatic git sync per project in this interval (ADR 0034); the drawer's button skips it. */
-export const GIT_SYNC_INTERVAL_MS = 5 * 60_000;
+import { type BranchTip, type GitWarningReason, type ProjectGit, UNCHANGED } from './projectGit.js';
 
 export type GitSyncWarning = { environmentId: string; reason: GitWarningReason };
-export type GitSyncResult = { info: ProjectInfo | null; warnings: GitSyncWarning[]; skipped: boolean };
+export type GitSyncResult = { info: ProjectInfo | null; warnings: GitSyncWarning[] };
 
 export type ProjectInfoServiceOptions = {
   stateStore: StateStore;
   projects: ProjectsService;
   git: ProjectGit;
-  /** Tests only. */
-  now?: () => number;
 };
 
 /**
@@ -28,18 +23,13 @@ export class ProjectInfoService {
   private readonly stateStore: StateStore;
   private readonly projects: ProjectsService;
   private readonly git: ProjectGit;
-  private readonly now: () => number;
-  // In memory on purpose: a restart only means one extra fetch.
-  private readonly lastSync = new Map<string, number>();
+  // One sync in flight per project: a second request waits for the first (ADR 0035, point 3).
   private readonly running = new Map<string, Promise<GitSyncResult>>();
-  // A skipped sync still shows what the last one found.
-  private readonly lastWarnings = new Map<string, GitSyncWarning[]>();
 
-  constructor({ stateStore, projects, git, now = Date.now }: ProjectInfoServiceOptions) {
+  constructor({ stateStore, projects, git }: ProjectInfoServiceOptions) {
     this.stateStore = stateStore;
     this.projects = projects;
     this.git = git;
-    this.now = now;
   }
 
   /** Only the sheets of the projects the registry shows today; a hidden project keeps its sheet on disk. */
@@ -99,44 +89,44 @@ export class ProjectInfoService {
     return this.find(state.projectInfos, projectPath);
   }
 
+  /** Whether the project's sheet follows a deploy branch — the hook trigger only syncs those (ADR 0035, point 6). */
+  hasDeployBranch(projectPath: string): boolean {
+    const info = this.stateStore.read().projectInfos.find((candidate) => candidate.projectPath === projectPath);
+    return info?.environments.some((environment) => environment.deployBranch) ?? false;
+  }
+
   /**
-   * ADR 0034: fetch the tip of `origin/<deployBranch>` of each environment that has one, and add it to that
-   * environment's history when it is a commit not seen before. Without `force`, at most once per interval.
+   * ADR 0034/0035: the tip of `origin/<deployBranch>` of each environment that has one joins that environment's
+   * history when it is a commit not seen before. `ls-remote` first; the fetch only when the tip changed. No interval.
    */
-  async syncFromGit(projectPath: string, { force }: { force: boolean }): Promise<GitSyncResult> {
+  async syncFromGit(projectPath: string): Promise<GitSyncResult> {
     await this.assertInRegistry(projectPath);
     const pending = this.running.get(projectPath);
     if (pending) return pending;
     const current = this.stateStore.read().projectInfos.find((info) => info.projectPath === projectPath) ?? null;
     const tracked = current?.environments.filter((environment) => environment.deployBranch) ?? [];
-    if (tracked.length === 0) return { info: current, warnings: [], skipped: false };
-    const last = this.lastSync.get(projectPath);
-    if (!force && last !== undefined && this.now() - last < GIT_SYNC_INTERVAL_MS) return { info: current, warnings: this.lastWarnings.get(projectPath) ?? [], skipped: true };
-
-    this.lastSync.set(projectPath, this.now());
-    const work = this.runSync(projectPath, tracked)
-      .then((result) => {
-        this.lastWarnings.set(projectPath, result.warnings);
-        return result;
-      })
-      .finally(() => this.running.delete(projectPath));
+    if (tracked.length === 0) return { info: current, warnings: [] };
+    const work = this.runSync(projectPath, tracked).finally(() => this.running.delete(projectPath));
     this.running.set(projectPath, work);
     return work;
   }
 
   private async runSync(projectPath: string, tracked: Environment[]): Promise<GitSyncResult> {
-    const tips = await this.git.tips(projectPath, tracked.map((environment) => environment.deployBranch!));
+    // A tip is "known" only when every environment on that branch has already seen it.
+    const isKnown = (branch: string, commit: string) =>
+      tracked.filter((environment) => environment.deployBranch === branch).every((environment) => environment.lastGitCommit === commit);
+    const tips = await this.git.tips(projectPath, tracked.map((environment) => environment.deployBranch!), isKnown);
     const warnings: GitSyncWarning[] = [];
     const fresh: { environmentId: string; branch: string; tip: BranchTip }[] = [];
     for (const environment of tracked) {
       const tip = tips.get(environment.deployBranch!);
-      if (tip === undefined) continue;
+      if (tip === undefined || tip === UNCHANGED) continue;
       if (typeof tip === 'string') warnings.push({ environmentId: environment.id, reason: tip });
       else if (tip.commit !== environment.lastGitCommit) fresh.push({ environmentId: environment.id, branch: environment.deployBranch!, tip });
     }
     if (fresh.length === 0) {
       const info = this.stateStore.read().projectInfos.find((candidate) => candidate.projectPath === projectPath) ?? null;
-      return { info, warnings, skipped: false };
+      return { info, warnings };
     }
     // git ran outside the (synchronous) update; inside it, check again that nothing changed meanwhile.
     const state = this.stateStore.update((draft) => {
@@ -159,7 +149,7 @@ export class ProjectInfoService {
       }
       this.touch(draft.projectInfos, projectPath);
     });
-    return { info: state.projectInfos.find((info) => info.projectPath === projectPath) ?? null, warnings, skipped: false };
+    return { info: state.projectInfos.find((info) => info.projectPath === projectPath) ?? null, warnings };
   }
 
   async removeDeploy(projectPath: string, environmentId: string, deployId: string): Promise<ProjectInfo> {

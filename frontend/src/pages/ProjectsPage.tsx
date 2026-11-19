@@ -53,8 +53,11 @@ export function ProjectsPage() {
   // `drawerPath` não se limpa ao fechar (o conteúdo fica durante a animação); `session` muda a cada abertura,
   // para o drawer recomeçar em modo de leitura (ou de edição) com o formulário limpo.
   const [drawer, setDrawer] = useState({ path: requestedPath, open: requestedPath !== null, edit: false, session: 0 });
-  const openDrawer = (path: string, options?: { edit: boolean }) =>
+  const openDrawer = (path: string, options?: { edit: boolean }) => {
     setDrawer((current) => ({ path, open: true, edit: options?.edit ?? false, session: current.session + 1 }));
+    // ADR 0035: o último deploy está certo quando se consulta.
+    infos.syncQuietly(path);
+  };
   const drawerProject = projects.projects.find((project) => project.path === drawer.path) ?? null;
 
   const infoByPath = useMemo(() => new Map(infos.infos.map((info) => [info.projectPath, info])), [infos.infos]);
