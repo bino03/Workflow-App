@@ -157,3 +157,16 @@ export async function login(page, instance) {
   await page.evaluate(`document.querySelector('button[type="submit"]').click()`);
   return page.waitFor(`location.pathname === '/terminals'`);
 }
+
+/** Since ADR 0036 the Terminais sidebar shows only the active project: switch to `path` through the project switcher. */
+export async function openProject(page, path) {
+  const quoted = JSON.stringify(path).replace(/\\/g, '\\\\');
+  const section = `document.querySelector('aside[data-project=${quoted}]')`;
+  await page.waitFor(`!!document.querySelector('button[data-project-switcher]')`);
+  if (await page.evaluate(`!!${section}`)) return true;
+  await page.evaluate(`document.querySelector('button[data-project-switcher]').click()`);
+  const option = `document.querySelector('[data-switcher-project=${quoted}]')`;
+  await page.waitFor(`!!${option}`);
+  await page.evaluate(`${option}.click()`);
+  return page.waitFor(`!!${section}`);
+}

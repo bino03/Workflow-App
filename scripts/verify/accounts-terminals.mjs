@@ -10,7 +10,7 @@
 import { execFileSync } from 'node:child_process';
 import { mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
-import { checker, login, openBrowser, readInstance } from './cdp.mjs';
+import { checker, login, openBrowser, openProject as openShared, readInstance } from './cdp.mjs';
 
 const instance = readInstance(process.argv[2]);
 const { check, finish } = checker();
@@ -93,16 +93,7 @@ function launchedWith(fragment) {
 }
 
 /** The sidebar belongs to one project (ADR 0036): pick `path` in the project switcher unless it is already active. */
-async function openProject(path) {
-  const section = `document.querySelector('aside[data-project=${JSON.stringify(path).replace(/\\/g, '\\\\')}]')`;
-  await page.waitFor(`!!document.querySelector('button[data-project-switcher]')`);
-  if (await page.evaluate(`!!${section}`)) return true;
-  await page.evaluate(`document.querySelector('button[data-project-switcher]').click()`);
-  const option = `document.querySelector('[data-switcher-project=${JSON.stringify(path).replace(/\\/g, '\\\\')}]')`;
-  await page.waitFor(`!!${option}`);
-  await page.evaluate(`${option}.click()`);
-  return page.waitFor(`!!${section}`);
-}
+const openProject = (path) => openShared(page, path);
 const showAllProjects = () => openProject(PROJECT);
 
 try {

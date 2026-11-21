@@ -11,7 +11,7 @@
 //   node scripts/verify/instance.mjs stop --clean
 import { mkdirSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
-import { checker, login, openBrowser, readInstance, sleep } from './cdp.mjs';
+import { checker, login, openBrowser, openProject, readInstance, sleep } from './cdp.mjs';
 
 const instance = readInstance(process.argv[2]);
 const { check, finish } = checker();
@@ -69,6 +69,7 @@ try {
   await page.waitFor(`!!${sidebarItem(beta.id)}`);
 
   // ── Focus mode (the default) ──
+  await openProject(page, BETA);
   await page.evaluate(`${sidebarItem(beta.id)}.click()`);
   check('focus: the common header is there', await page.waitFor(`!!${header} && /2 abertos/.test(${header}.innerText)`));
   const focusLine = await headerLine();
@@ -79,11 +80,13 @@ try {
   check('Correr in a folder claude does not trust yet → the TERMINAL_007 message', await page.waitFor(`/confiança/.test(${toast})`), await page.evaluate(toast));
   check('… and stays at Correr', await page.evaluate(phaseIs('idle')));
 
+  await openProject(page, ALFA);
   await page.evaluate(`${sidebarItem(alfa.id)}.click()`);
   check('Alfa (no skills): the header has no control', await page.waitFor(`/1 abertos/.test(${header}.innerText) && !${control}`));
   const real = await page.api('GET', `/app-runs?path=${encodeURIComponent(ALFA)}`);
   check('… because the backend says missing-skills', real.body?.unavailableReason === 'missing-skills', JSON.stringify(real.body));
 
+  await openProject(page, BETA);
   await page.evaluate(`${sidebarItem(beta.id)}.click()`);
   await page.waitFor(phaseIs('idle'));
 

@@ -7,7 +7,7 @@
 //   node scripts/verify/instance.mjs stop --clean
 import { mkdirSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
-import { checker, login, openBrowser, readInstance, sleep } from './cdp.mjs';
+import { checker, login, openBrowser, openProject as openShared, readInstance, sleep } from './cdp.mjs';
 
 const instance = readInstance(process.argv[2]);
 const { check, finish } = checker();
@@ -30,6 +30,8 @@ async function rightClick(element) {
   const { x, y } = await page.evaluate(`(() => { const r = ${element}.getBoundingClientRect(); return { x: r.x + r.width / 2, y: r.y + r.height / 2 }; })()`);
   for (const type of ['mousePressed', 'mouseReleased']) await page.send('Input.dispatchMouseEvent', { type, x, y, button: 'right', clickCount: 1 });
 }
+
+const openProject = (path) => openShared(page, path);
 
 const labels = async () => page.evaluate(`${menuItems}.map((e) => e.textContent.trim())`);
 
@@ -126,7 +128,8 @@ try {
   await page.key('Backslash', '\\', 1, 220);
   check('Alt+\\ still joins', await page.waitFor(`!${paneVisible(a.id)} && ${paneVisible(b.id)}`));
 
-  // A project alone with one terminal cannot split; a terminal of another project opens its tab.
+  // A project alone with one terminal cannot split.
+  await openProject(BETA);
   await openOn(sidebarItem(other.id));
   const betaLabels = await labels();
   check('from another project it offers its own view action', betaLabels.includes('Dividir'), betaLabels.join(' | '));
@@ -134,6 +137,7 @@ try {
   await closeMenu();
 
   // Preview: with no dev server, the real error from the backend, not a silent menu.
+  await openProject(ALFA);
   await openOn(sidebarItem(b.id));
   await pick('Pré-visualizar');
   check('Pré-visualizar acts: the backend answers with no dev port', await page.waitFor(`!!document.querySelector('.ant-notification-notice')`));
@@ -151,6 +155,7 @@ try {
   await page.waitFor(`!${dialog}`, 3000);
 
   // Stopped or exited: Reabrir, and no preview.
+  await openProject(BETA);
   await page.evaluate(`${sidebarItem(other.id)}.click()`);
   check('the terminal exits', await exitTerminal(other.id));
   await page.evaluate(`[...document.querySelectorAll('aside .filter-chip')].find((c) => c.getAttribute('aria-pressed') === 'true')?.click()`);
@@ -163,7 +168,7 @@ try {
   // Two accounts: the submenu, with an account without a login disabled, and the same confirmation as the button.
   const extra = (await page.api('POST', '/accounts', { label: 'Trabalho' })).body;
   await page.navigate(`${instance.base}/terminals`);
-  await page.waitFor(`[...document.querySelectorAll('aside .filter-chip')].length > 0`);
+  await openProject(BETA);
   await page.evaluate(`[...document.querySelectorAll('aside .filter-chip')].find((c) => c.getAttribute('aria-pressed') === 'true')?.click()`);
   await page.waitFor(`!!${sidebarItem(other.id)}`);
   await page.waitFor(`!!${sidebarItem(other.id)}.querySelector('[data-account-tag]')`);
@@ -193,6 +198,7 @@ try {
   // The grid: enlarge and back, also for a terminal of the project that is not active.
   await page.evaluate(`localStorage.setItem('workflow-app.layout', 'grid')`);
   await page.navigate(`${instance.base}/terminals`);
+  await openProject(ALFA);
   await page.waitFor(`!!${sidebarItem(b.id)}`);
   await page.evaluate(`${sidebarItem(b.id)}.click()`);
   await page.waitFor(paneVisible(b.id));
@@ -204,9 +210,11 @@ try {
   check('grid: the enlarged one offers Voltar à grelha', (await labels()).includes('Voltar à grelha'));
   await pick('Voltar à grelha');
   check('back to the grid', await page.waitFor(`document.querySelector('[data-terminal-grid]').classList.contains('grid')`));
+  await openProject(BETA);
   await openOn(sidebarItem(other.id));
   await pick('Ampliar');
-  check('a terminal of another project opens that project, enlarged', await page.waitFor(`${paneVisible(other.id)} && !${paneVisible(b.id)}`));
+  check('a terminal of the other project, enlarged', await page.waitFor(`${paneVisible(other.id)} && !${paneVisible(b.id)}`));
+  await openProject(ALFA);
   await openOn(sidebarItem(b.id));
   await pick('Renomear');
   check('grid: renaming a terminal hidden by an enlarged one shows it', await page.waitFor(`${paneVisible(b.id)} && !!${pane(b.id)}.querySelector('input[aria-label="Nome do terminal"]')`));
