@@ -63,6 +63,7 @@ Conceito (PT, na UI e nos docs) → identificador (EN, no código). ✅ Confirma
 | Entrada da biblioteca (stack, design, skill) | `LibraryEntry` (`kind`: `stack` · `theme` · `skill`) | ✅ de `library/`, só leitura; o que entra vem de uma importação (ADR 0019) |
 | Quota / uso | `UsageSnapshot` | ✅ calculada, não guardada — fonte por decidir |
 | Projeto | `Project` | futura (painel de projetos é ideia, não MVP) |
+| Tarefa (de um projeto) | `ProjectTask` | ✅ `state.json` → `projectTasks` ([[../../adr/0037-tarefas-por-projeto]]). Lista pessoal do painel à direita; **não** é o `notes/ToDo.md` do vault |
 
 ### Termos que parecem sinónimos e não são
 

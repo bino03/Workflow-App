@@ -38,7 +38,10 @@ ação **não destrutiva**, passar os dois:
 confirm({ title: "Marcar como enviada?", actionLabel: "Marcar", message: "…", onConfirm });
 ```
 
-**Toda a ação destrutiva passa por confirmação.**
+**Toda a ação destrutiva passa por confirmação.** Exceção única, decidida no
+[[../../../adr/0037-tarefas-por-projeto|ADR 0037]]: apagar uma tarefa por projeto apaga logo e mostra
+**"Desfazer"** durante uns segundos. Pode ser assim porque a perda é uma linha que o próprio dono escreveu e o
+"Desfazer" a repõe por inteiro. Qualquer outra exceção precisa de um ADR próprio.
 
 ## Atalhos de teclado
 

@@ -19,6 +19,7 @@
 | Challenges WebAuthn por usar | memória do backend (uso único, 5 min, máx. 100) | ❌ — um reinício só obriga a recomeçar a cerimónia |
 | Modo de layout (foco dividido / grelha) | `localStorage` do browser | ✅ por dispositivo |
 | Lateral dos Terminais escondida | `localStorage` do browser, chave `workflow-app.sidebar-collapsed`: `'1'` escondida, `'0'` visível (`pages/TerminalsPage.tsx`) | ✅ por dispositivo |
+| Painel de tarefas por projeto aberto | `localStorage` do browser, chave `workflow-app.tasks-panel-open`: `'1'` aberto, `'0'` ou ausente fechado (o protótipo abre fechado). É global e não por projeto ([[adr/0037-tarefas-por-projeto]]) | ✅ por dispositivo |
 | Lista de candidaturas da Upwork escondida | `localStorage` do browser, chave `workflow-app.upwork-list-collapsed`: `'1'` escondida, `'0'` visível (`pages/UpworkPage.tsx`). À parte da dos Terminais: esconder uma não esconde a outra; ambas respondem ao `AltGr+.` na sua página | ✅ por dispositivo |
 | Filtro de ciclo de vida da página Projetos | `localStorage` do browser, chave `workflow-app.projects-lifecycle-filter`: lista JSON dos ciclos de vida escolhidos (ex.: `["production","maintenance"]`); `[]` = Todos (`pages/ProjectsPage.tsx`). Um valor estragado ou um ciclo de vida desconhecido ignora-se, para nunca esconder projetos | ✅ por dispositivo |
 | Avisos de limite da quota já vistos | `localStorage` do browser, chave `workflow-app.usage-warnings`: `{<accountId>: {fiveHour90?, fiveHour100?, weekly90?}}` (`primary` ou o UUID da conta). Cada aviso guarda o `resetsAt` (ISO) da janela em que levou OK e vale até essa hora passar; ao guardar um OK, poda os já expirados de qualquer conta. O formato antigo, sem conta (`{fiveHour90?, …}`), lê-se como o da `primary` (`components/usage/usageLimits.ts`) | ✅ por dispositivo e por conta: cada browser avisa uma vez por janela de cada conta |
@@ -76,6 +77,7 @@ erDiagram
   PROJECT_INFO ||--o{ ENVIRONMENT : "contém (até 5)"
   ENVIRONMENT ||--o{ DEPLOY : "contém (até 20)"
   PROJECT_INFO }o..o| PROJECT_ENTRY : "projectPath (registo do Workflow)"
+  PROJECT_TASK }o..o| PROJECT_ENTRY : "projectPath (ou uma pasta fora do registo)"
 ```
 
 ## Coleções
@@ -185,6 +187,29 @@ notas ([[adr/0028-informacao-de-deploy-por-projeto]], [[adr/0034-deploy-automati
 | `notes` | texto ≤ 4000 | Nunca segredos (a UI avisa) |
 | `updatedAt` | ISO | |
 
+### Tarefa por projeto — `ProjectTask` (`projectTasks`)
+
+O que representa: uma linha da lista pessoal de tarefas de um projeto, no painel à direita dos Terminais
+([[adr/0037-tarefas-por-projeto]]). **Não tem nada a ver com o vault**: a app nunca lê nem escreve o
+`notes/ToDo.md` de um projeto. Entrou com `.default([])` e o `STATE_VERSION` não mudou.
+
+| Campo | Tipo | Obrigatório | Nota |
+|---|---|---|---|
+| `id` | uuid | ✅ | Gerado pelo backend. O "Desfazer" de um apagar recria a tarefa com o mesmo `id` |
+| `projectPath` | texto | ✅ | O `path` do projeto como a lateral o usa (`resolveAllowedPath`, dentro de `ALLOWED_ROOTS`). É uma referência fraca, como nas `projectInfos` |
+| `text` | texto 1-200, sem espaços nas pontas | ✅ | |
+| `done` | bool | ✅ (omissão `false`) | |
+| `doneAt` | instante \| `null` | — | Preenchido ao marcar e posto a `null` ao desmarcar |
+| `createdAt` | instante | ✅ | Define a ordem |
+
+- **Ordem**: `createdAt` ascendente, por isso uma tarefa nova fica no fundo. Não se reordena, e marcar como
+  feita não muda o sítio.
+- **Limite**: **200 por projeto**, contando as feitas. A 201.ª é recusada e nada sai sozinho.
+- **Apagar**: hard delete. O "Desfazer" volta a criar a tarefa com o `id`, o `createdAt`, o `done` e o `doneAt`
+  originais.
+- **Unicidade**: só o `id` (texto repetido é permitido).
+- Painel aberto/fechado: **não vive aqui**, vive no `localStorage` (ver "O que vive onde").
+
 ## Relações
 
 | De | Para | Cardinalidade | Obrigatória? | Se o "Para" desaparece | Nota |
@@ -192,6 +217,7 @@ notas ([[adr/0028-informacao-de-deploy-por-projeto]], [[adr/0034-deploy-automati
 | `SavedTerminal` | terminal em memória | 1:0..1 | não | fica parado | mesmo `id` |
 | `SavedTerminal` / `ClosedTerminal` | `ClaudeSession` (`.jsonl`) | N:0..1 | não | Reabrir falha com erro próprio; o histórico fica com o `summary` já copiado | referência fraca a um ficheiro do Claude Code |
 | `SavedTerminal` | `Folder` | — | — | — | sem ligação: `cwd` é texto; abrir atualiza a pasta |
+| `ProjectTask` | projeto (`path`) | N:1 | sim | as tarefas ficam no ficheiro, escondidas | referência fraca, como `projectInfos` |
 
 ## Entidades futuras
 
