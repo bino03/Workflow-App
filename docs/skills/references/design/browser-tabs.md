@@ -1,5 +1,8 @@
 # Browser Tabs
 
+> ⚠️ **Sem uso desde o [[../../../adr/0036-moldura-tipo-ide-e-seletor-de-projeto|ADR 0036]] (2026-11-21)**: o
+> `ProjectTabs.tsx` saiu (os projetos mudam-se pelo seletor). O padrão fica descrito para quando voltar a fazer falta.
+
 > 🚧 Código verificado por tipo/lint/testes; **sem verificação visual no browser ainda** — ver
 > [[../../../../notes/verificacao-browser-pendente|verificacao-browser-pendente]]. Baseado em
 > `frontend/src/components/terminals/ProjectTabs.tsx`, escrito na spec

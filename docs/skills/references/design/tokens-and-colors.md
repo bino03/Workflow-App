@@ -148,6 +148,14 @@ Nomes de terminal, pastas, nomes de stacks e atalhos de teclado usam **mono**.
 --wfa-radius-lg: 8px;  /* cartões da grelha, modais, toasts */
 ```
 
+**Medida da moldura** (ADR 0036): `--wfa-sidebar-width: 272px` — a largura da lateral dos Terminais **e** da
+célula da marca na barra de título, que assim alinham numa só coluna. Usar `w-[var(--wfa-sidebar-width)]` nos dois.
+
+**Marca** (ADR 0036, substitui o losango do 0008): "Em paralelo" — `ParallelMark` em
+`components/common/Wordmark.tsx`, um traço `accent` que se divide em três (2.2 até 18 px, 1.8 acima). Na barra de
+título a 16 px com "WORKFLOW" 12/600 `.16em`; no login a 22 px com 15/600 `.2em`. O `favicon.svg` é a mesma forma
+sobre `bg`, com os hex escritos (um favicon não lê CSS — a outra exceção além do `xtermTheme.ts`).
+
 ## 6. Elevação e sombras
 
 A elevação faz-se **por luminosidade**. A sombra só aparece em overlays.

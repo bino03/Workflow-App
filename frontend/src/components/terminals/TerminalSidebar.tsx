@@ -1,5 +1,14 @@
 import { useState, type ReactNode } from 'react';
-import { DownOutlined, HistoryOutlined, MenuFoldOutlined, MenuUnfoldOutlined, PlusOutlined, StarFilled, StarOutlined } from '@ant-design/icons';
+import {
+  DownOutlined,
+  HistoryOutlined,
+  MenuFoldOutlined,
+  MenuUnfoldOutlined,
+  PlusOutlined,
+  StarFilled,
+  StarOutlined,
+  SwapOutlined,
+} from '@ant-design/icons';
 import { Button, Tooltip, type MenuProps } from 'antd';
 import { AccountPicker } from '@/components/accounts/AccountPicker';
 import { AccountTag } from '@/components/accounts/AccountTag';
@@ -9,17 +18,20 @@ import { TerminalContextMenu } from './TerminalContextMenu';
 import { STATUS_META, statusDetail } from './terminalDisplay';
 
 type TerminalSidebarProps = {
-  /** Todos os projetos — do registo do Workflow e/ou com terminais (join, spec separadores-de-projetos). */
+  /** Todos os projetos — só para o "Reabrir todos", que é global. A lista mostra só o projeto ativo. */
   projects: Project[];
-  /** O separador em foco — decide que terminais mostram o badge Alt+N e o realce "visível". */
+  /** O projeto ativo — a lateral é dele (ADR 0036); muda-se pelo seletor. */
   activePath: string | null;
   names: Map<string, string>;
   /** Só os terminais do projeto ativo têm posição — é aí que o Alt+1…9 se aplica. */
   shortcutIndex: Map<string, number>;
   visibleIds: string[];
-  /** Clicar o cabeçalho de um projeto: abre/foca o separador — sem terminais, cria logo o primeiro. */
-  onSelectProject: (path: string) => void;
-  /** Clicar um terminal: abre/foca o separador do projeto dele e seleciona-o. */
+  /** Abre o seletor de projeto (o mesmo do atalho `projectSwitch`). */
+  onOpenSwitcher: () => void;
+  switcherOpen: boolean;
+  /** A combinação do `projectSwitch` ("Alt+B"), ou `null` sem bind. */
+  switcherHint: string | null;
+  /** Clicar um terminal: seleciona-o. */
   onSelectTerminal: (id: string) => void;
   /** O menu de contexto de cada terminal. */
   menuFor: (terminal: TerminalView) => MenuProps;
@@ -39,10 +51,6 @@ type TerminalSidebarProps = {
 
 const COUNT_LABELS: Record<TerminalStatus, string> = { running: 'a correr', exited: 'terminados', stopped: 'parados' };
 
-/**
- * Dentro do cabeçalho de um projeto (que é um botão: ativa o projeto e, se está vazio, abre-lhe um terminal), o clique
- * e o Enter/Espaço de um ícone não podem chegar ao cabeçalho. Só Enter e Espaço: o Esc tem de continuar a subir.
- */
 function IconButton({ label, onClick, children, loading }: { label: string; onClick: () => void; children: ReactNode; loading?: boolean }) {
   return (
     <Tooltip title={label} mouseEnterDelay={0.4}>
@@ -50,13 +58,7 @@ function IconButton({ label, onClick, children, loading }: { label: string; onCl
         type="button"
         aria-label={label}
         disabled={loading}
-        onClick={(event) => {
-          event.stopPropagation();
-          onClick();
-        }}
-        onKeyDown={(event) => {
-          if (event.key === 'Enter' || event.key === ' ') event.stopPropagation();
-        }}
+        onClick={onClick}
         className="w-6 h-6 flex items-center justify-center bg-transparent border-0 rounded-sm text-text-3 cursor-pointer hover:bg-surface-3 hover:text-text-1 disabled:opacity-40"
       >
         {children}
@@ -66,177 +68,165 @@ function IconButton({ label, onClick, children, loading }: { label: string; onCl
 }
 
 /**
- * Lateral, 288 px: navegador de **projetos** (spec separadores-de-projetos, 2026-09-28) — lista o registo
- * do Workflow e os projetos que já têm terminais; clicar um projeto abre/foca o separador dele (cria logo
- * um terminal se ainda não tiver nenhum). Sem "+ Novo terminal" solto: abrir uma pasta fora do registo
- * fica para quando entrarem os casos "adotar"/"criar" (spec §2, fora desta v1).
+ * Lateral dos Terminais, com a largura da célula da marca (`--wfa-sidebar-width`, ADR 0036): é **do projeto
+ * ativo** — o nome no topo é o seletor de projeto (substitui os separadores), por baixo as ações do projeto e
+ * os terminais dele. Os outros projetos chegam-se pelo seletor ou pelo atalho `projectSwitch`.
  */
 export function TerminalSidebar(props: TerminalSidebarProps) {
   const { projects, activePath, names, shortcutIndex, visibleIds, collapsed, onToggleCollapsed } = props;
-  // Por omissão só "a correr" — se não há nada a correr num projeto (nem sequer um terminal aberto), não
-  // se está a trabalhar nele, e não aparece. Clicar o chip outra vez limpa o filtro e mostra tudo,
-  // incluindo os projetos do registo ainda sem nenhum terminal — é assim que se abrem projetos novos.
-  const [statusFilter, setStatusFilter] = useState<TerminalStatus | null>('running');
-  const terminals = projects.flatMap((p) => p.terminals);
+  const [statusFilter, setStatusFilter] = useState<TerminalStatus | null>(null);
+  const project = projects.find((p) => p.path === activePath) ?? null;
+  const terminals = project?.terminals ?? [];
   const counts = (Object.keys(COUNT_LABELS) as TerminalStatus[])
     .map((status) => ({ status, n: terminals.filter((t) => t.status === status).length }))
     .filter(({ n }) => n > 0);
-  const stopped = terminals.filter((t) => t.status === 'stopped').length;
-  // Filtro discreto por status: reaproveita as contagens como chips clicáveis (mesmo padrão da Biblioteca).
-  const visibleProjects = statusFilter
-    ? projects
-        .map((project) => ({ ...project, terminals: project.terminals.filter((t) => t.status === statusFilter) }))
-        .filter((project) => project.terminals.length > 0)
-    : projects;
+  const shown = statusFilter ? terminals.filter((t) => t.status === statusFilter) : terminals;
+  const stoppedEverywhere = projects.flatMap((p) => p.terminals).filter((t) => t.status === 'stopped').length;
 
   if (collapsed) {
     return (
-      <aside className="w-11 flex-none flex flex-col items-center border-r border-border bg-surface-1 pt-4">
-        <IconButton label="Mostrar projetos (AltGr+.)" onClick={onToggleCollapsed}>
+      <aside className="w-11 flex-none flex flex-col items-center gap-1 border-r border-border bg-surface-1 pt-3">
+        <IconButton label="Mostrar lateral (AltGr+.)" onClick={onToggleCollapsed}>
           <MenuUnfoldOutlined />
+        </IconButton>
+        <IconButton label={`Mudar de projeto${props.switcherHint ? ` (${props.switcherHint})` : ''}`} onClick={props.onOpenSwitcher}>
+          <SwapOutlined />
         </IconButton>
       </aside>
     );
   }
 
   return (
-    <aside className="w-[288px] flex-none flex flex-col border-r border-border bg-surface-1">
-      <div className="px-3.5 pt-4 pb-3 flex flex-col gap-3">
-        <div className="flex items-baseline justify-between">
-          <span className="kicker">Projetos</span>
-          <div className="flex items-center gap-2">
-            <span className="font-mono text-[11px] text-text-3">{terminals.length} abertos</span>
+    <aside className="w-[var(--wfa-sidebar-width)] flex-none flex flex-col border-r border-border bg-surface-1" data-project={project?.path}>
+      <div className="px-3 pt-3 pb-2 flex flex-col gap-1">
+        <div className="flex items-center justify-between">
+          <span className="kicker">Projeto</span>
+          <div className="flex items-center gap-1.5">
+            {props.switcherHint && <kbd className="kbd">{props.switcherHint}</kbd>}
             <IconButton label="Esconder lateral (AltGr+.)" onClick={onToggleCollapsed}>
               <MenuFoldOutlined style={{ fontSize: 12 }} />
             </IconButton>
           </div>
         </div>
-        {counts.length > 0 && (
-          <div className="flex flex-wrap gap-1.5" role="group" aria-label="Filtrar por status">
-            {counts.map(({ status, n }) => (
+        <button
+          type="button"
+          aria-haspopup="dialog"
+          aria-expanded={props.switcherOpen}
+          data-project-switcher
+          title={`Mudar de projeto${props.switcherHint ? ` (${props.switcherHint})` : ''}`}
+          onClick={props.onOpenSwitcher}
+          className={`-mx-2 h-8 flex items-center gap-1.5 px-2 rounded-md border cursor-pointer text-left ${
+            props.switcherOpen ? 'bg-surface-3 border-border-strong' : 'bg-transparent border-transparent hover:bg-surface-2'
+          }`}
+        >
+          <span className={`flex-1 min-w-0 truncate font-semibold text-[14px] ${project ? 'text-text-1' : 'text-text-3'}`}>
+            {project?.name ?? 'Escolher projeto…'}
+          </span>
+          <DownOutlined className="text-text-3 text-[10px]" />
+        </button>
+        {project && (
+          <div className="flex items-center gap-0.5">
+            <span className="flex-1 min-w-0 font-mono text-[10.5px] text-text-3 truncate" title={project.path}>
+              {project.path}
+            </span>
+            <IconButton label={project.favorite ? 'Tirar das favoritas' : 'Marcar como favorita'} onClick={() => props.onToggleFavorite(project.path, !project.favorite)}>
+              {project.favorite ? <StarFilled className="text-warning" /> : <StarOutlined />}
+            </IconButton>
+            <IconButton label="Retomar uma sessão desta pasta…" onClick={() => props.onResumeInProject(project.path)}>
+              <HistoryOutlined />
+            </IconButton>
+            <IconButton label={`Novo terminal em ${project.name}`} onClick={() => props.onNewInProject(project.path)} loading={props.creatingIn === project.path}>
+              <PlusOutlined />
+            </IconButton>
+            <AccountPicker title="Noutra conta" placement="bottomRight" onPick={(accountId) => props.onNewInProject(project.path, accountId)}>
               <button
-                key={status}
                 type="button"
-                className="filter-chip"
-                aria-pressed={statusFilter === status}
-                onClick={() => setStatusFilter((current) => (current === status ? null : status))}
+                aria-label={`Novo terminal em ${project.name} noutra conta`}
+                title="Novo terminal noutra conta"
+                disabled={props.creatingIn === project.path}
+                className="w-4 h-6 flex items-center justify-center bg-transparent border-0 rounded-sm text-text-3 cursor-pointer hover:bg-surface-3 hover:text-text-1 disabled:opacity-40"
               >
-                <span className={`state-icon ${STATUS_META[status].icon}`} aria-hidden />
-                {n} {COUNT_LABELS[status]}
+                <DownOutlined style={{ fontSize: 9 }} />
               </button>
-            ))}
+            </AccountPicker>
           </div>
-        )}
-        {stopped > 0 && (
-          <Button size="small" onClick={props.onReopenAll} loading={props.reopeningAll}>
-            Reabrir todos ({stopped})
-          </Button>
         )}
       </div>
 
-      <nav className="flex-1 min-h-0 overflow-y-auto flex flex-col gap-2 px-2 pb-2" aria-label="Projetos">
-        {projects.length === 0 && (
-          <p className="px-2.5 py-2 text-[12.5px] text-text-3">
-            Nenhum projeto encontrado. Confirma o <span className="font-mono">WORKFLOW_PATH</span> e o registo em{' '}
-            <span className="font-mono">projects/INDEX.md</span>.
+      {(counts.length > 1 || stoppedEverywhere > 0) && (
+        <div className="px-3 pb-2 flex flex-col gap-2">
+          {counts.length > 1 && (
+            <div className="flex flex-wrap gap-1.5" role="group" aria-label="Filtrar por status">
+              {counts.map(({ status, n }) => (
+                <button
+                  key={status}
+                  type="button"
+                  className="filter-chip"
+                  aria-pressed={statusFilter === status}
+                  onClick={() => setStatusFilter((current) => (current === status ? null : status))}
+                >
+                  <span className={`state-icon ${STATUS_META[status].icon}`} aria-hidden />
+                  {n} {COUNT_LABELS[status]}
+                </button>
+              ))}
+            </div>
+          )}
+          {stoppedEverywhere > 0 && (
+            <Button size="small" onClick={props.onReopenAll} loading={props.reopeningAll}>
+              Reabrir todos ({stoppedEverywhere})
+            </Button>
+          )}
+        </div>
+      )}
+
+      <div className="h-6 flex items-center gap-1 px-3 text-[11px] font-semibold tracking-[.08em] text-text-3">
+        <span className="flex-1">TERMINAIS</span>
+        <span className="font-mono font-normal">{terminals.length}</span>
+      </div>
+      <nav className="flex-1 min-h-0 overflow-y-auto flex flex-col gap-0.5 px-1.5 pb-2" aria-label="Terminais do projeto">
+        {!project && (
+          <p className="m-0 px-2 py-2 text-[12.5px] text-text-3">
+            Nenhum projeto aberto. Escolhe um no seletor{props.switcherHint ? ` (${props.switcherHint})` : ''}.
           </p>
         )}
-        {projects.length > 0 && statusFilter && visibleProjects.length === 0 && (
-          <div className="px-2.5 py-2 flex flex-col gap-2">
-            <p className="m-0 text-[12.5px] text-text-3">Nenhum terminal {COUNT_LABELS[statusFilter]} agora.</p>
-            <Button size="small" onClick={() => setStatusFilter(null)}>
-              Ver todos os projetos
-            </Button>
-          </div>
-        )}
-        {visibleProjects.map((project) => {
-          const empty = project.terminals.length === 0;
-          const active = project.path === activePath;
+        {project && terminals.length === 0 && <p className="m-0 px-2 py-2 text-[12.5px] text-text-3">Ainda sem terminais neste projeto.</p>}
+        {shown.map((terminal) => {
+          const meta = STATUS_META[terminal.status];
+          const isShown = visibleIds.includes(terminal.id);
+          const index = shortcutIndex.get(terminal.id) ?? 99;
           return (
-            <section key={project.path} data-project={project.path} aria-label={project.name}>
-              <header
-                role="button"
-                tabIndex={0}
-                onClick={() => props.onSelectProject(project.path)}
-                onKeyDown={(event) => {
-                  if (event.key === 'Enter' || event.key === ' ') props.onSelectProject(project.path);
-                }}
-                className={`h-8 flex items-center gap-1 pl-2 pr-1 rounded-md cursor-pointer group ${active ? 'bg-surface-3' : 'hover:bg-surface-2'}`}
+            <TerminalContextMenu key={terminal.id} menu={props.menuFor(terminal)}>
+              <button
+                type="button"
+                data-terminal-item={terminal.id}
+                aria-current={isShown ? 'true' : undefined}
+                onClick={() => props.onSelectTerminal(terminal.id)}
+                className={`text-left flex flex-col gap-0.5 px-2.5 py-1.5 rounded-md border-0 cursor-pointer text-text-1 ${
+                  isShown ? 'bg-accent-subtle shadow-[inset_2px_0_0_var(--wfa-color-accent)]' : 'bg-transparent hover:bg-surface-2'
+                }`}
               >
-                <span className="w-3 h-[9px] border-[1.5px] border-text-3 rounded-[2px] flex-none mr-1" aria-hidden />
-                <span
-                  className={`flex-1 min-w-0 font-semibold text-[13px] overflow-hidden text-ellipsis whitespace-nowrap ${empty ? 'text-text-2' : 'text-text-1'}`}
-                  title={project.path}
-                >
-                  {project.name}
+                <span className="flex items-center gap-2.5">
+                  <span className="w-3.5 flex justify-center flex-none">
+                    <span className={`state-icon ${meta.icon}`} aria-hidden />
+                  </span>
+                  <span className="terminal-name flex-1 min-w-0 font-medium text-[13px] overflow-hidden text-ellipsis whitespace-nowrap">
+                    {names.get(terminal.id)}
+                  </span>
+                  {index < 9 && <span className="font-mono text-[10.5px] text-text-3">Alt+{index + 1}</span>}
                 </span>
-                {!empty && <span className="font-mono text-[10.5px] text-text-3 mr-1">{project.terminals.length}</span>}
-                <IconButton label={project.favorite ? 'Tirar das favoritas' : 'Marcar como favorita'} onClick={() => props.onToggleFavorite(project.path, !project.favorite)}>
-                  {project.favorite ? <StarFilled className="text-warning" /> : <StarOutlined />}
-                </IconButton>
-                <IconButton label="Retomar uma sessão desta pasta…" onClick={() => props.onResumeInProject(project.path)}>
-                  <HistoryOutlined />
-                </IconButton>
-                <IconButton label={`Novo terminal em ${project.name}`} onClick={() => props.onNewInProject(project.path)} loading={props.creatingIn === project.path}>
-                  <PlusOutlined />
-                </IconButton>
-                <AccountPicker title="Noutra conta" placement="bottomRight" onPick={(accountId) => props.onNewInProject(project.path, accountId)}>
-                  <button
-                    type="button"
-                    aria-label={`Novo terminal em ${project.name} noutra conta`}
-                    title="Novo terminal noutra conta"
-                    disabled={props.creatingIn === project.path}
-                    className="w-4 h-6 flex items-center justify-center bg-transparent border-0 rounded-sm text-text-3 cursor-pointer hover:bg-surface-3 hover:text-text-1 disabled:opacity-40"
-                  >
-                    <DownOutlined style={{ fontSize: 9 }} />
-                  </button>
-                </AccountPicker>
-              </header>
-
-              {!empty && (
-                <div className="flex flex-col gap-0.5">
-                  {project.terminals.map((terminal) => {
-                    const meta = STATUS_META[terminal.status];
-                    const shown = active && visibleIds.includes(terminal.id);
-                    const index = active ? (shortcutIndex.get(terminal.id) ?? 99) : 99;
-                    return (
-                      <TerminalContextMenu key={terminal.id} menu={props.menuFor(terminal)}>
-                      <button
-                        type="button"
-                        data-terminal-item={terminal.id}
-                        aria-current={shown ? 'true' : undefined}
-                        onClick={() => props.onSelectTerminal(terminal.id)}
-                        className={`ml-3 text-left flex flex-col gap-0.5 px-2.5 py-[7px] rounded-md border cursor-pointer bg-transparent text-text-1 ${
-                          shown ? 'bg-surface-3 border-border-strong' : 'border-transparent hover:bg-surface-2'
-                        }`}
-                      >
-                        <span className="flex items-center gap-2.5">
-                          <span className="w-3.5 flex justify-center flex-none">
-                            <span className={`state-icon ${meta.icon}`} aria-hidden />
-                          </span>
-                          <span className="terminal-name flex-1 min-w-0 font-medium text-[13.5px] overflow-hidden text-ellipsis whitespace-nowrap">
-                            {names.get(terminal.id)}
-                          </span>
-                          {index < 9 && <span className="font-mono text-[10.5px] text-text-3">Alt+{index + 1}</span>}
-                        </span>
-                        <span className="pl-6 text-[12px] leading-[17px] flex items-center gap-1.5">
-                          <span className={terminal.status === 'running' ? 'text-accent' : 'text-[var(--wfa-state-stop)]'}>{meta.label}</span>
-                          {terminal.status !== 'running' && <span className="text-text-3">· {statusDetail(terminal)}</span>}
-                          <span className="flex-1" />
-                          <AccountTag accountId={terminal.accountId} className="h-[18px] px-1.5 text-[11px] max-w-[110px]" />
-                        </span>
-                      </button>
-                      </TerminalContextMenu>
-                    );
-                  })}
-                </div>
-              )}
-            </section>
+                <span className="pl-6 text-[11.5px] leading-[16px] flex items-center gap-1.5">
+                  <span className={terminal.status === 'running' ? 'text-accent' : 'text-[var(--wfa-state-stop)]'}>{meta.label}</span>
+                  {terminal.status !== 'running' && <span className="text-text-3">· {statusDetail(terminal)}</span>}
+                  <span className="flex-1" />
+                  <AccountTag accountId={terminal.accountId} className="h-[18px] px-1.5 text-[11px] max-w-[110px]" />
+                </span>
+              </button>
+            </TerminalContextMenu>
           );
         })}
       </nav>
 
-      {props.footer && <div className="px-4 pt-3.5 pb-4 border-t border-border">{props.footer}</div>}
+      {props.footer && <div className="px-4 pt-3 pb-3.5 border-t border-border">{props.footer}</div>}
     </aside>
   );
 }

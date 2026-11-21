@@ -30,13 +30,16 @@ Segmentos novos sempre em inglês.
 
 `layouts/AppLayout.tsx` é a **única fonte de verdade** da navegação persistente.
 
-- **Header de 48 px** (protótipo [[../../../design/handoff-2026-09-27/README|handoff 2026-09-27]]):
-  wordmark "WORKFLOW" à esquerda (losango contornado em `accent` + display 13/600, maiúsculas,
-  `letter-spacing: .18em`, link para `/terminals`), `<nav>` logo a seguir (Terminais · Projetos · Biblioteca;
-  ativo com sublinhado interior de 2 px em `accent`), espaço, e à direita **Upwork** · **Novo projeto** (`ACTION_ITEMS`; mesmo estilo de item, são ações e não sítios — a Upwork à esquerda porque uma candidatura ganha acaba no Novo projeto), a **quota** (quando a
-  lateral não a mostra) e o menu de utilizador. Borda de baixo `border`.
+- **Barra de título de 32 px** (moldura tipo IDE, [[../../../adr/0036-moldura-tipo-ide-e-seletor-de-projeto|ADR 0036]];
+  canvas do Claude Design, proposta C): à esquerda uma **célula da marca** com a largura da lateral dos Terminais
+  (`w-[var(--wfa-sidebar-width)]`, 272 px, `surface-1`, borda à direita — as duas leem-se como uma coluna), com o
+  `Wordmark` (marca **"Em paralelo"** — `ParallelMark`, uma linha que se divide em três, só `accent` — + "WORKFLOW"
+  12/600, maiúsculas, `.16em`; link para `/terminals`). Logo a seguir **toda a `<nav>`**: Terminais · Projetos ·
+  Biblioteca · Upwork · Novo projeto (`NAV_ITEMS`, 12.5px; ativo `text-1` com sublinhado interior de 2 px em
+  `accent`, os outros `text-3`). Espaço, e à direita só o menu de utilizador (separado por uma borda). Borda de baixo
+  `border`. O `favicon.svg` é a mesma marca.
 - Se um terminal escondido está à espera, o item "Terminais" da nav ganha um losango `state-wait`.
-- **Barra de estado de 26 px** em baixo, em todos os ecrãs autenticados: "Teclado em `<terminal>`" à
+- **Barra de estado de 24 px** em baixo (mono 11px), em todos os ecrãs autenticados: "Teclado em `<terminal>`" à
   esquerda e a lista de atalhos `Alt+…` à direita ([[buttons-and-icons]]).
   **Hoje** (sem terminais, decisão do dono: omitir o que não existe): à esquerda o estado da ligação ao
   backend (ponto `success`/`error` + texto, `GET /api/health` a cada 15 s, `useBackendHealth`), à
@@ -55,9 +58,10 @@ Um `Dropdown` cujo gatilho é o cartão de perfil (avatar + nome + tag de role):
 | Definições | ✅ Navega para a página `/settings` (`SettingsPage`, já não é um drawer): um índice fixo à esquerda e as secções seguidas — **layout dos terminais** (foco dividido / grelha), **atalhos** ([[../../../features/atalhos-editaveis|atalhos-editaveis]]) e **passkeys**. As secções saem de uma só lista (`settingsSections.ts`): cada definição nova traz o seu título e a sua entrada no índice. Sair de `/terminals` perde os separadores abertos e o foco/divisão em memória (como a Biblioteca); os terminais continuam a correr. Separado de "Terminar sessão" por um divisor |
 | Terminar sessão | `useConfirm()` (`title` "Terminar sessão?", `actionLabel` "Sair", `danger: false`) → logout |
 
-Sem "Minha conta" (um só utilizador, sem perfil) e sem idioma (só pt-PT). O gatilho é o avatar (26 px,
+Sem "Minha conta" (um só utilizador, sem perfil) e sem idioma (só pt-PT). O gatilho é o avatar (20 px,
 `surface-3`, com um **ícone de utilizador**, não iniciais) + o **nome do utilizador** (`APP_USERNAME`, vindo do
-`/auth/me` — 13px, `font-medium`, `text-2`, cortado com reticências acima de 160 px; desde 2026-10-20) + `▾`.
+`/auth/me` — 12.5px, `font-medium`, `text-1`, cortado com reticências acima de 140 px; desde 2026-10-20, tamanhos
+do ADR 0036) + `▾`.
 Sem tag de role (não há roles).
 
 - Ação transversal nova entra neste menu, **não** como mais um ícone no header.
@@ -70,7 +74,7 @@ Sem tag de role (não há roles).
 
 | Modo | Por omissão | O que é |
 |---|---|---|
-| **Foco dividido** | ✅ | Lateral de 288 px (`surface-1`: kicker **"Projetos"** + "N abertos", botão Novo terminal, contagens por estado, **os terminais agrupados por projeto (pasta)** — cabeçalho do projeto com estrela, "Retomar…" e **+** —, "Reabrir todos" quando há parados, quota no fundo) + área principal com **um** terminal em foco; `Alt+\` divide em dois lado a lado e volta a juntar. O painel com o teclado tem o cabeçalho em `surface-2` e "⌨ TECLADO AQUI" em `accent`; o outro fica em `surface-1`. |
+| **Foco dividido** | ✅ | Lateral **do projeto ativo** (ADR 0036), com `--wfa-sidebar-width` (`surface-1`: kicker **"Projeto"** + dica do atalho `projectSwitch`; o **nome do projeto é o botão do seletor de projeto**; caminho + estrela, "Retomar…", **+** e "noutra conta"; chips de estado só com mais de um estado; "Reabrir todos" quando há parados em qualquer projeto; "TERMINAIS n" e os terminais do projeto, o visível em `accent-subtle` com filete `accent`; quota no fundo). Sem separadores de projeto: muda-se pelo seletor (`ProjectSwitcher` — pesquisa, ↑↓, Enter, Esc, clique fora; projetos com terminais primeiro, depois favoritas; escolher **só ativa**, não cria terminal) ou `Alt+B`. Área principal com **um** terminal em foco; `Alt+\` divide em dois lado a lado e volta a juntar. O painel com o teclado tem o cabeçalho em `surface-2` e "⌨ TECLADO AQUI" em `accent`; o outro fica em `surface-1`. |
 | **Grelha** | | Sem lateral. Cabeçalho da página (kicker "Terminais" + "N abertos" + contagens + quota + Novo terminal) e todos os terminais em mosaicos 3 colunas × 2 linhas à vista (scroll depois de 6), com o último lugar tracejado para "Novo terminal". Um clique **amplia temporariamente** (não muda a preferência); volta-se com "Voltar à grelha", `Alt+\` ou `Esc` **fora** do terminal (dentro, o `Esc` é do Claude Code). |
 
 - ✅ A escolha fica no `localStorage` do browser (`workflow-app.layout`: `focus` | `grid`), lida por

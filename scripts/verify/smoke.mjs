@@ -23,7 +23,7 @@ try {
     projects.status === 200 && expected.every((name) => projects.body?.some?.((p) => p.name === name)),
     JSON.stringify(projects.body?.map?.((p) => p.name) ?? projects),
   );
-  check('the sidebar is rendered', await page.waitFor(`!!document.querySelector('nav[aria-label="Projetos"]')`));
+  check('the sidebar is rendered', await page.waitFor(`!!document.querySelector('nav[aria-label="Terminais do projeto"]')`));
   check('no console errors', page.errors.length === 0, page.errors.join(' | '));
 } catch (error) {
   check('scenario ran to the end', false, error.message);

@@ -4,7 +4,7 @@ import { Alert, Button, Spin, type MenuProps } from 'antd';
 import { accountLabelOf } from '@/components/accounts/accountLabel';
 import { ContextSizeNotice } from '@/components/terminals/ContextSizeNotice';
 import { ResumeSessionModal } from '@/components/terminals/new/ResumeSessionModal';
-import { ProjectTabs } from '@/components/terminals/ProjectTabs';
+import { ProjectSwitcher } from '@/components/terminals/ProjectSwitcher';
 import { DEFAULT_GRID_STYLE, type GridStyle, firstFreeSlot, initialSlotIds, slotPlacement } from '@/components/terminals/gridStyle';
 import { GridStylePicker } from '@/components/terminals/GridStylePicker';
 import { displayNames, type Project, joinProjects, projectsWithTerminals } from '@/components/terminals/projects';
@@ -21,7 +21,9 @@ import { getUserFriendlyMessage } from '@/errors/errorMessages';
 import { useConfirm } from '@/hooks/useConfirm';
 import { useLayoutMode } from '@/hooks/useLayoutMode';
 import { useProjects } from '@/hooks/useProjects';
+import { useKeybindings } from '@/hooks/useKeybindings';
 import { useShortcuts } from '@/hooks/useShortcuts';
+import { formatBinding } from '@/keyboard/shortcuts';
 import { useTerminals } from '@/hooks/useTerminals';
 import { useAccounts } from '@/hooks/useAccounts';
 import { useUsage } from '@/hooks/useUsage';
@@ -138,6 +140,11 @@ export function TerminalsPage() {
   const [creatingIn, setCreatingIn] = useState<string | null>(null);
   const [fontDelta, setFontDelta] = useState(0);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(readSidebarCollapsed);
+  const [switcherOpen, setSwitcherOpen] = useState(false);
+  const closeSwitcher = useCallback(() => setSwitcherOpen(false), []);
+  const { view: keybindingsView } = useKeybindings();
+  const switchBinding = keybindingsView?.actions.find((a) => a.id === 'projectSwitch')?.binding ?? null;
+  const switcherHint = switchBinding ? formatBinding(switchBinding) : null;
 
   useEffect(() => {
     let cancelled = false;
@@ -389,15 +396,13 @@ export function TerminalsPage() {
     }
   };
 
-  /** Clicar um projeto na lateral: sem terminais, cria logo o primeiro; com terminais, abre/foca o separador. */
-  const handleSelectProject = async (path: string) => {
-    const project = projects.find((p) => p.path === path);
-    if (project && project.terminals.length > 0) {
-      setOpenPaths((prev) => (prev.includes(path) ? prev : [...prev, path]));
-      setActivePath(path);
-      return;
-    }
-    await handleNewInProject(path);
+  /**
+   * Escolher um projeto no seletor (ADR 0036): só o ativa — vazio, mostra "+ Novo terminal aqui" e a lateral tem as
+   * ações (noutra conta, retomar). Ao contrário do antigo clique no projeto, não cria nada sozinho.
+   */
+  const activateProject = (path: string) => {
+    setOpenPaths((prev) => (prev.includes(path) ? prev : [...prev, path]));
+    setActivePath(path);
   };
 
   /** Esconde o separador — os terminais do projeto continuam a correr (spec §3). */
@@ -707,6 +712,9 @@ export function TerminalsPage() {
       case 'toggleSidebar':
         toggleSidebarCollapsed();
         return true;
+      case 'projectSwitch':
+        setSwitcherOpen((open) => !open);
+        return true;
       case 'projectNext':
       case 'projectPrev':
         stepProject(actionId === 'projectNext' ? 1 : -1);
@@ -794,7 +802,7 @@ export function TerminalsPage() {
   const noActiveProject = (
     <div className="flex-1 bg-bg flex flex-col items-center justify-center gap-3">
       <p className="m-0 text-text-1 font-semibold">Nenhum projeto aberto</p>
-      <p className="m-0 text-text-2 text-[13px]">Escolhe um projeto na lateral para abrir um separador.</p>
+      <p className="m-0 text-text-2 text-[13px]">Escolhe um projeto no seletor da lateral{switcherHint ? ` (${switcherHint})` : ''}.</p>
     </div>
   );
 
@@ -816,7 +824,9 @@ export function TerminalsPage() {
       names={names}
       shortcutIndex={shortcutIndex}
       visibleIds={visibleIds}
-      onSelectProject={(path) => void handleSelectProject(path)}
+      onOpenSwitcher={() => setSwitcherOpen((open) => !open)}
+      switcherOpen={switcherOpen}
+      switcherHint={switcherHint}
       onSelectTerminal={selectTerminal}
       menuFor={menuFor}
       onNewInProject={(path, accountId) => void handleNewInProject(path, accountId)}
@@ -832,10 +842,16 @@ export function TerminalsPage() {
   );
 
   return (
-    <div className="h-full flex">
+    <div className="relative h-full flex">
       {sidebar}
+      <ProjectSwitcher
+        open={switcherOpen}
+        projects={projects}
+        activePath={activePath}
+        onPick={activateProject}
+        onClose={closeSwitcher}
+      />
       <div className="flex-1 min-w-0 flex flex-col">
-        <ProjectTabs projects={openProjects} activePath={activePath} onSelect={setActivePath} onClose={closeTab} />
         {errorState}
         {!error && (
           <TerminalsHeader terminals={activeTerminals}>

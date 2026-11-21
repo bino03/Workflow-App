@@ -136,7 +136,7 @@ frontend/
     └── components/
         ├── PrivateRoute.tsx
         ├── common/           ← ListActions, SectionCard, FieldError, Wordmark, PagePlaceholder
-        ├── terminals/        ← 🚧 TerminalView (xterm.js + fit addon + WebSocket), lista/separadores
+        ├── terminals/        ← 🚧 TerminalView (xterm.js + fit addon + WebSocket), lateral do projeto ativo, ProjectSwitcher
         ├── library/          ← ✅ LibraryEntryDrawer, MaturityTag, libraryFormat (a página é pages/LibraryPage)
         ├── guided/           ← ✅ GuidedConversation (feed + cartões, sem terminal), partilhada pelo Novo projeto e a Upwork
         └── upwork/           ← ✅ lista, detalhe (Pacote · Conversa · Dados), drawers Perfil / Nova candidatura

@@ -48,6 +48,7 @@ describe('/api/keybindings', () => {
     expect(bindingOf(view, 'newTerminal')).toEqual({ modifier: 'alt', code: 'KeyN' });
     expect(bindingOf(view, 'toggleSidebar')).toEqual({ modifier: 'altGraph', code: 'Period' });
     expect(bindingOf(view, 'jump9')).toEqual({ modifier: 'alt', code: 'Digit9' });
+    expect(bindingOf(view, 'projectSwitch')).toEqual({ modifier: 'alt', code: 'KeyB' });
     for (const id of ['projectNext', 'projectPrev', 'projectClose', 'terminalNext', 'terminalPrev', 'goTerminals', 'goProjects', 'goLibrary']) {
       expect(bindingOf(view, id)).toBeNull();
     }

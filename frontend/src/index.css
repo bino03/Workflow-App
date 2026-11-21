@@ -13,6 +13,10 @@
 :root {
   color-scheme: dark;
 
+  /* Moldura tipo IDE (ADR 0036): a célula da marca na barra de título tem a largura da lateral dos
+     Terminais, para os dois alinharem numa só coluna. */
+  --wfa-sidebar-width: 272px;
+
   /* §1 Cores base */
   --wfa-color-bg: #090911;
   --wfa-color-surface-1: #101018;

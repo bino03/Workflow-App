@@ -31,6 +31,8 @@ export const SHORTCUT_ACTIONS: readonly ShortcutAction[] = [
   { id: 'terminalNext', label: 'Terminal seguinte', group: 'terminals', default: null },
   { id: 'terminalPrev', label: 'Terminal anterior', group: 'terminals', default: null },
   ...JUMPS,
+  // Alt+B on purpose (ADR 0036): switching project is used far more than the shell's "back one word" it takes away.
+  { id: 'projectSwitch', label: 'Mudar de projeto (abre o seletor)', group: 'projects', default: alt('KeyB') },
   { id: 'projectNext', label: 'Projeto seguinte', group: 'projects', default: null },
   { id: 'projectPrev', label: 'Projeto anterior', group: 'projects', default: null },
   { id: 'projectClose', label: 'Fechar o projeto ativo', group: 'projects', default: null },

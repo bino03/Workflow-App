@@ -14,23 +14,20 @@ import { useBackendHealth, type BackendHealth } from '@/hooks/useBackendHealth';
 import { useConfirm } from '@/hooks/useConfirm';
 import { useShortcuts } from '@/hooks/useShortcuts';
 
-// Única fonte de verdade da navegação persistente (app-shell-and-auth.md §2).
+// Única fonte de verdade da navegação persistente (app-shell-and-auth.md §2). Desde a moldura tipo IDE
+// (ADR 0036) tudo à esquerda, logo a seguir à marca: os sítios e, no fim, as duas ações (a Upwork antes do
+// Novo projeto — uma candidatura ganha acaba lá, spec upwork).
 const NAV_ITEMS = [
   { to: '/terminals', label: 'Terminais' },
   { to: '/projects', label: 'Projetos' },
   { to: '/library', label: 'Biblioteca' },
-];
-
-// À direita, antes do menu de utilizador: ações (candidatar-me, criar), não sítios para onde se navega.
-// A Upwork fica à esquerda do Novo projeto — uma candidatura ganha acaba lá (spec upwork).
-const ACTION_ITEMS = [
   { to: '/upwork', label: 'Upwork' },
   { to: '/new-project', label: 'Novo projeto' },
 ];
 
 const navLinkClass = ({ isActive }: { isActive: boolean }) =>
-  `flex items-center px-3 text-[13.5px] font-medium no-underline transition-colors ${
-    isActive ? 'text-text-1 shadow-[inset_0_-2px_0_var(--wfa-color-accent)]' : 'text-text-2 hover:text-text-1'
+  `flex items-center px-2.5 text-[12.5px] font-medium no-underline transition-colors ${
+    isActive ? 'text-text-1 shadow-[inset_0_-2px_0_var(--wfa-color-accent)]' : 'text-text-3 hover:text-text-1'
   }`;
 
 const HEALTH_LABEL: Record<BackendHealth, string> = {
@@ -107,11 +104,16 @@ function AppShell() {
 
   return (
     <div className="h-full flex flex-col">
-      <header className="h-12 flex-none flex items-center gap-7 pl-5 pr-4 border-b border-border">
-        <Link to="/terminals" aria-label="Workflow — Terminais" className="flex">
+      {/* Barra de título de 32 px (ADR 0036): marca numa célula com a largura da lateral · navegação · utilizador. */}
+      <header className="h-8 flex-none flex items-stretch border-b border-border">
+        <Link
+          to="/terminals"
+          aria-label="Workflow — Terminais"
+          className="w-[var(--wfa-sidebar-width)] flex-none flex items-center px-3.5 bg-surface-1 border-r border-border no-underline"
+        >
           <Wordmark />
         </Link>
-        <nav aria-label="Navegação principal" className="flex self-stretch gap-1">
+        <nav aria-label="Navegação principal" className="flex gap-0.5 px-2">
           {NAV_ITEMS.map((item) => (
             <NavLink key={item.to} to={item.to} className={navLinkClass}>
               {item.label}
@@ -119,28 +121,21 @@ function AppShell() {
           ))}
         </nav>
         <div className="flex-1" />
-        <nav aria-label="Criar" className="flex self-stretch gap-1">
-          {ACTION_ITEMS.map((item) => (
-            <NavLink key={item.to} to={item.to} className={navLinkClass}>
-              {item.label}
-            </NavLink>
-          ))}
-        </nav>
         <Dropdown menu={{ items: userMenu }} trigger={['click']} placement="bottomRight">
           <button
             type="button"
             aria-label="Menu de utilizador"
-            className="flex items-center gap-1.5 bg-transparent border-0 cursor-pointer text-text-3 p-0"
+            className="flex items-center gap-2 px-3 bg-transparent border-0 border-l border-solid border-border cursor-pointer text-text-3 hover:bg-surface-2"
           >
-            <span className="w-[26px] h-[26px] rounded-full bg-surface-3 border border-border-strong flex items-center justify-center text-text-1 text-[12px]">
+            <span className="w-5 h-5 rounded-full bg-surface-3 border border-border-strong flex items-center justify-center text-text-2 text-[11px]">
               <UserOutlined />
             </span>
             {username && (
-              <span className="max-w-[160px] truncate text-[13px] font-medium text-text-2" data-username>
+              <span className="max-w-[140px] truncate text-[12.5px] font-medium text-text-1" data-username>
                 {username}
               </span>
             )}
-            <DownOutlined className="text-[10px]" />
+            <DownOutlined className="text-[9px]" />
           </button>
         </Dropdown>
       </header>
@@ -149,7 +144,7 @@ function AppShell() {
         <Outlet />
       </main>
 
-      <footer className="h-[26px] flex-none flex items-center gap-4 px-4 border-t border-border text-[11.5px] text-text-3">
+      <footer className="h-6 flex-none flex items-center gap-4 px-3 border-t border-border font-mono text-[11px] text-text-3">
         <span className="flex items-center gap-1.5" role="status">
           <span className={`w-1.5 h-1.5 rounded-full ${HEALTH_DOT[health]}`} />
           {HEALTH_LABEL[health]}

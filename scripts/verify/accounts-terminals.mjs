@@ -58,8 +58,6 @@ const projectSection = `document.querySelector('[data-project=${JSON.stringify(P
 const openMenuItems = `[...document.querySelectorAll('.ant-dropdown:not(.ant-dropdown-hidden) .ant-dropdown-menu-item')]`;
 // checkVisibility: a closed antd Modal stays in the DOM, hidden, with its last content.
 const dialog = `[...document.querySelectorAll('.ant-modal-container')].find((m) => m.checkVisibility() && m.querySelector('[data-context-notice]'))`;
-// The filter starts on "a correr" at every load: the pressed chip clears it, or the button when nothing is running.
-const allFilter = `([...document.querySelectorAll('.filter-chip')].find((c) => c.getAttribute('aria-pressed') === 'true') ?? [...document.querySelectorAll('aside button')].find((b) => b.textContent.trim() === 'Ver todos os projetos'))`;
 
 async function pickFromOpenMenu(label) {
   await page.waitFor(`${openMenuItems}.some((e) => e.textContent.trim().startsWith(${JSON.stringify(label)}))`);
@@ -94,12 +92,18 @@ function launchedWith(fragment) {
   return Number(out.trim()) > 0;
 }
 
-/** The sidebar shows every project, whatever the status filter was. */
-async function showAllProjects() {
-  await page.waitFor(`!!${allFilter}`);
-  await page.evaluate(`${allFilter}.click()`);
-  return page.waitFor(`!!${projectSection}`);
+/** The sidebar belongs to one project (ADR 0036): pick `path` in the project switcher unless it is already active. */
+async function openProject(path) {
+  const section = `document.querySelector('aside[data-project=${JSON.stringify(path).replace(/\\/g, '\\\\')}]')`;
+  await page.waitFor(`!!document.querySelector('button[data-project-switcher]')`);
+  if (await page.evaluate(`!!${section}`)) return true;
+  await page.evaluate(`document.querySelector('button[data-project-switcher]').click()`);
+  const option = `document.querySelector('[data-switcher-project=${JSON.stringify(path).replace(/\\/g, '\\\\')}]')`;
+  await page.waitFor(`!!${option}`);
+  await page.evaluate(`${option}.click()`);
+  return page.waitFor(`!!${section}`);
 }
+const showAllProjects = () => openProject(PROJECT);
 
 try {
   check('login', await login(page, instance));
@@ -156,7 +160,7 @@ try {
   // "Noutra conta" on an empty project: the click must not also activate the project header, which creates a terminal.
   const empty = instance.projects.Beta;
   const emptySection = `document.querySelector('[data-project=${JSON.stringify(empty).replace(/\\/g, '\\\\')}]')`;
-  await page.waitFor(`!!${emptySection}`);
+  await openProject(empty);
   await page.evaluate(`${emptySection}.querySelector('button[aria-label$="noutra conta"]').click()`);
   await pickFromOpenMenu('Trabalho');
   check(
@@ -169,6 +173,7 @@ try {
 
   // "Continuar noutra conta" on an exited terminal, with a big conversation. No route ends a process, so Ctrl+C does.
   writeConversation(first.claudeSessionId, 120_000);
+  await openProject(PROJECT); // the sidebar is Beta's now: back to the project of the first terminal
   await page.evaluate(`${sidebarItem(first.id)}.click()`);
   check('the terminal exits', await exitTerminal(first.id));
   await page.evaluate(`${sidebarItem(first.id)}.click()`);
@@ -226,7 +231,7 @@ try {
   execFileSync(process.execPath, [join(verify, 'instance.mjs'), 'stop', '--dir', instance.runDir], { stdio: 'ignore' });
   execFileSync(process.execPath, [join(verify, 'instance.mjs'), 'start', '--dir', instance.runDir], { stdio: 'ignore' });
   check('login again, after the restart', await login(page, readInstance(instance.runDir)));
-  await showAllProjects();
+  await openProject(instance.projects.Beta); // the stopped terminal is the one opened in the empty project
   const stopped = inEmpty[0].id;
   await page.waitFor(`!!${sidebarItem(stopped)}`);
   await page.evaluate(`${sidebarItem(stopped)}.click()`);

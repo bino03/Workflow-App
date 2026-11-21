@@ -54,6 +54,10 @@ briefing e validada em ecrãs reais (Terminais nos dois layouts, Novo terminal, 
 detalhe, Login). Decisão, alternativas e porquê: [[../adr/0008-identidade-visual]]. Valores:
 [[design/tokens-and-colors]]. Protótipos: [[../design/handoff-2026-09-27/README|handoff 2026-09-27]].
 
+**Revista a 2026-11-21: moldura tipo IDE** — mesma paleta e tipografia; barra de título de 32 px alinhada com a
+lateral, marca "Em paralelo", lateral do projeto ativo e seletor de projeto (`Alt+B`), desenhada no Claude Design
+(canvas https://claude.ai/artifact/R3oG66QvDxj6TRqQu6wkNk). Decisão: [[../adr/0036-moldura-tipo-ide-e-seletor-de-projeto]].
+
 ## 8. Buracos no briefing
 
 - Forma final da UI: web no browser, PWA, ou desktop (Tauri/Electron) por cima do mesmo backend. O design

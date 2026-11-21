@@ -30,7 +30,7 @@ Lê **só** o(s) da área que estás a tocar.
 | Um formulário (campos, validação, submit, erros por campo) | [[design/forms-and-validation]] |
 | Uma chamada à API, serviço novo, tratamento de erro | [[design/services-and-error-handling]] |
 | Uma rota, item de menu, gate por role | [[design/app-shell-and-auth]] |
-| Separadores tipo browser (esconder, não fechar) | [[design/browser-tabs]] |
+| Separadores tipo browser (esconder, não fechar) — sem uso desde o ADR 0036 | [[design/browser-tabs]] |
 | Grelha com estilos/arranjos escolhíveis, lugares fixos e "+" vazio | [[design/grid-styles]] |
 | Uma conversa com o Claude sem terminal (mensagens, cartões de escolha e de permissão, Markdown) | [[design/guided-session]] |
 

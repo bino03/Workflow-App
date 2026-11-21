@@ -1,5 +1,10 @@
 # Feature: Separadores de projetos
 
+> ⚠️ **Substituída em parte pelo [[../adr/0036-moldura-tipo-ide-e-seletor-de-projeto|ADR 0036]] (2026-11-21)**: já não há
+> faixa de separadores (`ProjectTabs` saiu) e a lateral é só do projeto ativo; muda-se de projeto pelo seletor
+> (`ProjectSwitcher`, `Alt+B`), que **só ativa** — não cria terminal. O registo, o `joinProjects`, os projetos abertos
+> desta sessão e `projectNext/Prev/Close` continuam como aqui descrito.
+
 | | |
 |---|---|
 | **Estado** | ✅ Concluída (2026-10-21) |

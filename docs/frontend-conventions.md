@@ -80,10 +80,17 @@ Ant Design para componentes, Tailwind para estilo próprio, tokens CSS como font
   de React. Ao receber `ready`: `term.reset()` e um resize ±1 (a TUI redesenha-se). Fecho `4404` → a página
   recarrega a lista; `4401` → nada (o login trata); outro → volta a ligar com backoff. **Reabrir remonta o
   componente** (`key` = `id:lastOpenedAt`). Terminais fora do ecrã ficam montados (`hidden`), nunca desmontados.
-- **Lateral por projetos**: um projeto é uma pasta (`components/terminals/projects.ts` agrupa, ordena e dá
-  nomes). A ordem da lateral é a do `Alt+1…9`.
+- **Lateral do projeto ativo** (ADR 0036): um projeto é uma pasta (`components/terminals/projects.ts` junta o
+  registo e os terminais, ordena e dá nomes). A lateral (`TerminalSidebar`) mostra **só** o projeto ativo; os outros
+  chegam-se pelo `ProjectSwitcher` (o nome do projeto na lateral, ou a ação `projectSwitch` — `Alt+B`). O seletor só
+  é montado enquanto está aberto (cada abertura começa limpa, sem `setState` em efeitos) e **só ativa** o projeto
+  escolhido — criar terminais é sempre um gesto explícito. A ordem da lateral é a do `Alt+1…9`.
+- **Moldura** (`layouts/AppLayout.tsx`, ADR 0036): barra de título de 32 px cuja célula da marca usa
+  `w-[var(--wfa-sidebar-width)]` — a mesma variável que a lateral dos Terminais; mudar a largura é mudar só a
+  variável em `index.css`, nunca um `w-[288px]` solto num dos lados. A marca é o `ParallelMark` de
+  `components/common/Wordmark.tsx` (também no login); o `public/favicon.svg` repete-a com o hex escrito.
 - **Teclado**: com um terminal em foco, o teclado é dele (Ctrl+C, Esc, setas, Tab são do Claude Code).
-  Atalhos da app: editáveis nas Definições (ADR 0016); predefinidos `Alt+1…9/N/\/W/R`. O mapa vem do
+  Atalhos da app: editáveis nas Definições (ADR 0016); predefinidos `Alt+1…9/N/\/W/R/B`. O mapa vem do
   backend (`KeybindingsProvider` no `AppLayout`) e é lido por `keyboard/shortcuts.ts` — o xterm.js recusa as
   combinações **com bind** (não chegam ao PTY; as sem bind continuam a ir para o shell) e um listener na
   janela (`hooks/useShortcuts.ts`) executa-as: um no `TerminalsPage`, um no `AppLayout` para a navegação.

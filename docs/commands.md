@@ -132,7 +132,7 @@ node scripts/verify/accounts-terminals.mjs                # a conta de cada term
 node scripts/verify/terminal-menu.mjs                     # o menu de contexto dos terminais, no foco dividido e na grelha (instância nova)
 node scripts/verify/settings.mjs                          # a página de Definições: índice, salto, scroll, layout, captura de atalho (instância nova)
 node scripts/verify/guided-index.mjs                      # o índice das mensagens e o auto-scroll das sessões guiadas (instância nova com --git-workflow + `npx vite --port 7499` para o /_guided)
-node scripts/verify/sidebar-empty-project.mjs              # os ícones do cabeçalho de um projeto vazio na lateral não abrem terminais (instância nova)
+node scripts/verify/project-switcher.mjs [dir] [png]     # moldura tipo IDE (título de 32 px alinhado com a lateral, nav) e seletor de projeto: Alt+B (também dentro de um terminal), pesquisa, Enter, Esc, clique fora; escolher só ativa (instância nova)
 node scripts/verify/app-run-ui.mjs                        # Correr/Parar no cabeçalho dos Terminais: os 6 estados, grelha e foco, Ver terminal (instância nova)
 node scripts/verify/grid-slots.mjs                        # terminal novo no 1.º lugar livre da grelha, sem ampliar; cheia → amplia (instância nova)
 node scripts/verify/app-run-real.mjs <run> <projeto> <run partido> <este repo>  # Correr/Parar a sério (instância com --real-claude --extra-root; gasta quota)
