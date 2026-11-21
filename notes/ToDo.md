@@ -10,7 +10,7 @@ Usa `/implement-todo` para analisar, priorizar e implementar os itens daqui.
 
 Feito a 2026-11-21 ([[../docs/adr/0036-moldura-tipo-ide-e-seletor-de-projeto|ADR 0036]], ver [[whatIveDone]]):
 barra de título de 32 px, marca "Em paralelo", lateral do projeto ativo, seletor de projeto com `Alt+B`. Canvas
-do Claude Design: https://claude.ai/artifact/R3oG66QvDxj6TRqQu6wkNk. Falta:
+do Claude Design: https://claude.ai/artifact/R3oG66QvDxj6TRqQu6wkNk. Plano para continuar: [[roadmap/plans/2026-11-21-moldura-tipo-ide]]. Falta:
 
 - `sonnet` **Rever os outros ecrãs para a moldura nova** — Projetos, Biblioteca, Upwork, Definições, Novo projeto:
   herdam a barra de 32 px mas os cabeçalhos de página e a densidade são os do 0008. Critério: nada de 48 px de
@@ -23,7 +23,7 @@ do Claude Design: https://claude.ai/artifact/R3oG66QvDxj6TRqQu6wkNk. Falta:
   marcar como feita, apagar (com "Desfazer" em vez de diálogo de confirmação), filtros Por fazer / Feitas /
   Todas. Protótipo na proposta C do canvas. ⚠️ Precisa de `/design-database` (modo evoluir) antes: entidade
   nova projeto → tarefas no `state.json` (ADR 0009). ⚠️ Por decidir: reordenar arrastando, e se o painel
-  aberto/fechado fica guardado por projeto.
+  aberto/fechado fica guardado por projeto. ⚠️ O `Alt+T` do protótipo é do Claude Code ("thinking") — escolher outra combinação.
 
 ---
 
