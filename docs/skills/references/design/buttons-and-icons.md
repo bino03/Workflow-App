@@ -68,6 +68,12 @@ Renomear/Dividir/Fechar/Voltar à grelha, sem o indicador "⌨ TECLADO AQUI"; ve
 [[../../../features/terminais|terminais]] §"Layouts"/"Atalhos"). A regra "o atalho aparece junto da ação,
 em `.kbd`" continua válida para **outros** painéis com ações visíveis — só o de terminal é exceção.
 
+**Revisto 2026-11-21** (grelha densa, fase 3 do [[../../../adr/0036-moldura-tipo-ide-e-seletor-de-projeto|ADR 0036]],
+pedido do dono): o cabeçalho do painel volta a ter **dois** botões, só ícone com `Tooltip`, de 20 px, à direita —
+o de vista (Ampliar / Voltar à grelha / Dividir / Juntar / Ver lado a lado, o mesmo texto do menu de contexto) e o
+✕ Fechar, que pede a mesma confirmação do `Alt+W` e diz o atalho configurado no tooltip ("Fechar o terminal
+(Alt+W)"). Renomear e o resto continuam só no atalho e no menu de contexto; continua sem `.kbd` no cabeçalho.
+
 ## Ícone + texto vs. só ícone
 
 - Texto visível nas colunas de ação.

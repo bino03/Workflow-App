@@ -25,6 +25,8 @@ export type TerminalView = {
   hidden: boolean;
   /** A conta do Claude em que corre (ADR 0027): 'primary' ou o UUID de uma conta extra. */
   accountId: string;
+  /** O branch atual do git na pasta do terminal; null fora de um repositório ou com o HEAD solto (ADR 0036). */
+  branch: string | null;
   /**
    * O que o claude de um terminal normal a correr está a fazer, pelos hooks (ADR 0031). null se não corre
    * ("Terminada" é o status) ou se não é um terminal normal. Ainda sem UI (ícones: ToDo).

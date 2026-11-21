@@ -59,7 +59,7 @@ export function GridStylePicker({ value, onChange }: GridStylePickerProps) {
       <button
         type="button"
         aria-label="Estilo de grelha"
-        className="h-8 flex-none flex items-center gap-1.5 px-2.5 rounded-md border border-border bg-surface-1 text-text-2 text-[13px] cursor-pointer hover:bg-surface-2 hover:text-text-1"
+        className="h-[var(--wfa-control-height)] flex-none flex items-center gap-1.5 px-2.5 rounded-md border border-border bg-surface-1 text-text-2 text-[12.5px] cursor-pointer hover:bg-surface-2 hover:text-text-1"
       >
         <AppstoreOutlined style={{ fontSize: 13 }} />
         {activeLabel}

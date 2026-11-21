@@ -53,9 +53,9 @@ try {
   check('2×2: the new terminal takes the 3rd place', JSON.stringify(await slots()) === JSON.stringify([a.id, b.id, c, null]), JSON.stringify(await slots()));
   check('…and nothing is enlarged: A, B and the new one are all on screen', (await visible(a.id)) && (await visible(b.id)) && (await visible(c)));
   check(
-    '…and it has the keyboard (the only tile with the accent border)',
+    '…and it has the keyboard (the only focused tile)',
     await page.waitFor(
-      `[...document.querySelectorAll('[data-terminal-pane].border-accent')].map((e) => e.dataset.terminalPane).join() === ${JSON.stringify(c)}`,
+      `[...document.querySelectorAll('[data-terminal-pane][data-focused]')].map((e) => e.dataset.terminalPane).join() === ${JSON.stringify(c)}`,
       3000,
     ),
   );

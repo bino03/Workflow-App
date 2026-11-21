@@ -61,9 +61,15 @@ Um lugar vazio (`slotIds[i] === null`):
   `grid-column`/`grid-row` explícito quando um lugar é maior do que os outros (`spotlight`).
 - **Lugar vazio**: mesma borda tracejada + "+" ao centro, do tamanho do lugar (não da página toda).
 
+**Densidade (2026-11-21, ADR 0036 fase 3)**: os exemplos acima com `gap-3` e `px-5 pb-4` são da primeira versão;
+hoje o contentor não tem margem e usa `gap-px bg-bg`, e cada mosaico traz o seu anel de 1 px `border` — os painéis
+ficam colados como num IDE. O lugar vazio perdeu o raio (fundo `bg`, borda tracejada). Ver [[cards]] → "Painel de
+terminal".
+
 ### Cabeçalho comum (2026-11-13)
 
-A linha "Terminais · N abertos" + contagens é o `TerminalsHeader.tsx`, desenhado pela página por cima da grelha
+A linha "Terminais · N abertos" + contagens é o `TerminalsHeader.tsx` (desde 2026-11-21 uma linha de
+`--wfa-header-height` em `surface-1`, como o `PageHeader`: kicker + "N abertos" a 13 px; controlos a `CONTROL_HEIGHT`), desenhado pela página por cima da grelha
 **e** do foco dividido (o `TerminalGrid` é só o contentor) — trocar de modo não mexe no layout. À direita, pela
 ordem: o `AppRunControl` (Correr/Parar, [[../../../features/correr-a-app|correr-a-app]]; fica com um terminal
 ampliado) e o seletor de grelha (só na grelha, e não com um ampliado). Os estados do controlo usam as formas do

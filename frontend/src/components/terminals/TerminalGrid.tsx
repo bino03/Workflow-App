@@ -18,23 +18,23 @@ type TerminalGridProps = {
 };
 
 function containerClasses(style: GridStyle, enlarged: boolean): string {
-  if (enlarged) return 'flex-1 min-h-0 px-5 pb-4 flex';
+  if (enlarged) return 'flex-1 min-h-0 flex';
   switch (style.kind) {
     case 'classic':
-      return 'flex-1 min-h-0 px-5 pb-4 grid grid-cols-3 gap-3 overflow-y-auto';
+      return 'flex-1 min-h-0 grid grid-cols-3 gap-px bg-bg overflow-y-auto';
     case 'columns':
-      return 'flex-1 min-h-0 px-5 pb-4 flex gap-3';
+      return 'flex-1 min-h-0 flex gap-px bg-bg';
     case 'quad':
-      return 'flex-1 min-h-0 px-5 pb-4 grid grid-cols-2 grid-rows-2 gap-3';
+      return 'flex-1 min-h-0 grid grid-cols-2 grid-rows-2 gap-px bg-bg';
     case 'spotlight':
-      return 'flex-1 min-h-0 px-5 pb-4 grid gap-3';
+      return 'flex-1 min-h-0 grid gap-px bg-bg';
   }
 }
 
 function containerStyle(style: GridStyle, enlarged: boolean): CSSProperties | undefined {
   if (enlarged) return undefined;
   // Duas linhas à vista; a partir de 6 mosaicos a grelha clássica faz scroll.
-  if (style.kind === 'classic') return { gridAutoRows: 'calc((100% - 12px) / 2)' };
+  if (style.kind === 'classic') return { gridAutoRows: 'calc((100% - 1px) / 2)' };
   if (style.kind === 'spotlight') return { gridTemplateColumns: '2fr 1fr', gridTemplateRows: '1fr 1fr' };
   return undefined;
 }
@@ -46,7 +46,7 @@ function EmptySlot({ index, style, onClick }: { index: number; style: GridStyle;
       aria-label="Abrir terminal aqui"
       onClick={onClick}
       style={slotPlacement(style, index)}
-      className="min-h-0 min-w-0 flex items-center justify-center rounded-lg border border-dashed border-border-strong bg-transparent text-text-3 cursor-pointer hover:bg-surface-2 hover:text-text-1"
+      className="min-h-0 min-w-0 flex items-center justify-center border border-dashed border-border-strong bg-bg text-text-3 cursor-pointer hover:bg-surface-2 hover:text-text-1"
     >
       <PlusOutlined style={{ fontSize: 20 }} />
     </button>

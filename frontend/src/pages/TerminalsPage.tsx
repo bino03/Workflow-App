@@ -14,7 +14,7 @@ import { TerminalsHeader } from '@/components/terminals/TerminalsHeader';
 import { AppRunControl } from '@/components/terminals/AppRunControl';
 import { parseTerminalMenuKey, terminalMenuItems, type TerminalViewAction } from '@/components/terminals/terminalMenu';
 import { PreviewPortsModal } from '@/components/terminals/PreviewPortsModal';
-import { TerminalPane } from '@/components/terminals/TerminalPane';
+import { type PaneViewIcon, TerminalPane } from '@/components/terminals/TerminalPane';
 import { TerminalSidebar } from '@/components/terminals/TerminalSidebar';
 import { ErrorHandler, getApiErrorResponse } from '@/errors/errorHandler';
 import { getUserFriendlyMessage } from '@/errors/errorMessages';
@@ -33,7 +33,7 @@ import { getTerminalContext } from '@/services/terminalService';
 import { estimateTerminalSize } from '@/terminal/terminalSize';
 import type { CreateTerminalBody, DevPort, TerminalSize, TerminalView } from '@/types/terminal';
 
-const PANE_HEADER_HEIGHT = 44;
+const PANE_HEADER_HEIGHT = 26; // --wfa-row-height
 const FONT_DELTA_LIMITS = { min: -4, max: 16 };
 
 // Preferência do dispositivo — não sobrevive à falta de localStorage, mas nunca bloqueia a lateral.
@@ -145,6 +145,8 @@ export function TerminalsPage() {
   const { view: keybindingsView } = useKeybindings();
   const switchBinding = keybindingsView?.actions.find((a) => a.id === 'projectSwitch')?.binding ?? null;
   const switcherHint = switchBinding ? formatBinding(switchBinding) : null;
+  const closeBinding = keybindingsView?.actions.find((a) => a.id === 'closeTerminal')?.binding ?? null;
+  const closeLabel = closeBinding ? `Fechar o terminal (${formatBinding(closeBinding)})` : 'Fechar o terminal';
 
   useEffect(() => {
     let cancelled = false;
@@ -770,10 +772,22 @@ export function TerminalsPage() {
     );
   }
 
-  const paneFor = (terminal: (typeof terminals)[number], tile: boolean) => (
+  /** O ícone do botão de vista do cabeçalho, pelo mesmo texto do menu (). */
+  const viewIconFor = (label: string): PaneViewIcon =>
+    label === 'Ampliar' ? 'expand' : label === 'Voltar à grelha' || label === 'Juntar' ? 'compress' : 'split';
+
+  const paneFor = (terminal: (typeof terminals)[number], tile: boolean) => {
+    const viewAction = viewActionFor(terminal);
+    return (
     <TerminalPane
       terminal={terminal}
       name={names.get(terminal.id) ?? ''}
+      paneNumber={(shortcutIndex.get(terminal.id) ?? 0) + 1}
+      viewAction={viewAction}
+      viewIcon={viewIconFor(viewAction.label)}
+      onViewAction={() => runTerminalAction(terminal, 'view')}
+      onClose={() => requestClose(terminal.id)}
+      closeLabel={closeLabel}
       fontDelta={fontDelta}
       variant={tile ? 'tile' : 'pane'}
       enlarged={tile && terminal.id === enlarged}
@@ -791,7 +805,8 @@ export function TerminalsPage() {
       onPreviewStop={() => void togglePreview(terminal.id)}
       menu={menuFor(terminal)}
     />
-  );
+    );
+  };
 
   const errorState = error && (
     <div className="flex-1 bg-bg p-8">

@@ -16,10 +16,16 @@
   luminosidade). O kicker usa `var(--wfa-color-accent)`.
 - Acentos de estado num sub-card: fundo `state-*-subtle` + borda `state-*-border` (ex.: o aviso "Está
   a trabalhar agora" no diálogo de fechar). **Nunca gradientes.**
-- **Cartão de terminal (modo grelha)**: fundo `term-bg`, raio `lg`, cabeçalho de 40 px em `surface-1`
-  (ícone de estado + nome + pasta em mono + tag de estado). Borda `accent` se tem o teclado; se está à
-  espera, borda `state-wait-border` + anel de 3 px `state-wait-subtle`. Um terminal terminado ou
-  desligado ganha uma faixa em baixo (`-subtle`) com a ação "Retomar" / "Reiniciar".
+- **Painel de terminal (grelha e foco dividido)** — revisto 2026-11-21, grelha densa do
+  [[../../../adr/0036-moldura-tipo-ide-e-seletor-de-projeto|ADR 0036]] (`TerminalPane.tsx`): sem raio nem margem —
+  os painéis ficam **colados por 1 px** (`gap-px` + anel `0 0 0 1px border` em cada mosaico; o fundo da grelha
+  fica `bg`, para um lugar sem painel não ficar cinzento). Cabeçalho de `--wfa-row-height` (26 px) em
+  `surface-1`: ícone de estado · nome (12 px, 600) · `pane-N · branch` em mono 10,5 px `text-3` (N = o
+  `Alt+N`; o branch vem do `TerminalView.branch`, sem repositório fica só `pane-N`) · selos (conta, RC,
+  pré-visualização) em `.tag-sm` · à direita a tag de estado em `.tag-sm` e os botões Ampliar e ✕ (ver
+  [[buttons-and-icons]]). Com o teclado: `surface-2` + linha de 2 px `accent` no topo
+  (`inset 0 2px 0`), em vez da borda `accent` de antes. Um terminal terminado ou desligado ganha uma faixa em
+  baixo (`-subtle`) com "Reabrir" / "Continuar noutra conta".
 - **Faixa de estado** (2026-10-25, `components/library/ImportBanner.tsx`, verificada em Chrome headless com
   capturas): uma linha por cima do conteúdo de um ecrã para **uma** coisa a decorrer em fundo (a importação
   aberta, na Biblioteca). Classe `.status-banner` + `.is-work|is-wait|is-run|is-stop|is-err`: fundo

@@ -102,7 +102,8 @@ sobre `bg` dá 1.6:1). Os passos 600–900 servem para fundos e bordas. Para tex
   `accent` (`.state-icon.is-run`) e tag `.tag-run` (`accent` / `accent-subtle` / `accent-border`). Forma
   própria: círculo cheio ≠ quadrado vazio de terminado/parado. Os estados de trabalho acima ficam para a
   segunda fase.
-- Tag de estado: texto na cor do estado, fundo `-subtle`, borda `-border`, raio `sm`, altura 22.
+- Tag de estado: texto na cor do estado, fundo `-subtle`, borda `-border`, raio `sm`, altura 22. Dentro de uma
+  linha de `--wfa-row-height` (cabeçalho de painel de terminal) junta-se `.tag-sm`: 18 px, 10,5 px, padding 5.
 - Um terminal **escondido** que passa a "À tua espera" ganha fundo `-subtle` + borda `-border` na
   lista, e um losango ao lado de "Terminais" na navegação de topo.
 - **Maturidade da biblioteca** (✅/🟡/📋) vira tag com forma: ✓ `success` "Provado" · meio círculo
@@ -160,14 +161,15 @@ entre ecrãs é um token, usado como `h-[var(--wfa-…)]` — nunca o número es
 | `--wfa-titlebar-height` | 32px | barra de título (`AppLayout`) |
 | `--wfa-header-height` | 36px | cabeçalho de página (`PageHeader`) e de painel lateral; o `<main>` tem o mesmo `scroll-padding-top`, para os saltos (`scrollIntoView`) não ficarem por baixo dele |
 | `--wfa-control-height` | 28px | botão, input e select **na moldura** (cabeçalhos de página); espelhado em `CONTROL_HEIGHT` no `theme.ts`, que o `PageHeader` aplica com um `ConfigProvider` local |
-| `--wfa-row-height` | 26px | linha de lista densa: terminais na lateral, seletor de projeto, índice das Definições |
+| `--wfa-row-height` | 26px | linha de lista densa: terminais na lateral, seletor de projeto, índice das Definições; cabeçalho de painel de terminal |
 | `--wfa-table-row-height` | 40px | linha da tabela (pele global, abaixo) |
 | `--wfa-statusbar-height` | 24px | barra de estado |
 | `--wfa-page-gutter` | 14px | margem lateral das páginas = a da marca na barra de título; o kicker do `PageHeader` alinha com a marca |
 
 **Fora disto**: drawers, modais e formulários dentro deles mantêm a densidade do 0008 (controlos de 32 px do
-antd, título de drawer 20/26) — são leitura e escrita demorada, não moldura. A grelha de terminais (cabeçalhos de
-painel de 26 px) é a fase 3 do plano da moldura.
+antd, título de drawer 20/26) — são leitura e escrita demorada, não moldura. A grelha de terminais segue a moldura
+desde 2026-11-21: cabeçalhos de painel de 26 px ([[cards]] → "Painel de terminal") e o `TerminalsHeader` à altura
+do `PageHeader`, com os controlos a `CONTROL_HEIGHT`.
 
 **Marca** (ADR 0036, substitui o losango do 0008): "Em paralelo" — `ParallelMark` em
 `components/common/Wordmark.tsx`, um traço `accent` que se divide em três (2.2 até 18 px, 1.8 acima). Na barra de

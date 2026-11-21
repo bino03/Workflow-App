@@ -1,5 +1,5 @@
-import { useState } from 'react';
-import { CloseOutlined, DownOutlined, LinkOutlined } from '@ant-design/icons';
+import { type ReactNode, useState } from 'react';
+import { CloseOutlined, CompressOutlined, DownOutlined, ExpandOutlined, LinkOutlined, SplitCellsOutlined } from '@ant-design/icons';
 import { Button, Input, Tooltip, type MenuProps } from 'antd';
 import { z } from 'zod';
 import { AccountPicker } from '@/components/accounts/AccountPicker';
@@ -64,7 +64,7 @@ function RenameInput({ initialName, onFinish }: { initialName: string; onFinish:
 function PreviewTag({ preview, compact, onStop }: { preview: TerminalPreview; compact: boolean; onStop: () => void }) {
   const host = new URL(preview.url).host;
   return (
-    <span className="tag max-w-[320px] min-w-0" data-preview={preview.url}>
+    <span className="tag tag-sm max-w-[240px] min-w-0" data-preview={preview.url}>
       <Tooltip title={`Porta ${preview.devPort} do PC → só os teus dispositivos Tailscale`} mouseEnterDelay={0.4}>
         <a
           href={preview.url}
@@ -92,10 +92,48 @@ function PreviewTag({ preview, compact, onStop }: { preview: TerminalPreview; co
   );
 }
 
+/** O ícone do botão de vista: ampliar, voltar (à grelha / juntar) ou pôr lado a lado. */
+export type PaneViewIcon = 'expand' | 'compress' | 'split';
+
+const VIEW_ICONS: Record<PaneViewIcon, ReactNode> = {
+  expand: <ExpandOutlined aria-hidden />,
+  compress: <CompressOutlined aria-hidden />,
+  split: <SplitCellsOutlined aria-hidden />,
+};
+
+/** Botão de 20 px do cabeçalho de painel (proposta C do ADR 0036). Não deixa o clique chegar ao duplo clique do mosaico. */
+function PaneButton(props: { label: string; disabled?: boolean; onClick: () => void; children: ReactNode; data?: string }) {
+  return (
+    <Tooltip title={props.label} mouseEnterDelay={0.4}>
+      <button
+        type="button"
+        aria-label={props.label}
+        disabled={props.disabled}
+        data-pane-button={props.data}
+        className="flex-none w-5 h-5 flex items-center justify-center rounded-sm bg-transparent border-0 p-0 text-[12px] text-text-3 cursor-pointer hover:bg-surface-3 hover:text-text-1 disabled:opacity-40 disabled:cursor-default disabled:hover:bg-transparent"
+        onDoubleClick={(event) => event.stopPropagation()}
+        onClick={props.onClick}
+      >
+        {props.children}
+      </button>
+    </Tooltip>
+  );
+}
+
 type TerminalPaneProps = {
   terminal: TerminalInfo;
   /** Nome mostrado (o rótulo, ou a pasta numerada — projects.ts). */
   name: string;
+  /** O número do Alt+1…9 (a partir de 1), mostrado como `pane-N`. */
+  paneNumber: number;
+  /** Ampliar / Voltar à grelha / Dividir / Juntar — o mesmo texto do menu de contexto. */
+  viewAction: { label: string; disabled?: boolean };
+  viewIcon: PaneViewIcon;
+  onViewAction: () => void;
+  /** O ✕ do cabeçalho: pede confirmação, como o Alt+W. */
+  onClose: () => void;
+  /** "Fechar o terminal (Alt+W)" — com o atalho configurado, se houver. */
+  closeLabel: string;
   visible: boolean;
   focused: boolean;
   renaming: boolean;
@@ -120,44 +158,47 @@ type TerminalPaneProps = {
   enlarged?: boolean;
 };
 
-/** Um terminal no ecrã: cabeçalho (protótipo 1g/1h), o xterm.js, e o banner de terminado/parado. Sem
- * botões de ação no cabeçalho, que fica limpo (2026-09-29): Renomear/Dividir/Fechar/Voltar à grelha são
- * `Alt+R`/`Alt+\`/`Alt+W`/`Esc` e o menu de contexto do cabeçalho (2026-11-05). */
+/** Um terminal no ecrã: cabeçalho denso de 26 px (proposta C do ADR 0036 — nome · `pane-N` · branch · estado ·
+ * ampliar · fechar), o xterm.js, e o banner de terminado/parado. Os dois botões voltaram a 2026-11-21 (antes o
+ * cabeçalho não tinha nenhum, 2026-09-29); o resto continua nos atalhos e no menu de contexto do cabeçalho. */
 export function TerminalPane(props: TerminalPaneProps) {
   const { terminal, visible, focused, renaming, reopening, variant = 'pane', enlarged = false } = props;
   const tile = variant === 'tile';
   const compactHeader = tile && !enlarged;
   const meta = STATUS_META[terminal.status];
   const { name } = props;
+  const paneMeta = terminal.branch ? `pane-${props.paneNumber} · ${terminal.branch}` : `pane-${props.paneNumber}`;
 
   return (
     <section
-      className={`flex-1 min-w-0 min-h-0 flex flex-col bg-bg ${visible ? '' : 'hidden'} ${
-        tile ? `rounded-lg overflow-hidden border ${focused ? 'border-accent' : 'border-border'}` : ''
-      }`}
+      className={`flex-1 min-w-0 min-h-0 flex flex-col bg-bg ${visible ? '' : 'hidden'} ${tile ? 'shadow-[0_0_0_1px_var(--wfa-color-border)]' : ''}`}
       data-terminal-pane={terminal.id}
+      data-focused={focused || undefined}
       onMouseDown={props.onActivate}
       onDoubleClick={compactHeader ? props.onEnlarge : undefined}
     >
       <TerminalContextMenu menu={props.menu} disabled={renaming}>
       <header
-        className={`${compactHeader ? 'h-10 pl-3 pr-3' : 'h-11 pl-4 pr-3'} flex-none flex items-center gap-2.5 border-b border-border min-w-0 ${
-          focused && !compactHeader ? 'bg-surface-2' : 'bg-surface-1'
+        className={`h-[var(--wfa-row-height)] pl-2.5 pr-1.5 flex-none flex items-center gap-2 border-b border-border min-w-0 ${
+          focused ? 'bg-surface-2 shadow-[inset_0_2px_0_var(--wfa-color-accent)]' : 'bg-surface-1'
         }`}
+        data-pane-header
       >
         <span className={`state-icon ${meta.icon}`} aria-hidden />
         {renaming ? (
           <RenameInput initialName={name} onFinish={props.onRenameEnd} />
         ) : (
           <Tooltip title={terminal.cwd} mouseEnterDelay={0.4}>
-            <span className="font-semibold text-[14px] whitespace-nowrap">{name}</span>
+            <span className="font-semibold text-[12px] whitespace-nowrap">{name}</span>
           </Tooltip>
         )}
-        {!compactHeader && <span className={meta.tag}>{meta.label}</span>}
-        <AccountTag accountId={terminal.accountId} className="max-w-[160px]" />
+        <span className="min-w-0 truncate font-mono text-[10.5px] text-text-3" data-pane-meta title={paneMeta}>
+          {paneMeta}
+        </span>
+        <AccountTag accountId={terminal.accountId} className="tag-sm max-w-[120px]" />
         {terminal.remoteControl && (
           <Tooltip title="Remote Control — também no app Claude" mouseEnterDelay={0.4}>
-            <span className="tag" data-remote-control>
+            <span className="tag tag-sm" data-remote-control>
               RC
             </span>
           </Tooltip>
@@ -166,7 +207,13 @@ export function TerminalPane(props: TerminalPaneProps) {
           <PreviewTag preview={terminal.preview} compact={compactHeader} onStop={props.onPreviewStop} />
         )}
         <div className="flex-1 min-w-0" />
-        {compactHeader && <span className={meta.tag}>{meta.label}</span>}
+        <span className={`${meta.tag} tag-sm`}>{meta.label}</span>
+        <PaneButton label={props.viewAction.label} disabled={props.viewAction.disabled} onClick={props.onViewAction} data="view">
+          {VIEW_ICONS[props.viewIcon]}
+        </PaneButton>
+        <PaneButton label={props.closeLabel} onClick={props.onClose} data="close">
+          <CloseOutlined aria-hidden />
+        </PaneButton>
       </header>
       </TerminalContextMenu>
 

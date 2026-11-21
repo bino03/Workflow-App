@@ -69,6 +69,9 @@ resumo.
   todos editáveis nas Definições, com ações novas ([[atalhos-editaveis]]). **Revisto 2026-09-29**: o cabeçalho do painel deixou de
   mostrar botões e atalhos (sem "⌨ TECLADO AQUI", sem `.kbd` junto de Renomear/Dividir/Fechar/Voltar à
   grelha) — o dono já sabe os atalhos de cor; ver [[../skills/references/design/buttons-and-icons]].
+  **Revisto 2026-11-21** (grelha densa do [[../adr/0036-moldura-tipo-ide-e-seletor-de-projeto|ADR 0036]], escolha do
+  dono): voltam **dois** botões só ícone, Ampliar (ou Voltar/Dividir/Juntar) e ✕ Fechar; o cabeçalho passa a 26 px
+  com `pane-N · branch`. Continua sem `.kbd`.
 - **Menu de contexto** (pedido do dono, 2026-11-05): botão direito, ou Shift+F10, num terminal da lateral ou no cabeçalho
   dele. Renomear · Dividir/Ver lado a lado/Juntar (na grelha, Ampliar/Voltar à grelha) · Pré-visualizar · Fechar; num
   terminal parado ou terminado, também Reabrir e Continuar noutra conta. A área de texto fica de fora. Só ações que já
