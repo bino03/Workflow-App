@@ -102,7 +102,6 @@ export function TerminalSidebar(props: TerminalSidebarProps) {
         <div className="flex items-center justify-between">
           <span className="kicker">Projeto</span>
           <div className="flex items-center gap-1.5">
-            {props.switcherHint && <kbd className="kbd">{props.switcherHint}</kbd>}
             <IconButton label="Esconder lateral (AltGr+.)" onClick={onToggleCollapsed}>
               <MenuFoldOutlined style={{ fontSize: 12 }} />
             </IconButton>

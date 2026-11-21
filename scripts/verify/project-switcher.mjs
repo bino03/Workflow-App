@@ -58,7 +58,7 @@ try {
   check('no project tabs any more', !frame.tabs);
   check('the favicon is the new mark', frame.favicon === '/favicon.svg', String(frame.favicon));
   check('no active project on a fresh instance', (await page.evaluate(sidebarName)) === 'Escolher projeto…', await page.evaluate(sidebarName));
-  check('the sidebar shows the Alt+B hint', await page.evaluate(`[...document.querySelectorAll('aside kbd')].some((k) => k.textContent === 'Alt+B')`));
+  check('the Alt+B hint is not shown in the sidebar (owner asked to hide it)', !(await page.evaluate(`[...document.querySelectorAll('aside kbd')].some((k) => k.textContent === 'Alt+B')`)));
 
   // Alt+B opens it with the search focused; typing filters; Enter picks — an empty project gets its first terminal.
   await altB();
