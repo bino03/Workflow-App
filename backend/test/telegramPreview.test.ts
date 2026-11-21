@@ -60,6 +60,7 @@ function setup({
     guidedId: null,
     hidden: false,
     accountId: 'primary',
+    branch: null,
     activity: null,
     agents: [],
   });

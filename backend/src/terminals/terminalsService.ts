@@ -8,6 +8,7 @@ import type { StateStore } from '../state/stateStore.js';
 import { type ClaudeArgsOptions, type ClaudeLaunch, GUIDED_COMMANDS, type GuidedPurpose, claudeArgs } from './claudeArgs.js';
 import { bracketedPaste } from './paste.js';
 import { remoteControlName } from './remoteName.js';
+import { GitBranchReader } from './gitBranch.js';
 import type { TerminalActivity, TerminalAgent } from './sessionState.js';
 import { ClaudeBinError } from './spawnClaude.js';
 import { TerminalLimitError, type TerminalManager } from './terminalManager.js';
@@ -35,6 +36,8 @@ export type TerminalView = {
   hidden: boolean;
   /** The Claude account it runs in (ADR 0027). */
   accountId: AccountId;
+  /** The git branch its folder is on, for the pane header (ADR 0036); null outside a repository or with a detached HEAD. */
+  branch: string | null;
   /**
    * What its `claude` is doing, from the session hooks (ADR 0031): only for a running normal terminal, else null
    * ("ended" is `status`).
@@ -158,9 +161,11 @@ const normalizeLabel = (label: string | null | undefined) => (label?.trim() ? la
  */
 export class TerminalsService {
   private readonly now: () => Date;
+  private readonly branches: GitBranchReader;
 
   constructor(private readonly deps: TerminalsServiceDeps) {
     this.now = deps.now ?? (() => new Date());
+    this.branches = new GitBranchReader(deps.allowedRoots);
   }
 
   /** The terminals the grid and the bot show — hidden ones (a running import) are left out. */
@@ -661,6 +666,7 @@ export class TerminalsService {
       guidedId: saved.guidedId,
       hidden: saved.hidden,
       accountId: this.resolveAccount(saved.accountId),
+      branch: this.branches.branchOf(saved.cwd),
       ...this.sessionStateOf(saved, inMemory?.status === 'running'),
     };
   }
