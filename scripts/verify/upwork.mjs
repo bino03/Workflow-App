@@ -63,8 +63,8 @@ try {
   await page.send('Browser.grantPermissions', { permissions: ['clipboardReadWrite', 'clipboardSanitizedWrite'], origin: instance.base });
 
   // Header and the empty states.
-  const order = await page.evaluate(`[...document.querySelectorAll('nav[aria-label="Criar"] a')].map((a) => a.textContent).join('|')`);
-  check('Upwork sits left of Novo projeto', order === 'Upwork|Novo projeto', order);
+  const order = await page.evaluate(`[...document.querySelectorAll('nav[aria-label="Navegação principal"] a')].map((a) => a.textContent).join('|')`);
+  check('Upwork sits left of Novo projeto', order.endsWith('Upwork|Novo projeto'), order);
   await openUpwork();
   check('no profile → asks for it', await page.waitFor(has('Preenche o teu perfil primeiro')));
 
