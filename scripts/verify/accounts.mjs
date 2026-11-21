@@ -32,7 +32,7 @@ const clickText = (scope, text) =>
   `[...document.querySelectorAll(${JSON.stringify(scope)})].find((e) => e.textContent.trim() === ${JSON.stringify(text)})?.click()`;
 const drawerOpen = `!!document.querySelector('.ant-drawer-open [role="radiogroup"][aria-label="Conta ativa"]')`;
 const row = (id) => `document.querySelector('[data-account-id="${id}"]')`;
-const sidebar = `document.querySelector('[data-quota="sidebar"]')?.innerText ?? ''`;
+const sidebar = `document.querySelector('[data-quota="titlebar"]')?.innerText ?? ''`;
 const menuLabels = `[...document.querySelectorAll('.ant-dropdown:not(.ant-dropdown-hidden) .ant-dropdown-menu-item')].map((e) => e.textContent.trim())`;
 const toast = `document.querySelector('.ant-notification-notice')?.innerText ?? ''`;
 

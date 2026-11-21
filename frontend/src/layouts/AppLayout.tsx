@@ -4,9 +4,12 @@ import { Dropdown, type MenuProps } from 'antd';
 import { Link, NavLink, Outlet, useNavigate } from 'react-router';
 import { AccountsDrawer } from '@/components/accounts/AccountsDrawer';
 import { Wordmark } from '@/components/common/Wordmark';
+import { TitleBarQuota } from '@/components/usage/TitleBarQuota';
 import { UsageLimitModal } from '@/components/usage/UsageLimitModal';
 import { AccountsProvider } from '@/contexts/AccountsContext';
 import { KeybindingsProvider } from '@/contexts/KeybindingsContext';
+import { StatusBarProvider } from '@/contexts/StatusBarContext';
+import { useStatusBarContent } from '@/hooks/useStatusBar';
 import { UsageProvider } from '@/contexts/UsageContext';
 import { useAccounts } from '@/hooks/useAccounts';
 import { useAuth } from '@/hooks/useAuth';
@@ -62,7 +65,9 @@ export function AppLayout() {
       <UsageProvider>
         <AccountsProvider>
           <NavigationShortcuts />
-          <AppShell />
+          <StatusBarProvider>
+            <AppShell />
+          </StatusBarProvider>
           <UsageLimitModal />
         </AccountsProvider>
       </UsageProvider>
@@ -77,6 +82,7 @@ function AppShell() {
   const { active } = useAccounts();
   const navigate = useNavigate();
   const [accountsOpen, setAccountsOpen] = useState(false);
+  const pageStatus = useStatusBarContent();
 
   const userMenu: MenuProps['items'] = [
     {
@@ -104,7 +110,7 @@ function AppShell() {
 
   return (
     <div className="h-full flex flex-col">
-      {/* Barra de título de 32 px (ADR 0036): marca numa célula com a largura da lateral · navegação · utilizador. */}
+      {/* Barra de título de 32 px (ADR 0036): marca numa célula com a largura da lateral · navegação · quota · utilizador. */}
       <header className="h-[var(--wfa-titlebar-height)] flex-none flex items-stretch border-b border-border">
         <Link
           to="/terminals"
@@ -121,6 +127,7 @@ function AppShell() {
           ))}
         </nav>
         <div className="flex-1" />
+        <TitleBarQuota />
         <Dropdown menu={{ items: userMenu }} trigger={['click']} placement="bottomRight">
           <button
             type="button"
@@ -150,7 +157,8 @@ function AppShell() {
           <span className={`w-1.5 h-1.5 rounded-full ${HEALTH_DOT[health]}`} />
           {HEALTH_LABEL[health]}
         </span>
-        <div className="flex-1" />
+        {/* Uma página com conteúdo próprio traz o seu espaçador (as dicas ficam junto da versão). */}
+        {pageStatus ?? <div className="flex-1" />}
         <span className="font-mono">v{__APP_VERSION__}</span>
       </footer>
       <AccountsDrawer open={accountsOpen} onClose={() => setAccountsOpen(false)} />

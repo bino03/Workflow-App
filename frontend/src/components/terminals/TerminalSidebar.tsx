@@ -13,8 +13,12 @@ import {
 import { Button, Tooltip, type MenuProps } from 'antd';
 import { AccountPicker } from '@/components/accounts/AccountPicker';
 import { AccountTag } from '@/components/accounts/AccountTag';
+import type { SavedSession } from '@/types/session';
 import type { TerminalStatus, TerminalView } from '@/types/terminal';
 import type { Project } from './projects';
+import { BranchesGroup } from './BranchesGroup';
+import { SavedSessionsGroup } from './SavedSessionsGroup';
+import { SIDEBAR_ROW, SidebarGroup } from './SidebarGroup';
 import { TerminalContextMenu } from './TerminalContextMenu';
 import { STATUS_META, statusDetail } from './terminalDisplay';
 
@@ -43,8 +47,9 @@ type TerminalSidebarProps = {
   creatingIn: string | null;
   onReopenAll: () => void;
   reopeningAll: boolean;
-  /** A quota, em baixo (passo 16 da spec Terminais). */
-  footer?: ReactNode;
+  /** Clicar uma sessão gravada da lateral: retoma-a já (`--resume`, na conta em que foi feita). */
+  onResumeSession: (path: string, session: SavedSession) => void;
+  now: number;
   /** Escondida/visível — estado do `TerminalsPage` (também alternado por `AltGr+.`). */
   collapsed: boolean;
   onToggleCollapsed: () => void;
@@ -159,20 +164,6 @@ export function TerminalSidebar(props: TerminalSidebarProps) {
             <IconButton label="Retomar uma sessão desta pasta…" onClick={() => props.onResumeInProject(project.path)}>
               <HistoryOutlined />
             </IconButton>
-            <IconButton label={`Novo terminal em ${project.name}`} onClick={() => props.onNewInProject(project.path)} loading={props.creatingIn === project.path}>
-              <PlusOutlined />
-            </IconButton>
-            <AccountPicker title="Noutra conta" placement="bottomRight" onPick={(accountId) => props.onNewInProject(project.path, accountId)}>
-              <button
-                type="button"
-                aria-label={`Novo terminal em ${project.name} noutra conta`}
-                title="Novo terminal noutra conta"
-                disabled={props.creatingIn === project.path}
-                className="w-4 h-6 flex items-center justify-center bg-transparent border-0 rounded-sm text-text-3 cursor-pointer hover:bg-surface-3 hover:text-text-1 disabled:opacity-40"
-              >
-                <DownOutlined style={{ fontSize: 9 }} />
-              </button>
-            </AccountPicker>
           </div>
         )}
       </div>
@@ -203,54 +194,75 @@ export function TerminalSidebar(props: TerminalSidebarProps) {
         </div>
       )}
 
-      <div className="h-6 flex items-center gap-1 px-3 text-[11px] font-semibold tracking-[.08em] text-text-3">
-        <span className="flex-1">TERMINAIS</span>
-        <span className="font-mono font-normal">{terminals.length}</span>
-      </div>
-      <nav className="flex-1 min-h-0 overflow-y-auto flex flex-col gap-0.5 px-1.5 pb-2" aria-label="Terminais do projeto">
+      <nav className="flex-1 min-h-0 overflow-y-auto flex flex-col pt-1" aria-label="Terminais do projeto">
         {!project && (
-          <p className="m-0 px-2 py-2 text-[12.5px] text-text-3">
+          <p className="m-0 px-3 py-2 text-[12.5px] text-text-3">
             Nenhum projeto aberto. Escolhe um no seletor{props.switcherHint ? ` (${props.switcherHint})` : ''}.
           </p>
         )}
-        {project && terminals.length === 0 && <p className="m-0 px-2 py-2 text-[12.5px] text-text-3">Ainda sem terminais neste projeto.</p>}
-        {shown.map((terminal) => {
-          const meta = STATUS_META[terminal.status];
-          const isShown = visibleIds.includes(terminal.id);
-          const index = shortcutIndex.get(terminal.id) ?? 99;
-          return (
-            <TerminalContextMenu key={terminal.id} menu={props.menuFor(terminal)}>
-              <button
-                type="button"
-                data-terminal-item={terminal.id}
-                aria-current={isShown ? 'true' : undefined}
-                onClick={() => props.onSelectTerminal(terminal.id)}
-                className={`text-left flex flex-col gap-0.5 px-2.5 py-1.5 rounded-md border-0 cursor-pointer text-text-1 ${
-                  isShown ? 'bg-accent-subtle shadow-[inset_2px_0_0_var(--wfa-color-accent)]' : 'bg-transparent hover:bg-surface-2'
-                }`}
-              >
-                <span className="flex items-center gap-2.5">
-                  <span className="w-3.5 flex justify-center flex-none">
-                    <span className={`state-icon ${meta.icon}`} aria-hidden />
-                  </span>
-                  <span className="terminal-name flex-1 min-w-0 font-medium text-[13px] overflow-hidden text-ellipsis whitespace-nowrap">
-                    {names.get(terminal.id)}
-                  </span>
-                  {index < 9 && <span className="font-mono text-[10.5px] text-text-3">Alt+{index + 1}</span>}
-                </span>
-                <span className="pl-6 text-[11.5px] leading-[16px] flex items-center gap-1.5">
-                  <span className={terminal.status === 'running' ? 'text-accent' : 'text-[var(--wfa-state-stop)]'}>{meta.label}</span>
-                  {terminal.status !== 'running' && <span className="text-text-3">· {statusDetail(terminal)}</span>}
-                  <span className="flex-1" />
-                  <AccountTag accountId={terminal.accountId} className="h-[18px] px-1.5 text-[11px] max-w-[110px]" />
-                </span>
-              </button>
-            </TerminalContextMenu>
-          );
-        })}
+        {project && (
+          <SidebarGroup id="terminals" title="TERMINAIS" count={terminals.length}>
+            {terminals.length === 0 && <p className="m-0 pl-[22px] pr-2 py-1 text-[12.5px] text-text-3">Ainda sem terminais neste projeto.</p>}
+            {shown.map((terminal) => {
+              const meta = STATUS_META[terminal.status];
+              const isShown = visibleIds.includes(terminal.id);
+              const index = shortcutIndex.get(terminal.id) ?? 99;
+              const running = terminal.status === 'running';
+              return (
+                <TerminalContextMenu key={terminal.id} menu={props.menuFor(terminal)}>
+                  <button
+                    type="button"
+                    data-terminal-item={terminal.id}
+                    aria-current={isShown ? 'true' : undefined}
+                    title={`${meta.label} · ${statusDetail(terminal)}${index < 9 ? ` · Alt+${index + 1}` : ''}`}
+                    onClick={() => props.onSelectTerminal(terminal.id)}
+                    className={`${SIDEBAR_ROW} !pl-2 cursor-pointer ${
+                      isShown ? 'bg-accent-subtle shadow-[inset_2px_0_0_var(--wfa-color-accent)]' : 'bg-transparent hover:bg-surface-2'
+                    }`}
+                  >
+                    <span className="w-3.5 flex justify-center flex-none">
+                      <span className={`state-icon ${meta.icon}`} aria-hidden />
+                    </span>
+                    <span className="terminal-name flex-1 min-w-0 truncate">{names.get(terminal.id)}</span>
+                    <AccountTag accountId={terminal.accountId} className="h-[18px] px-1.5 text-[11px] max-w-[90px]" />
+                    <span className={`flex-none font-mono text-[10.5px] ${running ? 'text-text-3' : 'text-[var(--wfa-state-stop)]'}`}>
+                      {running ? `pane-${index + 1}` : meta.label}
+                    </span>
+                  </button>
+                </TerminalContextMenu>
+              );
+            })}
+          </SidebarGroup>
+        )}
+        {project && <BranchesGroup path={project.path} refreshKey={terminals.map((t) => t.branch ?? '').join(',')} />}
+        {project && (
+          <SavedSessionsGroup
+            path={project.path}
+            refreshKey={terminals.map((t) => `${t.id}:${t.status}`).join(',')}
+            onResume={(session) => props.onResumeSession(project.path, session)}
+            onShowAll={() => props.onResumeInProject(project.path)}
+            now={props.now}
+          />
+        )}
       </nav>
 
-      {props.footer && <div className="px-4 pt-3 pb-3.5 border-t border-border">{props.footer}</div>}
+      {project && (
+        <div className="p-2 border-t border-border flex gap-1">
+          <Button
+            type="primary"
+            className="flex-1"
+            icon={<PlusOutlined />}
+            data-new-terminal
+            loading={props.creatingIn === project.path}
+            onClick={() => props.onNewInProject(project.path)}
+          >
+            Novo terminal
+          </Button>
+          <AccountPicker title="Noutra conta" placement="topRight" onPick={(accountId) => props.onNewInProject(project.path, accountId)}>
+            <Button aria-label={`Novo terminal em ${project.name} noutra conta`} title="Novo terminal noutra conta" disabled={props.creatingIn === project.path} icon={<DownOutlined style={{ fontSize: 10 }} />} />
+          </AccountPicker>
+        </div>
+      )}
     </aside>
   );
 }

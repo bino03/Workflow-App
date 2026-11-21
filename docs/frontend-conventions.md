@@ -97,7 +97,7 @@ Ant Design para componentes, Tailwind para estilo próprio, tokens CSS como font
   Nunca `Ctrl+Alt` (AltGr em PT). Um `Esc` da app (voltar à grelha) só conta fora do terminal
   (`event.target.closest('.xterm')`).
 - **Quota**: uma só sondagem de `/api/usage` (60 s), no `UsageProvider` do `AppLayout`. O `useUsage()` lê-a, e
-  nenhum componente sonda por conta própria. Quem a usa: a lateral dos terminais (`QuotaMeter`). O aviso de limite
+  nenhum componente sonda por conta própria. Quem a usa: a barra de título (`TitleBarQuota`, desde a proposta C do ADR 0036). O aviso de limite
   (`UsageLimitModal`, em qualquer página) lê a conta ativa **e** a quota dela do `useAccounts().active` (a mesma resposta,
   sem um instante com a conta nova e a quota velha), guarda o OK por conta e não avisa enquanto não há conta ativa; só o
   `now` vem do `useUsage()`. A quota é a da conta ativa: o `AccountsProvider` chama o `refresh()`

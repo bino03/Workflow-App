@@ -11,6 +11,12 @@ export function resetText(resetsAt: string, now: number): string {
   return date.toDateString() === today.toDateString() ? `repõe às ${hhmm(date)}` : `repõe ${WEEKDAYS[date.getDay()]}, ${hhmm(date)}`;
 }
 
+/** A versão curta, para a barra de título (proposta C do ADR 0036): "14:30" hoje · "seg" noutro dia. */
+export function shortResetText(resetsAt: string, now: number): string {
+  const date = new Date(resetsAt);
+  return date.toDateString() === new Date(now).toDateString() ? hhmm(date) : WEEKDAYS[date.getDay()]!.slice(0, 3);
+}
+
 const WARN_PCT = 80;
 /** Mais velho do que isto, o valor passa a cinzento com "há X min": sem atividade não há atualizações. */
 const STALE_MS = 10 * 60_000;
@@ -33,7 +39,7 @@ export type QuotaReading = {
   cells: QuotaCell[];
 };
 
-/** O que os medidores da quota mostram: a lateral (`QuotaMeter`) e cada conta no drawer (`AccountQuota`). */
+/** O que os medidores da quota mostram: a barra de título (`TitleBarQuota`) e cada conta no drawer (`AccountQuota`). */
 export function readQuota(usage: UsageView | null, now: number): QuotaReading {
   const fetchedAt = usage?.fetchedAt ?? null;
   const stale = fetchedAt !== null && now - Date.parse(fetchedAt) > STALE_MS;

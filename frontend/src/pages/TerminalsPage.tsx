@@ -8,7 +8,6 @@ import { ProjectSwitcher } from '@/components/terminals/ProjectSwitcher';
 import { DEFAULT_GRID_STYLE, type GridStyle, firstFreeSlot, initialSlotIds, slotPlacement } from '@/components/terminals/gridStyle';
 import { GridStylePicker } from '@/components/terminals/GridStylePicker';
 import { displayNames, type Project, joinProjects, projectsWithTerminals } from '@/components/terminals/projects';
-import { QuotaMeter } from '@/components/terminals/QuotaMeter';
 import { TerminalGrid } from '@/components/terminals/TerminalGrid';
 import { TerminalsHeader } from '@/components/terminals/TerminalsHeader';
 import { AppRunControl } from '@/components/terminals/AppRunControl';
@@ -29,13 +28,24 @@ import { useAccounts } from '@/hooks/useAccounts';
 import { useUsage } from '@/hooks/useUsage';
 import { useProjectTasks } from '@/hooks/useProjectTasks';
 import { ProjectTasksPanel } from '@/components/projectTasks/ProjectTasksPanel';
+import { OpenFolderModal } from '@/components/terminals/new/OpenFolderModal';
+import { useStatusBar } from '@/hooks/useStatusBar';
 import { getFolders, setFavoriteFolder } from '@/services/folderService';
 import { notificationService } from '@/services/general/notificationService';
 import { getTerminalContext } from '@/services/terminalService';
 import { estimateTerminalSize } from '@/terminal/terminalSize';
+import type { SavedSession } from '@/types/session';
 import type { CreateTerminalBody, DevPort, TerminalSize, TerminalView } from '@/types/terminal';
 
 const PANE_HEADER_HEIGHT = 26; // --wfa-row-height
+
+/** As dicas da barra de estado (proposta C), com a bind atual de cada ação; uma ação sem bind não aparece. */
+const STATUS_HINTS = [
+  { id: 'newTerminal', label: 'novo' },
+  { id: 'splitToggle', label: 'dividir' },
+  { id: 'projectSwitch', label: 'projeto' },
+  { id: 'toggleTasks', label: 'tarefas' },
+];
 const FONT_DELTA_LIMITS = { min: -4, max: 16 };
 
 // Preferência do dispositivo — não sobrevive à falta de localStorage, mas nunca bloqueia a lateral.
@@ -134,8 +144,8 @@ export function TerminalsPage() {
   const [favorites, setFavorites] = useState<string[]>([]);
   const [favoritesVersion, setFavoritesVersion] = useState(0);
   const [layout] = useLayoutMode();
-  const { usage, now } = useUsage();
-  const { view: accountsView, active: activeAccount } = useAccounts();
+  const { now } = useUsage();
+  const { view: accountsView } = useAccounts();
 
   const [openPaths, setOpenPaths] = useState<string[]>([]);
   const [activePath, setActivePath] = useState<string | null>(null);
@@ -156,6 +166,7 @@ export function TerminalsPage() {
   // Abrir o painel pede o foco para o campo novo; mudar de projeto com ele aberto não (o foco fica no terminal).
   const tasksFocusRef = useRef(false);
   const [switcherOpen, setSwitcherOpen] = useState(false);
+  const [openFolderOpen, setOpenFolderOpen] = useState(false);
   const closeSwitcher = useCallback(() => setSwitcherOpen(false), []);
   const { view: keybindingsView } = useKeybindings();
   const switchBinding = keybindingsView?.actions.find((a) => a.id === 'projectSwitch')?.binding ?? null;
@@ -221,6 +232,32 @@ export function TerminalsPage() {
     : activeLayout.activeId === secondaryId && secondaryId
       ? secondaryId
       : primaryId;
+  const keyboardName = keyboardId ? (names.get(keyboardId) ?? null) : null;
+  const statusHints = useMemo(
+    () =>
+      STATUS_HINTS.flatMap(({ id, label }) => {
+        const binding = keybindingsView?.actions.find((a) => a.id === id)?.binding;
+        return binding ? [`${formatBinding(binding)} ${label}`] : [];
+      }),
+    [keybindingsView],
+  );
+  const statusContent = useMemo(
+    () => (
+      <>
+        {keyboardName && (
+          <span data-status-keyboard>
+            Teclado em <span className="text-accent">{keyboardName}</span>
+          </span>
+        )}
+        <span className="flex-1" />
+        {statusHints.map((hint) => (
+          <span key={hint}>{hint}</span>
+        ))}
+      </>
+    ),
+    [keyboardName, statusHints],
+  );
+  useStatusBar(statusContent);
   const gridStyle = activeLayout.gridStyle;
   const usesSlots = gridStyle.kind !== 'classic';
   // Um lugar cujo id já não existe (fechado) conta como vazio — lido sempre por este filtro, nunca por um
@@ -416,6 +453,15 @@ export function TerminalsPage() {
   const handleResumeSession = async (sessionId: string, accountId?: string) => {
     if (!resumePath) return;
     await handleCreate({ cwd: resumePath, mode: 'resume', sessionId, accountId });
+  };
+
+  /** Uma sessão gravada da lateral (proposta C): retoma já, na conta em que a conversa foi feita (fora da app = a principal), para não reenviar o contexto a outra conta. */
+  const handleResumeFromSidebar = async (path: string, session: SavedSession) => {
+    try {
+      await handleCreate({ cwd: path, mode: 'resume', sessionId: session.id, accountId: session.accountId ?? 'primary' });
+    } catch (e) {
+      ErrorHandler.handle(e);
+    }
   };
 
   /** O "+" de um projeto (lateral, cabeçalho da grelha): mais um terminal, sessão nova, sem drawer. "Noutra conta" traz o `accountId`. */
@@ -885,7 +931,8 @@ export function TerminalsPage() {
       creatingIn={creatingIn}
       onReopenAll={() => void handleReopenAll()}
       reopeningAll={reopeningAll}
-      footer={<QuotaMeter usage={usage} now={now} accountLabel={(accountsView?.accounts.length ?? 0) > 1 ? activeAccount?.label : undefined} />}
+      onResumeSession={(path, session) => void handleResumeFromSidebar(path, session)}
+      now={now}
       collapsed={sidebarCollapsed}
       onToggleCollapsed={toggleSidebarCollapsed}
       tasks={{ open: openTaskCount, total: projectTasks.tasks.length }}
@@ -904,7 +951,9 @@ export function TerminalsPage() {
         activePath={activePath}
         onPick={activateProject}
         onClose={closeSwitcher}
+        onOpenFolder={() => setOpenFolderOpen(true)}
       />
+      <OpenFolderModal open={openFolderOpen} onClose={() => setOpenFolderOpen(false)} onOpen={(path) => handleCreate({ cwd: path, mode: 'new' })} />
       <div className="flex-1 min-w-0 flex flex-col">
         {errorState}
         {!error && (

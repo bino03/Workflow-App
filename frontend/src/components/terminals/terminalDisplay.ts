@@ -23,6 +23,19 @@ export function formatSessionDate(iso: string | null): string {
   return `${String(date.getDate()).padStart(2, '0')} ${MONTHS[date.getMonth()]} · ${time}`;
 }
 
+/** A data curta das sessões na lateral (proposta C): "14:30" hoje · "ontem" · "18 nov". */
+export function shortSessionDate(iso: string, now: number): string {
+  const date = new Date(iso);
+  if (Number.isNaN(date.getTime())) return '';
+  const today = new Date(now);
+  if (date.toDateString() === today.toDateString()) {
+    return `${String(date.getHours()).padStart(2, '0')}:${String(date.getMinutes()).padStart(2, '0')}`;
+  }
+  const yesterday = new Date(today.getFullYear(), today.getMonth(), today.getDate() - 1);
+  if (date.toDateString() === yesterday.toDateString()) return 'ontem';
+  return `${date.getDate()} ${MONTHS[date.getMonth()]}`;
+}
+
 /** "Terminado · código 1", "Parado" — o detalhe na lateral e no banner. */
 export function statusDetail(terminal: TerminalView): string {
   if (terminal.status === 'exited') return terminal.exitCode === null ? 'terminou' : `código ${terminal.exitCode}`;

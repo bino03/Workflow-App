@@ -59,7 +59,7 @@ try {
   await load();
   check('5 h at 92%: the warning opens', await page.waitFor(modalOpen), String(await page.evaluate(warningKey)));
   check('it is the 5 h 90% warning', (await page.evaluate(warningKey)) === 'fiveHour90');
-  const sidebar = await page.evaluate(`document.querySelector('[data-quota="sidebar"]')?.innerText ?? ''`);
+  const sidebar = await page.evaluate(`document.querySelector('[data-quota="titlebar"]')?.innerText ?? ''`);
   check('the terminals sidebar reads the same shared poll', /92%/.test(sidebar), sidebar.replace(/\n/g, ' | '));
   const text = await page.evaluate(`document.querySelector('.ant-modal-container').innerText`);
   check('shows the percentage and the reset time', /92% usado/.test(text) && /repõe/.test(text), text.replace(/\n/g, ' | '));

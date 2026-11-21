@@ -1,5 +1,5 @@
 import { type KeyboardEvent, useEffect, useMemo, useRef, useState } from 'react';
-import { FolderOutlined, PlusOutlined, SearchOutlined, StarFilled } from '@ant-design/icons';
+import { FolderOpenOutlined, FolderOutlined, PlusOutlined, SearchOutlined, StarFilled } from '@ant-design/icons';
 import { Link } from 'react-router';
 import type { TerminalStatus } from '@/types/terminal';
 import type { Project } from './projects';
@@ -11,6 +11,8 @@ type ProjectSwitcherProps = {
   activePath: string | null;
   onPick: (path: string) => void;
   onClose: () => void;
+  /** "Abrir outra pasta…" (proposta C): uma pasta fora do registo. */
+  onOpenFolder: () => void;
 };
 
 const STATUS_ORDER: TerminalStatus[] = ['running', 'exited', 'stopped'];
@@ -43,7 +45,7 @@ function filterProjects(projects: Project[], query: string): Project[] {
     .map(({ project }) => project);
 }
 
-function SwitcherPanel({ projects, activePath, onPick, onClose }: Omit<ProjectSwitcherProps, 'open'>) {
+function SwitcherPanel({ projects, activePath, onPick, onClose, onOpenFolder }: Omit<ProjectSwitcherProps, 'open'>) {
   const [query, setQuery] = useState('');
   const [highlight, setHighlight] = useState(() => Math.max(0, filterProjects(projects, '').findIndex((p) => p.path === activePath)));
   const panelRef = useRef<HTMLDivElement>(null);
@@ -153,6 +155,19 @@ function SwitcherPanel({ projects, activePath, onPick, onClose }: Omit<ProjectSw
       </div>
 
       <div className="h-8 flex-none flex items-center gap-2 px-3 border-t border-border text-[12px] text-text-3">
+        <FolderOpenOutlined className="text-[11px]" />
+        <button
+          type="button"
+          data-switcher-open-folder
+          onClick={() => {
+            onClose();
+            onOpenFolder();
+          }}
+          className="p-0 bg-transparent border-0 cursor-pointer text-accent text-[12px] hover:underline"
+        >
+          Abrir outra pasta…
+        </button>
+        <span className="text-text-3">·</span>
         <PlusOutlined className="text-[11px]" />
         <Link to="/new-project" onClick={onClose} className="no-underline">
           Novo projeto…
