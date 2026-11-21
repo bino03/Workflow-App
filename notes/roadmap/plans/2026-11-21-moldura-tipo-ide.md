@@ -1,6 +1,6 @@
 # Plano — 2026-11-21 moldura-tipo-ide
 
-**Estado**: em curso (fases 1-2 concluídas; fases 3-4 por começar)
+**Estado**: em curso (fases 1-3 concluídas; fase 4 por começar)
 **Âmbito escolhido**: o redesign "mais profissional, tipo VS Code" pedido pelo dono a 2026-11-20
 **Orçamento da sessão**: sem limite
 **Modelo**: fase 2 `sonnet` · fase 3 `opus` (decidir o branch) + `sonnet` · fase 4 `opus` (modelo de dados) + `sonnet`
@@ -31,6 +31,11 @@
   marcar como feita, apagar. Lugar: painel à direita, aberto por um botão no cabeçalho do projeto na lateral.
 - Apagar uma tarefa: proposto "Desfazer" em vez de diálogo de confirmação (exceção à regra das ações destrutivas)
   — o dono disse "perfeito" ao protótipo, mas **confirmar** antes de implementar.
+- **Fase 3 (2026-11-21, sessão 2)**: o **branch entra**, lido pelo backend (reinicia a 7400 — combinar o momento);
+  **botões Ampliar e Fechar** no cabeçalho do painel, como no protótipo (revê a decisão de 2026-09-29 de cabeçalho
+  sem botões); a **tag de estado fica**, mais pequena (a decisão final continua no item dos ícones de estado);
+  alcance: grelha **e** modo foco/dividido a 26 px, painéis colados por 1 px sem margens, e o `TerminalsHeader`
+  passa aos 36 px do `PageHeader`.
 
 ## Ordem
 
@@ -49,9 +54,11 @@
    como o `--wfa-sidebar-width`; (b) aplicar a Projetos, Biblioteca, Upwork, Definições, Novo projeto. Critério:
    sem cabeçalhos de 48 px soltos, tudo alinhado com a barra de 32 px, cenários de `scripts/verify/` verdes.
    ⚠️ Perguntar ao dono se quer ver primeiro estes ecrãs no canvas (Claude Design) ou se aplica direto.
-3. [ ] **Grelha densa** da C — cabeçalhos de painel de 26 px (nome · `pane-N` · branch · tag de estado · ampliar ·
-   fechar), painéis colados com 1 px de `border`. ⚠️ Por decidir com o dono: o **branch** no cabeçalho precisa de
-   o backend o ler (hoje não existe) — com ou sem ele.
+3. [x] **Concluída 2026-11-21 (sessão 2)** — **Grelha densa** da C: cabeçalho de painel de 26 px (nome · `pane-N ·
+   branch` · tag `.tag-sm` · Ampliar · ✕), painéis colados a 1 px, também no foco dividido; `TerminalsHeader` a 36 px.
+   Branch: `TerminalView.branch`, lido do `.git/HEAD` por `backend/src/terminals/gitBranch.ts` (sem correr o git,
+   nunca acima da raiz de `ALLOWED_ROOTS`). Testes: backend 624/624; `pane-header` 19/19 (novo), `terminal-menu`
+   42/42, `grid-slots` 13/13, `app-run-ui` 26/26, `accounts-terminals` 41/41, `project-switcher` 31/31, `smoke` 6/6.
 4. [ ] **Tarefas por projeto** — ⚠️ antes, `/design-database` em modo evoluir (CLAUDE.md, regra 4): entidade nova
    projeto → tarefas no `state.json` (ADR 0009) → ADR novo → rotas (`/add-backend-feature`) → painel à direita de
    300 px com `Alt+T` (verificar no `catalog.ts` que não colide: `Alt+T` é do Claude Code — "thinking" — escolher
@@ -65,11 +72,13 @@
 - As instâncias de teste (`scripts/verify/instance.mjs start`) morriam quando o comando que as lançava acabava;
   arrancá-las num Bash em background (`run_in_background`) com um `sleep` longo a seguir, e parar com
   `instance.mjs stop --clean` + parar a tarefa.
-- O `accounts-terminals.mjs` passou a mudar de projeto pelo seletor (`openProject(path)`); cenários novos que
-  precisem de outro projeto devem fazer o mesmo — a lateral só mostra o projeto ativo.
+- A lateral só mostra o projeto ativo: os cenários mudam de projeto com `openProject(page, path)` do `cdp.mjs`
+  (a fase 1 tinha partido o `terminal-menu` e o `app-run-ui` sem ninguém ver — corrigidos na fase 3).
+- O `tsx watch` só vigia os ficheiros que o servidor importa: um ficheiro novo em `backend/src` e o seu teste
+  podem escrever-se e testar-se sem reiniciar a 7400; só a ligação (o import) reinicia.
 
 ## Próximo passo
 
-Fase 3 (grelha densa): perguntar ao dono se o **branch** entra no cabeçalho do painel (precisa de o backend o
-ler — `opus`) ou fica de fora; depois cabeçalhos de painel de 26 px com os tokens da fase 2 (`--wfa-row-height`).
-Lembrete: o `TerminalsHeader` (64 px, título a 20 px) também é da grelha — rever na mesma fase.
+Fase 4 (tarefas por projeto), `opus` primeiro: `/design-database` em modo evoluir, com as três perguntas em aberto
+(reordenar arrastando; painel aberto/fechado guardado por projeto; "Desfazer" vs confirmação) e o atalho que
+substitui o `Alt+T`.

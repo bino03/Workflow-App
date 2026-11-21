@@ -9,12 +9,9 @@ Usa `/implement-todo` para analisar, priorizar e implementar os itens daqui.
 ## Redesign — moldura tipo IDE
 
 Feito a 2026-11-21 ([[../docs/adr/0036-moldura-tipo-ide-e-seletor-de-projeto|ADR 0036]], ver [[whatIveDone]]):
-barra de título de 32 px, marca "Em paralelo", lateral do projeto ativo, seletor de projeto com `Alt+B`. Canvas
+barra de título de 32 px, marca "Em paralelo", lateral do projeto ativo, seletor de projeto com `Alt+B`; grelha densa com o branch no cabeçalho do painel. Canvas
 do Claude Design: https://claude.ai/artifact/R3oG66QvDxj6TRqQu6wkNk. Plano para continuar: [[roadmap/plans/2026-11-21-moldura-tipo-ide]]. Falta:
 
-- **Grelha densa** da proposta C: cabeçalhos de painel de 26 px (nome · `pane-N` · branch · tag de estado ·
-  ampliar · fechar), painéis colados com 1 px de `border`. ⚠️ Por decidir: o branch no cabeçalho precisa de o
-  backend o ler (hoje não há) — com ou sem ele.
 - **Tarefas por projeto** (lista pessoal, não tem nada a ver com o vault): painel à direita de 300 px,
   recolhível, aberto pelo botão "☑ n/total" no cabeçalho do workspace na lateral (`Alt+T`). Adicionar (Enter),
   marcar como feita, apagar (com "Desfazer" em vez de diálogo de confirmação), filtros Por fazer / Feitas /
