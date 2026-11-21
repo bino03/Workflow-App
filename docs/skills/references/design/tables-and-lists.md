@@ -35,23 +35,32 @@ import { ListActions, ListActionPrimary, ListActionSecondary, ListActionDanger }
 O componente já resolve: botões empilhados, alinhados à esquerda, `minWidth: 110`,
 **`stopPropagation` no contentor**, hover pelo tema.
 
-## 2. Cabeçalho da página — kicker + `h1`
+## 2. Cabeçalho da página — `PageHeader`
+
+✅ 2026-11-21 (densidade da moldura, [[../../../adr/0036-moldura-tipo-ide-e-seletor-de-projeto|ADR 0036]]). Toda a
+página de topo começa por `components/common/PageHeader.tsx` — nunca um kicker + título escritos à mão:
 
 ```tsx
-<div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-end", marginBottom: "var(--wfa-space-6)" }}>
-  <div>
-    <h6 className="kicker">Biblioteca</h6>
-    <h1 style={{ margin: 0 }}>Workflow</h1>
-  </div>
-  {/* à direita: a ação principal, ou a pesquisa (320 px, atalho "/") numa lista só de leitura */}
+<div className="flex flex-col">
+  <PageHeader
+    kicker="Biblioteca"
+    title="Workflow"
+    description="Stacks, designs e skills do teu registo."   // opcional, cortado com reticências
+    actions={<Input className="w-[280px]" … />}                // à direita, já a 28 px
+  />
+  <div className="px-[var(--wfa-page-gutter)] pt-3 pb-6 flex flex-col gap-3">{/* conteúdo */}</div>
 </div>
 ```
 
-- Kicker: 11/600, maiúsculas, `letter-spacing: .12em`, cor `var(--wfa-color-accent)`. **Não**
-  `accent-700`, que no tema escuro é quase preto ([[tokens-and-colors]] §2).
-
-- O `AppLayout` **não** aplica padding (o `<main>` só faz scroll): cada página aplica o do protótipo — `px-10 pt-7` (40/28) na Biblioteca.
-- Páginas aninhadas: `<Breadcrumb>` antes; botão "Voltar" por cima do kicker; o kicker leva o nome do pai.
+- Uma linha de 36 px (`--wfa-header-height`) em `surface-1` com borda de baixo, **fixa no topo** do `<main>`
+  (`sticky`): kicker 11/600 `accent` → título 13/600 `text-1` → descrição 12.5 `text-3` → à direita as ações. O kicker
+  fica a 14 px (`--wfa-page-gutter`), alinhado com a marca da barra de título. Medidas em [[tokens-and-colors]] §5.
+- Os controlos em `actions` ficam com 28 px (um `ConfigProvider` local com `CONTROL_HEIGHT`); pesquisa com 280 px.
+- O conteúdo usa a mesma margem lateral (`--wfa-page-gutter`) e começa 12 px abaixo; cartões com `gap-3`.
+- Kicker: **não** `accent-700`, que no tema escuro é quase preto ([[tokens-and-colors]] §2).
+- Uma página com o cabeçalho dentro de uma coluna estreita (o Novo projeto, 760 px) desenha-o por um portal para
+  uma faixa a toda a largura (`HeaderSlot` em `NewProjectPage.tsx`) — o título e as ações dependem do estado.
+- Páginas aninhadas: `<Breadcrumb>` no lugar da descrição; o kicker leva o nome do pai.
 
 ## 3. Tabela — moldura e estados
 

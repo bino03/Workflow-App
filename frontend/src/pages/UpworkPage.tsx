@@ -1,6 +1,7 @@
 import { useCallback, useMemo, useState } from 'react';
 import { Alert, Button, Empty, Select, Spin } from 'antd';
 import { MenuFoldOutlined, MenuUnfoldOutlined, PlusOutlined, UserOutlined } from '@ant-design/icons';
+import { PageHeader } from '@/components/common/PageHeader';
 import { ApplicationDetail } from '@/components/upwork/ApplicationDetail';
 import { ApplicationList } from '@/components/upwork/ApplicationList';
 import { CreateProjectModal } from '@/components/upwork/CreateProjectModal';
@@ -155,24 +156,24 @@ export function UpworkPage() {
   };
 
   return (
-    <div className="h-full px-10 pt-7 pb-4 flex flex-col">
-      <div className="flex items-end gap-4">
-        <div className="flex-1 flex flex-col gap-1">
-          <span className="kicker">Upwork</span>
-          <h1 className="text-display m-0">Candidaturas</h1>
-          <span className="text-[13.5px] text-text-2">
-            Cola um anúncio e recebe a carta, as respostas de triagem e o plano. Nada aqui toca na Upwork.
-          </span>
-        </div>
-        <Button icon={<UserOutlined />} onClick={() => setProfileOpen(true)}>
-          Perfil
-        </Button>
-        <Button type="primary" icon={<PlusOutlined />} onClick={startNew}>
-          Nova candidatura
-        </Button>
-      </div>
+    <div className="h-full flex flex-col">
+      <PageHeader
+        kicker="Upwork"
+        title="Candidaturas"
+        description="Cola um anúncio e recebe a carta, as respostas de triagem e o plano. Nada aqui toca na Upwork."
+        actions={
+          <>
+            <Button icon={<UserOutlined />} onClick={() => setProfileOpen(true)}>
+              Perfil
+            </Button>
+            <Button type="primary" icon={<PlusOutlined />} onClick={startNew}>
+              Nova candidatura
+            </Button>
+          </>
+        }
+      />
 
-      <div className="mt-[22px] flex-1 min-h-0 flex gap-6">
+      <div className="px-[var(--wfa-page-gutter)] pt-3 pb-3 flex-1 min-h-0 flex gap-4">
         {listCollapsed ? (
           <aside className="w-11 flex-none flex flex-col items-center pt-1" data-upwork-list-collapsed>
             <Button
@@ -218,7 +219,7 @@ export function UpworkPage() {
         </section>
         )}
 
-        <section className="flex-1 min-w-0 min-h-0 overflow-auto border-l border-border pl-6 pr-1" aria-label="Candidatura aberta">
+        <section className="flex-1 min-w-0 min-h-0 overflow-auto border-l border-border pl-4 pr-1" aria-label="Candidatura aberta">
           {selectedId ? (
             <ApplicationDetail key={selectedId} id={selectedId} refreshSignal={detailSignal} onChanged={upwork.replace} onRemoved={onRemoved} />
           ) : (

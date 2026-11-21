@@ -17,6 +17,9 @@ const brand = {
   text1: '#EFF0F6',
 };
 
+/** `--wfa-control-height` (index.css): botões, inputs e selects da moldura — o `PageHeader` usa-o. */
+export const CONTROL_HEIGHT = 28;
+
 /*
  * O darkAlgorithm deriva as cores de marca a partir da semente (#A88FFF sai #927DDC, #FF958D sai
  * #DC827B). Este passo corre depois dele e repõe os valores exatos dos tokens.

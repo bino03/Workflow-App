@@ -17,6 +17,16 @@
      Terminais, para os dois alinharem numa só coluna. */
   --wfa-sidebar-width: 272px;
 
+  /* Densidade da moldura (proposta C do canvas): alturas que se repetem entre ecrãs. O theme.ts espelha
+     o --wfa-control-height (o antd não lê CSS). */
+  --wfa-titlebar-height: 32px;   /* barra de título */
+  --wfa-header-height: 36px;     /* cabeçalho de página (PageHeader) e de painel */
+  --wfa-control-height: 28px;    /* botão, input e select na moldura */
+  --wfa-row-height: 26px;        /* linha de lista densa (lateral, seletor) */
+  --wfa-table-row-height: 40px;  /* linha de tabela */
+  --wfa-statusbar-height: 24px;  /* barra de estado */
+  --wfa-page-gutter: 14px;       /* margem lateral das páginas = a da marca na barra de título */
+
   /* §1 Cores base */
   --wfa-color-bg: #090911;
   --wfa-color-surface-1: #101018;
@@ -673,7 +683,7 @@
   }
 
   .ant-table-wrapper .ant-table-tbody > tr > td {
-    height: 52px;
+    height: var(--wfa-table-row-height);
     padding-top: 0;
     padding-bottom: 0;
     border-bottom: 1px solid var(--wfa-color-border);

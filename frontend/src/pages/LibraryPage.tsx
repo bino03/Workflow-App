@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } fro
 import { Alert, Button, Input, Select, Table, Tabs, Tooltip, type InputRef } from 'antd';
 import type { ColumnsType } from 'antd/es/table';
 import { PlusOutlined, SearchOutlined } from '@ant-design/icons';
+import { PageHeader } from '@/components/common/PageHeader';
 import { LibraryEntryDrawer } from '@/components/library/LibraryEntryDrawer';
 import { MaturityTag } from '@/components/library/MaturityTag';
 import { ImportDrawer } from '@/components/library/ImportDrawer';
@@ -265,15 +266,13 @@ export function LibraryPage() {
   );
 
   return (
-    <div className="px-10 pt-7 pb-4 flex flex-col">
-      <div className="flex items-end gap-4">
-        <div className="flex-1 flex flex-col gap-1">
-          <span className="kicker">Biblioteca</span>
-          <h1 className="text-display m-0">Workflow</h1>
-          <span className="text-[13.5px] text-text-2">
-            Stacks, designs e skills do teu registo. Importar corre a skill do próprio Workflow.
-          </span>
-        </div>
+    <div className="flex flex-col">
+      <PageHeader
+        kicker="Biblioteca"
+        title="Workflow"
+        description="Stacks, designs e skills do teu registo. Importar corre a skill do próprio Workflow."
+        actions={
+          <>
         <Tooltip title={imports.current ? 'Já há uma importação aberta — acaba-a primeiro' : undefined}>
           <Button type="primary" icon={<PlusOutlined />} disabled={imports.current !== null} onClick={() => setImporting(true)}>
             Importar
@@ -292,7 +291,7 @@ export function LibraryPage() {
         )}
         <Input
           ref={searchRef}
-          className="max-w-[320px]"
+          className="w-[280px]"
           prefix={<SearchOutlined className="opacity-50" />}
           suffix={<span className="kbd">/</span>}
           placeholder={`Pesquisar ${KIND_LABEL[kind].plural}…`}
@@ -301,16 +300,19 @@ export function LibraryPage() {
           allowClear
           aria-label="Pesquisar"
         />
-      </div>
+          </>
+        }
+      />
 
+      <div className="px-[var(--wfa-page-gutter)] pt-2 pb-2 flex flex-col">
       {imports.current && (
-        <div className="mt-5">
+        <div className="mt-1 mb-2">
           <ImportPanel current={imports.current} onChanged={imports.replace} onLibraryChanged={library.reload} />
         </div>
       )}
 
       <Tabs
-        className="mt-[22px]"
+        size="small"
         activeKey={kind}
         onChange={(key) => changeKind(key as LibraryKind)}
         tabBarExtraContent={chips}
@@ -358,11 +360,12 @@ export function LibraryPage() {
       />
 
       {!library.error && !library.loading && (
-        <p className="m-0 h-11 flex items-center text-[12.5px] text-text-3">
+        <p className="m-0 h-9 flex items-center text-[12.5px] text-text-3">
           {footer}
           {current.shown !== current.total.length && ` · a mostrar ${current.shown}`}
         </p>
       )}
+      </div>
 
       <LibraryEntryDrawer selected={selected} onClose={() => setSelected(null)} />
       <ImportDrawer

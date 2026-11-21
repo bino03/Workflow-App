@@ -105,11 +105,11 @@ function AppShell() {
   return (
     <div className="h-full flex flex-col">
       {/* Barra de título de 32 px (ADR 0036): marca numa célula com a largura da lateral · navegação · utilizador. */}
-      <header className="h-8 flex-none flex items-stretch border-b border-border">
+      <header className="h-[var(--wfa-titlebar-height)] flex-none flex items-stretch border-b border-border">
         <Link
           to="/terminals"
           aria-label="Workflow — Terminais"
-          className="w-[var(--wfa-sidebar-width)] flex-none flex items-center px-3.5 bg-surface-1 border-r border-border no-underline"
+          className="w-[var(--wfa-sidebar-width)] flex-none flex items-center px-[var(--wfa-page-gutter)] bg-surface-1 border-r border-border no-underline"
         >
           <Wordmark />
         </Link>
@@ -140,11 +140,12 @@ function AppShell() {
         </Dropdown>
       </header>
 
-      <main className="flex-1 min-h-0 overflow-auto">
+      {/* O scroll-padding desconta o PageHeader fixo nos saltos (scrollIntoView) das páginas. */}
+      <main className="flex-1 min-h-0 overflow-auto scroll-pt-[var(--wfa-header-height)]">
         <Outlet />
       </main>
 
-      <footer className="h-6 flex-none flex items-center gap-4 px-3 border-t border-border font-mono text-[11px] text-text-3">
+      <footer className="h-[var(--wfa-statusbar-height)] flex-none flex items-center gap-4 px-3 border-t border-border font-mono text-[11px] text-text-3">
         <span className="flex items-center gap-1.5" role="status">
           <span className={`w-1.5 h-1.5 rounded-full ${HEALTH_DOT[health]}`} />
           {HEALTH_LABEL[health]}

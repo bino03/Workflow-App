@@ -2,6 +2,7 @@ import { useMemo, useState } from 'react';
 import { SearchOutlined } from '@ant-design/icons';
 import { Alert, Button, Empty, Input, Spin } from 'antd';
 import { useLocation } from 'react-router';
+import { PageHeader } from '@/components/common/PageHeader';
 import { ProjectCard } from '@/components/projects/ProjectCard';
 import { ProjectInfoDrawer } from '@/components/projects/ProjectInfoDrawer';
 import { LIFECYCLES, lifecycleLabel } from '@/components/projects/projectInfoFormat';
@@ -81,24 +82,25 @@ export function ProjectsPage() {
   };
 
   return (
-    <div className="px-10 pt-7 pb-6 flex flex-col gap-5">
-      <div className="flex items-end gap-4">
-        <div className="flex-1 flex flex-col gap-1">
-          <span className="kicker">Projetos</span>
-          <h1 className="text-display m-0">As tuas aplicações</h1>
-          <span className="text-[13.5px] text-text-2">Onde cada projeto corre, em que URL e quando foi o último deploy.</span>
-        </div>
-        <Input
-          className="max-w-[320px]"
-          prefix={<SearchOutlined className="opacity-50" />}
-          placeholder="Pesquisar projetos…"
-          value={search}
-          onChange={(event) => setSearch(event.target.value)}
-          allowClear
-          aria-label="Pesquisar projetos"
-        />
-      </div>
+    <div className="flex flex-col">
+      <PageHeader
+        kicker="Projetos"
+        title="As tuas aplicações"
+        description="Onde cada projeto corre, em que URL e quando foi o último deploy."
+        actions={
+          <Input
+            className="w-[280px]"
+            prefix={<SearchOutlined className="opacity-50" />}
+            placeholder="Pesquisar projetos…"
+            value={search}
+            onChange={(event) => setSearch(event.target.value)}
+            allowClear
+            aria-label="Pesquisar projetos"
+          />
+        }
+      />
 
+      <div className="px-[var(--wfa-page-gutter)] pt-3 pb-6 flex flex-col gap-3">
       <div className="flex gap-1.5 flex-wrap" role="group" aria-label="Filtrar por ciclo de vida">
         <button type="button" className="filter-chip" aria-pressed={selected.size === 0} onClick={() => choose(new Set())}>
           Todos <span className="font-mono text-[11.5px] text-text-3">{projects.projects.length}</span>
@@ -138,12 +140,13 @@ export function ProjectsPage() {
       ) : shown.length === 0 ? (
         <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} description={<span className="text-text-2">Nenhum projeto com esse filtro.</span>} />
       ) : (
-        <div className="grid grid-cols-[repeat(auto-fill,minmax(320px,1fr))] gap-4">
+        <div className="grid grid-cols-[repeat(auto-fill,minmax(320px,1fr))] gap-3">
           {shown.map((project) => (
             <ProjectCard key={project.path} project={project} info={infoByPath.get(project.path)} onOpen={openDrawer} />
           ))}
         </div>
       )}
+      </div>
 
       <ProjectInfoDrawer
         key={drawer.session}

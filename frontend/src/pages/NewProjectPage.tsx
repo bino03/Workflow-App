@@ -2,11 +2,13 @@ import { CodeOutlined, MobileOutlined } from '@ant-design/icons';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { Button, Input, Spin, Tooltip } from 'antd';
 import { isAxiosError } from 'axios';
-import { type ReactNode, useCallback, useEffect, useState } from 'react';
+import { type ReactNode, createContext, useCallback, useContext, useEffect, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { Controller, useForm } from 'react-hook-form';
 import { useNavigate } from 'react-router';
 import { z } from 'zod';
 import { FieldError } from '@/components/common/FieldError';
+import { PageHeader as SharedPageHeader } from '@/components/common/PageHeader';
 import { Markdown } from '@/components/common/Markdown';
 import { ContinueInAppModal } from '@/components/guided/ContinueInAppModal';
 import { GuidedConversation, GuidedModeSelect, GuidedStatusTag } from '@/components/guided/GuidedConversation';
@@ -30,16 +32,15 @@ const RESUME_SIZE = { cols: 120, rows: 40 };
 /** O nome da sessão no Claude app: o mesmo que o backend escreve em `/remote-control <nome>` (ADR 0033). */
 const CLAUDE_APP_NAME = 'Novo projeto · create';
 
+/**
+ * Onde o cabeçalho é desenhado: uma faixa a toda a largura, por cima da coluna de 760 px. O título e os
+ * controlos dependem do estado de cada ecrã (formulário, sessão), por isso cada um envia o seu para lá.
+ */
+const HeaderSlot = createContext<HTMLElement | null>(null);
+
 function PageHeader({ title, extra }: { title: ReactNode; extra?: ReactNode }) {
-  return (
-    <div className="flex items-end justify-between gap-4 flex-wrap">
-      <div>
-        <div className="kicker">Novo projeto</div>
-        <div className="text-display">{title}</div>
-      </div>
-      {extra && <div className="flex items-center gap-2">{extra}</div>}
-    </div>
-  );
+  const slot = useContext(HeaderSlot);
+  return slot ? createPortal(<SharedPageHeader kicker="Novo projeto" title={title} actions={extra} />, slot) : null;
 }
 
 /** Estado 1 (spec §4.4): a descrição livre e **Começar**. */
@@ -286,6 +287,7 @@ function CreationSession({ id, onGone }: { id: string; onGone: () => void }) {
 export function NewProjectPage() {
   const [current, setCurrent] = useState<GuidedView | null | undefined>(undefined);
   const [attempt, setAttempt] = useState(0);
+  const [headerSlot, setHeaderSlot] = useState<HTMLDivElement | null>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -303,16 +305,19 @@ export function NewProjectPage() {
   const reload = useCallback(() => setAttempt((n) => n + 1), []);
 
   return (
-    <div className="mx-auto max-w-[760px] px-6 py-8">
-      {current === undefined ? (
-        <div className="flex justify-center py-16">
-          <Spin />
-        </div>
-      ) : current === null ? (
-        <StartForm onStarted={setCurrent} onConflict={reload} />
-      ) : (
-        <CreationSession key={current.id} id={current.id} onGone={reload} />
-      )}
-    </div>
+    <HeaderSlot.Provider value={headerSlot}>
+      <div ref={setHeaderSlot} className="sticky top-0 z-20" />
+      <div className="mx-auto max-w-[760px] px-6 pt-5 pb-8">
+        {current === undefined ? (
+          <div className="flex justify-center py-16">
+            <Spin />
+          </div>
+        ) : current === null ? (
+          <StartForm onStarted={setCurrent} onConflict={reload} />
+        ) : (
+          <CreationSession key={current.id} id={current.id} onGone={reload} />
+        )}
+      </div>
+    </HeaderSlot.Provider>
   );
 }

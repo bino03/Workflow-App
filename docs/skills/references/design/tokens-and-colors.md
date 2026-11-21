@@ -125,7 +125,8 @@ sobre `bg` dá 1.6:1). Os passos 600–900 servem para fundos e bordas. Para tex
 
 | Nível | Tamanho / altura | Peso | Notas |
 |---|---|---|---|
-| display | 28 / 34 | 600 | título de página; `letter-spacing: var(--wfa-display-tracking)` |
+| display | 28 / 34 | 600 | **só no login** ("Entrar") desde a densidade da moldura (2026-11-21) — as páginas usam o `PageHeader` (§5); `letter-spacing: var(--wfa-display-tracking)` |
+| page-title | 13 / 18 | 600 | título de página no `PageHeader`, `text-1`, a seguir ao kicker; a frase de descrição a 12.5 `text-3`, cortada |
 | title | 20 / 26 | 600 | título de drawer |
 | title-sm | 16 / 24 | 600 | secções dentro de um drawer |
 | body | 14 / 21 | 400 | |
@@ -150,6 +151,23 @@ Nomes de terminal, pastas, nomes de stacks e atalhos de teclado usam **mono**.
 
 **Medida da moldura** (ADR 0036): `--wfa-sidebar-width: 272px` — a largura da lateral dos Terminais **e** da
 célula da marca na barra de título, que assim alinham numa só coluna. Usar `w-[var(--wfa-sidebar-width)]` nos dois.
+
+**Densidade da moldura** (2026-11-21, medidas da proposta C do canvas do ADR 0036). Uma altura que se repete
+entre ecrãs é um token, usado como `h-[var(--wfa-…)]` — nunca o número escrito à mão:
+
+| Token | Valor | Onde |
+|---|---|---|
+| `--wfa-titlebar-height` | 32px | barra de título (`AppLayout`) |
+| `--wfa-header-height` | 36px | cabeçalho de página (`PageHeader`) e de painel lateral; o `<main>` tem o mesmo `scroll-padding-top`, para os saltos (`scrollIntoView`) não ficarem por baixo dele |
+| `--wfa-control-height` | 28px | botão, input e select **na moldura** (cabeçalhos de página); espelhado em `CONTROL_HEIGHT` no `theme.ts`, que o `PageHeader` aplica com um `ConfigProvider` local |
+| `--wfa-row-height` | 26px | linha de lista densa: terminais na lateral, seletor de projeto, índice das Definições |
+| `--wfa-table-row-height` | 40px | linha da tabela (pele global, abaixo) |
+| `--wfa-statusbar-height` | 24px | barra de estado |
+| `--wfa-page-gutter` | 14px | margem lateral das páginas = a da marca na barra de título; o kicker do `PageHeader` alinha com a marca |
+
+**Fora disto**: drawers, modais e formulários dentro deles mantêm a densidade do 0008 (controlos de 32 px do
+antd, título de drawer 20/26) — são leitura e escrita demorada, não moldura. A grelha de terminais (cabeçalhos de
+painel de 26 px) é a fase 3 do plano da moldura.
 
 **Marca** (ADR 0036, substitui o losango do 0008): "Em paralelo" — `ParallelMark` em
 `components/common/Wordmark.tsx`, um traço `accent` que se divide em três (2.2 até 18 px, 1.8 acima). Na barra de
@@ -286,7 +304,7 @@ Antes de escrever estilo novo, verificar se uma destas resolve.
 ## Pele global da tabela
 
 Definida uma vez em `index.css` sobre `.ant-table`: fundo transparente; cabeçalho 12 px peso 500 em
-`text-3` (sem maiúsculas); linhas de 52 px separadas por hairline `border`; hover `surface-2`; linha
+`text-3` (sem maiúsculas); linhas de 40 px (`--wfa-table-row-height`; eram 52 até 2026-11-21) separadas por hairline `border`; hover `surface-2`; linha
 selecionada `surface-2`. **Nunca** redefinir cor de tabela por ficheiro.
 
 ## Drift encontrado — não repetir

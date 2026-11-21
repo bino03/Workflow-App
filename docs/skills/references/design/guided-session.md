@@ -15,10 +15,11 @@ tags de estado).
 
 ## Coluna
 
-- Uma coluna de **760 px** centrada (`mx-auto max-w-[760px] px-6 py-8`), `gap-6` entre a conversa e o painel do
+- Uma coluna de **760 px** centrada (`mx-auto max-w-[760px] px-6 pt-5 pb-8`), `gap-6` entre a conversa e o painel do
   fundo. A página desce sozinha quando chega uma entrada nova ou o estado muda — **só se o dono estava no fim**
   (ver "Scroll e índice" abaixo).
-- Cabeçalho como o resto da app: `kicker` + `text-display`, e à direita a **tag de estado** (cor + forma, de
+- Cabeçalho como o resto da app: o `PageHeader` ([[tables-and-lists]] §2), a toda a largura por cima da coluna
+  (portal), com o título do estado e à direita a **tag de estado** (cor + forma, de
   [[tokens-and-colors]] §3: a trabalhar `tag-work` · à tua espera `tag-wait` · parada `tag-stop` · criado `tag-run` ·
   falhou `tag-err`), **Ver terminal** (`size="small"`, ícone `CodeOutlined`) e **Cancelar** (`type="text" danger`,
   com confirmação). Ver terminal está sempre lá: é o escape para o que a vista não sabe mostrar.

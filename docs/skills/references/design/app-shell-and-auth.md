@@ -39,6 +39,10 @@ Segmentos novos sempre em inglês.
   `accent`, os outros `text-3`). Espaço, e à direita só o menu de utilizador (separado por uma borda). Borda de baixo
   `border`. O `favicon.svg` é a mesma marca.
 - Se um terminal escondido está à espera, o item "Terminais" da nav ganha um losango `state-wait`.
+- **Páginas** (Projetos, Biblioteca, Upwork, Definições, Novo projeto): começam pelo `PageHeader` de 36 px, fixo
+  por baixo da barra de título, com o kicker alinhado com a marca ([[tables-and-lists]] §2). As alturas da moldura
+  são tokens ([[tokens-and-colors]] §5 → "Densidade da moldura"). O `<main>` tem `scroll-padding-top` com a altura
+  do cabeçalho.
 - **Barra de estado de 24 px** em baixo (mono 11px), em todos os ecrãs autenticados: "Teclado em `<terminal>`" à
   esquerda e a lista de atalhos `Alt+…` à direita ([[buttons-and-icons]]).
   **Hoje** (sem terminais, decisão do dono: omitir o que não existe): à esquerda o estado da ligação ao

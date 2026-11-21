@@ -43,6 +43,7 @@ isso há os outros:
 | Protocolo do WebSocket | `backend/src/terminals/protocol.ts` ↔ `frontend/src/types/terminal.ts` |
 | Rotas e providers | `frontend/src/main.tsx` |
 | Navegação persistente, barra de estado | `frontend/src/layouts/AppLayout.tsx` |
+| Cabeçalho de página (36 px, fixo, kicker alinhado com a marca) e alturas da moldura | `frontend/src/components/common/PageHeader.tsx` · tokens `--wfa-*-height` / `--wfa-page-gutter` em `frontend/src/index.css` · `CONTROL_HEIGHT` em `frontend/src/theme.ts` |
 | Sessão (`useAuth`), guarda de rota | `frontend/src/contexts/AuthContext.tsx` · `hooks/useAuth.ts` · `components/PrivateRoute.tsx` · `services/authService.ts` |
 | Login | `frontend/src/pages/login/LoginPage.tsx` |
 | Confirmação (`useConfirm`) | `frontend/src/contexts/ConfirmDialogContext.tsx` · `hooks/useConfirm.ts` |
