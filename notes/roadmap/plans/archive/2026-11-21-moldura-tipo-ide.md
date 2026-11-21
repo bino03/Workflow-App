@@ -1,6 +1,6 @@
 # Plano — 2026-11-21 moldura-tipo-ide
 
-**Estado**: em curso (fases 1-3 concluídas; fase 4 por começar)
+**Estado**: concluído (2026-11-21, as 4 fases)
 **Âmbito escolhido**: o redesign "mais profissional, tipo VS Code" pedido pelo dono a 2026-11-20
 **Orçamento da sessão**: sem limite
 **Modelo**: fase 2 `sonnet` · fase 3 `opus` (decidir o branch) + `sonnet` · fase 4 `opus` (modelo de dados) + `sonnet`
@@ -36,6 +36,9 @@
   sem botões); a **tag de estado fica**, mais pequena (a decisão final continua no item dos ícones de estado);
   alcance: grelha **e** modo foco/dividido a 26 px, painéis colados por 1 px sem margens, e o `TerminalsHeader`
   passa aos 36 px do `PageHeader`.
+- **Fase 4 (2026-11-21, sessão 3)**: atalho **`Alt+K`** (id novo no `catalog.ts`); **sem reordenar** — ordem de
+  criação; painel aberto/fechado **global, em `localStorage`** (não vai ao `state.json`); apagar com **"Desfazer"**
+  (sem diálogo — exceção à regra das ações destrutivas, a registar).
 
 ## Ordem
 
@@ -59,7 +62,7 @@
    Branch: `TerminalView.branch`, lido do `.git/HEAD` por `backend/src/terminals/gitBranch.ts` (sem correr o git,
    nunca acima da raiz de `ALLOWED_ROOTS`). Testes: backend 624/624; `pane-header` 19/19 (novo), `terminal-menu`
    42/42, `grid-slots` 13/13, `app-run-ui` 26/26, `accounts-terminals` 41/41, `project-switcher` 31/31, `smoke` 6/6.
-4. [ ] **Tarefas por projeto** — ⚠️ antes, `/design-database` em modo evoluir (CLAUDE.md, regra 4): entidade nova
+4. [x] **Concluída 2026-11-21 (sessão 3)**: ADR 0037, coleção `projectTasks` e `/api/project-tasks`, painel `ProjectTasksPanel` com `Alt+K`. Testes: backend 630/630; `project-tasks` 41/41 (novo), `settings` 21/21, `project-switcher` 31/31, `pane-header` 19/19, `smoke` 6/6. Era: **Tarefas por projeto** — ⚠️ antes, `/design-database` em modo evoluir (CLAUDE.md, regra 4): entidade nova
    projeto → tarefas no `state.json` (ADR 0009) → ADR novo → rotas (`/add-backend-feature`) → painel à direita de
    300 px com `Alt+T` (verificar no `catalog.ts` que não colide: `Alt+T` é do Claude Code — "thinking" — escolher
    outra, ex. `Alt+K`, e perguntar). ⚠️ Por decidir: reordenar arrastando; o painel aberto/fechado guardado por
@@ -79,6 +82,4 @@
 
 ## Próximo passo
 
-Fase 4 (tarefas por projeto), `opus` primeiro: `/design-database` em modo evoluir, com as três perguntas em aberto
-(reordenar arrastando; painel aberto/fechado guardado por projeto; "Desfazer" vs confirmação) e o atalho que
-substitui o `Alt+T`.
+Nada. O plano está concluído e foi arquivado.

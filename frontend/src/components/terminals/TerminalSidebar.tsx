@@ -1,5 +1,6 @@
 import { useState, type ReactNode } from 'react';
 import {
+  CheckSquareOutlined,
   DownOutlined,
   HistoryOutlined,
   MenuFoldOutlined,
@@ -47,6 +48,12 @@ type TerminalSidebarProps = {
   /** Escondida/visível — estado do `TerminalsPage` (também alternado por `AltGr+.`). */
   collapsed: boolean;
   onToggleCollapsed: () => void;
+  /** As tarefas do projeto ativo (ADR 0037): o botão "☑ por fazer/total" abre e fecha o painel à direita. */
+  tasks: { open: number; total: number };
+  tasksOpen: boolean;
+  onToggleTasks: () => void;
+  /** A combinação do `toggleTasks` ("Alt+K"), ou `null` sem bind. */
+  tasksHint: string | null;
 };
 
 const COUNT_LABELS: Record<TerminalStatus, string> = { running: 'a correr', exited: 'terminados', stopped: 'parados' };
@@ -107,22 +114,40 @@ export function TerminalSidebar(props: TerminalSidebarProps) {
             </IconButton>
           </div>
         </div>
-        <button
-          type="button"
-          aria-haspopup="dialog"
-          aria-expanded={props.switcherOpen}
-          data-project-switcher
-          title={`Mudar de projeto${props.switcherHint ? ` (${props.switcherHint})` : ''}`}
-          onClick={props.onOpenSwitcher}
-          className={`-mx-2 h-8 flex items-center gap-1.5 px-2 rounded-md border cursor-pointer text-left ${
-            props.switcherOpen ? 'bg-surface-3 border-border-strong' : 'bg-transparent border-transparent hover:bg-surface-2'
-          }`}
-        >
-          <span className={`flex-1 min-w-0 truncate font-semibold text-[14px] ${project ? 'text-text-1' : 'text-text-3'}`}>
-            {project?.name ?? 'Escolher projeto…'}
-          </span>
-          <DownOutlined className="text-text-3 text-[10px]" />
-        </button>
+        <div className="flex items-center gap-2">
+          <button
+            type="button"
+            aria-haspopup="dialog"
+            aria-expanded={props.switcherOpen}
+            data-project-switcher
+            title={`Mudar de projeto${props.switcherHint ? ` (${props.switcherHint})` : ''}`}
+            onClick={props.onOpenSwitcher}
+            className={`-ml-2 flex-1 min-w-0 h-8 flex items-center gap-1.5 px-2 rounded-md border cursor-pointer text-left ${
+              props.switcherOpen ? 'bg-surface-3 border-border-strong' : 'bg-transparent border-transparent hover:bg-surface-2'
+            }`}
+          >
+            <span className={`flex-1 min-w-0 truncate font-semibold text-[14px] ${project ? 'text-text-1' : 'text-text-3'}`}>
+              {project?.name ?? 'Escolher projeto…'}
+            </span>
+            <DownOutlined className="text-text-3 text-[10px]" />
+          </button>
+          {project && (
+            <button
+              type="button"
+              aria-pressed={props.tasksOpen}
+              data-tasks-toggle
+              aria-label={`Tarefas do projeto: ${props.tasks.open} por fazer de ${props.tasks.total}`}
+              title={`Tarefas do projeto${props.tasksHint ? ` (${props.tasksHint})` : ''}`}
+              onClick={props.onToggleTasks}
+              className={`h-[22px] flex-none flex items-center gap-1.5 px-1.5 rounded-md border font-mono text-[11px] cursor-pointer ${
+                props.tasksOpen ? 'bg-accent-subtle border-accent-border text-text-1' : 'bg-transparent border-border-strong text-text-2 hover:text-text-1'
+              }`}
+            >
+              <CheckSquareOutlined style={{ fontSize: 12 }} />
+              {props.tasks.open}/{props.tasks.total}
+            </button>
+          )}
+        </div>
         {project && (
           <div className="flex items-center gap-0.5">
             <span className="flex-1 min-w-0 font-mono text-[10.5px] text-text-3 truncate" title={project.path}>

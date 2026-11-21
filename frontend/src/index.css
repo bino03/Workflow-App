@@ -16,6 +16,8 @@
   /* Moldura tipo IDE (ADR 0036): a célula da marca na barra de título tem a largura da lateral dos
      Terminais, para os dois alinharem numa só coluna. */
   --wfa-sidebar-width: 272px;
+  /* Painel de tarefas do projeto, à direita dos Terminais (ADR 0037). */
+  --wfa-tasks-panel-width: 300px;
 
   /* Densidade da moldura (proposta C do canvas): alturas que se repetem entre ecrãs. O theme.ts espelha
      o --wfa-control-height (o antd não lê CSS). */

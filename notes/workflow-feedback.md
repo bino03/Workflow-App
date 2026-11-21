@@ -27,6 +27,9 @@ projeto inventou (→ `/harvest-project` no Workflow).
 
 ## Abertas
 
+- **2026-11-21 — A lista negra de caracteres no texto livre não serve para notas de quem programa** · `docs/skills/frontend/skill-frontend-design-system.md` (regra 6 e "Forms": rejeitar sempre `< > \` { } $`) · tipo: errado
+  - O que aconteceu: no campo "Nova tarefa" das tarefas por projeto (ADR 0037), a regra obrigava a recusar crases e chavetas, que aparecem em quase todas as tarefas de quem programa ("rever o `useFoo`"). O texto só se mostra como texto (o React escapa-o) e nunca chega a um shell, a HTML cru nem a SQL.
+  - Como se resolveu: sem lista negra, só trim e 1-200 caracteres, iguais ao backend. A decisão ficou no work log. Na origem, a regra devia dizer porque existe (texto que vai para HTML cru, um shell, um nome de ficheiro, um URL) e dispensá-la quando o texto só se mostra por um framework que o escapa.
 - **2026-10-26 — O `/plan-feature` pede "a skill a seguir" em cada passo, mas o projeto não tem skill de backend** · `docs/skills/process/skill-plan-feature.md` (Passo 4) · tipo: falta
   - O que aconteceu: ao partir a spec `upwork` em passos, os de backend (Fastify) não tinham skill — o SKILLS-INDEX só tem skills de frontend e de processo (a stack `node-fastify` foi criada na hora pelo `/create`, sem `add-backend-feature`).
   - Como se resolveu: os passos de backend apontam para `docs/backend-conventions.md`; uma skill de backend fica por criar quando o padrão se repetir (`/create-new-skill`).

@@ -152,6 +152,8 @@ Nomes de terminal, pastas, nomes de stacks e atalhos de teclado usam **mono**.
 
 **Medida da moldura** (ADR 0036): `--wfa-sidebar-width: 272px` — a largura da lateral dos Terminais **e** da
 célula da marca na barra de título, que assim alinham numa só coluna. Usar `w-[var(--wfa-sidebar-width)]` nos dois.
+`--wfa-tasks-panel-width: 300px` ([[../../../adr/0037-tarefas-por-projeto|ADR 0037]]) é a largura do painel de tarefas, à direita
+dos Terminais, com `surface-1` e borda à esquerda.
 
 **Densidade da moldura** (2026-11-21, medidas da proposta C do canvas do ADR 0036). Uma altura que se repete
 entre ecrãs é um token, usado como `h-[var(--wfa-…)]` — nunca o número escrito à mão:

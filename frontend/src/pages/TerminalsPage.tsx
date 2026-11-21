@@ -27,6 +27,8 @@ import { formatBinding } from '@/keyboard/shortcuts';
 import { useTerminals } from '@/hooks/useTerminals';
 import { useAccounts } from '@/hooks/useAccounts';
 import { useUsage } from '@/hooks/useUsage';
+import { useProjectTasks } from '@/hooks/useProjectTasks';
+import { ProjectTasksPanel } from '@/components/projectTasks/ProjectTasksPanel';
 import { getFolders, setFavoriteFolder } from '@/services/folderService';
 import { notificationService } from '@/services/general/notificationService';
 import { getTerminalContext } from '@/services/terminalService';
@@ -41,6 +43,16 @@ const SIDEBAR_COLLAPSE_KEY = 'workflow-app.sidebar-collapsed';
 function readSidebarCollapsed(): boolean {
   try {
     return localStorage.getItem(SIDEBAR_COLLAPSE_KEY) === '1';
+  } catch {
+    return false;
+  }
+}
+
+// ADR 0037: aberto/fechado é global (não por projeto) e do dispositivo; fechado por omissão, como no protótipo.
+const TASKS_PANEL_KEY = 'workflow-app.tasks-panel-open';
+function readTasksPanelOpen(): boolean {
+  try {
+    return localStorage.getItem(TASKS_PANEL_KEY) === '1';
   } catch {
     return false;
   }
@@ -140,11 +152,16 @@ export function TerminalsPage() {
   const [creatingIn, setCreatingIn] = useState<string | null>(null);
   const [fontDelta, setFontDelta] = useState(0);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(readSidebarCollapsed);
+  const [tasksOpen, setTasksOpen] = useState(readTasksPanelOpen);
+  // Abrir o painel pede o foco para o campo novo; mudar de projeto com ele aberto não (o foco fica no terminal).
+  const tasksFocusRef = useRef(false);
   const [switcherOpen, setSwitcherOpen] = useState(false);
   const closeSwitcher = useCallback(() => setSwitcherOpen(false), []);
   const { view: keybindingsView } = useKeybindings();
   const switchBinding = keybindingsView?.actions.find((a) => a.id === 'projectSwitch')?.binding ?? null;
   const switcherHint = switchBinding ? formatBinding(switchBinding) : null;
+  const tasksBinding = keybindingsView?.actions.find((a) => a.id === 'toggleTasks')?.binding ?? null;
+  const tasksHint = tasksBinding ? formatBinding(tasksBinding) : null;
   const closeBinding = keybindingsView?.actions.find((a) => a.id === 'closeTerminal')?.binding ?? null;
   const closeLabel = closeBinding ? `Fechar o terminal (${formatBinding(closeBinding)})` : 'Fechar o terminal';
 
@@ -185,6 +202,8 @@ export function TerminalsPage() {
   );
   const activeProject = useMemo(() => projects.find((p) => p.path === activePath) ?? null, [projects, activePath]);
   const activeTerminals = useMemo(() => activeProject?.terminals ?? [], [activeProject]);
+  const projectTasks = useProjectTasks(activeProject?.path ?? null);
+  const openTaskCount = projectTasks.tasks.filter((task) => !task.done).length;
 
   const layoutFor = useCallback((path: string) => layouts[path] ?? defaultLayoutFor(path), [layouts]);
   const updateLayout = useCallback((path: string, patch: Partial<ProjectLayout>) => {
@@ -222,6 +241,19 @@ export function TerminalsPage() {
       const next = !prev;
       try {
         localStorage.setItem(SIDEBAR_COLLAPSE_KEY, next ? '1' : '0');
+      } catch {
+        // localStorage indisponível: a escolha dura só esta visita.
+      }
+      return next;
+    });
+  }, []);
+
+  const toggleTasksOpen = useCallback(() => {
+    setTasksOpen((prev) => {
+      const next = !prev;
+      tasksFocusRef.current = next;
+      try {
+        localStorage.setItem(TASKS_PANEL_KEY, next ? '1' : '0');
       } catch {
         // localStorage indisponível: a escolha dura só esta visita.
       }
@@ -717,6 +749,9 @@ export function TerminalsPage() {
       case 'projectSwitch':
         setSwitcherOpen((open) => !open);
         return true;
+      case 'toggleTasks':
+        if (activeProject) toggleTasksOpen();
+        return true;
       case 'projectNext':
       case 'projectPrev':
         stepProject(actionId === 'projectNext' ? 1 : -1);
@@ -853,6 +888,10 @@ export function TerminalsPage() {
       footer={<QuotaMeter usage={usage} now={now} accountLabel={(accountsView?.accounts.length ?? 0) > 1 ? activeAccount?.label : undefined} />}
       collapsed={sidebarCollapsed}
       onToggleCollapsed={toggleSidebarCollapsed}
+      tasks={{ open: openTaskCount, total: projectTasks.tasks.length }}
+      tasksOpen={tasksOpen}
+      onToggleTasks={toggleTasksOpen}
+      tasksHint={tasksHint}
     />
   );
 
@@ -922,6 +961,24 @@ export function TerminalsPage() {
           </main>
         )}
       </div>
+      {tasksOpen && activeProject && (
+        <ProjectTasksPanel
+          key={activeProject.path}
+          projectName={activeProject.name}
+          tasks={projectTasks.tasks}
+          onAdd={projectTasks.add}
+          onSetDone={(id, done) => void projectTasks.setDone(id, done)}
+          onRemove={projectTasks.remove}
+          onRestore={(task) => void projectTasks.restore(task)}
+          onClose={toggleTasksOpen}
+          shortcutHint={tasksHint}
+          takeFocusRequest={() => {
+            const requested = tasksFocusRef.current;
+            tasksFocusRef.current = false;
+            return requested;
+          }}
+        />
+      )}
       {resumeModal}
       <PreviewPortsModal
         name={previewChoice ? (names.get(previewChoice.id) ?? '') : ''}
