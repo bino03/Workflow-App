@@ -1,6 +1,6 @@
 # Plano — 2026-11-21 moldura-tipo-ide
 
-**Estado**: em curso (fase 1 concluída e em commit; fases 2-4 por começar)
+**Estado**: em curso (fases 1-2 concluídas; fases 3-4 por começar)
 **Âmbito escolhido**: o redesign "mais profissional, tipo VS Code" pedido pelo dono a 2026-11-20
 **Orçamento da sessão**: sem limite
 **Modelo**: fase 2 `sonnet` · fase 3 `opus` (decidir o branch) + `sonnet` · fase 4 `opus` (modelo de dados) + `sonnet`
@@ -38,7 +38,10 @@
    escondida). Barra de 32 px, `--wfa-sidebar-width` (272 px), `ParallelMark` + favicon, lateral do projeto ativo,
    `ProjectSwitcher` (só ativa, não cria terminal), ação `projectSwitch` = `Alt+B`. Testes: keybindings 14/14;
    `smoke` 6/6, `project-switcher` 31/31, `accounts-terminals` 41/41.
-2. [ ] `sonnet` **Densidade nova nas referências + rever os outros ecrãs** — o dono perguntou "se adicionar um
+2. [x] **Concluída 2026-11-21** — aplicada direto, sem canvas (escolha do dono): `PageHeader` de 36 px fixo, alturas
+   em tokens (`--wfa-header-height`, `--wfa-control-height`, `--wfa-row-height`, `--wfa-table-row-height` 40…), nos 5
+   ecrãs; drawers/formulários ficam na densidade do 0008 de propósito. Cenários verdes (ver [[../../whatIveDone]]).
+   Era: `sonnet` **Densidade nova nas referências + rever os outros ecrãs** — o dono perguntou "se adicionar um
    novo componente vai ser criado com o estilo que definimos?". Resposta: cores/fontes sim (tokens), **densidade
    não** — `cards`, `tables-and-lists`, `drawers-and-modals`, `forms-and-validation` ainda descrevem a do 0008.
    Passos: (a) fixar a densidade nas referências de `docs/skills/references/design/` (alturas de cabeçalho de
@@ -67,5 +70,6 @@
 
 ## Próximo passo
 
-Fase 2: perguntar ao dono se revê os ecrãs no canvas primeiro ou aplica direto; depois fixar a densidade nas
-referências de design.
+Fase 3 (grelha densa): perguntar ao dono se o **branch** entra no cabeçalho do painel (precisa de o backend o
+ler — `opus`) ou fica de fora; depois cabeçalhos de painel de 26 px com os tokens da fase 2 (`--wfa-row-height`).
+Lembrete: o `TerminalsHeader` (64 px, título a 20 px) também é da grelha — rever na mesma fase.

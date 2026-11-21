@@ -12,9 +12,6 @@ Feito a 2026-11-21 ([[../docs/adr/0036-moldura-tipo-ide-e-seletor-de-projeto|ADR
 barra de título de 32 px, marca "Em paralelo", lateral do projeto ativo, seletor de projeto com `Alt+B`. Canvas
 do Claude Design: https://claude.ai/artifact/R3oG66QvDxj6TRqQu6wkNk. Plano para continuar: [[roadmap/plans/2026-11-21-moldura-tipo-ide]]. Falta:
 
-- `sonnet` **Rever os outros ecrãs para a moldura nova** — Projetos, Biblioteca, Upwork, Definições, Novo projeto:
-  herdam a barra de 32 px mas os cabeçalhos de página e a densidade são os do 0008. Critério: nada de 48 px de
-  cabeçalho solto; o kicker + título alinham com a barra; sem regressões nos cenários `scripts/verify/`.
 - **Grelha densa** da proposta C: cabeçalhos de painel de 26 px (nome · `pane-N` · branch · tag de estado ·
   ampliar · fechar), painéis colados com 1 px de `border`. ⚠️ Por decidir: o branch no cabeçalho precisa de o
   backend o ler (hoje não há) — com ou sem ele.
