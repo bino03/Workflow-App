@@ -65,7 +65,7 @@ describe('StateStore', () => {
 
   it('missing file → empty state, and nothing written until the first change', async () => {
     const store = await StateStore.load(dataDir);
-    expect(store.read()).toEqual({ version: 2, terminals: [], closedTerminals: [], folders: [], keybindings: {}, accounts: [], activeAccountId: 'primary', primaryAccountLabel: null, projectInfos: [] });
+    expect(store.read()).toEqual({ version: 2, terminals: [], closedTerminals: [], folders: [], keybindings: {}, accounts: [], activeAccountId: 'primary', primaryAccountLabel: null, projectInfos: [], projectTasks: [] });
     await store.flush();
     expect(existsSync(file)).toBe(false);
   });

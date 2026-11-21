@@ -65,6 +65,9 @@ próprio Fastify (JSON mal formado, content-type errado → `COMMON_001`) e as r
 | `PROJECT_001` | 404 | O `projectPath` não está na lista de `GET /api/projects` (saiu do registo, foi descartado ou está fora de `ALLOWED_ROOTS`) |
 | `PROJECT_002` | 404 | O ambiente não existe na ficha (ou o projeto ainda não tem ficha) |
 | `PROJECT_003` | 404 | O deploy não existe nesse ambiente |
+| `TASK_001` | 404 | A tarefa não existe (já apagada) |
+| `TASK_002` | 409 | O projeto já tem 200 tarefas ([[adr/0037-tarefas-por-projeto]]) |
+| `TASK_003` | 409 | Repor ("Desfazer") com um `id` que já existe |
 | `APPRUN_001` | 409 | Correr um projeto cuja app já está a correr (ou a arrancar, ou a parar) |
 | `APPRUN_002` | 422 | O projeto não tem `.claude/skills/run/SKILL.md` **e** `.claude/skills/stop/SKILL.md` |
 | `APPRUN_003` | 404 | Parar ou Ver terminal num projeto sem execução |
@@ -400,6 +403,22 @@ chama. Todas as rotas exigem sessão (`AUTH_002`) e um `projectPath` que esteja 
   sem `..`, `//`, componente começado por `.`, `.lock`) → senão `COMMON_001`. O `lastGitCommit` só o backend escreve (o
   `PUT` não o aceita; mudar o `deployBranch` põe-no a `null`). Os momentos em que o `git-sync` corre estão na linha da
   rota, acima; o botão **Atualizar do git** faz o mesmo pedido e só notifica um erro.
+
+## Tarefas por projeto (`projectTasks/`, `/api/project-tasks`) — ✅
+
+A lista pessoal de tarefas de cada projeto, no painel à direita dos Terminais ([[adr/0037-tarefas-por-projeto]]).
+**Não é o `notes/ToDo.md` do vault**: a app nunca lê nem escreve lá. Guardada no `state.json` (`projectTasks`,
+[[database]]). Todas as rotas exigem sessão (`AUTH_002`). O `projectPath` passa por `resolveAllowedPath`
+(`FOLDER_001` fora das `ALLOWED_ROOTS` ou se a pasta não existir); não precisa de estar no registo.
+
+| Método | Rota | Corpo / query | Resposta | Erros |
+|---|---|---|---|---|
+| GET | `/api/project-tasks` | query `projectPath` | `ProjectTask[]` por `createdAt` ascendente (a nova no fim) | `COMMON_001` · `FOLDER_001` |
+| POST | `/api/project-tasks` | `{projectPath, text, restore?}`. `text` com 1-200 caracteres depois do trim. `restore: {id, createdAt, done, doneAt}` é o "Desfazer" de um apagar: recria a tarefa igual, no mesmo sítio | `201 ProjectTask` | `COMMON_001` · `FOLDER_001` · `TASK_002` · `TASK_003` |
+| PATCH | `/api/project-tasks/:id` | `{text?, done?}`, pelo menos um. Marcar põe `doneAt` = agora e desmarcar põe-no a `null` | `200 ProjectTask` | `COMMON_001` · `TASK_001` |
+| DELETE | `/api/project-tasks/:id` | — | `200 ProjectTask`: a tarefa apagada (definitivo), para o cliente poder oferecer "Desfazer" | `COMMON_001` · `TASK_001` |
+
+`ProjectTask` = `{id, projectPath, text, done, doneAt: ISO | null, createdAt: ISO}`.
 
 ## Correr e parar a app (`appRuns/`, `/api/app-runs`) — 🚧
 

@@ -44,6 +44,8 @@ import { projectInfoRoutes } from './projectInfo/projectInfo.routes.js';
 import { DeployTrigger } from './projectInfo/deployTrigger.js';
 import { ProjectGit } from './projectInfo/projectGit.js';
 import { ProjectInfoService } from './projectInfo/projectInfoService.js';
+import { projectTasksRoutes } from './projectTasks/projectTasks.routes.js';
+import { ProjectTasksService } from './projectTasks/projectTasksService.js';
 import { AccountDirs } from './accounts/accountDirs.js';
 import { accountsRoutes } from './accounts/accounts.routes.js';
 import { AccountsService } from './accounts/accountsService.js';
@@ -148,6 +150,9 @@ export async function buildApp({
   const projectGit = new ProjectGit({ gitBin: config.gitBin, allowedRoots: config.terminals.allowedRoots });
   const projectInfoService = new ProjectInfoService({ stateStore, projects: projectsService, git: projectGit });
   await app.register(projectInfoRoutes, { projectInfoService });
+  await app.register(projectTasksRoutes, {
+    projectTasksService: new ProjectTasksService({ stateStore, allowedRoots: config.terminals.allowedRoots }),
+  });
   // ADR 0035: a push in a normal terminal syncs its project's deploy right away (the hook leaves push.json).
   const deployTrigger = new DeployTrigger({
     dataDir: config.dataDir,

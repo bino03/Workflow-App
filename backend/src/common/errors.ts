@@ -89,6 +89,10 @@ export const ErrorCode = {
   PROJECT_001: { status: 404, message: 'Project is not in the Workflow registry any more' },
   PROJECT_002: { status: 404, message: 'Environment not found' },
   PROJECT_003: { status: 404, message: 'Deploy not found' },
+  // TASK (ADR 0037)
+  TASK_001: { status: 404, message: 'Task not found' },
+  TASK_002: { status: 409, message: 'This project already has the maximum number of tasks' },
+  TASK_003: { status: 409, message: 'A task with this id already exists' },
 } as const satisfies Record<string, { status: number; message: string }>;
 
 export type ErrorCode = keyof typeof ErrorCode;

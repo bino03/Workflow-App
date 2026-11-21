@@ -36,6 +36,8 @@ export const SHORTCUT_ACTIONS: readonly ShortcutAction[] = [
   { id: 'projectNext', label: 'Projeto seguinte', group: 'projects', default: null },
   { id: 'projectPrev', label: 'Projeto anterior', group: 'projects', default: null },
   { id: 'projectClose', label: 'Fechar o projeto ativo', group: 'projects', default: null },
+  // ADR 0037: Alt+K, not the prototype's Alt+T (Claude Code's "thinking").
+  { id: 'toggleTasks', label: 'Abrir / fechar as tarefas do projeto', group: 'projects', default: alt('KeyK') },
   { id: 'goTerminals', label: 'Ir para Terminais', group: 'navigation', default: null },
   { id: 'goProjects', label: 'Ir para Projetos', group: 'navigation', default: null },
   { id: 'goLibrary', label: 'Ir para Biblioteca', group: 'navigation', default: null },

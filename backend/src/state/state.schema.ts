@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { projectTaskSchema } from '../projectTasks/projectTasks.schemas.js';
 
 /** The version this code writes. Older files go through `migrate` on load. */
 export const STATE_VERSION = 2;
@@ -175,6 +176,8 @@ export const stateSchema = z
     primaryAccountLabel: z.string().trim().min(1).max(40).nullable().default(null),
     // ADR 0028. Older files → no project info, no migration (STATE_VERSION stays 2).
     projectInfos: z.array(projectInfoSchema).default([]),
+    // ADR 0037. Older files → no tasks, no migration (STATE_VERSION stays 2). The per-project limit is the service's.
+    projectTasks: z.array(projectTaskSchema).default([]),
   })
   .refine((state) => uniqueBy(state.terminals, (terminal) => terminal.id), {
     message: 'terminal ids must be unique',
@@ -191,6 +194,10 @@ export const stateSchema = z
   .refine((state) => uniqueBy(state.projectInfos, (info) => info.projectPath), {
     message: 'project paths must be unique',
     path: ['projectInfos'],
+  })
+  .refine((state) => uniqueBy(state.projectTasks, (task) => task.id), {
+    message: 'task ids must be unique',
+    path: ['projectTasks'],
   });
 
 export type SavedTerminal = z.infer<typeof savedTerminalSchema>;
@@ -215,6 +222,7 @@ export function emptyState(): AppState {
     activeAccountId: 'primary',
     primaryAccountLabel: null,
     projectInfos: [],
+    projectTasks: [],
   };
 }
 
