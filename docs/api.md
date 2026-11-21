@@ -162,6 +162,7 @@ Todas com sessão (`AUTH_002`). Qualquer pasta passa por `resolveAllowedPath` (`
 | GET | `/api/folders` | — | `{roots, favorites: FolderView[], recents: FolderView[]}` | — |
 | GET | `/api/folders/browse?path=` | `path` | `{path, parent, entries: [{name, path, sessionCount}]}` | `COMMON_001` · `FOLDER_001` |
 | PUT | `/api/folders/favorite` | `{path, favorite: boolean}` | `204` | `COMMON_001` · `FOLDER_001` |
+| GET | `/api/branches?path=` | `path` | `{current: string \| null, branches: string[]}`: os branches locais do repositório que contém a pasta (`refs/heads` + `packed-refs`, no common dir de um worktree), **lidos como ficheiros, sem correr o git**, e nunca acima da raiz das `ALLOWED_ROOTS`. Primeiro o atual, depois por nome; no máximo 50; só nomes de branch simples (`BRANCH_NAME`). Fora de um repositório: `{current: null, branches: []}`. Para a lateral (proposta C do ADR 0036) | `COMMON_001` · `FOLDER_001` |
 
 - `SavedSession = {id, startedAt, updatedAt, messageCount, preview, contextTokens, closed, openIn, accountId}` — lido de
   `<CLAUDE_CONFIG_DIR ou ~/.claude>/projects/<pasta codificada>/<uuid>.jsonl` (formato em [[features/terminais]] §4.1).

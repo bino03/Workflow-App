@@ -29,7 +29,7 @@ function exists(path: string): boolean {
  * The git directory of the repository that holds `cwd`: the nearest `.git` going up, but never above the
  * ALLOWED_ROOTS root the folder is in (ADR 0004). A `.git` file is a worktree or submodule: `gitdir: <path>`.
  */
-function findGitDir(cwd: string, roots: readonly string[]): string | undefined {
+export function findGitDir(cwd: string, roots: readonly string[]): string | undefined {
   const root = findRoot(cwd, roots);
   if (!root) return undefined;
   for (let dir = cwd; isInsideRoot(dir, root); dir = dirname(dir)) {

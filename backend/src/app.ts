@@ -46,6 +46,7 @@ import { ProjectGit } from './projectInfo/projectGit.js';
 import { ProjectInfoService } from './projectInfo/projectInfoService.js';
 import { projectTasksRoutes } from './projectTasks/projectTasks.routes.js';
 import { ProjectTasksService } from './projectTasks/projectTasksService.js';
+import { branchesRoutes } from './terminals/branches.routes.js';
 import { AccountDirs } from './accounts/accountDirs.js';
 import { accountsRoutes } from './accounts/accounts.routes.js';
 import { AccountsService } from './accounts/accountsService.js';
@@ -150,6 +151,8 @@ export async function buildApp({
   const projectGit = new ProjectGit({ gitBin: config.gitBin, allowedRoots: config.terminals.allowedRoots });
   const projectInfoService = new ProjectInfoService({ stateStore, projects: projectsService, git: projectGit });
   await app.register(projectInfoRoutes, { projectInfoService });
+  // Proposta C (ADR 0036): the branches of a project folder, read from .git as files.
+  await app.register(branchesRoutes, { allowedRoots: config.terminals.allowedRoots });
   await app.register(projectTasksRoutes, {
     projectTasksService: new ProjectTasksService({ stateStore, allowedRoots: config.terminals.allowedRoots }),
   });
