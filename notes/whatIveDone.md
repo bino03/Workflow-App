@@ -1024,3 +1024,11 @@ Guardar o verbatim importa: vários bullets são vagos, e o log preserva o que f
   - Não verifiquei com um `claude` real a fazer push: a instância não tem login. O payload é o do spike do ADR 0031.
 - Files: backend/src/projectInfo/{projectGit.ts,projectInfoService.ts,projectInfo.schemas.ts,projectInfo.routes.ts,deployTrigger.ts}, backend/src/terminals/sessionState.ts, backend/src/app.ts, backend/test/{projectInfo.gitSync.test.ts,sessionState.test.ts,deployTrigger.test.ts}, frontend/src/{hooks/useProjectInfos.ts,services/projectInfoService.ts,types/projectInfo.ts,pages/ProjectsPage.tsx}, scripts/verify/project-git-sync.mjs, docs/{api,security,environment,code-map,commands}.md, docs/features/informacao-dos-projetos.md
 - Item original do ToDo: "`sonnet` Implementar o sync por `ls-remote` + o gatilho do hook, a partir do [[../docs/adr/0035-sync-do-deploy-por-ls-remote-e-hook|ADR 0035]] — backend (`projectInfo/projectGit.ts`, `projectInfoService.ts`, o hook do 0031), frontend (sync ao abrir o drawer, recarregar `/projects` no foco), `docs/api.md`, `docs/security.md`. Verificar: testes com repo git temporário (topo igual → zero `fetch`; topo novo → 1 deploy; sem travão), e numa instância descartável um `git push` num terminal que faz aparecer o deploy."
+
+## 2026-11-19 — Ajuda (i) nos campos dos ambientes
+
+- Ao lado do título "Ambientes", no modo de edição, há agora um ícone (i) com um `Popover` (hover ou clique). Explica numa linha o que pôr em cada campo.
+- Porquê: o dono pôs `main` em "Branch / versão" em vez de "Branch de deploy (git)" e o deploy não apareceu (os dois nomes são parecidos). O texto diz que um é só uma nota e o outro é a branch que o hosting publica.
+- Testado: `scripts/verify/project-env-help.mjs` 17/17 numa instância descartável. O ícone só aparece na edição, está no título, o hover abre a ajuda com todos os campos, cabe na janela e fecha ao sair. Frontend `tsc -b` e eslint limpos.
+- Files: frontend/src/components/projects/ProjectInfoForm.tsx, scripts/verify/project-env-help.mjs
+- Pedido direto do dono (sem item no ToDo): "para nunca me esquecer o que preencher na parte de editar ao pé de ambientes quero que coloques um icone (I) de informação"

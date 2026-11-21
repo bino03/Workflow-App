@@ -137,6 +137,7 @@ node scripts/verify/app-run-ui.mjs                        # Correr/Parar no cabe
 node scripts/verify/grid-slots.mjs                        # terminal novo no 1.º lugar livre da grelha, sem ampliar; cheia → amplia (instância nova)
 node scripts/verify/app-run-real.mjs <run> <projeto> <run partido> <este repo>  # Correr/Parar a sério (instância com --real-claude --extra-root; gasta quota)
 node scripts/verify/project-git-sync.mjs "" [remote real]   # deploys automáticos do git (ADR 0034/0035): campo, sync ao gravar, Atualizar do git, avisos, sync em fundo, ao abrir o drawer, no foco e depois de um push (o hook real); com um URL, um projeto aponta a esse remote (instância nova)
+node scripts/verify/project-env-help.mjs               # o (i) de "Ambientes" no formulário do projeto: só na edição, hover abre a ajuda de cada campo
 node scripts/verify/guided-claude-app.mjs                 # "Continuar no Claude app" no Novo projeto (ADR 0033): botão/tooltip, modal, Esconder ↔ Manter, faixa, needs-you, permissão do app, fim e Retomar — a criação é do cenário (Fetch.requestPaused), o backend tem os testes (instância nova)
 node scripts/verify/instance.mjs stop --clean             # mata a árvore pelo PID da porta e apaga a pasta
 ```

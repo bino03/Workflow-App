@@ -1,5 +1,5 @@
-import { DeleteOutlined, PlusOutlined } from '@ant-design/icons';
-import { Button, Input } from 'antd';
+import { DeleteOutlined, InfoCircleOutlined, PlusOutlined } from '@ant-design/icons';
+import { Button, Input, Popover } from 'antd';
 import { Controller, useFieldArray, type UseFormReturn } from 'react-hook-form';
 import { FieldError } from '@/components/common/FieldError';
 import { EnvironmentFields } from './EnvironmentFields';
@@ -15,14 +15,44 @@ type ProjectInfoFormProps = {
   disabled: boolean;
 };
 
-function Section({ title, children }: { title: string; children: React.ReactNode }) {
+function Section({ title, info, children }: { title: string; info?: React.ReactNode; children: React.ReactNode }) {
   return (
     <section className="flex flex-col gap-3">
-      <h3 className="m-0 pb-2 text-[16px] leading-6 font-semibold text-text-1 border-b border-border">{title}</h3>
+      <h3 className="m-0 pb-2 text-[16px] leading-6 font-semibold text-text-1 border-b border-border flex items-center gap-1.5">
+        {title}
+        {info && (
+          <Popover content={info} title={title} trigger={['hover', 'click']} placement="bottomLeft">
+            <Button type="text" size="small" icon={<InfoCircleOutlined />} aria-label={`O que pôr em ${title}`} className="text-text-3" />
+          </Popover>
+        )}
+      </h3>
       {children}
     </section>
   );
 }
+
+/** O que pôr em cada campo de um ambiente — resumido, para não esquecer (pedido do dono, 2026-11-19). */
+const ENVIRONMENT_HELP: [string, string][] = [
+  ['Tipo / Nome', 'Que ambiente é (Produção, Staging…) e um nome curto.'],
+  ['URL', 'O endereço público do site.'],
+  ['Hosting', 'Onde está alojado (Vercel, Render…).'],
+  ['Branch / versão em produção', 'Só uma nota para ti; não atualiza nada.'],
+  ['Branch de deploy (git)', 'A branch que o hosting publica (ex.: main). Preenchida, cada merge entra sozinho nos deploys; vazia = só à mão.'],
+  ['Custo mensal (€)', 'Quanto pagas por mês.'],
+  ['Painel do hosting / Logs', 'Links para abrir o painel e os logs.'],
+  ['Health check', 'URL de saúde; só fica guardado, a app nunca o chama.'],
+];
+
+const environmentHelp = (
+  <dl className="m-0 flex max-w-[340px] flex-col gap-1.5 text-[12.5px] leading-5">
+    {ENVIRONMENT_HELP.map(([field, text]) => (
+      <div key={field}>
+        <dt className="font-semibold text-text-1">{field}</dt>
+        <dd className="m-0 text-text-2">{text}</dd>
+      </div>
+    ))}
+  </dl>
+);
 
 /** Os campos da ficha de um projeto (spec informacao-dos-projetos §4.4). O `useForm` e os botões são do drawer. */
 export function ProjectInfoForm({ form, hostingSuggestions, disabled }: ProjectInfoFormProps) {
@@ -43,7 +73,7 @@ export function ProjectInfoForm({ form, hostingSuggestions, disabled }: ProjectI
         </div>
       </Section>
 
-      <Section title="Ambientes">
+      <Section title="Ambientes" info={environmentHelp}>
         {environments.fields.map((field, index) => (
           <EnvironmentFields
             key={field.id}
