@@ -38,7 +38,10 @@ Segmentos novos sempre em inglês.
   Biblioteca · Upwork · Novo projeto (`NAV_ITEMS`, 12.5px; ativo `text-1` com sublinhado interior de 2 px em
   `accent`, os outros `text-3`). Espaço, e à direita só o menu de utilizador (separado por uma borda). Borda de baixo
   `border`. O `favicon.svg` é a mesma marca.
-- Se um terminal escondido está à espera, o item "Terminais" da nav ganha um losango `state-wait`.
+- Se uma sessão **fora de vista** (de outro projeto, escondida da grelha, ou com outra página aberta) precisa de
+  ti ou está à tua espera, o item "Terminais" da nav ganha um losango `state-wait`: cheio se alguma precisa de
+  ti, vazio (`.is-idle`) se só há à tua espera, com o número no tooltip ([[tokens-and-colors]] §3). Lê a lista
+  do `TerminalsProvider`, que vive no `AppLayout` (uma só releitura, partilhada com a página dos Terminais).
 - **Páginas** (Projetos, Biblioteca, Upwork, Definições, Novo projeto): começam pelo `PageHeader` de 36 px, fixo
   por baixo da barra de título, com o kicker alinhado com a marca ([[tables-and-lists]] §2). As alturas da moldura
   são tokens ([[tokens-and-colors]] §5 → "Densidade da moldura"). O `<main>` tem `scroll-padding-top` com a altura
