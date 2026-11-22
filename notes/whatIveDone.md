@@ -1172,3 +1172,13 @@ Guardar o verbatim importa: vários bullets são vagos, e o log preserva o que f
   - sem ajustes: `session-state-icons` 46/46, `terminal-agents` 37/37, `sidebar-proposta-c` 33/33, `project-switcher` 31/31, `pane-header` 19/19, `smoke` 6/6.
 - Files: frontend/src/components/terminals/TerminalsHeader.tsx, frontend/src/pages/TerminalsPage.tsx, scripts/verify/header-project-name.mjs, docs/commands.md, docs/features/terminais.md, docs/skills/references/design/grid-styles.md
 - Item original do ToDo: "`sonnet` Nome do projeto ativo na barra dos Terminais (`TerminalsHeader`), à esquerda, antes das contagens — **sempre visível**, com a lateral aberta ou fechada …"
+
+## 2026-11-22 — Verificação no browser dos rótulos das sessões guiadas (Importação, Upwork)
+
+- Ficou fechado o que tinha ficado pendente da tarefa dos ícones de estado.
+  - A faixa da Importação em `needs-you` diz "A skill precisa de ti", com o losango cheio.
+  - Na candidatura Upwork, pergunta, permissão e `needs-you` dão a tag "Precisa de ti" com o losango cheio, e a faixa "O Claude precisa de ti na conversa." aparece por cima do pacote.
+  - Em `waiting-text`, a tag é "À tua espera" com o losango vazio: só contorno, na cor âmbar e sem preenchimento. A faixa não aparece.
+- Cenário novo, `guided-state-labels.mjs`. Simula as leituras: importação atual, perfil, candidatura, sessão guiada e feed. Assim não precisa da skill, do Workflow nem de login do claude.
+- Resultado: 14/14 nas 3 corridas, cada uma numa instância nova.
+- Files: scripts/verify/guided-state-labels.mjs, docs/commands.md

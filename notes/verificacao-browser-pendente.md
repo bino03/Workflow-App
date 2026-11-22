@@ -236,5 +236,7 @@ Na instância, o `claude` sem login sai logo: a sessão fica `stopped` e a pági
 
 Os terminais foram verificados (`session-state-icons.mjs` 46/46, mais os cenários antigos). Os textos novos das sessões guiadas fora da criação só passaram por tsc e lint:
 
-- [ ] **Importação** em `needs-you`: a faixa diz "A skill precisa de ti", com losango cheio.
-- [ ] **Candidatura Upwork** à espera do dono: a faixa diz "O Claude precisa de ti na conversa". Numa sessão em `waiting-text`, a tag é "À tua espera" com losango **vazio**.
+- [x] **Importação** em `needs-you`: a faixa diz "A skill precisa de ti", com losango cheio.
+- [x] **Candidatura Upwork** à espera do dono: a faixa diz "O Claude precisa de ti na conversa". Numa sessão em `waiting-text`, a tag é "À tua espera" com losango **vazio**.
+
+Feito a 2026-11-22: `scripts/verify/guided-state-labels.mjs` passou 14/14 nas 3 corridas, cada uma numa instância nova. A importação, a candidatura e a sessão guiada foram simuladas, e a prova é feita pelo DOM.
