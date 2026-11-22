@@ -42,7 +42,8 @@ export default function TokenPreviewPage() {
       </div>
       <div className="flex gap-2 items-center">
         <span className="tag-work"><span className="state-icon is-work" />A trabalhar</span>
-        <span className="tag-wait"><span className="state-icon is-wait" />À tua espera</span>
+        <span className="tag-wait"><span className="state-icon is-wait" />Precisa de ti</span>
+        <span className="tag-wait"><span className="state-icon is-idle" />À tua espera</span>
         <span className="tag-stop"><span className="state-icon is-stop" />Terminado</span>
         <span className="tag-err"><span className="state-icon is-err" />Desligado</span>
         <span className="tag-ok">Provado</span><span className="tag-mid">Parcial</span><span className="tag-draft">Rascunho</span>

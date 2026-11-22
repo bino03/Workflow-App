@@ -20,7 +20,9 @@ import { BranchesGroup } from './BranchesGroup';
 import { SavedSessionsGroup } from './SavedSessionsGroup';
 import { SIDEBAR_ROW, SidebarGroup } from './SidebarGroup';
 import { TerminalContextMenu } from './TerminalContextMenu';
-import { STATUS_META, statusDetail } from './terminalDisplay';
+import { AgentSublines } from './AgentSublines';
+import { StateIcon } from './StateIcon';
+import { STATUS_META, runningAgents, statusDetail, summarizeActivity, terminalStateMeta, wantsAttention } from './terminalDisplay';
 
 type TerminalSidebarProps = {
   /** Todos os projetos — só para o "Reabrir todos", que é global. A lista mostra só o projeto ativo. */
@@ -93,6 +95,7 @@ export function TerminalSidebar(props: TerminalSidebarProps) {
     .map((status) => ({ status, n: terminals.filter((t) => t.status === status).length }))
     .filter(({ n }) => n > 0);
   const shown = statusFilter ? terminals.filter((t) => t.status === statusFilter) : terminals;
+  const projectActivity = summarizeActivity(terminals);
   const stoppedEverywhere = projects.flatMap((p) => p.terminals).filter((t) => t.status === 'stopped').length;
 
   if (collapsed) {
@@ -134,6 +137,7 @@ export function TerminalSidebar(props: TerminalSidebarProps) {
             <span className={`flex-1 min-w-0 truncate font-semibold text-[14px] ${project ? 'text-text-1' : 'text-text-3'}`}>
               {project?.name ?? 'Escolher projeto…'}
             </span>
+            {projectActivity && <StateIcon icon={projectActivity.icon} title={projectActivity.text} />}
             <DownOutlined className="text-text-3 text-[10px]" />
           </button>
           {project && (
@@ -204,32 +208,41 @@ export function TerminalSidebar(props: TerminalSidebarProps) {
           <SidebarGroup id="terminals" title="TERMINAIS" count={terminals.length}>
             {terminals.length === 0 && <p className="m-0 pl-[22px] pr-2 py-1 text-[12.5px] text-text-3">Ainda sem terminais neste projeto.</p>}
             {shown.map((terminal) => {
-              const meta = STATUS_META[terminal.status];
+              const meta = terminalStateMeta(terminal);
               const isShown = visibleIds.includes(terminal.id);
               const index = shortcutIndex.get(terminal.id) ?? 99;
               const running = terminal.status === 'running';
+              // Fora da grelha e a pedir o dono: a linha acende-se (o que está à vista já se vê no painel).
+              const calling = !isShown && wantsAttention(terminal);
+              const agents = runningAgents(terminal);
               return (
-                <TerminalContextMenu key={terminal.id} menu={props.menuFor(terminal)}>
+                <div key={terminal.id} className="flex flex-col">
+                <TerminalContextMenu menu={props.menuFor(terminal)}>
                   <button
                     type="button"
                     data-terminal-item={terminal.id}
                     aria-current={isShown ? 'true' : undefined}
+                    data-attention={calling || undefined}
                     title={`${meta.label} · ${statusDetail(terminal)}${index < 9 ? ` · Alt+${index + 1}` : ''}`}
                     onClick={() => props.onSelectTerminal(terminal.id)}
                     className={`${SIDEBAR_ROW} !pl-2 cursor-pointer ${
-                      isShown ? 'bg-accent-subtle shadow-[inset_2px_0_0_var(--wfa-color-accent)]' : 'bg-transparent hover:bg-surface-2'
+                      isShown
+                        ? 'bg-accent-subtle shadow-[inset_2px_0_0_var(--wfa-color-accent)]'
+                        : calling
+                          ? 'bg-[var(--wfa-state-wait-subtle)] shadow-[inset_0_0_0_1px_var(--wfa-state-wait-border)]'
+                          : 'bg-transparent hover:bg-surface-2'
                     }`}
                   >
-                    <span className="w-3.5 flex justify-center flex-none">
-                      <span className={`state-icon ${meta.icon}`} aria-hidden />
-                    </span>
+                    <StateIcon icon={meta.icon} title={meta.label} slot />
                     <span className="terminal-name flex-1 min-w-0 truncate">{names.get(terminal.id)}</span>
                     <AccountTag accountId={terminal.accountId} className="h-[18px] px-1.5 text-[11px] max-w-[90px]" />
                     <span className={`flex-none font-mono text-[10.5px] ${running ? 'text-text-3' : 'text-[var(--wfa-state-stop)]'}`}>
-                      {running ? `pane-${index + 1}` : meta.label}
+                      {running ? `pane-${index + 1}` : STATUS_META[terminal.status].label}
                     </span>
                   </button>
                 </TerminalContextMenu>
+                {agents.length > 0 && <AgentSublines agents={agents} />}
+                </div>
               );
             })}
           </SidebarGroup>

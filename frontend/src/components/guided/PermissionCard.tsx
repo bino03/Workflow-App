@@ -10,7 +10,7 @@ type PermissionCardProps = {
 
 /**
  * Um pedido de permissão do Claude (spec §4.4): a ferramenta e o que vai correr ou escrever, com **Permitir**
- * (primário) e **Recusar**. Tem o aspeto "à tua espera" (losango, âmbar): é o dono que falta.
+ * (primário) e **Recusar**. Tem o aspeto "precisa de ti" (losango cheio, âmbar): é o dono que falta.
  */
 export function PermissionCard({ tool, summary, busy, onDecide }: PermissionCardProps) {
   return (

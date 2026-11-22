@@ -23,7 +23,7 @@ import { useProjects } from '@/hooks/useProjects';
 import { useKeybindings } from '@/hooks/useKeybindings';
 import { useShortcuts } from '@/hooks/useShortcuts';
 import { formatBinding } from '@/keyboard/shortcuts';
-import { useTerminals } from '@/hooks/useTerminals';
+import { usePublishSight, useSharedTerminals } from '@/hooks/useSharedTerminals';
 import { useAccounts } from '@/hooks/useAccounts';
 import { useUsage } from '@/hooks/useUsage';
 import { useProjectTasks } from '@/hooks/useProjectTasks';
@@ -137,7 +137,7 @@ function focusedLayout(current: ProjectLayout, id: string, grid: boolean): Proje
  */
 export function TerminalsPage() {
   const { terminals, loading: terminalsLoading, error, refresh, create, reopen, rename, close, markExited, startPreview, stopPreview } =
-    useTerminals();
+    useSharedTerminals();
   const { projects: registry, loading: registryLoading } = useProjects();
   const confirm = useConfirm();
   const mainRef = useRef<HTMLDivElement>(null);
@@ -270,6 +270,8 @@ export function TerminalsPage() {
         ? sanitizedSlotIds.filter((id): id is string => !!id)
         : activeTerminals.map((t) => t.id)
     : [primaryId, secondaryId].filter((id): id is string => !!id);
+  // O losango "Terminais" da navegação só acende pelo que não está nesta lista (nem noutro projeto).
+  usePublishSight(activePath, visibleIds);
   const shortcutIndex = useMemo(() => new Map(activeTerminals.map((t, i) => [t.id, i])), [activeTerminals]);
 
   /** Esconde/mostra a lateral — botão na lateral ou `AltGr+.`, em qualquer sítio (também com um terminal focado). */
@@ -957,7 +959,13 @@ export function TerminalsPage() {
       <div className="flex-1 min-w-0 flex flex-col">
         {errorState}
         {!error && (
-          <TerminalsHeader terminals={activeTerminals}>
+          <TerminalsHeader
+            terminals={activeTerminals}
+            projectName={activeProject?.name ?? null}
+            onOpenSwitcher={() => setSwitcherOpen((open) => !open)}
+            switcherOpen={switcherOpen}
+            switcherHint={switcherHint}
+          >
             {activeProject && (
               <AppRunControl
                 key={activeProject.path}

@@ -130,7 +130,7 @@ try {
 
   // 6. needs-you in the app: the banner says it waits there — not "Ver terminal".
   await set({ status: 'needs-you' });
-  check('needs-you: the banner points to the app', await page.waitFor(`!!${banner} && ${banner}.textContent.includes('à tua espera lá')`));
+  check('needs-you: the banner points to the app', await page.waitFor(`!!${banner} && ${banner}.textContent.includes('precisa de ti lá')`));
   check('and not "a sessão precisa de algo que esta vista não mostra"', await page.evaluate(`!${bodyText}.includes('esta vista não mostra')`));
 
   // 7. waiting-text, Manter aberto: the reply box is there too.

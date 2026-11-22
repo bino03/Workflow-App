@@ -93,19 +93,32 @@ sobre `bg` dá 1.6:1). Os passos 600–900 servem para fundos e bordas. Para tex
 
 | Estado | Token | Hex | `-subtle` (fundo) | `-border` | Forma |
 |---|---|---|---|---|---|
-| A trabalhar | `--wfa-state-work` | #60DB89 | #0F2817 | #26673C | arco (anel com um quarto aberto) que roda devagar (1.4s linear ∞) |
-| À tua espera | `--wfa-state-wait` | #FFB755 | #2E1E07 | #784E0D | losango cheio |
-| Terminado | `--wfa-state-stop` | #9697A1 | #212123 | #57585D | quadrado vazio |
-| Erro / desligado | `--wfa-state-err` | #FC6661 | #371715 | #8C3B37 | ✕ |
+| A trabalhar | `--wfa-state-work` | #60DB89 | #0F2817 | #26673C | arco (anel com um quarto aberto) que roda devagar (1.4s linear ∞) — `.is-work` |
+| Precisa de ti | `--wfa-state-wait` | #FFB755 | #2E1E07 | #784E0D | losango cheio — `.is-wait` |
+| À tua espera | `--wfa-state-wait` | #FFB755 | #2E1E07 | #784E0D | losango **vazio** (contorno 1,5 px) — `.is-idle` |
+| Terminado | `--wfa-state-stop` | #9697A1 | #212123 | #57585D | quadrado vazio — `.is-stop` |
+| Erro / desligado | `--wfa-state-err` | #FC6661 | #371715 | #8C3B37 | ✕ — `.is-err` |
 
-- **A correr** (MVP, sem os estados "a trabalhar"/"à tua espera" — spec Terminais §2): ponto cheio 8 px em
-  `accent` (`.state-icon.is-run`) e tag `.tag-run` (`accent` / `accent-subtle` / `accent-border`). Forma
-  própria: círculo cheio ≠ quadrado vazio de terminado/parado. Os estados de trabalho acima ficam para a
-  segunda fase.
-- Tag de estado: texto na cor do estado, fundo `-subtle`, borda `-border`, raio `sm`, altura 22. Dentro de uma
-  linha de `--wfa-row-height` (cabeçalho de painel de terminal) junta-se `.tag-sm`: 18 px, 10,5 px, padding 5.
-- Um terminal **escondido** que passa a "À tua espera" ganha fundo `-subtle` + borda `-border` na
-  lista, e um losango ao lado de "Terminais" na navegação de topo.
+- **O que cada estado quer dizer** (o mesmo em toda a app, terminais e sessões guiadas — decidido a
+  2026-11-22): **precisa de ti** = o Claude parou numa pergunta ou num pedido de permissão (`needs-you`,
+  `question`, `permission`); **à tua espera** = acabou o turno e espera o teu texto, ou acabou de abrir
+  (`waiting`, `waiting-text`). Os dois partilham o token âmbar; a forma (cheio/vazio) é que os separa.
+- **Urgência**, para resumir várias sessões num só ícone (projeto, navegação): precisa de ti > à tua espera >
+  a trabalhar. O tooltip diz o número por estado ("2 precisam de ti · 1 a trabalhar").
+- **A correr** sem estado de sessão (terminais que não são do Claude — "Correr a app", importações — com
+  `activity: null`): ponto cheio 8 px em `accent` (`.state-icon.is-run`). Forma própria: círculo cheio ≠
+  quadrado vazio de terminado/parado.
+- **Só ícone + tooltip** no cabeçalho de painel e nas listas de terminais — a tag de estado do cabeçalho
+  saiu (2026-11-22). Os chips de filtro e as contagens do cabeçalho de Terminais continuam por `status`
+  (a correr / terminado / parado).
+- Tag de estado (onde ainda há — sessões guiadas, Upwork): texto na cor do estado, fundo `-subtle`, borda
+  `-border`, raio `sm`, altura 22. Dentro de uma linha de `--wfa-row-height` junta-se `.tag-sm`: 18 px,
+  10,5 px, padding 5. `.tag-run` (`accent` / `accent-subtle` / `accent-border`) para "A correr".
+- **Agentes a correr** de um terminal: o arco `is-work` em cada linha (popover do selo "⑂ n" no cabeçalho; sublinhas `└` na lateral, ícone a 80 %). Só os `running`; os `done` não aparecem.
+- Um terminal **escondido** (fora da grelha, ou de outro projeto) que passa a "precisa de ti" ou "à tua
+  espera" ganha fundo `-subtle` + borda `-border` na lista, e acende o losango ao lado de "Terminais" na
+  navegação de topo — cheio se alguma sessão fora de vista precisa de ti, vazio se só há à tua espera.
+  O que está à vista não acende o losango: já se vê no painel.
 - **Maturidade da biblioteca** (✅/🟡/📋) vira tag com forma: ✓ `success` "Provado" · meio círculo
   `warning` "Parcial" · quadrado tracejado `text-2` "Rascunho". Os emoji ficam só no markdown.
 
@@ -295,7 +308,7 @@ O `theme.ts` real tem **mais do que isto**, por duas coisas vistas no browser a 
 - Tags: de estado (`.tag-work`, `.tag-wait`, `.tag-stop`, `.tag-err`, ver §3), de maturidade
   (`.tag-ok`, `.tag-mid`, `.tag-draft`) e neutra (`.tag`: `surface-2` + `border` + `text-2`, para
   tecnologias).
-- Ícone de estado: `.state-icon.is-run|is-work|is-wait|is-stop|is-err` (forma + cor, §3); tags `.tag-run|tag-work|tag-wait|tag-stop|tag-err`.
+- Ícone de estado: `.state-icon.is-run|is-work|is-wait|is-idle|is-stop|is-err` (forma + cor, §3); tags `.tag-run|tag-work|tag-wait|tag-stop|tag-err`.
 - Atalho de teclado: `.kbd` (mono 10.5, `text-3`, borda `border`, raio `sm`).
 - Faixa de estado: `.status-banner.is-work|is-wait|is-run|is-stop|is-err` ([[cards]] → "Faixa de estado").
 - Diff: `.diff-block` com linhas `.diff-line` + `.diff-add|diff-del|diff-hunk` ([[drawers-and-modals]] → "Drawer de revisão com diff").

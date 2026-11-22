@@ -171,7 +171,7 @@ export function ApplicationDetail({ id, refreshSignal, onChanged, onRemoved }: A
         {waitingOnYou && (
           <div className="status-banner is-wait flex items-center gap-3 px-4 py-2.5" role="status">
             <span className="state-icon is-wait" aria-hidden />
-            <span className="flex-1 text-[13.5px] leading-[20px]">O Claude está à tua espera na conversa.</span>
+            <span className="flex-1 text-[13.5px] leading-[20px]">O Claude precisa de ti na conversa.</span>
             <Button size="small" type="primary" onClick={() => setTab('conversation')}>
               Ir para a Conversa
             </Button>

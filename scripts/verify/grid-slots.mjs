@@ -7,7 +7,7 @@
 //   node scripts/verify/instance.mjs start --fresh
 //   node scripts/verify/grid-slots.mjs [run dir]
 //   node scripts/verify/instance.mjs stop --clean
-import { checker, login, openBrowser, readInstance } from './cdp.mjs';
+import { checker, login, openBrowser, openProject, readInstance } from './cdp.mjs';
 
 const instance = readInstance(process.argv[2]);
 const { check, finish } = checker();
@@ -21,7 +21,7 @@ const pane = (id) => `document.querySelector('[data-terminal-pane="${id}"]')`;
 const visible = async (id) => page.evaluate(`!!${pane(id)} && ${pane(id)}.checkVisibility()`);
 const slots = async () => page.evaluate(`JSON.parse(localStorage.getItem(${JSON.stringify(KEY)}) ?? 'null')?.slotIds ?? null`);
 const alfaIds = async () => (await page.api('GET', '/terminals')).body.filter((t) => t.cwd === ALFA).map((t) => t.id);
-const plus = `document.querySelector('[aria-label="Novo terminal em Alfa"]')`;
+const plus = `document.querySelector('[data-new-terminal]')`;
 
 /** Clicks the sidebar "+" of Alfa and returns the id of the terminal it opened. */
 async function newFromSidebar() {
@@ -38,6 +38,7 @@ async function newFromSidebar() {
 async function openWith(style, slotIds) {
   await page.evaluate(`localStorage.setItem('workflow-app.layout', 'grid'); localStorage.setItem(${JSON.stringify(KEY)}, ${JSON.stringify(JSON.stringify({ gridStyle: style, slotIds }))})`);
   await page.navigate(`${instance.base}/terminals`);
+  await openProject(page, ALFA);
   await page.waitFor(`!!${plus}`);
 }
 

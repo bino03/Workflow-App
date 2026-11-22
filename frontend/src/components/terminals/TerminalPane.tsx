@@ -6,7 +6,9 @@ import { AccountPicker } from '@/components/accounts/AccountPicker';
 import { AccountTag } from '@/components/accounts/AccountTag';
 import type { TerminalView as TerminalInfo, TerminalPreview } from '@/types/terminal';
 import { TerminalContextMenu } from './TerminalContextMenu';
-import { STATUS_META, statusDetail } from './terminalDisplay';
+import { AgentsBadge } from './AgentsBadge';
+import { StateIcon } from './StateIcon';
+import { runningAgents, statusDetail, terminalStateMeta } from './terminalDisplay';
 import { TerminalView } from './TerminalView';
 
 // Espelha o labelSchema do backend (terminal.schemas.ts): ≤ 80, letras, dígitos, espaço e . _ - ( ).
@@ -158,14 +160,15 @@ type TerminalPaneProps = {
   enlarged?: boolean;
 };
 
-/** Um terminal no ecrã: cabeçalho denso de 26 px (proposta C do ADR 0036 — nome · `pane-N` · branch · estado ·
+/** Um terminal no ecrã: cabeçalho denso de 26 px (proposta C do ADR 0036 — nome · `pane-N` · branch · ícone de estado (a activity do claude, senão o status) ·
  * ampliar · fechar), o xterm.js, e o banner de terminado/parado. Os dois botões voltaram a 2026-11-21 (antes o
  * cabeçalho não tinha nenhum, 2026-09-29); o resto continua nos atalhos e no menu de contexto do cabeçalho. */
 export function TerminalPane(props: TerminalPaneProps) {
   const { terminal, visible, focused, renaming, reopening, variant = 'pane', enlarged = false } = props;
   const tile = variant === 'tile';
   const compactHeader = tile && !enlarged;
-  const meta = STATUS_META[terminal.status];
+  const meta = terminalStateMeta(terminal);
+  const agents = runningAgents(terminal);
   const { name } = props;
   const paneMeta = terminal.branch ? `pane-${props.paneNumber} · ${terminal.branch}` : `pane-${props.paneNumber}`;
 
@@ -184,7 +187,7 @@ export function TerminalPane(props: TerminalPaneProps) {
         }`}
         data-pane-header
       >
-        <span className={`state-icon ${meta.icon}`} aria-hidden />
+        <StateIcon icon={meta.icon} title={meta.label} slot />
         {renaming ? (
           <RenameInput initialName={name} onFinish={props.onRenameEnd} />
         ) : (
@@ -196,6 +199,7 @@ export function TerminalPane(props: TerminalPaneProps) {
           {paneMeta}
         </span>
         <AccountTag accountId={terminal.accountId} className="tag-sm max-w-[120px]" />
+        {agents.length > 0 && <AgentsBadge agents={agents} />}
         {terminal.remoteControl && (
           <Tooltip title="Remote Control — também no app Claude" mouseEnterDelay={0.4}>
             <span className="tag tag-sm" data-remote-control>
@@ -207,7 +211,6 @@ export function TerminalPane(props: TerminalPaneProps) {
           <PreviewTag preview={terminal.preview} compact={compactHeader} onStop={props.onPreviewStop} />
         )}
         <div className="flex-1 min-w-0" />
-        <span className={`${meta.tag} tag-sm`}>{meta.label}</span>
         <PaneButton label={props.viewAction.label} disabled={props.viewAction.disabled} onClick={props.onViewAction} data="view">
           {VIEW_ICONS[props.viewIcon]}
         </PaneButton>

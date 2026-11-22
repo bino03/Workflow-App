@@ -3,7 +3,8 @@ import { FolderOpenOutlined, FolderOutlined, PlusOutlined, SearchOutlined, StarF
 import { Link } from 'react-router';
 import type { TerminalStatus } from '@/types/terminal';
 import type { Project } from './projects';
-import { STATUS_META } from './terminalDisplay';
+import { StateIcon } from './StateIcon';
+import { STATUS_META, summarizeActivity } from './terminalDisplay';
 
 type ProjectSwitcherProps = {
   open: boolean;
@@ -119,6 +120,7 @@ function SwitcherPanel({ projects, activePath, onPick, onClose, onOpenFolder }: 
         {matches.length === 0 && <p className="m-0 px-3 py-3 text-[12.5px] text-text-3">Nenhum projeto com esse nome.</p>}
         {matches.map((project, index) => {
           const current = project.path === activePath;
+          const activity = summarizeActivity(project.terminals);
           const statuses = STATUS_ORDER.filter((status) => project.terminals.some((t) => t.status === status));
           return (
             <button
@@ -144,9 +146,13 @@ function SwitcherPanel({ projects, activePath, onPick, onClose, onOpenFolder }: 
                   {project.path}
                 </span>
               </span>
-              {statuses.map((status) => (
-                <span key={status} className={`state-icon ${STATUS_META[status].icon}`} title={STATUS_META[status].label} aria-hidden />
-              ))}
+              {activity ? (
+                <StateIcon icon={activity.icon} title={activity.text} />
+              ) : (
+                statuses.map((status) => (
+                  <span key={status} className={`state-icon ${STATUS_META[status].icon}`} title={STATUS_META[status].label} aria-hidden />
+                ))
+              )}
               {project.terminals.length > 0 && <span className="font-mono text-[10.5px] text-text-3">{project.terminals.length}</span>}
               {current && <span className="font-mono text-[10.5px] text-accent">atual</span>}
             </button>

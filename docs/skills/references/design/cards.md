@@ -22,7 +22,7 @@
   fica `bg`, para um lugar sem painel não ficar cinzento). Cabeçalho de `--wfa-row-height` (26 px) em
   `surface-1`: ícone de estado · nome (12 px, 600) · `pane-N · branch` em mono 10,5 px `text-3` (N = o
   `Alt+N`; o branch vem do `TerminalView.branch`, sem repositório fica só `pane-N`) · selos (conta, RC,
-  pré-visualização) em `.tag-sm` · à direita a tag de estado em `.tag-sm` e os botões Ampliar e ✕ (ver
+  pré-visualização) em `.tag-sm` · o selo "⑂ n" dos agentes a correr (`AgentsBadge`, só com pelo menos um; Popover com a lista) · à direita a tag de estado em `.tag-sm` e os botões Ampliar e ✕ (ver
   [[buttons-and-icons]]). Com o teclado: `surface-2` + linha de 2 px `accent` no topo
   (`inset 0 2px 0`), em vez da borda `accent` de antes. Um terminal terminado ou desligado ganha uma faixa em
   baixo (`-subtle`) com "Reabrir" / "Continuar noutra conta".

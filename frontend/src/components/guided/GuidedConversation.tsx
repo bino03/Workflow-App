@@ -19,10 +19,10 @@ import type { Answers, FeedEntry, GuidedMode, GuidedStatus, GuidedView } from '@
 
 const STATUS_TAG: Record<GuidedStatus, { className: string; icon: string; label: string }> = {
   working: { className: 'tag-work', icon: 'is-work', label: 'A trabalhar' },
-  question: { className: 'tag-wait', icon: 'is-wait', label: 'À tua espera' },
-  permission: { className: 'tag-wait', icon: 'is-wait', label: 'À tua espera' },
-  'waiting-text': { className: 'tag-wait', icon: 'is-wait', label: 'À tua espera' },
-  'needs-you': { className: 'tag-wait', icon: 'is-wait', label: 'À tua espera' },
+  question: { className: 'tag-wait', icon: 'is-wait', label: 'Precisa de ti' },
+  permission: { className: 'tag-wait', icon: 'is-wait', label: 'Precisa de ti' },
+  'waiting-text': { className: 'tag-wait', icon: 'is-idle', label: 'À tua espera' },
+  'needs-you': { className: 'tag-wait', icon: 'is-wait', label: 'Precisa de ti' },
   stopped: { className: 'tag-stop', icon: 'is-stop', label: 'Parada' },
   done: { className: 'tag-run', icon: 'is-run', label: 'Criado' },
   failed: { className: 'tag-err', icon: 'is-err', label: 'Falhou' },
@@ -119,7 +119,7 @@ function InAppBanner({ busy, waiting, onHide }: { busy: boolean; waiting: boolea
     <div className="status-banner flex items-center gap-3 px-4 py-2.5" role="status" data-in-app-banner>
       <span className={`state-icon ${waiting ? 'is-wait' : 'is-work'}`} aria-hidden />
       <span className="flex-1 text-[13.5px] leading-[20px]">
-        {waiting ? 'No Claude app: há uma escolha ou uma permissão à tua espera lá.' : 'No Claude app: as escolhas e as permissões respondem-se lá.'}
+        {waiting ? 'No Claude app: há uma escolha ou uma permissão que precisa de ti lá.' : 'No Claude app: as escolhas e as permissões respondem-se lá.'}
       </span>
       <Button size="small" type="text" disabled={busy} onClick={onHide}>
         Esconder aqui

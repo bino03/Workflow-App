@@ -54,7 +54,7 @@ export function ImportBanner({ view, busy, onReveal, onReview, onDiscard }: Impo
       ),
     },
     'needs-you': {
-      text: <>A skill parou à tua espera — tem uma pergunta ou precisa de uma permissão.</>,
+      text: <>A skill precisa de ti — tem uma pergunta ou precisa de uma permissão.</>,
       actions: (
         <>
           <Button size="small" type="primary" disabled={busy} onClick={onReveal}>

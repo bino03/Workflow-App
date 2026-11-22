@@ -68,9 +68,9 @@ terminal".
 
 ### Cabeçalho comum (2026-11-13)
 
-A linha "Terminais · N abertos" + contagens é o `TerminalsHeader.tsx` (desde 2026-11-21 uma linha de
+A linha "[projeto ▾] · Terminais · N abertos" + contagens é o `TerminalsHeader.tsx` (desde 2026-11-21 uma linha de
 `--wfa-header-height` em `surface-1`, como o `PageHeader`: kicker + "N abertos" a 13 px; controlos a `CONTROL_HEIGHT`), desenhado pela página por cima da grelha
-**e** do foco dividido (o `TerminalGrid` é só o contentor) — trocar de modo não mexe no layout. À direita, pela
+**e** do foco dividido (o `TerminalGrid` é só o contentor) — trocar de modo não mexe no layout. À esquerda, antes de tudo, o **nome do projeto ativo** (2026-11-22): um `<button>` sem caixa nem fundo — o ícone do estado mais urgente do projeto (`summarizeActivity` + `StateIcon`, o mesmo do nome na lateral; sem activity, nenhum), o nome em `text-1` com elipse (máx. 260 px) e um `▾` em `text-2` — seguido de um `·` em `text-3`. Fica sempre visível (lateral aberta ou fechada, foco e grelha) e abre o seletor de projeto, como o `Alt+B` e o nome na lateral (`aria-label` e `title` "Mudar de projeto (Alt+B)", com a bind real); sem projeto ativo não aparece. À direita, pela
 ordem: o `AppRunControl` (Correr/Parar, [[../../../features/correr-a-app|correr-a-app]]; fica com um terminal
 ampliado) e o seletor de grelha (só na grelha, e não com um ampliado). Os estados do controlo usam as formas do
 [[tokens-and-colors]] §3 (`is-work` a arrancar/a parar, `is-run` a correr, `is-err` + `--wfa-state-err` num erro);

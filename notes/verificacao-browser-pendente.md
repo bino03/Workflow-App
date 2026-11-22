@@ -231,3 +231,10 @@ Na instância, o `claude` sem login sai logo: a sessão fica `stopped` e a pági
 **as entradas novas a chegar não foram vistas nas páginas reais**, só no `/_guided`, onde o código é o mesmo.
 
 - [ ] Numa criação ou candidatura real: subir a reler enquanto o Claude trabalha → a página não desce e aparece o ↓; no fim, desce sozinha; responder a uma pergunta ou enviar texto → vai ao fim; quando o Claude acaba e aparece a caixa de resposta, a página não salta se estavas a reler.
+
+## 2026-11-22 — plano `estados-e-agentes`, tarefa 2 (ícones de estado)
+
+Os terminais foram verificados (`session-state-icons.mjs` 46/46, mais os cenários antigos). Os textos novos das sessões guiadas fora da criação só passaram por tsc e lint:
+
+- [ ] **Importação** em `needs-you`: a faixa diz "A skill precisa de ti", com losango cheio.
+- [ ] **Candidatura Upwork** à espera do dono: a faixa diz "O Claude precisa de ti na conversa". Numa sessão em `waiting-text`, a tag é "À tua espera" com losango **vazio**.

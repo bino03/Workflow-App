@@ -1091,3 +1091,84 @@ Guardar o verbatim importa: vários bullets são vagos, e o log preserva o que f
 - Testes: backend 638/638 (`gitBranches.test.ts` e `branches.routes.test.ts` são novos). No browser, cada cenário numa instância nova: `sidebar-proposta-c` 33/33 (novo), `smoke` 6/6, `project-switcher` 31/31, `project-tasks` 41/41, `terminal-menu` 42/42, `accounts-terminals` 41/41, `accounts` 53/53, `usage-warning` 40/40 (estes dois passaram a ler a quota da barra de título), `pane-header` 19/19, `app-run-ui` 26/26, `settings` 21/21.
 - Files: backend/src/terminals/{gitBranch,gitBranches,branches.routes}.ts, backend/src/app.ts, backend/test/{gitBranches,branches.routes}.test.ts, frontend/src/components/usage/{TitleBarQuota.tsx,usageLimits.ts}, frontend/src/components/terminals/{TerminalSidebar,SidebarGroup,BranchesGroup,SavedSessionsGroup,ProjectSwitcher}.tsx, frontend/src/components/terminals/new/OpenFolderModal.tsx, frontend/src/components/terminals/terminalDisplay.ts, (apagado) frontend/src/components/terminals/QuotaMeter.tsx, frontend/src/contexts/{StatusBarContext.tsx,statusBarContextValue.ts}, frontend/src/hooks/useStatusBar.ts, frontend/src/services/branchService.ts, frontend/src/types/branch.ts, frontend/src/layouts/AppLayout.tsx, frontend/src/pages/TerminalsPage.tsx, scripts/verify/{sidebar-proposta-c,accounts,usage-warning}.mjs, docs/{api,code-map,commands,frontend-conventions}.md, docs/skills/references/design/app-shell-and-auth.md
 - Itens originais do ToDo: "`sonnet` Quota na barra de título (compacta, antes do utilizador), "+ Novo terminal" no fundo da lateral e lista de terminais densa (1 linha, grupo recolhível)" · "`sonnet` Grupo SESSÕES GRAVADAS na lateral: as 5 mais recentes, clicar retoma, "Ver todas…" abre o modal Retomar" · "`sonnet` Barra de estado ("Teclado em <terminal>" + dicas de atalhos) e "Abrir outra pasta…" no seletor de projeto" · "`opus` Grupo BRANCHES na lateral: só para ver, sem ↑n, lidos do `.git` sem correr o git; rota nova (reinicia a 7400)"
+
+## 2026-11-22 — Contrato visual dos estados das sessões (tokens §3)
+
+- Antes dos ícones e dos agentes, ficou decidido o que cada forma quer dizer. Decisões do dono: o **losango cheio** passa a "Precisa de ti" (pergunta ou permissão) e entra o **losango vazio** `.is-idle`, "À tua espera" (acabou o turno, ou acabou de abrir). Partilham o token âmbar e a forma é que os separa. A ordem de urgência para resumir várias sessões é precisa de ti > à tua espera > a trabalhar, com o número por estado no tooltip. Sem estado de sessão (`activity: null`) fica o ponto `.is-run`.
+- No cabeçalho do painel e nas listas há **só ícone + tooltip**: a tag de estado do cabeçalho sai. Os chips e as contagens continuam por `status`. O losango ao lado de "Terminais" acende **só por sessões fora de vista**, e o terminal escondido ganha fundo `-subtle` + borda `-border`.
+- Encontrado ao ler o código: as sessões guiadas usavam o losango cheio "À tua espera" também para `waiting-text`. O dono decidiu alinhá-las na tarefa dos ícones, para a mesma forma querer dizer o mesmo em toda a app.
+- Os dois bullets do ToDo foram divididos em três: o contrato (`opus`, este), os ícones e os agentes (`sonnet`). A ação ao vivo dos agentes (`lastAction`) ficou num item próprio. Plano: `notes/roadmap/plans/2026-11-22-estados-e-agentes.md`.
+- Só documentação. A classe `.is-idle` é criada na tarefa dos ícones.
+- Files: docs/skills/references/design/tokens-and-colors.md
+- Itens originais do ToDo: "Ícones de estado no cabeçalho de cada terminal e na lateral de projetos — o backend já dá o estado (`TerminalView.activity`, ADR 0031, 2026-11-13)." (com o ⚠️ "o dono vai escolher o design depois") · "⚠️ UI dos agentes de cada terminal — o backend já os dá (`TerminalView.agents`: descrição, tipo, modelo, a correr/feito, há quanto tempo; ADR 0031, 2026-11-13). **O dono decide o desenho** (onde e como, "muito resumido"). Fase 2 à parte: a ação ao vivo (`lastAction`, do `.jsonl` de cada subagente). (pedido direto do dono, 2026-11-13)"
+
+## 2026-11-22 — Ícones de estado das sessões (terminais e sessões guiadas)
+
+- O estado de cada sessão (`TerminalView.activity`) aparece agora na app, com o contrato do §3: arco a trabalhar, losango cheio quando precisa de ti, losango vazio `.is-idle` quando está à tua espera e, sem estado, o ponto `.is-run`. A **tag "A correr"/"Terminado" saiu do cabeçalho do painel**: fica só o ícone, com tooltip.
+- Onde aparece:
+  - na lista TERMINAIS, com o terminal escondido a ganhar fundo `-subtle` e anel `-border`;
+  - o estado mais urgente do projeto, ao lado do nome do projeto ativo e no seletor (um só ícone em vez de um por status);
+  - um losango ao lado de "Terminais" na navegação, que só acende por sessões fora de vista: outro projeto, escondidas, ou outra página aberta.
+  - Os chips e as contagens continuam por `status`.
+- **Decisão de implementação:** a lista de terminais passou para um `TerminalsProvider` no `AppLayout`, para o losango acender fora da página dos Terminais. Continua a haver uma só releitura de 10 em 10 s, que agora corre em todas as páginas. A página publica o que tem à vista (`usePublishSight`).
+- **Sessões guiadas alinhadas:** pergunta, permissão e `needs-you` passaram a "Precisa de ti", e `waiting-text` a "À tua espera" com losango vazio. Os textos das faixas da Importação e da Upwork também mudaram, mas a verificação desses dois no browser ficou pendente (`verificacao-browser-pendente.md`).
+- Feito por um agente Sonnet lançado desta sessão (pedido do dono). Revisto aqui: diff, `tsc -b` e lint limpos.
+- Testes, cada cenário numa instância nova:
+
+  | Cenário | Resultado |
+  |---|---|
+  | `session-state-icons` (novo) | 46/46, 3 vezes |
+  | `pane-header` | 19/19 |
+  | `project-switcher` | 31/31 |
+  | `smoke` | 6/6 |
+  | `sidebar-proposta-c` | 33/33 |
+  | `guided-claude-app` | 28/28 |
+  | `app-run-ui` | 26/26 |
+  | `terminal-menu` | 42/42 |
+  | `accounts-terminals` | 41/41 |
+  | `grid-slots` | 13/13 |
+
+  O `grid-slots` estava partido desde a proposta C, porque procurava um aria-label que deixou de existir; foi corrigido. O `pane-header` e o `guided-claude-app` foram ajustados à tag removida e ao texto novo.
+- Visto no backend real: um `claude` acabado de abrir dá `waiting`, o que confirma o "acabado de abrir = à tua espera" do contrato.
+- Files: frontend/src/{index.css,layouts/AppLayout.tsx,pages/TerminalsPage.tsx,pages/dev/TokenPreviewPage.tsx,types/terminal.ts}, frontend/src/components/terminals/{terminalDisplay.ts,StateIcon.tsx,TerminalPane.tsx,TerminalSidebar.tsx,ProjectSwitcher.tsx}, frontend/src/contexts/{TerminalsContext.tsx,terminalsContextValue.ts}, frontend/src/hooks/useSharedTerminals.ts, frontend/src/components/guided/{GuidedConversation,PermissionCard}.tsx, frontend/src/components/library/ImportBanner.tsx, frontend/src/components/upwork/ApplicationDetail.tsx, scripts/verify/{session-state-icons,pane-header,guided-claude-app,grid-slots}.mjs, docs/{code-map,commands,frontend-conventions}.md, docs/features/terminais.md, docs/skills/references/design/guided-session.md
+- Item original do ToDo: "`sonnet` Ícones de estado das sessões (`TerminalView.activity`, ADR 0031; …) — só ícone + tooltip. **Alinhar também as sessões guiadas** … **A tag "A correr"/"Terminado" do cabeçalho do painel sai** … Verificar no browser, em foco e em grelha."
+
+## 2026-11-22 — UI dos agentes de cada terminal
+
+- Os agentes de cada sessão (`TerminalView.agents`) aparecem em versão "muito resumida", **só os que estão a correr**, com o tempo que levam a correr.
+  - **Cabeçalho do painel:** um selo "⑂ n" (`AgentsBadge`), que aparece também no cabeçalho compacto do mosaico, só quando há agentes. Abre um Popover acessível pelo teclado, com uma linha por agente: descrição · tipo · modelo · duração.
+  - **Lista TERMINAIS da lateral:** sublinhas `└` (`AgentSublines`), no máximo 3 e "+n" para o resto.
+- O modelo aparece curto: sem o `claude-` nem a data, por exemplo "haiku-5-5". A duração tem formato compacto ("40 s", "3 min", "1 h 5 min"). O relógio é o `useNow` de 1 s, que só corre quando há o que contar.
+- **Prova real pedida pelo dono:** um agente Explore em Haiku lançado a partir de um terminal da app chegou com `model` e `description` preenchidos (`"model":"claude-haiku-5-5","description":"Count ADR markdown files"`). Isto responde à dúvida sobre os agentes em background. A descrição é o Claude que a escolhe, e pode vir em inglês.
+- Fica a latência de até 10 s da sondagem, por isso um agente curto pode nem aparecer. Isso vai no item do WebSocket de eventos.
+- Feito por um agente Sonnet lançado desta sessão. Revisto aqui: `tsc -b` e lint limpos.
+- Testes, cada cenário numa instância nova:
+
+  | Cenário | Resultado |
+  |---|---|
+  | `terminal-agents` (novo) | 37/37, 3 vezes |
+  | `session-state-icons` | 46/46 |
+  | `pane-header` | 19/19 |
+  | `sidebar-proposta-c` | 33/33 |
+  | `project-switcher` | 31/31 |
+  | `smoke` | 6/6 |
+  | `grid-slots` | 13/13 |
+  | `terminal-menu` | 42/42 |
+
+  Não foi preciso ajustar nenhum cenário antigo.
+- Files: frontend/src/components/terminals/{AgentsBadge,AgentSublines}.tsx, frontend/src/components/terminals/{terminalDisplay.ts,TerminalPane.tsx,TerminalSidebar.tsx}, frontend/src/hooks/useNow.ts, frontend/src/types/terminal.ts, scripts/verify/terminal-agents.mjs, docs/{code-map,commands}.md, docs/features/terminais.md, docs/skills/references/design/{cards,tokens-and-colors}.md
+- Item original do ToDo: "`sonnet` UI dos agentes de cada terminal (`TerminalView.agents`, ADR 0031) — "muito resumido", **só os a correr**, tempo = duração a correr. Dois sítios: um contador "⑂ n" no cabeçalho do painel (também no cabeçalho compacto do mosaico) … e sublinhas indentadas por baixo de cada terminal na lista TERMINAIS da lateral. … Verificar no browser."
+
+## 2026-11-22 — Nome do projeto ativo na barra dos Terminais
+
+- Com a lateral fechada não se sabia em que projeto se estava. Agora o nome aparece à esquerda na barra dos Terminais (`TerminalsHeader`), **sempre**, com a lateral aberta ou fechada, em foco e em grelha: `[ícone] Nome ▾ · TERMINAIS N abertos …`.
+  - O ícone é o do estado mais urgente do projeto e só aparece com activity.
+  - O clique abre o seletor de projeto, o mesmo do `Alt+B`.
+  - O nome vem de `project.name`, como na lateral.
+- Pedido do dono a meio da sessão. A ideia inicial dele era pôr o nome junto do seletor "Principal + laterais", mas esse seletor só existe na grelha. Ficou à esquerda, antes das contagens, que são do mesmo projeto.
+- Feito por um agente Sonnet lançado desta sessão. Revisto aqui: `tsc -b` e lint limpos.
+- Testes:
+  - `header-project-name` (novo): 31/31, 3 vezes;
+  - sem ajustes: `session-state-icons` 46/46, `terminal-agents` 37/37, `sidebar-proposta-c` 33/33, `project-switcher` 31/31, `pane-header` 19/19, `smoke` 6/6.
+- Files: frontend/src/components/terminals/TerminalsHeader.tsx, frontend/src/pages/TerminalsPage.tsx, scripts/verify/header-project-name.mjs, docs/commands.md, docs/features/terminais.md, docs/skills/references/design/grid-styles.md
+- Item original do ToDo: "`sonnet` Nome do projeto ativo na barra dos Terminais (`TerminalsHeader`), à esquerda, antes das contagens — **sempre visível**, com a lateral aberta ou fechada …"

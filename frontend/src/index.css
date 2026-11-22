@@ -610,6 +610,14 @@
     transform: rotate(45deg);
   }
 
+  /* À tua espera: o mesmo losango, vazio — a forma (cheio/vazio) separa-o de "precisa de ti", a cor é a mesma. */
+  .state-icon.is-idle {
+    width: 8px;
+    height: 8px;
+    border: 1.5px solid var(--wfa-state-wait);
+    transform: rotate(45deg);
+  }
+
   .state-icon.is-stop {
     width: 9px;
     height: 9px;

@@ -102,6 +102,7 @@ Ant Design para componentes, Tailwind para estilo próprio, tokens CSS como font
   sem um instante com a conta nova e a quota velha), guarda o OK por conta e não avisa enquanto não há conta ativa; só o
   `now` vem do `useUsage()`. A quota é a da conta ativa: o `AccountsProvider` chama o `refresh()`
   do `useUsage()` sempre que a ativa muda, e uma leitura que saiu antes da mudança é ignorada.
+- **Lista de terminais partilhada** (2026-11-22): vive no `TerminalsProvider` do `AppLayout` (`useSharedTerminals()`), não na página — o losango de "Terminais" na navegação precisa dela fora da página. A `TerminalsPage` publica o que tem à vista com `usePublishSight`. Nenhum componente faz `GET /api/terminals` por conta própria.
 - **Foco num terminal vindo de outro sítio**: `navigate('/terminals', { state: { focusTerminalId } })`, também com a
   página já aberta. O `TerminalsPage` foca-o assim que está na lista, relê a lista se ainda lá não estiver, e limpa o estado.
 - Portas: dev server em **7401** com `strictPort` (não colidir com os dev servers dos projetos abertos

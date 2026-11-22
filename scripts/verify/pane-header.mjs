@@ -1,5 +1,5 @@
 // The dense grid of the IDE frame (ADR 0036, phase 3): pane headers of --wfa-row-height (name · pane-N · branch ·
-// state · enlarge · close), panes glued by 1 px, the Terminais header at --wfa-header-height. The branch comes from
+// state icon · enlarge · close), panes glued by 1 px, the Terminais header at --wfa-header-height. The branch comes from
 // the backend (`TerminalView.branch`, read from .git/HEAD); a test project gets a fake .git for it.
 // Confirmed on the API and the DOM (computed sizes), in the grid and in the split focus.
 //
@@ -49,7 +49,7 @@ try {
   check('pane-N · branch', meta === 'pane-1 · feat/grelha-densa', meta);
   const metaB = await page.evaluate(`${pane(b.id)}.querySelector('[data-pane-meta]').textContent`);
   check('second pane is pane-2', metaB.startsWith('pane-2'), metaB);
-  check('the state tag is there, small', await page.evaluate(`(() => { const t = ${header(a.id)}.querySelector('.tag-run.tag-sm'); return !!t && getComputedStyle(t).height === '18px' && t.textContent === 'A correr'; })()`));
+  check('no state tag any more: the icon says it (a just-opened claude is "À tua espera", an empty diamond)', await page.evaluate(`(() => { const h = ${header(a.id)}; const i = h.querySelector('[data-state-icon]'); return !h.querySelector('.tag-run, .tag-stop') && !/A correr|À tua espera/.test(h.innerText) && !!i && i.title === 'À tua espera' && !!i.querySelector('.state-icon.is-idle'); })()`));
   const pa = await rect(pane(a.id));
   const pb = await rect(pane(b.id));
   check('panes glued by 1 px', Math.round(pb.x - (pa.x + pa.w)) === 1, `${pb.x - (pa.x + pa.w)}`);

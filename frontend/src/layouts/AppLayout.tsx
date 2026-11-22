@@ -4,9 +4,12 @@ import { Dropdown, type MenuProps } from 'antd';
 import { Link, NavLink, Outlet, useNavigate } from 'react-router';
 import { AccountsDrawer } from '@/components/accounts/AccountsDrawer';
 import { Wordmark } from '@/components/common/Wordmark';
+import { StateIcon } from '@/components/terminals/StateIcon';
+import { summarizeActivity, wantsAttention } from '@/components/terminals/terminalDisplay';
 import { TitleBarQuota } from '@/components/usage/TitleBarQuota';
 import { UsageLimitModal } from '@/components/usage/UsageLimitModal';
 import { AccountsProvider } from '@/contexts/AccountsContext';
+import { TerminalsProvider } from '@/contexts/TerminalsContext';
 import { KeybindingsProvider } from '@/contexts/KeybindingsContext';
 import { StatusBarProvider } from '@/contexts/StatusBarContext';
 import { useStatusBarContent } from '@/hooks/useStatusBar';
@@ -16,6 +19,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { useBackendHealth, type BackendHealth } from '@/hooks/useBackendHealth';
 import { useConfirm } from '@/hooks/useConfirm';
 import { useShortcuts } from '@/hooks/useShortcuts';
+import { useSharedTerminals } from '@/hooks/useSharedTerminals';
 
 // Única fonte de verdade da navegação persistente (app-shell-and-auth.md §2). Desde a moldura tipo IDE
 // (ADR 0036) tudo à esquerda, logo a seguir à marca: os sítios e, no fim, as duas ações (a Upwork antes do
@@ -59,15 +63,34 @@ function NavigationShortcuts() {
   return null;
 }
 
+/**
+ * O losango ao lado de "Terminais": acende só por sessões **fora de vista** (de outro projeto, escondidas da
+ * grelha, ou com a página dos Terminais fechada) que pedem o dono. Cheio se alguma precisa de ti, vazio se só
+ * há à tua espera; sem nenhuma, não aparece. O que está à vista já se vê no painel.
+ */
+function TerminalsAttentionMark() {
+  const { terminals, sight } = useSharedTerminals();
+  const outOfSight = terminals.filter((t) => wantsAttention(t) && !(sight?.visibleIds.includes(t.id)));
+  const summary = summarizeActivity(outOfSight, ['needs-you', 'waiting']);
+  if (!summary) return null;
+  return (
+    <span className="ml-1.5 flex items-center" data-terminals-attention={summary.activity}>
+      <StateIcon icon={summary.icon} title={summary.text} />
+    </span>
+  );
+}
+
 export function AppLayout() {
   return (
     <KeybindingsProvider>
       <UsageProvider>
         <AccountsProvider>
           <NavigationShortcuts />
-          <StatusBarProvider>
-            <AppShell />
-          </StatusBarProvider>
+          <TerminalsProvider>
+            <StatusBarProvider>
+              <AppShell />
+            </StatusBarProvider>
+          </TerminalsProvider>
           <UsageLimitModal />
         </AccountsProvider>
       </UsageProvider>
@@ -123,6 +146,7 @@ function AppShell() {
           {NAV_ITEMS.map((item) => (
             <NavLink key={item.to} to={item.to} className={navLinkClass}>
               {item.label}
+              {item.to === '/terminals' && <TerminalsAttentionMark />}
             </NavLink>
           ))}
         </nav>

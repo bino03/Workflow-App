@@ -81,8 +81,8 @@ resumo.
 ### ⛔ Fora — não implementar nesta feature
 - **Estados "a trabalhar" / "à tua espera"** (arco, losango, alerta na lateral) — o protótipo mostra-os,
   mas no MVP só há **a correr / terminado / parado**. *Atualizado a 2026-11-13:* o backend já os dá
-  (`TerminalView.activity`, [[../adr/0031-estado-das-sessoes-por-hooks|ADR 0031]]); os ícones são outro item do ToDo,
-  com o design por escolher.
+  (`TerminalView.activity`, [[../adr/0031-estado-das-sessoes-por-hooks|ADR 0031]]); os ícones chegaram a 2026-11-22
+  (ver "Ícones de estado das sessões" abaixo).
 - **Estado "Desligado" separado** (✕, "Reiniciar") — um `claude` que sai com código ≠ 0 é **terminado**, e o
   banner mostra o código. Não há "Reiniciar"; há **Reabrir** (`--resume`).
 - **Resumo feito pelo Claude** (escrever um prompt no PTY) — recusado ([[../adr/0009-estado-em-ficheiro-json]]);
@@ -99,7 +99,7 @@ resumo.
 
 ### Segunda fase (se houver)
 - Estados "a trabalhar"/"à tua espera" — **a fonte existe** (2026-11-13): hooks não bloqueantes, `activity` no
-  `TerminalView` ([[../adr/0031-estado-das-sessoes-por-hooks|ADR 0031]]), e os agentes de cada terminal em `agents`. Falta a UI (ícones; o desenho dos agentes fica para o dono).
+  `TerminalView` ([[../adr/0031-estado-das-sessoes-por-hooks|ADR 0031]]), e os agentes de cada terminal em `agents`. Os ícones da `activity` e a UI dos agentes estão feitos (2026-11-22, abaixo).
 - Botão **Resumir** (ideia em `ideas.md`).
 - Ecrã de histórico, se a lista Retomar deixar de chegar.
 
@@ -265,7 +265,7 @@ sessão acabada de abrir (sem pedidos) **não** tem `rate_limits` — tem `sessi
     AQUI", ações Renomear/Dividir/Fechar) + `TerminalView` + banner (terminado/parado → Reabrir).
   - `components/terminals/TerminalSidebar.tsx` — 288 px, **agrupada por projeto (pasta)** desde 2026-09-28 (§3):
     cabeçalho do projeto (nome da pasta, caminho no title, estrela de favorita, **+** que abre um terminal nessa
-    pasta) com os terminais por baixo. Por cima: kicker + "N abertos", **+ Novo terminal Alt+N** (drawer, para
+    pasta) com os terminais por baixo. Por cima: kicker + "N abertos" (na barra dos Terminais, `TerminalsHeader.tsx`, desde 2026-11-22 antecedidos pelo **nome do projeto ativo** como botão que abre o seletor — fica à vista com a lateral fechada), **+ Novo terminal Alt+N** (drawer, para
     uma pasta nova ou para retomar),
     contagens por estado, lista (nome, pasta mono, estado · detalhe, `Alt+n`), **Reabrir todos** quando há
     parados, e a quota em baixo.
@@ -283,6 +283,55 @@ sessão acabada de abrir (sem pedidos) **não** tem `rate_limits` — tem `sessi
 - Visual: tudo dos tokens; ícones de estado com `.state-icon.is-stop` (terminado/parado) e o arco
   `is-work` **não** se usa (fora do âmbito); "a correr" usa um ponto `accent` simples — **definir no
   passo 12 e registar em** [[../skills/references/design/tokens-and-colors]].
+
+### Ícones de estado das sessões (2026-11-22)
+
+O `activity` do claude (`working` / `needs-you` / `waiting` / `null`) vira um só ícone, pelo mapa de
+`components/terminals/terminalDisplay.ts` (`terminalStateMeta`; sem `activity`, fica o `STATUS_META`): arco `is-work`
+"A trabalhar" · losango cheio `is-wait` "Precisa de ti" · losango vazio `is-idle` "À tua espera" · ponto `is-run` / quadrado
+`is-stop` quando não há `activity` ("Correr a app", importações, terminados). O contrato está em
+[[../skills/references/design/tokens-and-colors]] §3.
+
+- **Cabeçalho do painel** (também o compacto do mosaico): só o ícone à esquerda, com o estado no tooltip — a tag
+  "A correr"/"Terminado"/"Parado" saiu.
+- **Lista TERMINAIS da lateral**: o mesmo ícone; o `pane-N` fica. Um terminal **escondido** (fora de `visibleIds`: fora da
+  grelha, ou o outro do foco dividido) que precisa de ti ou está à tua espera ganha fundo `--wfa-state-wait-subtle` e borda
+  `--wfa-state-wait-border` (`data-attention`).
+- **O mais urgente por projeto** (`summarizeActivity`: precisa de ti > à tua espera > a trabalhar, tooltip "2 precisam de ti ·
+  1 a trabalhar"): ao lado do nome do projeto ativo na lateral e, **em vez** dos ícones por status, na linha de cada projeto
+  do seletor (sem nenhuma `activity`, fica como antes).
+- **Losango ao lado de "Terminais"** na navegação de topo (`AppLayout`): só por sessões **fora de vista** — de outro projeto,
+  escondidas da grelha, ou com outra página aberta. Cheio se alguma precisa de ti, vazio se só há à tua espera, ausente sem
+  nenhuma. Para o `AppLayout` chegar aos terminais sem pedidos a mais, a lista passou a viver num `TerminalsProvider`
+  (`contexts/TerminalsContext.tsx`, lido por `useSharedTerminals`): uma só releitura de 10 em 10 s, também fora dos
+  Terminais; a página diz o que tem à vista (`usePublishSight`: projeto ativo + `visibleIds`, e limpa-o ao sair).
+- Os chips de filtro e as contagens do cabeçalho de Terminais continuam por `status`.
+- As sessões guiadas usam o mesmo vocabulário: pergunta, permissão e `needs-you` → "Precisa de ti" (cheio); `waiting-text` →
+  "À tua espera" (vazio).
+
+### Agentes de cada terminal (2026-11-22)
+
+O `TerminalView.agents` (hooks, [[../adr/0031-estado-das-sessoes-por-hooks|ADR 0031]]) chega pelo `useSharedTerminals`, com a
+releitura de 10 em 10 s. A UI mostra **só os `running`** (`runningAgents` em `terminalDisplay.ts`; os `done` não aparecem nem contam)
+e é "muito resumida", em dois sítios:
+
+- **Selo "⑂ n" no cabeçalho do painel** (`AgentsBadge.tsx`; também no cabeçalho compacto do mosaico): um `<button class="tag tag-sm">`
+  depois de `pane-N · branch` e da conta, antes do RC. Com zero agentes a correr **não existe** (não ocupa espaço). Passar o rato,
+  clicar ou Enter abre um Popover do AntD ("Agentes a correr"); Esc fecha. Uma linha por agente: ícone `is-work` · descrição (ou o
+  tipo, sem descrição) · tipo · modelo · duração. O tipo não se repete quando já é o título; um agente só com o tipo (descrição e
+  modelo `null`) fica numa linha só com o tipo e a duração. Sem descrição nem tipo diz "Agente".
+- **Sublinhas na lista TERMINAIS da lateral** (`AgentSublines.tsx`, por baixo da linha do terminal, fora do `<button>` dele): `└` ·
+  ícone `is-work` pequeno · descrição (ou tipo) com elipse · duração à direita (mono, `text-2`). 20 px de altura (a linha do
+  terminal tem 26). `title` = "tipo · modelo". Mais de 3 a correr → 3 sublinhas e uma linha "└ +n".
+- **Duração** = há quanto tempo corre (`formatElapsed(startedAt, now)`): "40 s" · "3 min" · "1 h 5 min" (sem minutos: "2 h"). O relógio é o
+  `useNow` (`hooks/useNow.ts`, 1 s): só corre enquanto há uma lista aberta ou sublinhas — o selo, sozinho, não tem relógio. O `now` da
+  lateral (60 s, quota) é grosso demais para segundos, e o do `AppRunControl` é privado dele, por isso o hook é novo.
+- **Nome do modelo** (`shortModel`): tira o prefixo `claude-` e o sufixo de data `-AAAAMMDD`, o resto fica como vem
+  ("claude-haiku-5-5" → "haiku-5-5", "claude-haiku-4-5-20251001" → "haiku-4-5"). Sem tabela de modelos para manter.
+- Sem `lastAction` (fica para um item futuro, com backend novo).
+- Visto com o `claude` real (Explore + haiku, pelo terminal da instância descartável): `model` e `description` vêm preenchidos
+  (`"claude-haiku-5-5"`, e a descrição que o próprio Claude escolhe, **na língua dele** — pode vir em inglês mesmo com o prompt em português).
+  Cenário: `scripts/verify/terminal-agents.mjs`.
 
 ### 4.5 Códigos de erro novos
 

@@ -29,10 +29,10 @@ export type TerminalView = {
   branch: string | null;
   /**
    * O que o claude de um terminal normal a correr está a fazer, pelos hooks (ADR 0031). null se não corre
-   * ("Terminada" é o status) ou se não é um terminal normal. Ainda sem UI (ícones: ToDo).
+   * ("Terminada" é o status) ou se não é um terminal normal. Mostrado como ícone de estado (`terminalDisplay.ts`).
    */
   activity: TerminalActivity | null;
-  /** Os agentes que o claude lançou, deste lote (ADR 0031); [] quando activity é null. Ainda sem UI. */
+  /** Os agentes que o claude lançou, deste lote (ADR 0031); [] quando activity é null. Só os `running` têm UI (`terminalDisplay.ts` → `runningAgents`). */
   agents: TerminalAgent[];
 };
 

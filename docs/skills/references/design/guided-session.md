@@ -20,7 +20,7 @@ tags de estado).
   (ver "Scroll e índice" abaixo).
 - Cabeçalho como o resto da app: o `PageHeader` ([[tables-and-lists]] §2), a toda a largura por cima da coluna
   (portal), com o título do estado e à direita a **tag de estado** (cor + forma, de
-  [[tokens-and-colors]] §3: a trabalhar `tag-work` · à tua espera `tag-wait` · parada `tag-stop` · criado `tag-run` ·
+  [[tokens-and-colors]] §3: a trabalhar `tag-work` · precisa de ti `tag-wait` (losango cheio) · à tua espera `tag-wait` (losango vazio) · parada `tag-stop` · criado `tag-run` ·
   falhou `tag-err`), **Ver terminal** (`size="small"`, ícone `CodeOutlined`) e **Cancelar** (`type="text" danger`,
   com confirmação). Ver terminal está sempre lá: é o escape para o que a vista não sabe mostrar.
 - Antes de Ver terminal, enquanto a sessão não terminou: **Permissões** (rótulo `text-3` 12.5 px) + `Select`
