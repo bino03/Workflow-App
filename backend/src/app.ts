@@ -47,6 +47,9 @@ import { ProjectInfoService } from './projectInfo/projectInfoService.js';
 import { projectTasksRoutes } from './projectTasks/projectTasks.routes.js';
 import { ProjectTasksService } from './projectTasks/projectTasksService.js';
 import { branchesRoutes } from './terminals/branches.routes.js';
+import { eventsGateway } from './terminals/events.gateway.js';
+import { SessionStateWatcher } from './terminals/sessionStateWatcher.js';
+import { TerminalEvents } from './terminals/terminalEvents.js';
 import { AccountDirs } from './accounts/accountDirs.js';
 import { accountsRoutes } from './accounts/accounts.routes.js';
 import { AccountsService } from './accounts/accountsService.js';
@@ -156,16 +159,25 @@ export async function buildApp({
   await app.register(projectTasksRoutes, {
     projectTasksService: new ProjectTasksService({ stateStore, allowedRoots: config.terminals.allowedRoots }),
   });
+  // One fs.watch over DATA_DIR/session-state/, for the deploy trigger and the events channel (ADR 0038).
+  const sessionStateWatcher = new SessionStateWatcher(config.dataDir, app.log.child({ module: 'session-state' }));
   // ADR 0035: a push in a normal terminal syncs its project's deploy right away (the hook leaves push.json).
   const deployTrigger = new DeployTrigger({
+    watcher: sessionStateWatcher,
     dataDir: config.dataDir,
     terminalCwd: (id) => stateStore.read().terminals.find((terminal) => terminal.id.toLowerCase() === id)?.cwd ?? null,
     projectPaths: async () => (await projectsService.list()).map((project) => project.path),
     projectInfo: projectInfoService,
     log: app.log.child({ module: 'deploy-trigger' }),
   });
-  app.addHook('onReady', async () => deployTrigger.start());
-  app.addHook('onClose', async () => deployTrigger.stop());
+  app.addHook('onReady', async () => {
+    deployTrigger.start();
+    sessionStateWatcher.start();
+  });
+  app.addHook('onClose', async () => {
+    sessionStateWatcher.stop();
+    await deployTrigger.stop();
+  });
 
   const sessionsReader = new ClaudeSessions(config.terminals.claudeConfigDir);
 
@@ -261,6 +273,11 @@ export async function buildApp({
   });
   await app.register(appRunRoutes, { appRunService });
   await app.register(terminalsGateway, { terminalManager, sessionStore: sessions });
+  // ADR 0038: the session state of every visible terminal, pushed when a hook writes it.
+  const terminalEvents = new TerminalEvents({ watcher: sessionStateWatcher, view: (id) => terminalsService.get(id) });
+  app.addHook('onReady', async () => terminalEvents.start());
+  app.addHook('onClose', async () => terminalEvents.stop());
+  await app.register(eventsGateway, { terminalEvents, sessionStore: sessions });
   await app.register(usageRoutes, { dataDir: config.dataDir, activeAccountId: () => accountsService.activeAccountId() });
   await app.register(sessionsRoutes, { sessions: sessionsReader, stateStore, terminalsService, allowedRoots: config.terminals.allowedRoots });
   await app.register(foldersRoutes, {

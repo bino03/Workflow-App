@@ -332,6 +332,9 @@ e é "muito resumida", em dois sítios:
 - Visto com o `claude` real (Explore + haiku, pelo terminal da instância descartável): `model` e `description` vêm preenchidos
   (`"claude-haiku-5-5"`, e a descrição que o próprio Claude escolhe, **na língua dele** — pode vir em inglês mesmo com o prompt em português).
   Cenário: `scripts/verify/terminal-agents.mjs`.
+- **Na hora** (2026-11-23, [[../adr/0038-canal-de-eventos-das-sessoes]]): o estado e os agentes chegam pelo WebSocket de eventos
+  (`/api/terminals/events/ws`) em ~0,2 s; a sondagem da lista passou de 10 s a 60 s e fica como rede. Cenário:
+  `scripts/verify/session-events.mjs`.
 
 ### 4.5 Códigos de erro novos
 

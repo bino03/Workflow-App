@@ -82,7 +82,11 @@ export type ClientControlMessage = { type: 'resize'; cols: number; rows: number 
 
 export const TERMINAL_LIMITS = { minCols: 2, maxCols: 1000, minRows: 1, maxRows: 500 } as const;
 
-/** Códigos de fecho do socket. */
+// ── WebSocket de eventos (/api/terminals/events/ws, ADR 0038) ─────────
+/** Só servidor → cliente: o estado de um terminal normal e visível mudou (os mesmos campos do TerminalView). */
+export type TerminalEventMessage = { type: 'terminal'; id: string; activity: TerminalActivity; agents: TerminalAgent[] };
+
+/** Códigos de fecho do socket (os dois WebSockets). */
 export const WS_CLOSE = {
   /** O terminal não está a correr em memória (parado, fechado, ou reaberto → ligar de novo). */
   terminalGone: 4404,

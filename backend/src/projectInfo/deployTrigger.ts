@@ -1,11 +1,11 @@
-import { type FSWatcher, mkdirSync, readFileSync, watch } from 'node:fs';
-import { basename, dirname, join } from 'node:path';
+import { readFileSync } from 'node:fs';
+import { join } from 'node:path';
 import type { FastifyBaseLogger } from 'fastify';
 import { isInsideRoot } from '../folders/cwdPolicy.js';
 import { SESSION_STATE_FILES } from '../terminals/sessionState.js';
+import { type SessionStateChange, SessionStateWatcher } from '../terminals/sessionStateWatcher.js';
 import type { ProjectInfoService } from './projectInfoService.js';
 
-const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const DEBOUNCE_MS = 1_000;
 
 export type DeployTriggerOptions = {
@@ -18,6 +18,8 @@ export type DeployTriggerOptions = {
   projectInfo: Pick<ProjectInfoService, 'hasDeployBranch' | 'syncFromGit'>;
   log: FastifyBaseLogger;
   debounceMs?: number;
+  /** The shared watcher of session-state/ (ADR 0038); omitted → one of its own, started and stopped with this. */
+  watcher?: SessionStateWatcher;
 };
 
 /**
@@ -25,7 +27,9 @@ export type DeployTriggerOptions = {
  * it and syncs the deploy of the project the terminal runs in. Never throws: a watcher error is only logged.
  */
 export class DeployTrigger {
-  private watcher: FSWatcher | null = null;
+  private readonly watcher: SessionStateWatcher;
+  private readonly ownWatcher: boolean;
+  private unsubscribe: (() => void) | null = null;
   private readonly timers = new Map<string, NodeJS.Timeout>();
   private readonly handled = new Map<string, string>();
   private readonly inFlight = new Set<Promise<void>>();
@@ -35,34 +39,28 @@ export class DeployTrigger {
   constructor(private readonly options: DeployTriggerOptions) {
     this.stateDir = join(options.dataDir, SESSION_STATE_FILES.dir);
     this.debounceMs = options.debounceMs ?? DEBOUNCE_MS;
+    this.ownWatcher = !options.watcher;
+    this.watcher = options.watcher ?? new SessionStateWatcher(options.dataDir, options.log);
   }
 
   start(): void {
-    try {
-      mkdirSync(this.stateDir, { recursive: true });
-      this.watcher = watch(this.stateDir, { recursive: true }, (_event, filename) => {
-        if (filename) this.onChange(String(filename));
-      });
-      this.watcher.on('error', (error) => this.options.log.warn({ err: error }, 'deploy trigger: watcher error'));
-    } catch (error) {
-      this.options.log.warn({ err: error }, 'deploy trigger: could not watch the session state');
-    }
+    this.unsubscribe ??= this.watcher.subscribe((change) => this.onChange(change));
+    if (this.ownWatcher) this.watcher.start();
   }
 
   /** Stops watching and waits for a sync already under way. */
   async stop(): Promise<void> {
-    this.watcher?.close();
-    this.watcher = null;
+    this.unsubscribe?.();
+    this.unsubscribe = null;
+    if (this.ownWatcher) this.watcher.stop();
     for (const timer of this.timers.values()) clearTimeout(timer);
     this.timers.clear();
     await Promise.allSettled([...this.inFlight]);
   }
 
-  private onChange(filename: string): void {
+  private onChange({ terminalId, path }: SessionStateChange): void {
     // `<terminal id>/push.json` — the tmp file of the atomic write and every other file are ignored.
-    if (basename(filename) !== SESSION_STATE_FILES.push) return;
-    const terminalId = basename(dirname(filename)).toLowerCase();
-    if (!UUID.test(terminalId)) return;
+    if (path !== SESSION_STATE_FILES.push) return;
     clearTimeout(this.timers.get(terminalId));
     this.timers.set(
       terminalId,

@@ -103,7 +103,7 @@ UUID dá o mesmo `TERMINAL_001` que um id desconhecido.
 cabeçalho do painel ([[adr/0036-moldura-tipo-ide-e-seletor-de-projeto]], fase 3): lido do `.git/HEAD` (ou do
 `gitdir:` de um worktree) a subir da pasta, **nunca acima da raiz de `ALLOWED_ROOTS`** e sem correr o git;
 `null` fora de um repositório, com o HEAD solto ou com um nome que não passa o `BRANCH_NAME`. Em cache 3 s por
-pasta (`terminals/gitBranch.ts`). `activity: 'working'|'needs-you'|'waiting'|null` — o que o `claude` de um **terminal normal** a correr está a fazer, pelos hooks de sessão ([[adr/0031-estado-das-sessoes-por-hooks]]): A trabalhar / Precisa de ti (permissão ou pergunta) / À tua espera (acabou o turno, ou acabado de abrir); `null` se não corre ("Terminada" é o `status`) ou se é de uma importação, sessão guiada, `/run` ou login. Chega pela sondagem do `GET` (até 10 s). `agents: {id, description, type, model, status: 'running'|'done', startedAt, endedAt}[]` — os agentes que esse `claude` lançou (mais antigos primeiro, até 50; `[]` quando `activity` é `null`); só o que vem nos hooks, nunca o prompt nem o resultado; os `done` saem na mensagem seguinte do dono, os que ainda correm ficam. `accountId` é a conta do Claude em que o terminal corre ([[adr/0027-varias-contas-do-claude]]). Se essa conta tiver sido removida, lê-se `'primary'`. As importações, as sessões guiadas, o Upwork e o bot lançam na conta ativa.
+pasta (`terminals/gitBranch.ts`). `activity: 'working'|'needs-you'|'waiting'|null` — o que o `claude` de um **terminal normal** a correr está a fazer, pelos hooks de sessão ([[adr/0031-estado-das-sessoes-por-hooks]]): A trabalhar / Precisa de ti (permissão ou pergunta) / À tua espera (acabou o turno, ou acabado de abrir); `null` se não corre ("Terminada" é o `status`) ou se é de uma importação, sessão guiada, `/run` ou login. Chega na hora pelo [WebSocket de eventos](#websocket-de-eventos-das-sessões) ([[adr/0038-canal-de-eventos-das-sessoes]]); o `GET` é a rede (60 s, e ao voltar à janela). `agents: {id, description, type, model, status: 'running'|'done', startedAt, endedAt}[]` — os agentes que esse `claude` lançou (mais antigos primeiro, até 50; `[]` quando `activity` é `null`); só o que vem nos hooks, nunca o prompt nem o resultado; os `done` saem na mensagem seguinte do dono, os que ainda correm ficam. `accountId` é a conta do Claude em que o terminal corre ([[adr/0027-varias-contas-do-claude]]). Se essa conta tiver sido removida, lê-se `'primary'`. As importações, as sessões guiadas, o Upwork e o bot lançam na conta ativa.
   `importId`/`hidden` — o terminal escondido de uma importação ([[adr/0019-importar-pelas-skills-do-workflow]]): não
   aparece no `GET` (nem no bot) até ser revelado; reaberto, mantém o `--settings` das importações e as `--add-dir`.
   `preview: {url, devPort, httpsPort, startedAt} | null` — pré-visualização viva na tailnet
@@ -151,6 +151,23 @@ redesenhar logo a seguir.
 - Vários clientes no mesmo terminal recebem todos o output; o último `resize` ganha.
 - Um frame tem no máximo **1 MiB** (`maxPayload`).
 - O conteúdo do terminal **nunca** vai para os logs — só ids e eventos (testado em `terminals.gateway.test.ts`).
+
+### WebSocket de eventos das sessões
+
+> ✅ 2026-11-23, [[adr/0038-canal-de-eventos-das-sessoes]]. Gateway em `backend/src/terminals/events.gateway.ts`, mensagens
+> em `terminalEvents.ts`; tipo `TerminalEventMessage` em `protocol.ts`, espelhado em `frontend/src/types/terminal.ts`.
+> `WS /api/terminals/events/ws` — sessão **e** `Origin` verificados pela guarda antes do upgrade (401 / 403), como o de cada terminal.
+
+Um por separador (o `useTerminals`). Só servidor → cliente; o que o cliente envia é ignorado.
+
+| Direção | Frame | Mensagem | Nota |
+|---|---|---|---|
+| servidor → cliente | texto | `{"type":"terminal","id":"<uuid>","activity":"working"|"needs-you"|"waiting","agents":[…]}` | O estado de sessão de um terminal **normal e visível** mudou — os mesmos campos do `TerminalView`. ~150 ms depois do hook escrever; só quando `activity`/`agents` diferem do último envio desse terminal |
+
+- Nada é enviado ao ligar: o cliente lê a lista com o `GET` e, ao **religar**, lê-a de novo (pode ter perdido eventos).
+- Abrir, fechar e terminar terminais **não** vêm por aqui (o `exit` vem no WS do terminal; o resto nas respostas e na sondagem).
+- **Fecho**: `4401` — a sessão de login acabou (o cliente não religa). Qualquer outro fecho → religar com espera de 1 s a 30 s.
+- Testado em `backend/test/terminalEvents.test.ts`; no browser, `scripts/verify/session-events.mjs`.
 
 ## Sessões gravadas e pastas (`sessions/`, `folders/`) — ✅
 

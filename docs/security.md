@@ -42,7 +42,9 @@ Um só utilizador, **sem provedor externo** — adaptação do padrão "JWT em c
   `authService.test.ts`).
 - **`Origin` no upgrade do WebSocket**: sem `Origin`, ou fora de `CORS_ALLOWED_ORIGINS` → `403 AUTH_003`,
   antes do upgrade. Testado (ADR 0004): sem cookie → 401; com cookie e `Origin` alheio → 403; sem
-  `Origin` → 403; com os dois → liga.
+  `Origin` → 403; com os dois → liga. Vale para os dois WebSockets — o de cada terminal e o de eventos das sessões
+  (`/api/terminals/events/ws`, [[adr/0038-canal-de-eventos-das-sessoes]], testado em `terminalEvents.test.ts`), que só
+  envia `activity`/`agents` de terminais visíveis, nunca prompts nem resultados, e também fecha (`4401`) no fim da sessão.
 - **Endpoints públicos das passkeys**: `POST /api/auth/passkeys/login/options` e `POST /api/auth/passkeys/login`
   (secção abaixo).
 - Terminar a sessão (logout ou expiração) **fecha os WebSockets abertos** dessa sessão; os PTYs continuam

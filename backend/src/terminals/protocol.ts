@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import type { TerminalActivity, TerminalAgent } from './sessionState.js';
 
 /**
  * WebSocket protocol of `/api/terminals/:id/ws` — mirrored in `frontend/src/types/terminal.ts`.
@@ -31,3 +32,14 @@ export type ServerControlMessage =
   /** First message after connecting: the client resets its screen, then binary scrollback follows. */
   | { type: 'ready'; status: TerminalStatus; exitCode: number | null }
   | { type: 'exit'; code: number };
+
+/**
+ * `/api/terminals/events/ws` (ADR 0038) — server → client only, text frames. Sent when a visible normal terminal's
+ * session state changes; the same fields and values as in `TerminalView`. Mirrored in `frontend/src/types/terminal.ts`.
+ */
+export type TerminalEventMessage = {
+  type: 'terminal';
+  id: string;
+  activity: TerminalActivity;
+  agents: TerminalAgent[];
+};

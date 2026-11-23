@@ -1,10 +1,13 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
+import { apiWebSocketUrl } from '@/config/apiBase';
 import { ErrorHandler } from '@/errors/errorHandler';
 import * as terminalService from '@/services/terminalService';
-import type { CreateTerminalBody, TerminalSize, TerminalView } from '@/types/terminal';
+import { type CreateTerminalBody, type TerminalEventMessage, type TerminalSize, type TerminalView, WS_CLOSE } from '@/types/terminal';
 
 const REFRESH_ON_RETURN_MS = 5000;
-const REFRESH_EVERY_MS = 10_000;
+/** Só a rede: o estado das sessões chega pelo WebSocket de eventos (ADR 0038). */
+const REFRESH_EVERY_MS = 60_000;
+const EVENTS_RECONNECT_MS = [1000, 2000, 5000, 10_000, 30_000];
 
 /**
  * Hook local dos Terminais: dono da lista (a ordem é a do backend — por createdAt). As ações devolvem o
@@ -44,9 +47,54 @@ export function useTerminals() {
   /** Relê a lista (um terminal terminou, foi reaberto noutro separador…). */
   const refresh = useCallback(() => setAttempt((n) => n + 1), []);
 
+  // O estado das sessões na hora (ADR 0038): cada mensagem muda só activity/agents de um terminal já na lista (um
+  // que ela não tem chega na releitura seguinte). Ao religar relê a lista — pode ter perdido eventos. 4401 → não
+  // religa (o AuthContext leva ao /login).
+  useEffect(() => {
+    let disposed = false;
+    let socket: WebSocket | null = null;
+    let timer: number | undefined;
+    let failures = 0;
+    let opened = false;
+    const connect = () => {
+      const ws = new WebSocket(apiWebSocketUrl('/terminals/events/ws'));
+      socket = ws;
+      ws.onopen = () => {
+        if (opened) refresh();
+        opened = true;
+        failures = 0;
+      };
+      ws.onmessage = (event) => {
+        if (typeof event.data !== 'string') return;
+        let message: TerminalEventMessage;
+        try {
+          message = JSON.parse(event.data) as TerminalEventMessage;
+        } catch {
+          return;
+        }
+        if (message.type !== 'terminal') return;
+        setTerminals((list) =>
+          list.map((t) => (t.id === message.id ? { ...t, activity: message.activity, agents: message.agents } : t)),
+        );
+      };
+      ws.onclose = (event) => {
+        if (disposed || socket !== ws || event.code === WS_CLOSE.sessionEnded) return;
+        socket = null;
+        const delay = EVENTS_RECONNECT_MS[Math.min(failures++, EVENTS_RECONNECT_MS.length - 1)];
+        timer = window.setTimeout(() => !disposed && connect(), delay);
+      };
+    };
+    connect();
+    return () => {
+      disposed = true;
+      window.clearTimeout(timer);
+      socket?.close();
+    };
+  }, [refresh]);
+
   // O bot de Telegram abre e para terminais sem esta página saber (ADR 0017). Voltar à janela não chega — com a
   // janela do PC sempre focada enquanto se usa o telemóvel não há evento nenhum (visto a 2026-10-22) —, por isso
-  // relê também de REFRESH_EVERY_MS em REFRESH_EVERY_MS enquanto a página está visível.
+  // relê também de REFRESH_EVERY_MS em REFRESH_EVERY_MS enquanto a página está visível (a rede do ADR 0038).
   useEffect(() => {
     let last = Date.now();
     const reread = (minGapMs: number) => {

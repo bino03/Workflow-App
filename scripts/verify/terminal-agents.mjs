@@ -9,7 +9,7 @@
 //   node scripts/verify/instance.mjs start --fresh
 //   node scripts/verify/terminal-agents.mjs [run dir]
 //   node scripts/verify/instance.mjs stop --clean
-import { checker, login, openBrowser, openProject, readInstance } from './cdp.mjs';
+import { checker, login, openBrowser, openProject, readInstance, sleep } from './cdp.mjs';
 
 const instance = readInstance(process.argv[2]);
 const { check, finish } = checker();
@@ -156,9 +156,13 @@ try {
   check('sidebar A2 (5 running): 3 sub-lines + "+2"', s2.n === 3 && s2.more === '└+2', JSON.stringify(s2));
   check('A3 (only done) and A4 (none): no sub-line', await page.evaluate(`${subs(a3.id)}.length === 0 && ${subs(a4.id)}.length === 0 && !${item(a3.id)}.parentElement.querySelector('[data-agent-sublines]')`));
 
-  // ── 3. The agents finish: badge and sub-lines go away on the next 10 s re-read ──
+  // ── 3. The agents finish: badge and sub-lines go away on the next re-read ──
+  // Live changes come over the events socket (ADR 0038, session-events.mjs), which this faked GET cannot drive; the
+  // poll is only a 60 s net now, so the re-read is the one on returning to the window (at least 5 s after the last).
   agents = { [a1.id]: SET.a1().map((a) => ({ ...a, status: 'done', endedAt: ago(100) })), [a2.id]: [] };
-  check('all done → the counter disappears (zero takes no room) and the sub-lines too', await page.waitFor(`!${badge(a1.id)} && !${badge(a2.id)} && !document.querySelector('[data-agent-sublines]')`, 14000));
+  await sleep(5500);
+  await page.evaluate(`window.dispatchEvent(new Event('focus'))`);
+  check('all done → the counter disappears (zero takes no room) and the sub-lines too', await page.waitFor(`!${badge(a1.id)} && !${badge(a2.id)} && !document.querySelector('[data-agent-sublines]')`, 5000));
 
   // ── 4. Grid: quad with A1 and A2 in places ──
   await load({ layout: 'grid', slots: [a1.id, a2.id, null, null], map: { [a1.id]: SET.a1(), [a2.id]: SET.a2() } });

@@ -9,6 +9,8 @@ data: 2026-11-13
 **Data**: 2026-11-13 · **Estado**: `aceite` · **Decidido com**: o dono, no `/refine-idea` de 2026-11-12 e no
 `/implement-todo` de 2026-11-13 (plano `2026-11-13-terminais-estados-grelha-stop`). **Altera**
 [[0012-argumentos-do-claude-e-status-line]] (o `claude-settings.json` deixa de ter só `statusLine`).
+**Alterado por** [[0038-canal-de-eventos-das-sessoes]] (2026-11-23): passa a haver canal de eventos — o "sem canal
+de eventos" e a latência "até 10 s" deixam de valer.
 
 ## Contexto
 

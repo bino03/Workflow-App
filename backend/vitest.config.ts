@@ -14,6 +14,7 @@ const PROCESS_TESTS = [
   'test/preview.routes.test.ts',
   'test/projectInfo.gitSync.test.ts',
   'test/telegramBot.test.ts',
+  'test/terminalEvents.test.ts',
   'test/terminalManager.test.ts',
   'test/terminals.gateway.test.ts',
   'test/terminals.routes.test.ts',
